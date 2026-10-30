@@ -17,7 +17,7 @@ shell-view-release = View
 
 # Notice when the app cannot keep running once its window is closed.
 # @only linux
-shell-no-background = { -app-name } can't keep running in the background here
+shell-no-background = { -app-name } can't keep running in the background here, so downloads stop when the window closes
 
 # Tooltip of the main menu button in the sidebar's header.
 # @only linux

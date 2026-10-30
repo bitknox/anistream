@@ -130,10 +130,10 @@ class ReducerTest {
         store.apply(Event.Content(ContentFor.Continue, ContentList.Entries(listOf(dub, sub, unknown, fresh))))
         val queue = store.continuing.queue(store.titles.entries.value)
         assertEquals(
-            listOf("Continue E7 dubbed · 10:06", "Play E4", "Play E4"),
+            listOf("Resume E7 dubbed · 10:06", "Play E4", "Play E4"),
             queue.inProgress.map { it.action(context) },
         )
-        assertEquals(listOf("Play E9 dubbed · out 2h ago"), queue.newThisWeek.map { it.action(context) })
+        assertEquals(listOf("Play E9 dubbed · out 2 h ago"), queue.newThisWeek.map { it.action(context) })
         assertEquals("Episode 7 · Dubbed", queue.inProgress[0].longEpisode(context))
         assertEquals("Episode 4", queue.inProgress[1].longEpisode(context))
     }
@@ -151,9 +151,9 @@ class ReducerTest {
         )
         store.apply(Event.Content(ContentFor.Continue, ContentList.Entries(listOf(resumed, next, fresh))))
         val queue = store.continuing.queue(store.titles.entries.value)
-        assertEquals(listOf("Continue E7 · 10:06", "Play E4"), queue.inProgress.map { it.action(context) })
+        assertEquals(listOf("Resume E7 · 10:06", "Play E4"), queue.inProgress.map { it.action(context) })
         assertEquals(14, queue.inProgress.first().minutesLeft)
-        assertEquals(listOf("Play E9 · out 2h ago"), queue.newThisWeek.map { it.action(context) })
+        assertEquals(listOf("Play E9 · out 2 h ago"), queue.newThisWeek.map { it.action(context) })
 
         store.hideFromContinue(900002u)
         assertEquals(listOf(900001u), store.continuing.queue(store.titles.entries.value).inProgress.map { it.id })
@@ -391,10 +391,9 @@ class ReducerTest {
     @Test
     fun a_notice_shows_until_dismissed_and_stays_in_the_log() {
         val notice = Notice(kind = NoticeKind.INFO, text = "Update ready: Hotaru Open Archive", hint = null)
-        store.apply(listOf(Event.Toast(notice), Event.Status(Msg.Verbatim("2 changes waiting to sync"))))
+        store.apply(listOf(Event.Toast(notice)))
         val item = store.notices.current.value!!
         assertEquals("Update ready: Hotaru Open Archive", item.text(context))
-        assertEquals("2 changes waiting to sync", store.notices.status.value?.text(context))
         store.notices.dismiss(item)
         assertNull(store.notices.current.value)
         assertEquals(1, store.notices.log.value.size)

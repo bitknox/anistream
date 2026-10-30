@@ -17,7 +17,6 @@ pub fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
         let _job = job;
         tracking::drain_once(&sync, &tx).await;
         tracking::pull_once(&sync, &tx).await;
-        let _ = tx.send(Event::Status(None));
     });
 }
 
@@ -40,9 +39,9 @@ pub fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: 
     let (sync, host, clients, meta, tx) =
         (sync.clone(), host.clone(), app_clients.clone(), meta.clone(), tx.clone());
     tokio::spawn(async move {
-        let _job = job;
         let anilist = tracker == "anilist";
-        tracking::connect(sync.clone(), host, clients, tracker, tx.clone()).await;
+        tracking::connect(sync.clone(), host, clients, tracker, job.as_ref(), tx.clone()).await;
+        drop(job);
         // Signed in to AniList: titles are named as this account reads them, when the setting
         // follows AniList.
         if anilist {

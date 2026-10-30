@@ -13,7 +13,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │  Metadata
    │
    │    anilist             Live
-   │    tenrai              Standby
+   │    tenrai              Not in use
    │    cache               ready       1 title
    │
    │

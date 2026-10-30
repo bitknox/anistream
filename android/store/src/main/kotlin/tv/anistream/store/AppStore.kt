@@ -965,7 +965,6 @@ class AppStore(
             is Event.Episodes -> titles.episodes(event.id, event.rows)
             is Event.TitleDub -> titles.dub(event.id, event.dub)
 
-            is Event.Status -> notices.status(event.v1)
             is Event.Connectivity -> _offline.value = event.offline
             is Event.Autoplay -> _autoplay.value = event.v1.trailers
             is Event.Toast -> notices.post(event.v1)

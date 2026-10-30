@@ -57,7 +57,7 @@ impl Paths {
 /// Root configuration.
 // Comparable, so a front end holding a copy can tell when its copy has moved and pass it on.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Config {
     /// The language the terminal app speaks, as a tag from `anistream_i18n::languages()` such as
     /// `da` or `pt-BR`. Unset (or `"system"`) follows the system's language. `--lang` overrides it
@@ -127,6 +127,7 @@ impl Config {
                 other => other.to_string(),
             },
         })?;
+        warn_unknown(&unknown_keys(src, &cfg));
         Ok(cfg)
     }
 
@@ -171,9 +172,49 @@ impl Config {
     }
 }
 
+/// The keys in `src` that `cfg`, read from it, has no place for, as dotted paths: settings of a
+/// newer version, or of an older one that this version dropped.
+///
+/// Such keys are read past rather than refused, since the apps and the terminal app share one
+/// file and each release can be ahead of or behind the others, and a setting written with
+/// [`crate::settings::write_keys`] leaves them where they are. The VPN table stays strict: a
+/// misspelt key there would leave torrents unprotected without a word.
+pub fn unknown_keys(src: &str, cfg: &Config) -> Vec<String> {
+    let (Ok(given), Ok(known)) = (src.parse::<toml::Table>(), toml::Table::try_from(cfg))
+    else {
+        return Vec::new();
+    };
+    let mut unknown = Vec::new();
+    unknown_in(&given, &known, "", &mut unknown);
+    unknown
+}
+
+fn unknown_in(given: &toml::Table, known: &toml::Table, at: &str, unknown: &mut Vec<String>) {
+    for (key, value) in given {
+        let path = if at.is_empty() { key.clone() } else { format!("{at}.{key}") };
+        match (value, known.get(key)) {
+            (_, None) => unknown.push(path),
+            (toml::Value::Table(given), Some(toml::Value::Table(known))) => {
+                unknown_in(given, known, &path, unknown);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Said in the log once a process, however often the file is read.
+fn warn_unknown(unknown: &[String]) {
+    static WARNED: std::sync::Once = std::sync::Once::new();
+    if !unknown.is_empty() {
+        WARNED.call_once(|| {
+            tracing::warn!(keys = ?unknown, "config keys this version doesn't know are kept and ignored");
+        });
+    }
+}
+
 /// Offline downloads.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct DownloadsConfig {
     /// Where finished files go. `None` leaves them where the torrent session wrote them,
     /// in the cache directory. Ignored while `keep_seeding` is on — a seeding torrent
@@ -261,7 +302,7 @@ pub const DEFAULT_PRESENCE_CLIENT_ID: &str = "1531267760959783025";
 
 /// Discord rich presence.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct PresenceConfig {
     /// Off by default, and that is the only defensible default: this is the one feature that
     /// publishes what you are watching to a third party, so it has to be asked for.
@@ -371,7 +412,7 @@ pub enum PlayerUi {
 /// opens with. A party writes no private history but the episodes it finishes: the room pausing
 /// or jumping is never kept as where you left off.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct SyncplayConfig {
     /// Every play from the terminal joins the party set below, not only those `y` starts. The
     /// apps start parties when asked, and this does nothing there.
@@ -429,7 +470,7 @@ impl SyncplayConfig {
 /// A digest, never a stream of pings — one line on launch, and only when there is
 /// something to say. The tool must not get in the way of the person using it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct NotificationsConfig {
     /// Say on launch how many new episodes aired for shows you watch.
     pub airing_digest: bool,
@@ -449,7 +490,7 @@ impl Default for NotificationsConfig {
 
 /// A game controller, in the apps that take one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct ControllerConfig {
     /// Drive the app with a connected controller. On unless switched off.
     pub enabled: bool,
@@ -465,7 +506,7 @@ impl Default for ControllerConfig {
 
 /// The metadata failover, and how its titles are shown.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct MetaConfig {
     /// Fall back to Tenrai — MyAnimeList's mirror — when AniList cannot answer, before
     /// resorting to cached data. Fresh first, always; the ladder only descends on failure.
@@ -530,7 +571,7 @@ impl TitleChoice {
 
 /// The update check.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct UpdatesConfig {
     /// Ask GitHub for the newest release once a day and say so when one exists.
     ///
@@ -547,13 +588,12 @@ impl Default for UpdatesConfig {
 
 /// Visual configuration. See the "Obi & Silk" direction in the plan.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct ThemeConfig {
     pub mode: ThemeMode,
     /// Set `false` to suppress the eyecatch wipe and all other motion.
     pub motion: bool,
-    /// Reserved. Accepted so existing configs keep parsing (`deny_unknown_fields` would
-    /// otherwise reject them), but currently has no effect: every glyph in the UI is plain
+    /// Reserved. Read so existing configs keep it, but currently has no effect: every glyph in the UI is plain
     /// Unicode, and requiring a patched font is both a portability hazard and one of the
     /// clearest templated-TUI tells.
     pub nerd_font: bool,
@@ -619,7 +659,7 @@ pub enum ThemeMode {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct PlaybackConfig {
     pub translation: Translation,
     /// Desired vertical resolution. Streams are ranked toward this, preferring a step
@@ -734,7 +774,7 @@ impl Default for PlaybackConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct ProvidersConfig {
     /// Resolution order. Earlier entries are tried first; failover walks the list.
     pub order: Vec<String>,
@@ -767,7 +807,7 @@ impl Default for ProvidersConfig {
 /// legitimately need more room, and the alternative would be recompiling. They are ceilings, not
 /// grants: raising them cannot give a plugin a capability, only more of one it already has.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct PluginsConfig {
     /// Linear-memory ceiling per plugin, in mebibytes.
     pub memory_mb: usize,
@@ -797,7 +837,7 @@ impl Default for PluginsConfig {
 /// Disabled by default. Torrent traffic exposes your IP to every peer in the swarm, so
 /// this stays off until a VPN mode has been chosen deliberately.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct TorrentConfig {
     pub enabled: bool,
     pub vpn: VpnConfig,
@@ -859,7 +899,7 @@ impl Default for TorrentConfig {
 /// `downloads.keep_seeding`: seeding advertises you as a source for as long as it runs, and that
 /// is not something to switch on for anyone silently.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct SeedingConfig {
     /// Seed each watched episode until it has uploaded this many times what was downloaded.
     /// `0` turns seeding after watching off.
@@ -966,6 +1006,7 @@ impl TorrentConfig {
 /// binding has to happen outside the process. This config covers what we can enforce and
 /// the docs are explicit about the rest, rather than implying a guarantee we cannot make.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+// Strict, unlike the rest: a key misspelt here would quietly leave torrents unprotected.
 #[serde(default, deny_unknown_fields)]
 pub struct VpnConfig {
     pub mode: VpnMode,
@@ -1049,7 +1090,7 @@ pub enum LeakAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct TrackersConfig {
     /// Tracker ids to sync with, e.g. `["anilist"]`.
     pub enabled: Vec<String>,
@@ -1102,7 +1143,7 @@ impl Default for TrackersConfig {
 /// own machine. anistream never embeds one, because a secret inside an open-source binary is
 /// not a secret.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct AniListAuthConfig {
     pub client_id: Option<String>,
     /// The client secret from the same registration.
@@ -1140,7 +1181,7 @@ impl Default for AniListAuthConfig {
 /// `other` is a public client and PKCE stands in for the secret. AniList refuses the same shape —
 /// see [`AniListAuthConfig`] — which is why the two trackers have different config.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct MalAuthConfig {
     pub client_id: Option<String>,
     /// Loopback port for the redirect. MAL matches the registered URL exactly, so this is part of
@@ -1154,7 +1195,7 @@ pub struct MalAuthConfig {
 /// URI to register, no port to match. Just the application's id, and a secret where the service
 /// insists on one.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct DeviceAuthConfig {
     pub client_id: Option<String>,
     /// Trakt requires this on the token exchange. Simkl wants one only from an app registered
@@ -1239,7 +1280,7 @@ impl TrackersConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct NetworkConfig {
     /// Browser fingerprint to emulate for Cloudflare-fronted providers. Exposed as
     /// config because this is an arms race — rotating it should not need a rebuild.
@@ -1635,12 +1676,30 @@ mod tests {
     }
 
     #[test]
+    fn a_key_this_version_does_not_know_is_read_past_and_named() {
+        // A newer app's setting, and one an older version had, beside known ones.
+        let src = "[theme]\nmode = \"immersive\"\nsparkle = true\n\n[playback]\nqualty = 720\n\n\
+                   [future]\nwhatever = 1\n";
+        let cfg = Config::parse(src).expect("unknown keys are tolerated");
+        assert_eq!(
+            cfg.theme,
+            Config::from_toml("[theme]\nmode = \"immersive\"\n").unwrap().theme
+        );
+        let mut unknown = unknown_keys(src, &cfg);
+        unknown.sort();
+        assert_eq!(unknown, ["future", "playback.qualty", "theme.sparkle"]);
+        assert!(unknown_keys("[theme]\nmode = \"immersive\"\n", &cfg).is_empty());
+    }
+
+    #[test]
     fn a_problem_names_its_line_and_what_is_wrong_on_one_line() {
         // What the interface shows when the file cannot be used: a person has to find it.
-        let typo = Config::parse("[theme]\nmode = \"adaptive\"\n\n[playback]\nqualty = 720\n")
-            .unwrap_err();
+        let typo = Config::parse(
+            "[theme]\nmode = \"adaptive\"\n\n[providers.torrent.vpn]\nmoed = 1\n",
+        )
+        .unwrap_err();
         assert_eq!(typo.line, Some(5), "{typo:?}");
-        assert!(typo.message.starts_with("unknown field `qualty`"), "{typo:?}");
+        assert!(typo.message.starts_with("unknown field `moed`"), "{typo:?}");
 
         let syntax = Config::parse("[playback]\nquality = 1080 ]\n").unwrap_err();
         assert_eq!(syntax.line, Some(2), "{syntax:?}");

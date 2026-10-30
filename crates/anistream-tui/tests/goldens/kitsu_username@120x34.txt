@@ -11,7 +11,7 @@ anistream                                                   torrent ○  plugins
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Sign in to Kitsu   hotaru@mail.example▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Email or username. Enter continues, Esc cancels.
+  Email or user name. Enter continues, Esc cancels.
 
                             │
                             │
@@ -56,8 +56,8 @@ r11 c02-40 fg=text bg=ground mod=BOLD
 r11 c41-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-49 fg=text-dim bg=ground
-r13 c50-119 fg=rule bg=ground
+r13 c02-50 fg=text-dim bg=ground
+r13 c51-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

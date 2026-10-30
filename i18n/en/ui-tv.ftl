@@ -86,11 +86,11 @@ tv-starting-on = Starting on { $name }
 tv-starting = Starting on the TV
 
 # Line when something failed while talking to the TV.
-tv-talk-failed = Something went wrong talking to the TV. Try again.
+tv-talk-failed = Lost contact with the TV. Check that it's on and on the same network, then try again.
 
 # Line when the TV did not start the episode. The reason is a sentence fragment.
 # @arg reason: cause
-tv-play-failed = Play on TV did not start: { $reason }
+tv-play-failed = Play on TV didn't start: { $reason }
 
 # Label of the address field.
 tv-address = Address

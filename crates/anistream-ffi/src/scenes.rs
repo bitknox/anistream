@@ -7,6 +7,7 @@ use std::sync::Arc;
 use anistream_core::media::Translation;
 use anistream_core::stream::{Stream, StreamKind};
 use anistream_engine::clock::Clock;
+use anistream_model::Msg;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anistream_testkit::{
@@ -121,7 +122,7 @@ impl FfiEngine {
             // Where the testing engine keeps tokens: files under the data directory.
             TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
                 .set("anilist", "fixture-anilist-token")
-                .map_err(|e| FfiError::Engine { reason: e.to_string() })?;
+                .map_err(|e| FfiError::engine(Msg::StartFailed { reason: e.to_string() }))?;
         }
         let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
         let home = RemoteHome::of(&host, &opened.paths);
@@ -164,10 +165,10 @@ impl FfiEngine {
 pub fn seed_fixture_downloads(dirs: FfiDirs, clip: String) -> Result<(), FfiError> {
     let opened = Opened::open(&dirs)?;
     let size = std::fs::metadata(&clip)
-        .map_err(|e| FfiError::Dirs { reason: format!("{clip}: {e}") })?
+        .map_err(|e| FfiError::dirs(Msg::verbatim(format!("{clip}: {e}"))))?
         .len();
     seed_downloads(&opened.store, &clip, size)
-        .map_err(|e| FfiError::Store { reason: format!("seeding the downloads: {e}") })
+        .map_err(|e| FfiError::store(Msg::verbatim(format!("seeding the downloads: {e}"))))
 }
 
 /// The three rows [`seed_fixture_downloads`] seeds, the finished one at `clip`, `size` bytes.
@@ -232,7 +233,7 @@ fn sign_in_config(dirs: &FfiDirs) -> Result<(), FfiError> {
              [trackers.anilist]\nclient_id = \"fixture\"\nclient_secret = \"fixture\"\n",
         )
     });
-    written.map_err(|e| FfiError::Config { reason: format!("{}: {e}", file.display()) })
+    written.map_err(|e| FfiError::config(Msg::verbatim(format!("{}: {e}", file.display()))))
 }
 
 /// A config that offers skips rather than taking them, written where there is none yet.
@@ -243,8 +244,8 @@ fn offer_skips(dirs: &FfiDirs) -> Result<(), FfiError> {
     }
     std::fs::create_dir_all(&dirs.config)
         .and_then(|()| std::fs::write(&file, "[playback]\nskip_opening = false\n"))
-        .map_err(|e| FfiError::Dirs {
-            reason: format!("{} cannot be written: {e}", file.display()),
+        .map_err(|e| {
+            FfiError::dirs(Msg::verbatim(format!("{} cannot be written: {e}", file.display())))
         })
 }
 

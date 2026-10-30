@@ -16,6 +16,9 @@ use crate::{
     sources, sources::vpn::vpn_watch,
 };
 
+/// How long a bring-up waits for the session it replaces to stand down.
+const TEARDOWN_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Everything the torrent source runs in the background: the download manager and the
 /// VPN guard's re-verification loop.
 ///
@@ -35,6 +38,9 @@ pub struct TorrentTasks {
     /// Keeps the stream cache within its limit while the session writes to it.
     cache: Option<tokio::task::JoinHandle<()>>,
     session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
+    /// The session a settings change let go of, still standing down: the next bring-up waits
+    /// for it, so the old traffic stops before new traffic starts, without the actor waiting.
+    teardown: Option<tokio::task::JoinHandle<()>>,
     /// Brings the guard's next check forward, for Sources' Check Now: whichever waits on the
     /// guard, the bring-up before a session or the watcher beside one, checks at once.
     check: Arc<Notify>,
@@ -76,6 +82,7 @@ impl TorrentTasks {
             seeding: Some(seeding),
             cache: Some(cache),
             session: Some(session),
+            teardown: None,
             check: Arc::clone(check),
         }
     }
@@ -100,6 +107,7 @@ impl TorrentTasks {
         let generation = self.generation;
         let check = Arc::clone(&self.check);
         let fixture = services.fixture_exit.clone();
+        let teardown = self.teardown.take();
         let (config, http, paths, store, tx, arrivals) = (
             // With the proxy's password, which only this copy holds.
             crate::protection::with_proxy_password(config, services),
@@ -110,6 +118,13 @@ impl TorrentTasks {
             arrivals.clone(),
         );
         self.bring_up = Some(tokio::spawn(async move {
+            // The session this one replaces stands down first, within reason: one that takes
+            // longer has paused what it could, and is left to finish on its own.
+            if let Some(teardown) = teardown
+                && tokio::time::timeout(TEARDOWN_WAIT, teardown).await.is_err()
+            {
+                tracing::warn!("the previous torrent session was still standing down");
+            }
             // A fixture build says what the check finds and starts no session: a session reaches
             // the DHT and the trackers, which no fixture may.
             if fixture.is_some() {
@@ -152,8 +167,13 @@ impl TorrentTasks {
         sources::place(registry, up.provider, &snapshot);
         // A source joined the chain: what is on screen was listed without it.
         let _ = tx.internal(crate::outbox::Internal::SourcesReordered);
-        if let Some(warning) = up.warning {
-            let _ = tx.send(Event::Toast(Notice::info(warning)));
+        // Its advice is a terminal command, so an app that hosts its own player is not told.
+        match up.warning {
+            Some(warning) if !services.hosted_player => {
+                let _ = tx.send(Event::Toast(Notice::info(warning)));
+            }
+            Some(_) => tracing::info!("no os-level kill switch; the app is not told"),
+            None => {}
         }
         *vpn_guard = Some((up.guard, up.session));
         let check = Arc::clone(&self.check);
@@ -201,18 +221,19 @@ impl TorrentTasks {
         true
     }
 
-    /// Stop everything and halt the session before letting go of it.
+    /// Stop everything and close the session before letting go of it, as a settings change
+    /// asks.
     ///
-    /// Halting first is the whole point: dropping the handles would leave librqbit
-    /// seeding whatever it holds until the process exits, which for a source the user
-    /// just turned off is precisely the traffic they meant to stop.
-    async fn stop(&mut self) {
+    /// Closing is the whole point: dropping the handles would leave librqbit seeding whatever
+    /// it holds until the process exits, which for a source the user just turned off is
+    /// precisely the traffic they meant to stop. The close pauses each torrent in turn, which
+    /// on a slow disk takes a while, so it runs in a task of its own rather than on the actor:
+    /// the next bring-up waits for it. The watchers go first, so none of them reacts to the
+    /// session going, and the guard's halt is not used, since that says "vpn leak".
+    fn stop(&mut self) {
         // A bring-up still waiting for the guard has no session to halt, only a wait to end.
         if let Some(waiting) = self.bring_up.take() {
             waiting.abort();
-        }
-        if let Some(session) = self.session.take() {
-            session.halt().await;
         }
         for task in
             [self.downloads.take(), self.watcher.take(), self.seeding.take(), self.cache.take()]
@@ -220,6 +241,16 @@ impl TorrentTasks {
                 .flatten()
         {
             task.abort();
+        }
+        if let Some(session) = self.session.take() {
+            let earlier = self.teardown.take();
+            self.teardown = Some(tokio::spawn(async move {
+                if let Some(earlier) = earlier {
+                    let _ = earlier.await;
+                }
+                session.close().await;
+                tracing::info!("torrent session closed for a settings change");
+            }));
         }
     }
 
@@ -312,7 +343,7 @@ async fn seeding_watch(
 /// so every holder of a registry clone sees the change, and the plugins that compiled in
 /// the background are carried across — they are not described by config and a rebuild
 /// that forgot them would silently drop sources the user installed.
-pub async fn reload_sources(
+pub fn reload_sources(
     services: &Services,
     torrent_tasks: &mut TorrentTasks,
     vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
@@ -321,8 +352,9 @@ pub async fn reload_sources(
     arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, Msg>)>,
 ) {
     // Old traffic stops before new traffic starts. The other order would leave two
-    // sessions briefly alive, and one of them is the one being switched off.
-    torrent_tasks.stop().await;
+    // sessions briefly alive, and one of them is the one being switched off. The stop goes on
+    // in the background, and the bring-up below waits for it.
+    torrent_tasks.stop();
     *vpn_guard = None;
     let registry = &services.registry;
 

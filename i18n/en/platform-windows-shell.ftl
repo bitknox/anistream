@@ -57,7 +57,7 @@ toast-titled = { $title }: { $body }
 
 # Toast when the app was opened by a link it does not handle.
 # @only windows
-link-cant-open = { -app-name } can't open that link.
+link-cant-open = { -app-name } can't open that link. It opens invite, pairing and title links.
 
 # The account in the navigation pane's foot, when the sign-in ran out. Short: it sits beside an icon.
 # @only windows

@@ -1,10 +1,10 @@
 ## Apple only: the words of the search screen and its filter panel that the other apps word another way.
 
 # Line while results wait for the rate limit to recover, on a phone where a Search key runs the search.
-search-rate-limit-search = Results wait for Search while AniList’s rate limit recovers
+search-rate-limit-search = Searching as you type is paused for a moment, to stay within AniList's limits. Press Search to search now.
 
 # Line while results wait for the rate limit to recover, on a Mac where Return runs the search.
-search-rate-limit-return = Results wait for Return while AniList’s rate limit recovers
+search-rate-limit-return = Searching as you type is paused for a moment, to stay within AniList's limits. Press Return to search now.
 
 # Line while a browse is slow to answer. The headline names what is browsed, such as "Trending now".
 # @arg what: text

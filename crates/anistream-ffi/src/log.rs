@@ -48,8 +48,26 @@ pub fn start_log(cache: String) -> bool {
         .is_ok();
     if started {
         let _ = WRITER.set(guard);
+        log_panics();
     }
     started
+}
+
+/// A panic anywhere in the engine, written to the log before whatever the process did with
+/// panics before: the engine carries on after one, and the log is where it is found again.
+fn log_panics() {
+    let before = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let said = info
+            .payload()
+            .downcast_ref::<&str>()
+            .map(|said| (*said).to_owned())
+            .or_else(|| info.payload().downcast_ref::<String>().cloned())
+            .unwrap_or_default();
+        let at = info.location().map(|at| format!("{}:{}", at.file(), at.line()));
+        tracing::error!(panic = %said, at = at.as_deref().unwrap_or("unknown"), "panicked");
+        before(info);
+    }));
 }
 
 /// One line from the app, under `source` (`player`, `store`), into the same log.

@@ -127,18 +127,22 @@ public static class Wording
         _ => wire,
     };
 
-    /// <summary>The title page's metadata line: "TV · Summer 2026 · 24 episodes · 79%".</summary>
+    /// <summary>The title page's metadata line: "TV · 24 episodes · Summer 2026 · Atelier Hotaru · 79%".</summary>
     public static string MetaLine(Entry entry)
     {
         var parts = new List<string>();
         if (entry.Format is { Length: > 0 } f)
             parts.Add(Format(f));
+        if (entry.FilmLength is { } length)
+            parts.Add(TitleFacts.FilmLength(length));
+        else if (entry.Episodes is > 0 and var n)
+            parts.Add(T.EpisodesCount(n));
         if (entry.Season is { } s && entry.Year is { } y)
             parts.Add(SeasonWithYear(s, y));
         else if (entry.Year is { } year)
             parts.Add(year.ToString(CultureInfo.InvariantCulture));
-        if (entry.Episodes is > 0 and var n)
-            parts.Add(T.EpisodesCount(n));
+        if (entry.Studio is { Length: > 0 } studio)
+            parts.Add(studio);
         if (entry.Score is { } score)
             parts.Add(Percent(score));
         return string.Join(" · ", parts);

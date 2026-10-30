@@ -40,7 +40,7 @@ struct SnapshotTests {
         #expect(first.progress == 0.42)
         #expect(ContinuePresentation.line(first) == "Resume E7")
         #expect(!snapshot.continueWatching[1].resumes)
-        #expect(ContinuePresentation.line(snapshot.continueWatching[1]) == "Start E4")
+        #expect(ContinuePresentation.line(snapshot.continueWatching[1]) == "Play E4")
         #expect(snapshot.airingToday.first?.watched == false)
         #expect(snapshot.airingToday.first?.translation == nil)
     }
@@ -65,7 +65,7 @@ struct SnapshotTests {
         // The engine's mark: the second is watched dubbed, the first subbed and unmarked.
         #expect(first.mark == nil)
         #expect(snapshot.continueWatching[1].mark == "Dub")
-        #expect(ContinuePresentation.line(snapshot.continueWatching[1]) == "Start E4 · Dub")
+        #expect(ContinuePresentation.line(snapshot.continueWatching[1]) == "Play E4 · Dub")
         #expect(snapshot.airingToday[0].translation == .dub)
         // A translation this build does not know is none, and the rest of the file still reads.
         #expect(snapshot.airingToday[1].translation == nil)

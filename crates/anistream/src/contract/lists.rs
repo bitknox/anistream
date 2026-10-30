@@ -140,7 +140,7 @@ async fn a_metadata_notice_comes_just_before_the_update_it_arrived_with() {
     assert_eq!(names(&down), ["MetaStatus", "Toast", "Caption", "Content", "JobDone"]);
     assert_eq!(
         toasts(&down),
-        ["info: AniList is unreachable. Using the fallback for fresh data for now."]
+        ["info: AniList isn't answering. Showing data from another service for now."]
     );
     let Event::MetaStatus(rows) = &down[0] else { unreachable!() };
     let serving: Vec<_> = rows.iter().filter(|r| r.active).map(|r| r.source.as_str()).collect();

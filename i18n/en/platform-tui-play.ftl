@@ -128,7 +128,7 @@ sources-kind-licensed = Licensed
 sources-state-ready = Ready
 
 # State of a source: it is working but slowly or only in part.
-sources-state-degraded = Degraded
+sources-state-degraded = Slow
 
 # State of a source: it is not responding.
 sources-state-down = Down
@@ -183,16 +183,16 @@ sources-meta-state-live = Live
 sources-meta-state-unreachable = Unreachable
 
 # State of a metadata service: failed recently and is being left alone for a while.
-sources-meta-state-backing-off = Backing off
+sources-meta-state-backing-off = Waiting to retry
 
 # State of a metadata service: switched off in the config.
 sources-meta-state-off = Off
 
 # State of a metadata service: the one answering now, in place of the first choice.
-sources-meta-state-serving = Serving
+sources-meta-state-serving = In use
 
 # State of a metadata service: ready if the others fail.
-sources-meta-state-standby = Standby
+sources-meta-state-standby = Not in use
 
 # State of a metadata service: failing.
 sources-meta-state-failing = Failing
@@ -386,7 +386,7 @@ settings-label-mark-chapters = Mark opening and ending
 settings-label-skip-button = Show skip button
 
 # Settings row: whether the player opens fullscreen.
-settings-label-fullscreen = Start fullscreen
+settings-label-fullscreen = Start in full screen
 
 # Settings row: the video upscaling mode.
 settings-label-upscaling = Upscaling
@@ -467,10 +467,10 @@ settings-label-download-quality = Download quality
 settings-label-keep-next-episodes = Keep next episodes
 
 # Settings row: whether downloads run on a mobile connection.
-settings-label-downloads-on-cellular = Downloads on cellular
+settings-label-downloads-on-cellular = Downloads on mobile data
 
 # Settings row: whether torrents run on a mobile connection.
-settings-label-torrents-on-cellular = Torrents on cellular
+settings-label-torrents-on-cellular = Torrents on mobile data
 
 # Settings row: what happens to torrents when the VPN check fails.
 settings-label-vpn-on-failure = If a check fails
@@ -511,7 +511,7 @@ settings-note-mark-chapters = Adds chapter marks to the seek bar when the stream
 settings-note-skip-button = Shows a button over the opening and ending when the skip isn't automatic.
 
 # Note under the fullscreen row. "f" is mpv's own key and is not translated.
-settings-note-fullscreen = mpv opens fullscreen. Its own f key still leaves fullscreen.
+settings-note-fullscreen = mpv opens in full screen. Its own f key still leaves full screen.
 
 # Note under the upscaling row.
 settings-note-upscaling = Adapts to the video and your graphics card. Applies from the next episode.

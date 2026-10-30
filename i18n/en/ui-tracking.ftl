@@ -9,7 +9,7 @@ accounts-title = Accounts
 accounts-other-trackers = Other { -tracker-pl }
 
 # Line on the welcome screen: where the other trackers are.
-accounts-other-trackers-note = Other { -tracker-pl } are in Settings, under Accounts.
+accounts-other-trackers-note = Other { -tracker-pl } are in Accounts.
 
 # Line on the welcome screen: why to sign in.
 # @arg tracker: text
@@ -246,7 +246,7 @@ accounts-listed-by = Listed by { $tracker }
 
 # Line when the tracker did not answer.
 # @arg tracker: text
-accounts-did-not-answer = { $tracker } did not answer.
+accounts-did-not-answer = { $tracker } didn't answer.
 
 # Line when the tracker has nothing for the show.
 # @arg tracker: text

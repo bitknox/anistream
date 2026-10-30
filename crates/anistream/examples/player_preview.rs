@@ -116,7 +116,6 @@ async fn main() -> anyhow::Result<()> {
         let printer = tokio::spawn(async move {
             while let Some(update) = rx.recv().await {
                 match update {
-                    Event::Status(Some(s)) => println!("  status: {s}"),
                     Event::Toast(t) => println!("  toast: {}", t.text),
                     Event::PlaybackEnded { watched, ending, .. } => {
                         println!("  ended (watched: {watched}, {ending:?})")

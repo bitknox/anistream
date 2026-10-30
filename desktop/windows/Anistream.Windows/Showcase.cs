@@ -108,8 +108,8 @@ static class Showcase
     public static Event.Episodes Unsourced(Event.Episodes table, uint next)
     {
         var last = table.Rows.Length;
-        return new(table.Id, [.. table.Rows.Select((row, at) =>
-            uint.TryParse(row.Number, out var n) && (n == next || n == next + 1 || at >= last - 3) ? row with { Unsourced = true } : row)]);
+        return table with { Rows = [.. table.Rows.Select((row, at) =>
+            uint.TryParse(row.Number, out var n) && (n == next || n == next + 1 || at >= last - 3) ? row with { Unsourced = true } : row)] };
     }
 
     static ProviderRow Plugin(string id, string name, string version, string[] hosts, ProviderOrigin origin,

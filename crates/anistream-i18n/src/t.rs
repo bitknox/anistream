@@ -175,6 +175,11 @@ pub fn cause_release_failed(detail: &str) -> String {
     text("cause-release-failed", &[("detail", Arg::Text(detail))])
 }
 
+/// Reason: a play waited too long for its sources to give it a stream, and gave up.
+pub fn cause_sources_timed_out() -> String {
+    text("cause-sources-timed-out", &[])
+}
+
 /// Reason: every source matched the title but none has the episode. The detail is what each said.
 pub fn cause_no_source_has_episode(episode: &str, detail: &str) -> String {
     text("cause-no-source-has-episode", &[("episode", Arg::Text(episode)), ("detail", Arg::Text(detail))])
@@ -220,16 +225,6 @@ pub fn status_searching_sources(episode: &str) -> String {
     text("status-searching-sources", &[("episode", Arg::Text(episode))])
 }
 
-/// Status while the player opens.
-pub fn status_starting_player() -> String {
-    text("status-starting-player", &[])
-}
-
-/// Status line while an episode plays.
-pub fn status_playing(title: &str, episode: &str) -> String {
-    text("status-playing", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
-}
-
 /// Toast when the player cannot be started. The reason comes from the system.
 pub fn notice_player_failed_to_start(reason: &str) -> String {
     text("notice-player-failed-to-start", &[("reason", Arg::Text(reason))])
@@ -260,14 +255,19 @@ pub fn notice_no_player() -> String {
     text("notice-no-player", &[])
 }
 
-/// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+/// Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
 pub fn notice_mpv_missing(binary: &str) -> String {
     text("notice-mpv-missing", &[("binary", Arg::Text(binary))])
 }
 
-/// Toast at launch when mpv is too old for anistream's own player.
+/// Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.
 pub fn notice_mpv_old(version: &str) -> String {
     text("notice-mpv-old", &[("version", Arg::Text(version))])
+}
+
+/// Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.
+pub fn notice_subtitles_unavailable() -> String {
+    text("notice-subtitles-unavailable", &[])
 }
 
 /// Toast after a link was handed to the browser.
@@ -370,6 +370,16 @@ pub fn notice_no_source_could_list(reason: &str) -> String {
     text("notice-no-source-could-list", &[("reason", Arg::Text(reason))])
 }
 
+/// Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
+pub fn notice_episodes_failed(reason: &str) -> String {
+    text("notice-episodes-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.
+pub fn notice_match_uncertain(source: &str) -> String {
+    text("notice-match-uncertain", &[("source", Arg::Text(source))])
+}
+
 /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
 pub fn notice_continue_hide_failed(reason: &str) -> String {
     text("notice-continue-hide-failed", &[("reason", Arg::Text(reason))])
@@ -445,17 +455,17 @@ pub fn notice_downloads_none_queued_stopped(reason: &str) -> String {
     text("notice-downloads-none-queued-stopped", &[("reason", Arg::Text(reason))])
 }
 
-/// Toast after a range was asked for and every episode was in the queue already.
+/// Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
 pub fn notice_downloads_none_new(existing: &str) -> String {
     text("notice-downloads-none-new", &[("existing", Arg::Text(existing))])
 }
 
-/// Toast as above, with the reason the range stopped.
+/// Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 pub fn notice_downloads_none_new_stopped(existing: &str, reason: &str) -> String {
     text("notice-downloads-none-new-stopped", &[("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
 }
 
-/// Toast after a range was asked for, some episodes were queued and some were there already.
+/// Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
 pub fn notice_episodes_queued_existing(count: i64, existing: &str) -> String {
     text("notice-episodes-queued-existing", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing))])
 }
@@ -465,7 +475,7 @@ pub fn notice_episodes_queued_stopped(count: i64, reason: &str) -> String {
     text("notice-episodes-queued-stopped", &[("count", Arg::Int(count)), ("reason", Arg::Text(reason))])
 }
 
-/// Toast as above, with some episodes in the queue already and the reason the range stopped.
+/// Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 pub fn notice_episodes_queued_existing_stopped(count: i64, existing: &str, reason: &str) -> String {
     text("notice-episodes-queued-existing-stopped", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
 }
@@ -475,9 +485,14 @@ pub fn notice_keep_next_full() -> String {
     text("notice-keep-next-full", &[])
 }
 
-/// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+/// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
 pub fn party_needs_server(server: &str, operator: &str) -> String {
     text("party-needs-server", &[("server", Arg::Text(server)), ("operator", Arg::Text(operator))])
+}
+
+/// Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.
+pub fn party_choose_server(server: &str, operator: &str) -> String {
+    text("party-choose-server", &[("server", Arg::Text(server)), ("operator", Arg::Text(operator))])
 }
 
 /// Toast when a watch party is asked for in a build without watch parties.
@@ -575,7 +590,7 @@ pub fn store_admin_opened() -> String {
     text("store-admin-opened", &[])
 }
 
-/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
 pub fn store_admin_open_failed(reason: &str) -> String {
     text("store-admin-open-failed", &[("reason", Arg::Text(reason))])
 }
@@ -790,7 +805,7 @@ pub fn torrent_session_failed(reason: &str) -> String {
     text("torrent-session-failed", &[("reason", Arg::Text(reason))])
 }
 
-/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.
 pub fn torrent_no_kill_switch() -> String {
     text("torrent-no-kill-switch", &[])
 }
@@ -930,7 +945,7 @@ pub fn notice_anilist_client_missing(client: &str, secret: &str) -> String {
     text("notice-anilist-client-missing", &[("client", Arg::Text(client)), ("secret", Arg::Text(secret))])
 }
 
-/// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+/// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.
 pub fn notice_anilist_paste_flow() -> String {
     text("notice-anilist-paste-flow", &[])
 }
@@ -940,7 +955,7 @@ pub fn notice_mal_client_missing(setting: &str) -> String {
     text("notice-mal-client-missing", &[("setting", Arg::Text(setting))])
 }
 
-/// Status line while the browser sign-in is open and the app waits for it to come back.
+/// Job note while the browser sign-in is open and the terminal app waits for it to come back.
 pub fn status_waiting_for_redirect(tracker: &str) -> String {
     text("status-waiting-for-redirect", &[("tracker", Arg::Text(tracker))])
 }
@@ -1030,7 +1045,7 @@ pub fn notice_episodes_aired(count: i64) -> String {
     text("notice-episodes-aired", &[("count", Arg::Int(count))])
 }
 
-/// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+/// Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.
 pub fn notice_update_available(tag: &str) -> String {
     text("notice-update-available", &[("tag", Arg::Text(tag))])
 }
@@ -1083,6 +1098,51 @@ pub fn notice_title_load_failed() -> String {
 /// Toast when playback stops with an error.
 pub fn notice_playback_failed() -> String {
     text("notice-playback-failed", &[])
+}
+
+/// Toast when something went wrong inside the engine and it carried on.
+pub fn notice_engine_fault() -> String {
+    text("notice-engine-fault", &[])
+}
+
+/// Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.
+pub fn notice_database_set_aside(path: &str) -> String {
+    text("notice-database-set-aside", &[("path", Arg::Text(path))])
+}
+
+/// Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.
+pub fn start_failed_folder(path: &str, reason: &str) -> String {
+    text("start-failed-folder", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
+}
+
+/// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
+pub fn start_failed_config(path: &str, problem: &str) -> String {
+    text("start-failed-config", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
+}
+
+/// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
+pub fn start_failed_database(path: &str, reason: &str) -> String {
+    text("start-failed-database", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
+}
+
+/// Message when anistream could not start its network connection from the network settings.
+pub fn start_failed_network(reason: &str) -> String {
+    text("start-failed-network", &[("reason", Arg::Text(reason))])
+}
+
+/// Message when anistream itself could not start. The reason comes from the system or the engine.
+pub fn start_failed(reason: &str) -> String {
+    text("start-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Message when the TV remote could not start listening or could not forget a phone.
+pub fn start_failed_remote(reason: &str) -> String {
+    text("start-failed-remote", &[("reason", Arg::Text(reason))])
+}
+
+/// Message when the built-in player could not start.
+pub fn start_failed_player(reason: &str) -> String {
+    text("start-failed-player", &[("reason", Arg::Text(reason))])
 }
 
 /// Toast after episodes are added to the download queue.
@@ -1990,9 +2050,19 @@ pub fn title_open_named(title: &str) -> String {
     text("title-open-named", &[("title", Arg::Text(title))])
 }
 
+/// Accessible name of a card or row in Continue: the title, then what is said under it.
+pub fn continue_row_spoken(title: &str, detail: &str) -> String {
+    text("continue-row-spoken", &[("title", Arg::Text(title)), ("detail", Arg::Text(detail))])
+}
+
 /// Accessible name of the pane beside Continue's queue that previews the selected title.
 pub fn continue_preview() -> String {
     text("continue-preview", &[])
+}
+
+/// Under a suggestion that airs later today when no episode number is known: the time it airs.
+pub fn up_next_airs_at(time: &str) -> String {
+    text("up-next-airs-at", &[("time", Arg::Text(time))])
 }
 
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
@@ -3680,22 +3750,17 @@ pub fn accounts_badge_sign_in(tracker: &str, mark: &str) -> String {
     text("accounts-badge-sign-in", &[("tracker", Arg::Text(tracker)), ("mark", Arg::Text(mark))])
 }
 
-/// Status line while the browser is opened for a { -tracker } sign-in.
-pub fn accounts_status_opening_browser() -> String {
-    text("accounts-status-opening-browser", &[])
-}
-
 /// Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
 pub fn accounts_needs_sign_in(tracker: &str, key: &str) -> String {
     text("accounts-needs-sign-in", &[("tracker", Arg::Text(tracker)), ("key", Arg::Text(key))])
 }
 
-/// Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+/// Toast when sync differences appear. The key opens the list of them, as the key map draws it.
 pub fn accounts_conflicts_found(count: i64, key: &str) -> String {
     text("accounts-conflicts-found", &[("count", Arg::Int(count)), ("key", Arg::Text(key))])
 }
 
-/// Toast when the sync disagreements list is opened and there are none.
+/// Toast when the sync differences list is opened and there are none.
 pub fn accounts_conflicts_none() -> String {
     text("accounts-conflicts-none", &[])
 }
@@ -3855,12 +3920,12 @@ pub fn accounts_row_queued_held(queued: i64, held: i64) -> String {
     text("accounts-row-queued-held", &[("queued", Arg::Int(queued)), ("held", Arg::Int(held))])
 }
 
-/// Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+/// Action beside a sync difference in the overlay: Enter keeps the value on this device.
 pub fn accounts_conflict_keep_mine() -> String {
     text("accounts-conflict-keep-mine", &[])
 }
 
-/// A sync disagreement in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
+/// A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 pub fn accounts_conflict_row(title: &str, field: &str, local: &str, remote: &str) -> String {
     text("accounts-conflict-row", &[("title", Arg::Text(title)), ("field", Arg::Text(field)), ("local", Arg::Text(local)), ("remote", Arg::Text(remote))])
 }
@@ -6700,12 +6765,12 @@ pub fn pad_help_skip() -> String {
     text("pad-help-skip", &[])
 }
 
-/// Controller help: starts the next episode now, while the Up Next card shows.
+/// Controller help: starts the next episode now, while the Up next card shows.
 pub fn pad_help_play_now() -> String {
     text("pad-help-play-now", &[])
 }
 
-/// Controller help: cancels the Up Next card.
+/// Controller help: cancels the Up next card.
 pub fn pad_help_cancel() -> String {
     text("pad-help-cancel", &[])
 }
@@ -7750,6 +7815,11 @@ pub fn up_next_reason_recommended_plain() -> String {
     text("up-next-reason-recommended-plain", &[])
 }
 
+/// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+pub fn up_next_because_detail(title: &str) -> String {
+    text("up-next-because-detail", &[("title", Arg::Text(title))])
+}
+
 /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 pub fn up_next_reason_airing_today() -> String {
     text("up-next-reason-airing-today", &[])
@@ -7763,6 +7833,31 @@ pub fn up_next_add_planning() -> String {
 /// Menu item on a suggestion. The show stays hidden until it starts airing.
 pub fn up_next_not_interested() -> String {
     text("up-next-not-interested", &[])
+}
+
+/// Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
+pub fn up_next_row_starts(reason: &str, starts: &str) -> String {
+    text("up-next-row-starts", &[("reason", Arg::Text(reason)), ("starts", Arg::Text(starts))])
+}
+
+/// Notice after Not interested on a suggestion that is already airing.
+pub fn up_next_hidden(title: &str) -> String {
+    text("up-next-hidden", &[("title", Arg::Text(title))])
+}
+
+/// Notice after Not interested on a suggestion that has not started airing.
+pub fn up_next_hidden_until_airs(title: &str) -> String {
+    text("up-next-hidden-until-airs", &[("title", Arg::Text(title))])
+}
+
+/// Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+pub fn up_next_broadcast(episode: i64, when: &str) -> String {
+    text("up-next-broadcast", &[("episode", Arg::Int(episode)), ("when", Arg::Text(when))])
+}
+
+/// The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+pub fn up_next_out(ago: &str) -> String {
+    text("up-next-out", &[("ago", Arg::Text(ago))])
 }
 
 /// Format of a show: broadcast on television.
@@ -7895,12 +7990,12 @@ pub fn media_link_language(language: &str) -> String {
     text("media-link-language", &[("language", Arg::Text(language))])
 }
 
-/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
 pub fn film_length_hours_minutes(hours: i64, minutes: i64) -> String {
     text("film-length-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
 }
 
-/// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+/// Length of a film or a single episode that is a whole number of hours, such as "2 h".
 pub fn film_length_hours(hours: i64) -> String {
     text("film-length-hours", &[("hours", Arg::Int(hours))])
 }
@@ -8645,7 +8740,7 @@ pub fn party_nosource_none_title() -> String {
     text("party-nosource-none-title", &[])
 }
 
-/// Line under it.
+/// Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.
 pub fn party_nosource_none_detail(what: &str) -> String {
     text("party-nosource-none-detail", &[("what", Arg::Text(what))])
 }
@@ -8655,7 +8750,7 @@ pub fn party_nosource_missing_title() -> String {
     text("party-nosource-missing-title", &[])
 }
 
-/// Line under it. The reason is a sentence without its full stop.
+/// Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
 pub fn party_nosource_missing_detail(why: &str, what: &str) -> String {
     text("party-nosource-missing-detail", &[("why", Arg::Text(why)), ("what", Arg::Text(what))])
 }
@@ -11450,6 +11545,31 @@ pub fn more_rankings() -> String {
     text("more-rankings", &[])
 }
 
+/// Heading of the list of people the viewer follows who have the show on their list.
+pub fn more_following() -> String {
+    text("more-following", &[])
+}
+
+/// Note under that list: where the names come from.
+pub fn more_following_note() -> String {
+    text("more-following-note", &[])
+}
+
+/// What a followed person gave the show, out of ten. The score is a whole number.
+pub fn more_followed_score(score: i64) -> String {
+    text("more-followed-score", &[("score", Arg::Int(score))])
+}
+
+/// Heading of the list of titles people who liked this one also liked.
+pub fn more_like_this() -> String {
+    text("more-like-this", &[])
+}
+
+/// Line of a followed person's list entry: their status and how far they are. Both are already worded.
+pub fn more_followed_progress(status: &str, progress: &str) -> String {
+    text("more-followed-progress", &[("status", Arg::Text(status)), ("progress", Arg::Text(progress))])
+}
+
 /// Line when AniList has no cast, staff or recommendations for a show.
 pub fn more_empty() -> String {
     text("more-empty", &[])
@@ -11483,6 +11603,46 @@ pub fn title_button_play_dubbed(episode: i64) -> String {
 /// Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
 pub fn title_button_resume_dubbed(episode: i64, time: &str) -> String {
     text("title-button-resume-dubbed", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
+}
+
+/// Label of a fact: the genres, joined in its value.
+pub fn title_genres() -> String {
+    text("title-genres", &[])
+}
+
+/// Label of a fact: the date a show not yet out starts.
+pub fn title_fact_starts() -> String {
+    text("title-fact-starts", &[])
+}
+
+/// Label of a fact: the date a film or a one-off was released.
+pub fn title_fact_released() -> String {
+    text("title-fact-released", &[])
+}
+
+/// Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.
+pub fn title_fact_range(from: &str, to: &str) -> String {
+    text("title-fact-range", &[("from", Arg::Text(from)), ("to", Arg::Text(to))])
+}
+
+/// Value of the fact on a cancelled show: the last episode that aired.
+pub fn title_fact_after(episode: i64) -> String {
+    text("title-fact-after", &[("episode", Arg::Int(episode))])
+}
+
+/// Value of the fact on a show that is airing and has no known start.
+pub fn title_fact_now() -> String {
+    text("title-fact-now", &[])
+}
+
+/// Value of the fact on a show with no announced start.
+pub fn title_fact_tba() -> String {
+    text("title-fact-tba", &[])
+}
+
+/// A followed person's status and score, such as "Completed · 9/10". The status is already worded.
+pub fn more_following_line(status: &str, score: i64) -> String {
+    text("more-following-line", &[("status", Arg::Text(status)), ("score", Arg::Int(score))])
 }
 
 /// Title of the settings group and the screen.

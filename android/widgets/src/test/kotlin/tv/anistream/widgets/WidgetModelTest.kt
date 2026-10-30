@@ -56,7 +56,7 @@ class WidgetModelTest {
     fun continue_says_the_time_left_and_starts_what_was_not_begun() {
         val view = continuing(Fixtures.record()) as ContinueView.Shows
         // Hagane no Niwashi is watched dubbed: the engine's mark follows its episode.
-        assertEquals(listOf("E7 · 14 min left", "E2 · Dub · 6 min left", "Start E4"), view.shows.map { it.line })
+        assertEquals(listOf("E7 · 14 min left", "E2 · Dub · 6 min left", "Play E4"), view.shows.map { it.line })
         assertEquals(0.75f, view.shows[1].progress!!, 0.001f)
         assertNull("no bar for an episode not begun", view.shows[2].progress)
         assertNull(view.updated)
@@ -140,7 +140,7 @@ class WidgetModelTest {
         val dub = Fixtures.continuing[1].copy(mark = "Dub")
         fun line(row: tv.anistream.engine.model.WidgetContinue) =
             ((continuing(Fixtures.record(continuing = listOf(row))) as ContinueView.Shows).shows.single())
-        assertEquals("Start E2 · Dub", line(dub.copy(resume = false, fraction = null)).line)
+        assertEquals("Play E2 · Dub", line(dub.copy(resume = false, fraction = null)).line)
         assertEquals("E2 of 10 · Dub", line(dub.copy(minutesLeft = null)).line)
         assertEquals("Resume episode 2, dubbed, of Hagane no Niwashi", playLabel(context, line(dub)))
         assertEquals("Resume episode 7 of Hoshikuzu no Tabibito", playLabel(context, line(Fixtures.continuing[0])))

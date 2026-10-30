@@ -313,11 +313,27 @@ impl Inner {
 
     fn publish(&self) {
         let status = lock(&self.state).status();
+        self.publish_status(status);
+    }
+
+    /// Publish the status of a state the caller already holds locked.
+    fn publish_locked(&self, state: &State) {
+        self.publish_status(state.status());
+    }
+
+    fn publish_status(&self, status: CastStatus) {
         self.status.send_if_modified(|current| {
             let changed = *current != status;
             *current = status;
             changed
         });
+    }
+
+    /// Say an event from inside the state lock. The status goes out first, so whoever reacts to
+    /// the event reads a status that already includes what caused it.
+    fn say_locked(&self, state: &State, event: PlaybackEvent) {
+        self.publish_locked(state);
+        self.say(event);
     }
 
     /// The running receiver app, launched when there is none yet.
@@ -484,7 +500,7 @@ impl CastPlayer {
                         tracing::warn!(%failure, "nothing cast");
                         state.failure = Some(failure);
                         state.ended = true;
-                        inner.say(PlaybackEvent::Ended { complete: false });
+                        inner.say_locked(&state, PlaybackEvent::Ended { complete: false });
                     }
                 }
                 // A load starts at normal speed: the one asked for is set once it plays.
@@ -1180,13 +1196,13 @@ fn apply(inner: &Inner, state: &mut State, status: &MediaStatus) {
         }
         state.ended = true;
         match reason {
-            "FINISHED" => inner.say(PlaybackEvent::Ended { complete: true }),
+            "FINISHED" => inner.say_locked(state, PlaybackEvent::Ended { complete: true }),
             "INTERRUPTED" => {
                 // Something else was loaded in its place.
                 state.ended = false;
-                inner.say(PlaybackEvent::Replaced);
+                inner.say_locked(state, PlaybackEvent::Replaced);
             }
-            _ => inner.say(PlaybackEvent::Ended { complete: false }),
+            _ => inner.say_locked(state, PlaybackEvent::Ended { complete: false }),
         }
         return;
     }
@@ -1202,24 +1218,27 @@ fn apply(inner: &Inner, state: &mut State, status: &MediaStatus) {
         } else {
             state.paused = None;
             state.rate = None;
-            inner.say(PlaybackEvent::Loaded);
+            inner.say_locked(state, PlaybackEvent::Loaded);
         }
     }
-    inner.say(PlaybackEvent::Progress { position: status.position, duration: status.duration });
+    inner.say_locked(
+        &*state,
+        PlaybackEvent::Progress { position: status.position, duration: status.duration },
+    );
     let paused = status.state == "PAUSED";
     if state.paused != Some(paused) {
         state.paused = Some(paused);
         state.paused_since = paused.then(Instant::now);
-        inner.say(PlaybackEvent::Paused(paused));
+        inner.say_locked(state, PlaybackEvent::Paused(paused));
     }
     let buffering = matches!(status.state.as_str(), "BUFFERING" | "LOADING");
     if state.buffering != buffering {
         state.buffering = buffering;
-        inner.say(PlaybackEvent::Buffering(buffering));
+        inner.say_locked(state, PlaybackEvent::Buffering(buffering));
     }
     if state.rate != Some(status.rate) {
         state.rate = Some(status.rate);
-        inner.say(PlaybackEvent::Speed(status.rate));
+        inner.say_locked(state, PlaybackEvent::Speed(status.rate));
     }
 }
 
@@ -1229,7 +1248,7 @@ fn volume(inner: &Inner, state: &mut State, level: Option<f64>, muted: Option<bo
         && state.level != Some(level)
     {
         state.level = Some(level);
-        inner.say(PlaybackEvent::Volume((level * 100.0).round()));
+        inner.say_locked(state, PlaybackEvent::Volume((level * 100.0).round()));
     }
     if let Some(muted) = muted
         && state.muted != Some(muted)
@@ -1254,7 +1273,7 @@ async fn pump(mut incoming: mpsc::UnboundedReceiver<Incoming>, inner: std::sync:
             state.failure.get_or_insert(CastFailure::Lost("the connection closed".into()));
             if !state.ended {
                 state.ended = true;
-                inner.say(PlaybackEvent::Ended { complete: false });
+                inner.say_locked(&state, PlaybackEvent::Ended { complete: false });
             }
         }
         drop(state);
@@ -1326,7 +1345,7 @@ fn end_cast(inner: &Inner, state: &mut State, failure: CastFailure) {
     state.failure = Some(failure);
     if !state.ended {
         state.ended = true;
-        inner.say(PlaybackEvent::Ended { complete: false });
+        inner.say_locked(state, PlaybackEvent::Ended { complete: false });
     }
 }
 
@@ -1357,7 +1376,7 @@ async fn poll(inner: std::sync::Weak<Inner>) {
             state.closed = true;
             if !state.ended {
                 state.ended = true;
-                inner.say(PlaybackEvent::Ended { complete: false });
+                inner.say_locked(&state, PlaybackEvent::Ended { complete: false });
             }
             drop(state);
             inner.publish();

@@ -30,8 +30,8 @@ party-sources-found-line = { $count ->
 
 # Notice when the player could not start, or could not be reached to add a track.
 # @only linux
-# @max 60
-player-could-not-start = The player could not start
+# @max 90
+player-could-not-start = The player couldn't start. Try again, or choose another { -source }.
 
 # Notice when the file chosen for a subtitle or audio track has no path the app can read.
 # @only linux

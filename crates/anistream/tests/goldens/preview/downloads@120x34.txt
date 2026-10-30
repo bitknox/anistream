@@ -2,7 +2,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ▸  Continue               │  Title                             State         Progress
   ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  Seasonal               │  ▌ Stardust Wayfarer  E4           Complete      ████████████████████  367 MB / 367 MB
+  ▦  Seasonal               │  ▌ Stardust Wayfarer  E4           Downloaded    ████████████████████  367 MB / 367 MB
   /  Search                 │    Stardust Wayfarer  E5           Downloading   ████████░░░░░░░░░░░░  147 MB / 367 MB
   ▥  Library                │    Stardust Wayfarer  E6           Queued        ░░░░░░░░░░░░░░░░░░░░  Torrents are off
 ▌ ↓  Downloads            2 │    Stardust Wayfarer  E7           Failed        ██░░░░░░░░░░░░░░░░░░  37 MB / 367 MB

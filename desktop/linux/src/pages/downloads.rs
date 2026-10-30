@@ -97,7 +97,7 @@ fn state_line(row: &DownloadRow) -> String {
     line
 }
 
-/// "Shared 0.2 of 1 · 18h left".
+/// "Shared 0.2 of 1 · 18 h left".
 fn seed_line(seed: &SeedRow) -> String {
     let hours = seed.left_secs.div_ceil(3600);
     let left = if hours >= 1 {
@@ -864,7 +864,7 @@ mod tests {
             goal: 1.0,
             left_secs: 64_800,
         };
-        assert_eq!(seed_line(&seed), "Shared 0.2 of 1 · 18h left");
+        assert_eq!(seed_line(&seed), "Shared 0.2 of 1 · 18 h left");
         let mut done = row(4, 7, "6", DownloadState::Done);
         done.path = Some("/videos/anistream/a.mkv".into());
         assert_eq!(seed_name(&seed, &[done]), "Title 7 · Episode 6");

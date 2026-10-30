@@ -6,7 +6,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
     Faster                         ]
     Volume down                    9
     Volume up                      0
-    Fullscreen                     F
+    Full screen                    F
     Leave player running           q
     Stop playback                  x
 
@@ -53,8 +53,8 @@ r07 c13-34 fg=rule bg=ground
 r07 c35-35 fg=text bg=ground
 r07 c36-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
-r08 c02-13 fg=text-dim bg=ground
-r08 c14-34 fg=rule bg=ground
+r08 c02-14 fg=text-dim bg=ground
+r08 c15-34 fg=rule bg=ground
 r08 c35-35 fg=text bg=ground
 r08 c36-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground

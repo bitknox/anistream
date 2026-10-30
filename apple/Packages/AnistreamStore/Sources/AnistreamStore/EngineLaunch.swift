@@ -136,8 +136,9 @@ extension FfiError {
     /// What failed, in the engine's words, which read whole on screen.
     public var reason: String {
         switch self {
-        case .Dirs(let reason), .Config(let reason), .Store(let reason), .Client(let reason),
-             .Runtime(let reason), .Engine(let reason), .Remote(let reason):
+        case .Dirs(let reason, _), .Config(let reason, _), .Store(let reason, _),
+             .Client(let reason, _), .Runtime(let reason, _), .Engine(let reason, _),
+             .Remote(let reason, _):
             reason
         }
     }

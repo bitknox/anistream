@@ -68,11 +68,11 @@ struct LaunchTests {
         ])
         // The Steel Gardener is watched dubbed, so its row is marked, as the engine's queue is.
         #expect(queue.inProgress.map(\.action) == [
-            "Continue E7 · 10:06", "Continue E2 dubbed · 13:30", "Play E4",
+            "Resume E7 · 10:06", "Resume E2 dubbed · 13:30", "Play E4",
         ])
         #expect(queue.inProgress.map(\.dubbed) == [false, true, false])
         #expect(queue.newThisWeek.map(\.entry.secondary) == ["Natsukaze Relay"])
-        #expect(queue.newThisWeek.first?.action.hasPrefix("Play E8 · out 19h") == true)
+        #expect(queue.newThisWeek.first?.action.hasPrefix("Play E8 · out 19 h") == true)
     }
 
     @Test func aTitleWatchedUpToItsNextBroadcastIsCaughtUpAndOffersNothingToPlay() async throws {
@@ -111,7 +111,7 @@ struct LaunchTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let config = root.appending(path: "config", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: config, withIntermediateDirectories: true)
-        try "[playback]\nbogus = 1\n".write(to: config.appending(path: "config.toml"), atomically: true, encoding: .utf8)
+        try "[playback]\nquality = \"lots\"\n".write(to: config.appending(path: "config.toml"), atomically: true, encoding: .utf8)
 
         let store = AppStore()
         await store.start(
@@ -122,7 +122,8 @@ struct LaunchTests {
             Issue.record("a config that does not load fails the start: \(store.phase)")
             return
         }
-        #expect(reason.contains("bogus"), "\(reason)")
+        #expect(reason.contains("config.toml has a setting"), "\(reason)")
+        #expect(reason.contains("line 2:"), "\(reason)")
     }
 }
 

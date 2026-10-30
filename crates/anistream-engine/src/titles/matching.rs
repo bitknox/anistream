@@ -39,9 +39,10 @@ pub async fn fix_match(lent: Lent, id: AnilistId, provider_id: String, key: Prov
         match load_episodes(&meta, &store, &registry, id).await {
             // The override *is* the answer, so the ladder cannot come back
             // undecided; if it somehow does, say so rather than looping.
-            Ok(EpisodeLoad::Choose { .. }) => {
-                vec![Event::Toast(Notice::alert(Msg::NoticeMatchDidNotStick))]
-            }
+            Ok(EpisodeLoad::Choose { rows, .. }) => vec![
+                Event::Episodes { id, rows, failed: None },
+                Event::Toast(Notice::alert(Msg::NoticeMatchDidNotStick)),
+            ],
             load => episodes::said(id, load),
         }
     };

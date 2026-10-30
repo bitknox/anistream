@@ -67,7 +67,7 @@ stores-offline-last-list-plain = Offline. Showing the last list it sent.
 # Line with the store's key and how this device joined.
 # @arg key: text
 # @arg joined: text
-stores-key-line = Store key { $key } · { $joined }
+stores-key-line = { -store-cap } key { $key } · { $joined }
 
 # How the device joined, when a name was given.
 # @arg name: text
@@ -92,7 +92,7 @@ stores-address = Address
 stores-key-fingerprint = Key fingerprint
 
 # Heading of the section about this store.
-stores-this-store = This store
+stores-this-store = This { -store }
 
 ## Actions
 
@@ -102,7 +102,7 @@ stores-join-action = Join a { -plugin-store }
 
 # Short button on a phone for the same.
 # @max 20
-stores-join-short = Join a store
+stores-join-short = Join a { -store }
 
 # Menu item that opens the join form.
 stores-join-menu = Join { -plugin-store }…

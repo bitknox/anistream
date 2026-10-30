@@ -64,10 +64,11 @@ pub struct Started {
 /// Start the engine on the user's own directories, the terminal app's, so both share a history,
 /// a config and a library.
 pub async fn start(paths: Paths, host: Arc<dyn Host>) -> Result<Started, String> {
-    let (config, store) = open(&paths)?;
+    let (config, store, set_aside) = open(&paths)?;
     let http = HttpClient::new(&config.network).map_err(|e| e.to_string())?;
     let mut options = EngineOptions::new(paths, config.clone(), http, store, theme());
     options.saved = Some(config);
+    options.set_aside = set_aside;
     options.hosted_player = true;
     options.app_clients = app_clients();
     "Linux computer".clone_into(&mut options.device_label); // i18n-skip
@@ -100,14 +101,15 @@ pub fn paths_under(root: &Path) -> Paths {
 }
 
 /// Create the directories, read the config and open the database.
-pub fn open(paths: &Paths) -> Result<(Config, Store), String> {
+pub fn open(paths: &Paths) -> Result<(Config, Store, Option<std::path::PathBuf>), String> {
     let config_dir = paths.config_file.parent().unwrap_or(&paths.data_dir).to_path_buf();
     for dir in [config_dir, paths.data_dir.clone(), paths.cache_dir.clone()] {
         std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
     let config = Config::read(paths).map_err(|e| format!("config: {e:?}"))?; // i18n-skip
-    let store = Store::open(paths.database()).map_err(|e| format!("database: {e}"))?; // i18n-skip
-    Ok((config, store))
+    let (store, set_aside) =
+        Store::open_or_set_aside(paths.database()).map_err(|e| format!("database: {e}"))?; // i18n-skip
+    Ok((config, store, set_aside))
 }
 
 /// How the engine dresses the player's own interface: the Obi & Silk palette.
@@ -131,7 +133,7 @@ mod tests {
     fn a_run_under_a_root_keeps_everything_under_it() {
         let root = tempfile::tempdir().expect("a scratch directory");
         let paths = paths_under(root.path());
-        let (_config, _store) = open(&paths).expect("it opens");
+        let (_config, _store, _) = open(&paths).expect("it opens");
         for path in [&paths.config_file, &paths.data_dir, &paths.cache_dir] {
             assert!(path.starts_with(root.path()), "{} is outside the root", path.display());
         }

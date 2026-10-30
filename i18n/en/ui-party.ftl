@@ -117,7 +117,7 @@ party-form-episode-of = Episode { $episode } of { $title }
 party-form-episode = Episode { $episode }
 
 # Line on the form when the party could not begin.
-party-ended-early = The party ended before it began.
+party-ended-early = The { -watch-party } ended before it began.
 
 ## Panel
 
@@ -209,7 +209,7 @@ party-in-room-idle-plain = You're in the room, with nothing playing.
 ## Notes in the app after a link or a change
 
 # Note when an invite link lacks parts.
-party-link-incomplete = That party link is missing its server, room or episode.
+party-link-incomplete = That { -watch-party } link is missing its server, room or episode.
 
 # Note when the link is for the party you are in.
 party-already-in = You're already in this { -watch-party }.
@@ -235,14 +235,14 @@ party-leave-detail = Closing { -app-name } leaves { $room }. Everyone else carri
 # Title when the user has installed no source.
 party-nosource-none-title = You have no { -source-pl } yet
 
-# Line under it.
+# Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.
 # @arg what: text
 party-nosource-none-detail = { -source-cap-pl } come from { -plugin-pl }, which a { -plugin-store } adds. { $what } plays with the room once one of them has it.
 
 # Title when no source has the episode.
 party-nosource-missing-title = None of your { -source-pl } has this episode
 
-# Line under it. The reason is a sentence without its full stop.
+# Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
 # @arg why: text
 # @arg what: text
 party-nosource-missing-detail = { $why }. { $what } plays with the room once you choose a { -source } that has it.

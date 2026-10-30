@@ -104,8 +104,8 @@ class LiveDownloadsTest {
     fun the_chip_says_minutes_then_hours() {
         assertEquals("1 min", LiveDownloads.chipOf(context, 20))
         assertEquals("59 min", LiveDownloads.chipOf(context, 59 * 60))
-        assertEquals("1h 20m", LiveDownloads.chipOf(context, 80 * 60))
-        assertEquals("12h", LiveDownloads.chipOf(context, 12 * 3600 + 120))
+        assertEquals("1 h 20 min", LiveDownloads.chipOf(context, 80 * 60))
+        assertEquals("12 h", LiveDownloads.chipOf(context, 12 * 3600 + 120))
     }
 
     @Test

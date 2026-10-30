@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import android.content.Context
-import tv.anistream.engine.model.Msg
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 
@@ -33,11 +32,6 @@ class NoticesModel(private val clock: () -> Long = System::currentTimeMillis) {
     /** Every notice, newest first. */
     val log: StateFlow<List<NoticeItem>> = _log.asStateFlow()
 
-    private val _status = MutableStateFlow<Msg?>(null)
-
-    /** The engine's status line, when it last set one. */
-    val status: StateFlow<Msg?> = _status.asStateFlow()
-
     private var count = 0
 
     internal fun post(notice: Notice, words: ((Context) -> String)? = null) {
@@ -45,10 +39,6 @@ class NoticesModel(private val clock: () -> Long = System::currentTimeMillis) {
         val item = NoticeItem(count, notice, clock(), words)
         _current.value = item
         _log.value = (listOf(item) + _log.value).take(KEPT)
-    }
-
-    internal fun status(msg: Msg?) {
-        _status.value = msg
     }
 
     /** Take the snackbar down, if it still shows [item]. */

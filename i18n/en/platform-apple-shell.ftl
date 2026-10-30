@@ -4,8 +4,9 @@
 # Mac menu bar item that opens Settings.
 menu-settings = Settings…
 
-# Mac menu bar item that opens the sheet for joining a plugin store.
-menu-join-plugin-store = Join Store…
+# Mac menu bar item that opens the sheet for joining a plugin store. Title Case, so the words are typed.
+# @allow plugin, store
+menu-join-plugin-store = Join Plugin Store…
 
 # Mac menu bar item that opens the invite link on the clipboard.
 menu-open-invite-link = Open Invite Link
@@ -135,7 +136,7 @@ shell-library-order-label = Order
 shell-library-segment = { $name } { $count }
 
 # Error when a link that was pasted or opened is not a plugin store's invite.
-shell-not-a-store = This link does not lead to a { -plugin-store }. Ask the { -plugin-store }'s owner for a new invite.
+shell-not-a-store = This link doesn't lead to a { -plugin-store }. Ask the { -plugin-store }'s owner for a new invite.
 
 # Context menu item that carries on with an episode that was left part-way.
 # @arg episode: int
@@ -160,4 +161,4 @@ shell-sync-failed = { $tracker } not synced
 shell-sync-synced = { $tracker } synced
 
 # Title of the page shown instead of the app when the engine could not start. The reason follows.
-shell-start-failed = { -app-name } could not start
+shell-start-failed = { -app-name } couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu.

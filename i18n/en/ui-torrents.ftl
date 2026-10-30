@@ -14,7 +14,7 @@ torrents-off-detail = Off by default. Turning this on asks how to protect your c
 torrents-risk = Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.
 
 # Line in the Apple sources screen: torrents belong to the app, not to a plugin.
-torrents-not-a-plugin = Torrents are part of { -app-name }, not a { -plugin }. What protects their traffic, the connection check and seeding are set in { -source-cap-pl } settings.
+torrents-not-a-plugin = Torrents are part of { -app-name }, not a { -plugin }. What protects their traffic, the connection check and seeding are set in Settings, under { -source-cap-pl }.
 
 ## Protection
 
@@ -40,7 +40,7 @@ torrents-protect-vpn-detail = Uses the VPN already running on this { -device }.
 torrents-protect-none-detail = Your address is visible to everyone in the torrent.
 
 # Line when no protection is set.
-torrents-protect-none-note = With no protection, { -app-name } does not check the connection.
+torrents-protect-none-note = With no protection, { -app-name } doesn't check the connection.
 
 # Summary: a proxy protects. Host and port are already formatted.
 # @arg host: text
@@ -60,7 +60,7 @@ torrents-summary-none = Not protected. Your address is visible to everyone in th
 torrents-unprotected-title = Use torrents without protection?
 
 # Line under it.
-torrents-unprotected-detail = Other people can see your IP address while you download and share a torrent, and { -app-name } does not check the connection.
+torrents-unprotected-detail = Other people can see your IP address while you download and share a torrent, and { -app-name } doesn't check the connection.
 
 # Button that confirms turning torrents on without protection.
 # @max 40
@@ -103,7 +103,7 @@ torrents-proxy-saved = Proxy saved
 torrents-left-outside-proxy = Torrent traffic left outside this proxy
 
 # Why a save was refused: the check could not run through the proxy.
-torrents-check-not-made-proxy = The check could not be made through this proxy
+torrents-check-not-made-proxy = The check couldn't be made through this proxy
 
 # Notice when a proxy was not saved. The reason is a sentence fragment.
 # @arg why: cause
@@ -188,7 +188,7 @@ torrents-check-leaked = Traffic left outside the protection. { $then }
 
 # Check failed: the check could not be made. The consequence follows.
 # @arg then: text
-torrents-check-unmade = The check could not be made. { $then }
+torrents-check-unmade = The check couldn't be made. { $then }
 
 # Short word: the check failed.
 torrents-check-failed = Failed

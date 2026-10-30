@@ -69,7 +69,7 @@ sealed class WelcomeDialog
                 AutomationProperties.SetHeadingLevel(name, AutomationHeadingLevel.Level1);
                 body.Children.Add(name);
                 body.Children.Add(Ui.Text(T.OnboardingTagline, "BodyTextBlockStyle"));
-                body.Children.Add(Ui.Haze($"{T.LegalHostsNoContent} {T.WelcomeSourcesOthers}"));
+                body.Children.Add(Ui.Haze(T.LegalHostsNoContent));
                 dialog.PrimaryButtonText = T.OnboardingContinue;
                 dialog.CloseButtonText = T.OnboardingSkip;
                 break;
@@ -83,7 +83,7 @@ sealed class WelcomeDialog
                 break;
             default:
                 dialog.Title = T.OnboardingSourcesTitle;
-                body.Children.Add(Ui.Text($"{T.WelcomeNoOwnSources} {T.OnboardingSourcesDetail}", "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Text(T.OnboardingSourcesDetail, "BodyTextBlockStyle"));
                 body.Children.Add(invite);
                 body.Children.Add(problem);
                 body.Children.Add(Ui.Haze(T.PluginRiskWarning));

@@ -145,6 +145,9 @@ public enum L {
         Self.format("cause-release-failed", fallback: "Couldn't start that release: %1$@", detail)
     }
 
+    /// Reason: a play waited too long for its sources to give it a stream, and gave up.
+    public static var causeSourcesTimedOut: String { string("cause-sources-timed-out", fallback: "The sources took too long to answer. Try again, or choose another source.") }
+
     /// Reason: every source matched the title but none has the episode. The detail is what each said.
     public static func causeNoSourceHasEpisode(episode: String, detail: String) -> String {
         Self.format("cause-no-source-has-episode", fallback: "No source has episode %1$@: %2$@", episode, detail)
@@ -182,14 +185,6 @@ public enum L {
         Self.format("status-searching-sources", fallback: "Searching sources for episode %1$@…", episode)
     }
 
-    /// Status while the player opens.
-    public static var statusStartingPlayer: String { string("status-starting-player", fallback: "Starting mpv…") }
-
-    /// Status line while an episode plays.
-    public static func statusPlaying(title: String, episode: String) -> String {
-        Self.format("status-playing", fallback: "Playing %1$@, episode %2$@", title, episode)
-    }
-
     /// Toast when the player cannot be started. The reason comes from the system.
     public static func noticePlayerFailedToStart(reason: String) -> String {
         Self.format("notice-player-failed-to-start", fallback: "Couldn't start mpv. Check that it runs on its own. (%1$@)", reason)
@@ -216,15 +211,18 @@ public enum L {
     /// Toast when a play is asked for in a build with no player.
     public static var noticeNoPlayer: String { string("notice-no-player", fallback: "This version of anistream can't play video.") }
 
-    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
     public static func noticeMpvMissing(binary: String) -> String {
         Self.format("notice-mpv-missing", fallback: "%1$@ wasn't found. Install mpv to play episodes.", binary)
     }
 
-    /// Toast at launch when mpv is too old for anistream's own player.
+    /// Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.
     public static func noticeMpvOld(version: String) -> String {
         Self.format("notice-mpv-old", fallback: "mpv %1$@ can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.", version)
     }
+
+    /// Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.
+    public static var noticeSubtitlesUnavailable: String { string("notice-subtitles-unavailable", fallback: "This source's subtitles couldn't be loaded. Choose another source to try again.") }
 
     /// Toast after a link was handed to the browser.
     public static var noticeOpenedInBrowser: String { string("notice-opened-in-browser", fallback: "Opened in your browser.") }
@@ -306,6 +304,16 @@ public enum L {
         Self.format("notice-no-source-could-list", fallback: "No source could list this show: %1$@", reason)
     }
 
+    /// Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
+    public static func noticeEpisodesFailed(reason: String) -> String {
+        Self.format("notice-episodes-failed", fallback: "Couldn't load the episodes. %1$@", reason)
+    }
+
+    /// Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.
+    public static func noticeMatchUncertain(source: String) -> String {
+        Self.format("notice-match-uncertain", fallback: "%1$@ found more than one show that could be this one, so these episodes are from AniList for now.", source)
+    }
+
     /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
     public static func noticeContinueHideFailed(reason: String) -> String {
         Self.format("notice-continue-hide-failed", fallback: "Couldn't remove that from Continue. %1$@", reason)
@@ -371,17 +379,17 @@ public enum L {
         Self.format("notice-downloads-none-queued-stopped", fallback: "Nothing queued. %1$@", reason)
     }
 
-    /// Toast after a range was asked for and every episode was in the queue already.
+    /// Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
     public static func noticeDownloadsNoneNew(existing: String) -> String {
         Self.format("notice-downloads-none-new", fallback: "Nothing new queued. %1$@", existing)
     }
 
-    /// Toast as above, with the reason the range stopped.
+    /// Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
     public static func noticeDownloadsNoneNewStopped(existing: String, reason: String) -> String {
         Self.format("notice-downloads-none-new-stopped", fallback: "Nothing new queued. %1$@ %2$@", existing, reason)
     }
 
-    /// Toast after a range was asked for, some episodes were queued and some were there already.
+    /// Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
     public static func noticeEpisodesQueuedExisting(count: Int, existing: String) -> String {
         Self.format("notice-episodes-queued-existing", fallback: "Queued %1$lld episodes. %2$@", count, existing)
     }
@@ -391,7 +399,7 @@ public enum L {
         Self.format("notice-episodes-queued-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@", count, reason)
     }
 
-    /// Toast as above, with some episodes in the queue already and the reason the range stopped.
+    /// Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
     public static func noticeEpisodesQueuedExistingStopped(count: Int, existing: String, reason: String) -> String {
         Self.format("notice-episodes-queued-existing-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@ %3$@", count, existing, reason)
     }
@@ -399,9 +407,14 @@ public enum L {
     /// Toast when keep next found no room for another episode.
     public static var noticeKeepNextFull: String { string("notice-keep-next-full", fallback: "Not enough free space to keep the next episodes downloaded. Free up some space to download more.") }
 
-    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
     public static func partyNeedsServer(server: String, `operator`: String) -> String {
         Self.format("party-needs-server", fallback: "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@.", server, `operator`)
+    }
+
+    /// Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.
+    public static func partyChooseServer(server: String, `operator`: String) -> String {
+        Self.format("party-choose-server", fallback: "Choose a server for the watch party first. %1$@ is run by %2$@.", server, `operator`)
     }
 
     /// Toast when a watch party is asked for in a build without watch parties.
@@ -473,9 +486,9 @@ public enum L {
     }
 
     /// Toast after the store's admin page opens in the browser.
-    public static var storeAdminOpened: String { string("store-admin-opened", fallback: "Opened the admin page in your browser. The link works once, for ten minutes.") }
+    public static var storeAdminOpened: String { string("store-admin-opened", fallback: "Opened the admin page in your browser. The link works once, for 10 minutes.") }
 
-    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
     public static func storeAdminOpenFailed(reason: String) -> String {
         Self.format("store-admin-open-failed", fallback: "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link.", reason)
     }
@@ -519,7 +532,7 @@ public enum L {
     public static var storeNotJoined: String { string("store-not-joined", fallback: "That plugin store is no longer joined.") }
 
     /// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
-    public static var storeKeyDamaged: String { string("store-key-damaged", fallback: "The plugin store's key is damaged.") }
+    public static var storeKeyDamaged: String { string("store-key-damaged", fallback: "This plugin store's key on this device is damaged. Leave the plugin store and join it again with a new invite.") }
 
     /// Error: a store rejected this device's token.
     public static func storeDeviceRefused(store: String) -> String {
@@ -604,7 +617,7 @@ public enum L {
 
     /// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
     public static func storeLinkMalformed(reason: String) -> String {
-        Self.format("store-link-malformed", fallback: "The plugin store made a bad link. %1$@", reason)
+        Self.format("store-link-malformed", fallback: "The plugin store sent a link that doesn't work. Ask its owner to check the plugin store. %1$@", reason)
     }
 
     /// Error: the store sent a link carrying another store's key.
@@ -637,7 +650,7 @@ public enum L {
 
     /// Error: a command named a plugin that is not loaded.
     public static func pluginNotLoaded(id: String) -> String {
-        Self.format("plugin-not-loaded", fallback: "%1$@ is not a plugin that is loaded.", id)
+        Self.format("plugin-not-loaded", fallback: "%1$@ isn't loaded. Check that it's installed under Sources.", id)
     }
 
     /// Toast after a release is chosen for a title. The name is the release's title.
@@ -665,15 +678,15 @@ public enum L {
     public static var torrentNoIndex: String { string("torrent-no-index", fallback: "Torrents need a torrent index. anistream ships none, so add your own address in the settings.") }
 
     /// Error: the torrent session did not start because the interface closed first.
-    public static var torrentInterfaceClosed: String { string("torrent-interface-closed", fallback: "The interface closed before torrents started.") }
+    public static var torrentInterfaceClosed: String { string("torrent-interface-closed", fallback: "anistream closed before torrents started.") }
 
     /// Error: the torrent session could not start. The reason comes from the torrent engine.
     public static func torrentSessionFailed(reason: String) -> String {
         Self.format("torrent-session-failed", fallback: "Couldn't start the torrent session. %1$@", reason)
     }
 
-    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
-    public static var torrentNoKillSwitch: String { string("torrent-no-kill-switch", fallback: "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.") }
+    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.
+    public static var torrentNoKillSwitch: String { string("torrent-no-kill-switch", fallback: "Nothing on this device stops torrent traffic if the VPN drops. Run \"anistream --doctor\" to set that up.") }
 
     /// Toast when the connection check could not run. The reason comes from the VPN settings.
     public static func torrentNotChecked(reason: String) -> String {
@@ -695,7 +708,7 @@ public enum L {
     }
 
     /// Toast when the AniList fallback takes over because AniList cannot be reached.
-    public static var noticeAnilistUnreachable: String { string("notice-anilist-unreachable", fallback: "AniList is unreachable. Using the fallback for fresh data for now.") }
+    public static var noticeAnilistUnreachable: String { string("notice-anilist-unreachable", fallback: "AniList isn't answering. Showing data from another service for now.") }
 
     /// Toast when no metadata service answered and the last cached data is shown.
     public static var noticeMetadataCached: String { string("notice-metadata-cached", fallback: "No metadata service answered. Showing what was last cached.") }
@@ -792,15 +805,15 @@ public enum L {
         Self.format("notice-anilist-client-missing", fallback: "AniList needs a client id and secret. Set %1$@ and %2$@ in the config file, then sign in again. To get the sign-in address, run anistream --login-url.", client, secret)
     }
 
-    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.
     public static var noticeAnilistPasteFlow: String { string("notice-anilist-paste-flow", fallback: "Pasting a code isn't possible here. Quit and run anistream --login instead.") }
 
     /// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
     public static func noticeMalClientMissing(setting: String) -> String {
-        Self.format("notice-mal-client-missing", fallback: "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file.", setting)
+        Self.format("notice-mal-client-missing", fallback: "MyAnimeList needs a client id. Register an app with the type \"other\" at myanimelist.net/apiconfig, then set %1$@ in the config file.", setting)
     }
 
-    /// Status line while the browser sign-in is open and the app waits for it to come back.
+    /// Job note while the browser sign-in is open and the terminal app waits for it to come back.
     public static func statusWaitingForRedirect(tracker: String) -> String {
         Self.format("status-waiting-for-redirect", fallback: "Waiting for %1$@ to redirect back…", tracker)
     }
@@ -880,7 +893,7 @@ public enum L {
         Self.format("notice-episodes-aired", fallback: "%1$lld new episodes of shows you watch aired. The calendar has them.", count)
     }
 
-    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.
     public static func noticeUpdateAvailable(tag: String) -> String {
         Self.format("notice-update-available", fallback: "%1$@ is out. Run anistream --update to install it.", tag)
     }
@@ -918,6 +931,49 @@ public enum L {
 
     /// Toast when playback stops with an error.
     public static var noticePlaybackFailed: String { string("notice-playback-failed", fallback: "Playback failed. Try another source.") }
+
+    /// Toast when something went wrong inside the engine and it carried on.
+    public static var noticeEngineFault: String { string("notice-engine-fault", fallback: "Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.") }
+
+    /// Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.
+    public static func noticeDatabaseSetAside(path: String) -> String {
+        Self.format("notice-database-set-aside", fallback: "The database was damaged, so anistream started a new one. The old file is kept at %1$@. Your trackers bring back what they hold at the next sync.", path)
+    }
+
+    /// Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.
+    public static func startFailedFolder(path: String, reason: String) -> String {
+        Self.format("start-failed-folder", fallback: "anistream couldn't create the folder %1$@. Check that the disk has room and the folder can be written to, then try again. %2$@", path, reason)
+    }
+
+    /// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
+    public static func startFailedConfig(path: String, problem: String) -> String {
+        Self.format("start-failed-config", fallback: "%1$@ has a setting anistream can't use: %2$@. Fix or remove it, then try again.", path, problem)
+    }
+
+    /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
+    public static func startFailedDatabase(path: String, reason: String) -> String {
+        Self.format("start-failed-database", fallback: "anistream couldn't open its database at %1$@. If another anistream app is open on this folder, quit it and try again. %2$@", path, reason)
+    }
+
+    /// Message when anistream could not start its network connection from the network settings.
+    public static func startFailedNetwork(reason: String) -> String {
+        Self.format("start-failed-network", fallback: "anistream couldn't set up its network connection from the network settings in config.toml. %1$@", reason)
+    }
+
+    /// Message when anistream itself could not start. The reason comes from the system or the engine.
+    public static func startFailed(reason: String) -> String {
+        Self.format("start-failed", fallback: "anistream couldn't start. Quit and open it again. %1$@", reason)
+    }
+
+    /// Message when the TV remote could not start listening or could not forget a phone.
+    public static func startFailedRemote(reason: String) -> String {
+        Self.format("start-failed-remote", fallback: "The remote couldn't start. %1$@", reason)
+    }
+
+    /// Message when the built-in player could not start.
+    public static func startFailedPlayer(reason: String) -> String {
+        Self.format("start-failed-player", fallback: "The player couldn't start. %1$@", reason)
+    }
 
     /// Toast after episodes are added to the download queue.
     public static func noticeEpisodesQueued(count: Int) -> String {
@@ -1422,10 +1478,10 @@ public enum L {
     public static var playerLoadingAnnounce: String { string("player-loading-announce", fallback: "Starting") }
 
     /// Line while results wait for the rate limit to recover, on a phone where a Search key runs the search.
-    public static var searchRateLimitSearch: String { string("search-rate-limit-search", fallback: "Results wait for Search while AniList’s rate limit recovers") }
+    public static var searchRateLimitSearch: String { string("search-rate-limit-search", fallback: "Searching as you type is paused for a moment, to stay within AniList's limits. Press Search to search now.") }
 
     /// Line while results wait for the rate limit to recover, on a Mac where Return runs the search.
-    public static var searchRateLimitReturn: String { string("search-rate-limit-return", fallback: "Results wait for Return while AniList’s rate limit recovers") }
+    public static var searchRateLimitReturn: String { string("search-rate-limit-return", fallback: "Searching as you type is paused for a moment, to stay within AniList's limits. Press Return to search now.") }
 
     /// Line while a browse is slow to answer. The headline names what is browsed, such as "Trending now".
     public static func searchSearchingBrowse(what: String) -> String {
@@ -1497,8 +1553,8 @@ public enum L {
     /// VoiceOver hint of a filter group that is closed.
     public static var filterGroupOpens: String { string("filter-group-opens", fallback: "Opens the group") }
 
-    /// Settings row: download over cellular data.
-    public static var settingsDownloadCellular: String { string("settings-download-cellular", fallback: "Download on cellular") }
+    /// Settings row: download over mobile data.
+    public static var settingsDownloadCellular: String { string("settings-download-cellular", fallback: "Download on mobile data") }
 
     /// Settings row on the Mac: the switch for hosting a Syncplay-compatible watch party.
     public static var settingsSyncplay: String { string("settings-syncplay", fallback: "Syncplay watch parties") }
@@ -1514,9 +1570,6 @@ public enum L {
 
     /// Settings row for the command that runs after each download.
     public static var settingsHookCommand: String { string("settings-hook-command", fallback: "Command") }
-
-    /// Settings row for the audio translation, as the engine names the setting.
-    public static var settingsTranslation: String { string("settings-translation", fallback: "Translation") }
 
     /// Shown in Settings when a search matches no row.
     public static var settingsNoMatch: String { string("settings-no-match", fallback: "No setting is called that.") }
@@ -1816,7 +1869,7 @@ public enum L {
     public static var settingsSwipeResume: String { string("settings-swipe-resume", fallback: "Resume") }
 
     /// Swipe action on a download that stopped.
-    public static var settingsSwipeRetry: String { string("settings-swipe-retry", fallback: "Retry") }
+    public static var settingsSwipeRetry: String { string("settings-swipe-retry", fallback: "Try again") }
 
     /// Value of the Plugin stores row on the iPhone: how many stores, and how many plugins have updates. The updates are already counted.
     public static func settingsStoresValueUpdates(count: Int, updates: String) -> String {
@@ -1852,12 +1905,12 @@ public enum L {
         Self.format("settings-title-note-signed-out", fallback: "While you are signed out of %1$@, titles show in English.", tracker)
     }
 
-    /// Note under the examples when the tracker's choice is picked and nobody is signed in.
+    /// Note under the examples when the tracker's choice is picked and nobody is signed in. `then` is a whole sentence, the text of `settings-title-note-signed-out`.
     public static func settingsTitleNoteFollows(tracker: String, then: String) -> String {
         Self.format("settings-title-note-follows", fallback: "Follows your %1$@ account. %2$@", tracker, then)
     }
 
-    /// Note under the examples when the tracker's choice is picked and the account has a language.
+    /// Note under the examples when the tracker's choice is picked and the account has a language. `then` is a whole sentence, the text of `settings-title-note-signed-out`.
     public static func settingsTitleNoteFollowsSet(tracker: String, language: String, then: String) -> String {
         Self.format("settings-title-note-follows-set", fallback: "Follows your %1$@ account, which is set to %2$@. %3$@", tracker, language, then)
     }
@@ -1889,8 +1942,8 @@ public enum L {
     /// Mac menu bar item that opens Settings.
     public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }
 
-    /// Mac menu bar item that opens the sheet for joining a plugin store.
-    public static var menuJoinPluginStore: String { string("menu-join-plugin-store", fallback: "Join Store…") }
+    /// Mac menu bar item that opens the sheet for joining a plugin store. Title Case, so the words are typed.
+    public static var menuJoinPluginStore: String { string("menu-join-plugin-store", fallback: "Join Plugin Store…") }
 
     /// Mac menu bar item that opens the invite link on the clipboard.
     public static var menuOpenInviteLink: String { string("menu-open-invite-link", fallback: "Open Invite Link") }
@@ -2022,7 +2075,7 @@ public enum L {
     }
 
     /// Error when a link that was pasted or opened is not a plugin store's invite.
-    public static var shellNotAStore: String { string("shell-not-a-store", fallback: "This link does not lead to a plugin store. Ask the plugin store's owner for a new invite.") }
+    public static var shellNotAStore: String { string("shell-not-a-store", fallback: "This link doesn't lead to a plugin store. Ask the plugin store's owner for a new invite.") }
 
     /// Context menu item that carries on with an episode that was left part-way.
     public static func shellResumeEpisode(episode: Int) -> String {
@@ -2051,7 +2104,7 @@ public enum L {
     }
 
     /// Title of the page shown instead of the app when the engine could not start. The reason follows.
-    public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream could not start") }
+    public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu.") }
 
     /// Line under the heading of the sources list on a phone, where the order is changed with Edit.
     public static var sourcesOrderDetailEdit: String { string("sources-order-detail-edit", fallback: "Sources are tried top to bottom. Tap Edit to change the order.") }
@@ -2299,7 +2352,7 @@ public enum L {
 
     /// Episode count on a phone's title line, such as "24 ep". Kept short.
     public static func titleEpisodesShort(count: Int) -> String {
-        Self.format("title-episodes-short", fallback: "%1$lld ep", count)
+        Self.format("title-episodes-short", fallback: "%1$lld episodes", count)
     }
 
     /// VoiceOver label of an episode row that has not aired. The title is already worded, and so is when it airs.
@@ -2311,7 +2364,7 @@ public enum L {
     public static var titleAllWatched: String { string("title-all-watched", fallback: "Every episode is watched") }
 
     /// Line on the title page when the detail did not arrive in time. A Try again button follows.
-    public static var titleNoAnswerShort: String { string("title-no-answer-short", fallback: "AniList did not answer.") }
+    public static var titleNoAnswerShort: String { string("title-no-answer-short", fallback: "AniList didn't answer.") }
 
     /// Option of the episode list's filter that shows every episode.
     public static var titleEpisodesAll: String { string("title-episodes-all", fallback: "All") }
@@ -2344,10 +2397,10 @@ public enum L {
     public static var updatesRestarting: String { string("updates-restarting", fallback: "Restarting to finish the update") }
 
     /// Status line after an update that stopped before it was done.
-    public static var updatesDidNotFinish: String { string("updates-did-not-finish", fallback: "The update did not finish.") }
+    public static var updatesDidNotFinish: String { string("updates-did-not-finish", fallback: "The update didn't finish. Try again.") }
 
     /// Status line when the check for a newer version could not be made.
-    public static var updatesCouldNotCheck: String { string("updates-could-not-check", fallback: "Could not check.") }
+    public static var updatesCouldNotCheck: String { string("updates-could-not-check", fallback: "Couldn't check for updates. Try again later.") }
 
     /// Button that opens the app's page in SideStore, where the update is made.
     public static var updatesInSidestore: String { string("updates-in-sidestore", fallback: "Update in SideStore") }
@@ -2364,13 +2417,13 @@ public enum L {
     }
 
     /// Failure shown when the Mac updater is not ready to install yet.
-    public static var updatesInstallerNotReady: String { string("updates-installer-not-ready", fallback: "The updater is not ready. Try again in a moment.") }
+    public static var updatesInstallerNotReady: String { string("updates-installer-not-ready", fallback: "The updater isn't ready. Try again in a moment.") }
 
     /// Failure shown when the update feed does not list the version being installed yet.
-    public static var updatesFeedMissing: String { string("updates-feed-missing", fallback: "The update feed does not have this version yet.") }
+    public static var updatesFeedMissing: String { string("updates-feed-missing", fallback: "The update feed doesn't have this version yet.") }
 
     /// Failure shown when the Fixtures app, used for screenshots, is asked to install an update.
-    public static var updatesFixturesNoInstall: String { string("updates-fixtures-no-install", fallback: "The Fixtures app does not install updates.") }
+    public static var updatesFixturesNoInstall: String { string("updates-fixtures-no-install", fallback: "The Fixtures app doesn't install updates.") }
 
     /// Short episode name in a widget.
     public static func widgetEpisodeShort(episode: Int) -> String {
@@ -2490,7 +2543,7 @@ public enum L {
 
     /// Button of the large Continue widget: start an episode.
     public static func widgetActionStart(episode: String) -> String {
-        Self.format("widget-action-start", fallback: "Start %1$@", episode)
+        Self.format("widget-action-start", fallback: "Play %1$@", episode)
     }
 
     /// VoiceOver, an episode in a Continue row: the episode number.
@@ -2844,32 +2897,32 @@ public enum L {
 
     /// A span of time in whole days. The unit letter belongs to the language.
     public static func durationDays(days: Int) -> String {
-        Self.format("duration-days", fallback: "%1$lldd", days)
+        Self.format("duration-days", fallback: "%1$lld d", days)
     }
 
     /// A span of time in hours and minutes.
     public static func durationHoursMinutes(hours: Int, minutes: Int) -> String {
-        Self.format("duration-hours-minutes", fallback: "%1$lldh %2$lldm", hours, minutes)
+        Self.format("duration-hours-minutes", fallback: "%1$lld h %2$lld min", hours, minutes)
     }
 
     /// A span of time in whole hours.
     public static func durationHours(hours: Int) -> String {
-        Self.format("duration-hours", fallback: "%1$lldh", hours)
+        Self.format("duration-hours", fallback: "%1$lld h", hours)
     }
 
     /// A span of time in minutes.
     public static func durationMinutes(minutes: Int) -> String {
-        Self.format("duration-minutes", fallback: "%1$lldm", minutes)
+        Self.format("duration-minutes", fallback: "%1$lld min", minutes)
     }
 
     /// A short wait in minutes and seconds. The seconds come with a leading zero.
     public static func durationMinutesSeconds(minutes: Int, seconds: String) -> String {
-        Self.format("duration-minutes-seconds", fallback: "%1$lldm %2$@s", minutes, seconds)
+        Self.format("duration-minutes-seconds", fallback: "%1$lld min %2$@ s", minutes, seconds)
     }
 
     /// A short wait in seconds.
     public static func durationSeconds(seconds: Int) -> String {
-        Self.format("duration-seconds", fallback: "%1$llds", seconds)
+        Self.format("duration-seconds", fallback: "%1$lld s", seconds)
     }
 
     /// A file size in bytes. The number is already formatted.
@@ -3131,7 +3184,7 @@ public enum L {
     public static var errorTimedOut: String { string("error-timed-out", fallback: "The request took too long. Try again.") }
 
     /// Failure when a tracker rejects the saved sign-in.
-    public static var errorSignInExpired: String { string("error-sign-in-expired", fallback: "Your sign-in has expired. Sign in again under Accounts.") }
+    public static var errorSignInExpired: String { string("error-sign-in-expired", fallback: "Your sign-in has expired. Sign in again in Accounts.") }
 
     /// Accessibility label on the error icon.
     public static var errorLabel: String { string("error-label", fallback: "Problem") }
@@ -3194,10 +3247,10 @@ public enum L {
     /// Controller help: skips the opening or ending while its offer shows.
     public static var padHelpSkip: String { string("pad-help-skip", fallback: "Skip") }
 
-    /// Controller help: starts the next episode now, while the Up Next card shows.
+    /// Controller help: starts the next episode now, while the Up next card shows.
     public static var padHelpPlayNow: String { string("pad-help-play-now", fallback: "Play now") }
 
-    /// Controller help: cancels the Up Next card.
+    /// Controller help: cancels the Up next card.
     public static var padHelpCancel: String { string("pad-help-cancel", fallback: "Cancel") }
 
     /// Controller help: switches to another source while the buffering card shows.
@@ -3540,7 +3593,7 @@ public enum L {
     public static var downloadsCaptionDone: String { string("downloads-caption-done", fallback: "Downloaded") }
 
     /// Row caption: finished and removed a day after it is watched.
-    public static var downloadsCaptionAhead: String { string("downloads-caption-ahead", fallback: "Downloaded ahead · Removed a day after you watch it") }
+    public static var downloadsCaptionAhead: String { string("downloads-caption-ahead", fallback: "Downloaded ahead · removed a day after you watch it") }
 
     /// Short row caption for an episode downloaded before it was asked for.
     public static var downloadsAhead: String { string("downloads-ahead", fallback: "Downloaded ahead") }
@@ -3608,7 +3661,7 @@ public enum L {
     public static var downloadsSeedingAfterWatching: String { string("downloads-seeding-after-watching", fallback: "Seeding after watching") }
 
     /// Line under the seeding heading.
-    public static var downloadsSeedingNote: String { string("downloads-seeding-note", fallback: "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.") }
+    public static var downloadsSeedingNote: String { string("downloads-seeding-note", fallback: "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Settings, under Sources, is reached.") }
 
     /// Heading of the setting. Shown on desktop only.
     public static var downloadsBackgroundTitle: String { string("downloads-background-title", fallback: "When the window closes with downloads running") }
@@ -3629,7 +3682,7 @@ public enum L {
     public static var downloadsBackgroundStops: String { string("downloads-background-stops", fallback: "Closing the window stops downloads. They resume the next time anistream opens.") }
 
     /// Line shown when the setting is Ask each time. Shown on desktop only.
-    public static var downloadsBackgroundAsks: String { string("downloads-background-asks", fallback: "Downloads keep going when you close the window, if you choose to.") }
+    public static var downloadsBackgroundAsks: String { string("downloads-background-asks", fallback: "Closing the window asks whether to keep downloading.") }
 
     /// Title of the question when the window closes. Shown on desktop only.
     public static var downloadsBackgroundQuestion: String { string("downloads-background-question", fallback: "Keep downloads going?") }
@@ -3692,7 +3745,7 @@ public enum L {
 
     /// Line under that button after a failure.
     public static func episodeDownloadFailed(episode: Int) -> String {
-        Self.format("episode-download-failed", fallback: "Couldn't download episode %1$lld. Download again.", episode)
+        Self.format("episode-download-failed", fallback: "Couldn't download episode %1$lld. Try again.", episode)
     }
 
     /// Continue row subtitle. The show's title is cut first when the row is short.
@@ -3712,7 +3765,7 @@ public enum L {
 
     /// A span of time to the next episode, in days and hours. The unit letters belong to the language.
     public static func durationDaysHours(days: Int, hours: Int) -> String {
-        Self.format("duration-days-hours", fallback: "%1$lldd %2$lldh", days, hours)
+        Self.format("duration-days-hours", fallback: "%1$lld d %2$lld h", days, hours)
     }
 
     /// Group header on the library and continue screens.
@@ -3749,7 +3802,7 @@ public enum L {
     public static var continueHidden: String { string("continue-hidden", fallback: "Hidden from Continue.") }
 
     /// Menu item that sets a show's status to Dropped and takes it off Continue.
-    public static var continueDrop: String { string("continue-drop", fallback: "Drop") }
+    public static var continueDrop: String { string("continue-drop", fallback: "Move to Dropped") }
 
     /// Accessibility label on the overflow button of a row.
     public static func continueMoreFor(title: String) -> String {
@@ -3758,12 +3811,12 @@ public enum L {
 
     /// Row caption: resumes this episode where it stopped. The clock is the stored position.
     public static func continueRowResume(episode: Int, clock: String) -> String {
-        Self.format("continue-row-resume", fallback: "Continue E%1$lld · %2$@", episode, clock)
+        Self.format("continue-row-resume", fallback: "Resume E%1$lld · %2$@", episode, clock)
     }
 
     /// Row caption: resumes this episode where it stopped, dubbed.
     public static func continueRowResumeDubbed(episode: Int, clock: String) -> String {
-        Self.format("continue-row-resume-dubbed", fallback: "Continue E%1$lld dubbed · %2$@", episode, clock)
+        Self.format("continue-row-resume-dubbed", fallback: "Resume E%1$lld dubbed · %2$@", episode, clock)
     }
 
     /// Row caption: the next unwatched episode.
@@ -3871,10 +3924,10 @@ public enum L {
     public static var libraryAddToList: String { string("library-add-to-list", fallback: "Add to list") }
 
     /// Menu item that puts a title in the planning list.
-    public static var libraryAddPlanning: String { string("library-add-planning", fallback: "Add to planning") }
+    public static var libraryAddPlanning: String { string("library-add-planning", fallback: "Add to Planning") }
 
     /// Notice after a title was added to the planning list.
-    public static var libraryAddedPlanning: String { string("library-added-planning", fallback: "Added to planning.") }
+    public static var libraryAddedPlanning: String { string("library-added-planning", fallback: "Added to Planning.") }
 
     /// Marker on a title that is already on the person's list.
     public static var libraryOnYourList: String { string("library-on-your-list", fallback: "On your list") }
@@ -3919,6 +3972,11 @@ public enum L {
     /// Reason on a recommended suggestion when the finished show is not known.
     public static var upNextReasonRecommendedPlain: String { string("up-next-reason-recommended-plain", fallback: "Recommended for you") }
 
+    /// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+    public static func upNextBecauseDetail(title: String) -> String {
+        Self.format("up-next-because-detail", fallback: "Recommended on AniList by people who liked %1$@", title)
+    }
+
     /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
     public static var upNextReasonAiringToday: String { string("up-next-reason-airing-today", fallback: "Airing today") }
 
@@ -3927,6 +3985,31 @@ public enum L {
 
     /// Menu item on a suggestion. The show stays hidden until it starts airing.
     public static var upNextNotInterested: String { string("up-next-not-interested", fallback: "Not interested") }
+
+    /// Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
+    public static func upNextRowStarts(reason: String, starts: String) -> String {
+        Self.format("up-next-row-starts", fallback: "%1$@ · %2$@", reason, starts)
+    }
+
+    /// Notice after Not interested on a suggestion that is already airing.
+    public static func upNextHidden(title: String) -> String {
+        Self.format("up-next-hidden", fallback: "%1$@ is hidden from Up next for you", title)
+    }
+
+    /// Notice after Not interested on a suggestion that has not started airing.
+    public static func upNextHiddenUntilAirs(title: String) -> String {
+        Self.format("up-next-hidden-until-airs", fallback: "%1$@ is hidden until it airs", title)
+    }
+
+    /// Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+    public static func upNextBroadcast(episode: Int, when: String) -> String {
+        Self.format("up-next-broadcast", fallback: "Episode %1$lld · %2$@", episode, when)
+    }
+
+    /// The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+    public static func upNextOut(ago: String) -> String {
+        Self.format("up-next-out", fallback: "out %1$@", ago)
+    }
 
     /// Format of a show: broadcast on television.
     public static var formatTv: String { string("format-tv", fallback: "TV") }
@@ -4022,14 +4105,14 @@ public enum L {
         Self.format("media-link-language", fallback: "Site in %1$@", language)
     }
 
-    /// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+    /// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
     public static func filmLengthHoursMinutes(hours: Int, minutes: Int) -> String {
-        Self.format("film-length-hours-minutes", fallback: "%1$lld hr %2$lld min", hours, minutes)
+        Self.format("film-length-hours-minutes", fallback: "%1$lld h %2$lld min", hours, minutes)
     }
 
-    /// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+    /// Length of a film or a single episode that is a whole number of hours, such as "2 h".
     public static func filmLengthHours(hours: Int) -> String {
-        Self.format("film-length-hours", fallback: "%1$lld hr", hours)
+        Self.format("film-length-hours", fallback: "%1$lld h", hours)
     }
 
     /// Length of a film or a single episode under an hour, such as "46 min".
@@ -4406,7 +4489,7 @@ public enum L {
     }
 
     /// Line on the form when the party could not begin.
-    public static var partyEndedEarly: String { string("party-ended-early", fallback: "The party ended before it began.") }
+    public static var partyEndedEarly: String { string("party-ended-early", fallback: "The watch party ended before it began.") }
 
     /// Line in the panel while nobody has joined.
     public static var partyWaitingMembers: String { string("party-waiting-members", fallback: "Waiting for the room's members") }
@@ -4497,7 +4580,7 @@ public enum L {
     public static var partyInRoomIdlePlain: String { string("party-in-room-idle-plain", fallback: "You're in the room, with nothing playing.") }
 
     /// Note when an invite link lacks parts.
-    public static var partyLinkIncomplete: String { string("party-link-incomplete", fallback: "That party link is missing its server, room or episode.") }
+    public static var partyLinkIncomplete: String { string("party-link-incomplete", fallback: "That watch party link is missing its server, room or episode.") }
 
     /// Note when the link is for the party you are in.
     public static var partyAlreadyIn: String { string("party-already-in", fallback: "You're already in this watch party.") }
@@ -4522,7 +4605,7 @@ public enum L {
     /// Title when the user has installed no source.
     public static var partyNosourceNoneTitle: String { string("party-nosource-none-title", fallback: "You have no sources yet") }
 
-    /// Line under it.
+    /// Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.
     public static func partyNosourceNoneDetail(what: String) -> String {
         Self.format("party-nosource-none-detail", fallback: "Sources come from plugins, which a plugin store adds. %1$@ plays with the room once one of them has it.", what)
     }
@@ -4530,7 +4613,7 @@ public enum L {
     /// Title when no source has the episode.
     public static var partyNosourceMissingTitle: String { string("party-nosource-missing-title", fallback: "None of your sources has this episode") }
 
-    /// Line under it. The reason is a sentence without its full stop.
+    /// Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
     public static func partyNosourceMissingDetail(why: String, what: String) -> String {
         Self.format("party-nosource-missing-detail", fallback: "%1$@. %2$@ plays with the room once you choose a source that has it.", why, what)
     }
@@ -5287,7 +5370,7 @@ public enum L {
     public static var settingsWifiOnlyDetail: String { string("settings-wifi-only-detail", fallback: "Downloads wait for Wi-Fi") }
 
     /// Row: torrents on a mobile connection.
-    public static var settingsTorrentsCellular: String { string("settings-torrents-cellular", fallback: "Torrents on cellular") }
+    public static var settingsTorrentsCellular: String { string("settings-torrents-cellular", fallback: "Torrents on mobile data") }
 
     /// Row: seeding after watching.
     public static var settingsSeedAfter: String { string("settings-seed-after", fallback: "Seed after watching") }
@@ -5536,7 +5619,7 @@ public enum L {
 
     /// Line of the Continue widget: what plays next, with the episode already named.
     public static func widgetLineStart(episode: String) -> String {
-        Self.format("widget-line-start", fallback: "Start %1$@", episode)
+        Self.format("widget-line-start", fallback: "Play %1$@", episode)
     }
 
     /// Value of the Play trailers setting: trailers play by themselves on any network.
@@ -5679,13 +5762,13 @@ public enum L {
     public static var sourcesDetailHeldBack: String { string("sources-detail-held-back", fallback: "Held back until the connection check passes.") }
 
     /// Status line: disabled.
-    public static var sourcesDetailDisabled: String { string("sources-detail-disabled", fallback: "Disabled. It keeps its place and is not tried.") }
+    public static var sourcesDetailDisabled: String { string("sources-detail-disabled", fallback: "Off. It keeps its place and isn't tried.") }
 
     /// Status line: the source is gone.
     public static var sourcesDetailGone: String { string("sources-detail-gone", fallback: "This source is no longer here.") }
 
     /// Status line: the site did not answer.
-    public static var sourcesDetailSite: String { string("sources-detail-site", fallback: "The site did not answer.") }
+    public static var sourcesDetailSite: String { string("sources-detail-site", fallback: "The source didn't answer.") }
 
     /// Row label: version.
     public static var sourcesVersion: String { string("sources-version", fallback: "Version") }
@@ -5716,7 +5799,7 @@ public enum L {
     }
 
     /// Line: the plugin contacts no host.
-    public static var sourcesContactsNone: String { string("sources-contacts-none", fallback: "Contacts no hosts") }
+    public static var sourcesContactsNone: String { string("sources-contacts-none", fallback: "Lists no hosts to contact") }
 
     /// Value when no host is listed.
     public static var sourcesNoHosts: String { string("sources-no-hosts", fallback: "No hosts") }
@@ -6348,7 +6431,7 @@ public enum L {
     }
 
     /// Accessibility label of an episode's still while spoiler protection hides it.
-    public static var episodeSpoilerHidden: String { string("episode-spoiler-hidden", fallback: "Still hidden: spoiler protection") }
+    public static var episodeSpoilerHidden: String { string("episode-spoiler-hidden", fallback: "Hidden by spoiler protection") }
 
     /// Accessibility label of the button that opens an episode's menu.
     public static var episodeOptions: String { string("episode-options", fallback: "Episode options") }
@@ -6417,6 +6500,25 @@ public enum L {
     /// Heading of the list of rankings.
     public static var moreRankings: String { string("more-rankings", fallback: "Rankings") }
 
+    /// Heading of the list of people the viewer follows who have the show on their list.
+    public static var moreFollowing: String { string("more-following", fallback: "People you follow") }
+
+    /// Note under that list: where the names come from.
+    public static var moreFollowingNote: String { string("more-following-note", fallback: "From AniList") }
+
+    /// What a followed person gave the show, out of ten. The score is a whole number.
+    public static func moreFollowedScore(score: Int) -> String {
+        Self.format("more-followed-score", fallback: "%1$lld/10", score)
+    }
+
+    /// Heading of the list of titles people who liked this one also liked.
+    public static var moreLikeThis: String { string("more-like-this", fallback: "More like this") }
+
+    /// Line of a followed person's list entry: their status and how far they are. Both are already worded.
+    public static func moreFollowedProgress(status: String, progress: String) -> String {
+        Self.format("more-followed-progress", fallback: "%1$@ · %2$@", status, progress)
+    }
+
     /// Line when AniList has no cast, staff or recommendations for a show.
     public static var moreEmpty: String { string("more-empty", fallback: "AniList has no cast, staff or recommendations for this show yet.") }
 
@@ -6446,6 +6548,36 @@ public enum L {
         Self.format("title-button-resume-dubbed", fallback: "Resume episode %1$lld · Dubbed · %2$@", episode, time)
     }
 
+    /// Label of a fact: the genres, joined in its value.
+    public static var titleGenres: String { string("title-genres", fallback: "Genres") }
+
+    /// Label of a fact: the date a show not yet out starts.
+    public static var titleFactStarts: String { string("title-fact-starts", fallback: "Starts") }
+
+    /// Label of a fact: the date a film or a one-off was released.
+    public static var titleFactReleased: String { string("title-fact-released", fallback: "Released") }
+
+    /// Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.
+    public static func titleFactRange(from: String, to: String) -> String {
+        Self.format("title-fact-range", fallback: "%1$@ to %2$@", from, to)
+    }
+
+    /// Value of the fact on a cancelled show: the last episode that aired.
+    public static func titleFactAfter(episode: Int) -> String {
+        Self.format("title-fact-after", fallback: "After episode %1$lld", episode)
+    }
+
+    /// Value of the fact on a show that is airing and has no known start.
+    public static var titleFactNow: String { string("title-fact-now", fallback: "Now") }
+
+    /// Value of the fact on a show with no announced start.
+    public static var titleFactTba: String { string("title-fact-tba", fallback: "To be announced") }
+
+    /// A followed person's status and score, such as "Completed · 9/10". The status is already worded.
+    public static func moreFollowingLine(status: String, score: Int) -> String {
+        Self.format("more-following-line", fallback: "%1$@ · %2$lld/10", status, score)
+    }
+
     /// Title of the settings group and the screen.
     public static var torrentsTitle: String { string("torrents-title", fallback: "Torrents") }
 
@@ -6459,7 +6591,7 @@ public enum L {
     public static var torrentsRisk: String { string("torrents-risk", fallback: "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.") }
 
     /// Line in the Apple sources screen: torrents belong to the app, not to a plugin.
-    public static var torrentsNotAPlugin: String { string("torrents-not-a-plugin", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.") }
+    public static var torrentsNotAPlugin: String { string("torrents-not-a-plugin", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.") }
 
     /// Label of the choice of protection.
     public static var torrentsProtectWith: String { string("torrents-protect-with", fallback: "Protect with") }
@@ -6483,7 +6615,7 @@ public enum L {
     public static var torrentsProtectNoneDetail: String { string("torrents-protect-none-detail", fallback: "Your address is visible to everyone in the torrent.") }
 
     /// Line when no protection is set.
-    public static var torrentsProtectNoneNote: String { string("torrents-protect-none-note", fallback: "With no protection, anistream does not check the connection.") }
+    public static var torrentsProtectNoneNote: String { string("torrents-protect-none-note", fallback: "With no protection, anistream doesn't check the connection.") }
 
     /// Summary: a proxy protects. Host and port are already formatted.
     public static func torrentsSummaryProxyAt(host: String, port: String) -> String {
@@ -6503,7 +6635,7 @@ public enum L {
     public static var torrentsUnprotectedTitle: String { string("torrents-unprotected-title", fallback: "Use torrents without protection?") }
 
     /// Line under it.
-    public static var torrentsUnprotectedDetail: String { string("torrents-unprotected-detail", fallback: "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.") }
+    public static var torrentsUnprotectedDetail: String { string("torrents-unprotected-detail", fallback: "Other people can see your IP address while you download and share a torrent, and anistream doesn't check the connection.") }
 
     /// Button that confirms turning torrents on without protection.
     public static var torrentsTurnOnUnprotected: String { string("torrents-turn-on-unprotected", fallback: "Turn on without protection") }
@@ -6542,7 +6674,7 @@ public enum L {
     public static var torrentsLeftOutsideProxy: String { string("torrents-left-outside-proxy", fallback: "Torrent traffic left outside this proxy") }
 
     /// Why a save was refused: the check could not run through the proxy.
-    public static var torrentsCheckNotMadeProxy: String { string("torrents-check-not-made-proxy", fallback: "The check could not be made through this proxy") }
+    public static var torrentsCheckNotMadeProxy: String { string("torrents-check-not-made-proxy", fallback: "The check couldn't be made through this proxy") }
 
     /// Notice when a proxy was not saved. The reason is a sentence fragment.
     public static func torrentsProxyNotSaved(why: String) -> String {
@@ -6628,7 +6760,7 @@ public enum L {
 
     /// Check failed: the check could not be made. The consequence follows.
     public static func torrentsCheckUnmade(then: String) -> String {
-        Self.format("torrents-check-unmade", fallback: "The check could not be made. %1$@", then)
+        Self.format("torrents-check-unmade", fallback: "The check couldn't be made. %1$@", then)
     }
 
     /// Short word: the check failed.
@@ -6696,7 +6828,7 @@ public enum L {
     public static var accountsOtherTrackers: String { string("accounts-other-trackers", fallback: "Other trackers") }
 
     /// Line on the welcome screen: where the other trackers are.
-    public static var accountsOtherTrackersNote: String { string("accounts-other-trackers-note", fallback: "Other trackers are in Settings, under Accounts.") }
+    public static var accountsOtherTrackersNote: String { string("accounts-other-trackers-note", fallback: "Other trackers are in Accounts.") }
 
     /// Line on the welcome screen: why to sign in.
     public static func accountsWelcomeDetail(tracker: String) -> String {
@@ -6938,7 +7070,7 @@ public enum L {
 
     /// Line when the tracker did not answer.
     public static func accountsDidNotAnswer(tracker: String) -> String {
-        Self.format("accounts-did-not-answer", fallback: "%1$@ did not answer.", tracker)
+        Self.format("accounts-did-not-answer", fallback: "%1$@ didn't answer.", tracker)
     }
 
     /// Line when the tracker has nothing for the show.
@@ -7057,11 +7189,11 @@ public enum L {
     public static var tvStarting: String { string("tv-starting", fallback: "Starting on the TV") }
 
     /// Line when something failed while talking to the TV.
-    public static var tvTalkFailed: String { string("tv-talk-failed", fallback: "Something went wrong talking to the TV. Try again.") }
+    public static var tvTalkFailed: String { string("tv-talk-failed", fallback: "Lost contact with the TV. Check that it's on and on the same network, then try again.") }
 
     /// Line when the TV did not start the episode. The reason is a sentence fragment.
     public static func tvPlayFailed(reason: String) -> String {
-        Self.format("tv-play-failed", fallback: "Play on TV did not start: %1$@", reason)
+        Self.format("tv-play-failed", fallback: "Play on TV didn't start: %1$@", reason)
     }
 
     /// Label of the address field.
@@ -7339,7 +7471,7 @@ public enum L {
 
     /// Notice when the new version did not install.
     public static func updatesDidNotInstall(version: String) -> String {
-        Self.format("updates-did-not-install", fallback: "Version %1$@ didn't install. About can try again.", version)
+        Self.format("updates-did-not-install", fallback: "Version %1$@ didn't install. Try again from About.", version)
     }
 
     /// Button that opens About.
@@ -7362,7 +7494,7 @@ public enum L {
 
     /// The server refused. The code is a number.
     public static func updatesWhyServer(code: Int) -> String {
-        Self.format("updates-why-server", fallback: "The download stopped: the server answered %1$lld.", code)
+        Self.format("updates-why-server", fallback: "The download stopped: the server refused it (%1$lld). Try again later.", code)
     }
 
     /// The connection broke.

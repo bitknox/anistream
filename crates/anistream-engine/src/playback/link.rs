@@ -219,6 +219,32 @@ pub trait PlayerOpener: Send + Sync {
     }
 }
 
+/// An opener that counts the windows it opens, for a test to tell a new window from one a
+/// binge carried on in.
+#[cfg(feature = "testing")]
+pub struct Counted {
+    pub inner: Arc<dyn PlayerOpener>,
+    pub opened: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+#[cfg(feature = "testing")]
+#[async_trait]
+impl PlayerOpener for Counted {
+    async fn open(&self, request: &PlaybackRequest) -> Result<Opened, LinkError> {
+        let opened = self.inner.open(request).await?;
+        self.opened.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(opened)
+    }
+
+    fn scratch_dir(&self) -> &Path {
+        self.inner.scratch_dir()
+    }
+
+    fn target(&self) -> PlayerTarget {
+        self.inner.target()
+    }
+}
+
 /// What a play opens its player with, from the config as it stands now; `None` where this build
 /// has nothing to play in, and the play is refused.
 ///

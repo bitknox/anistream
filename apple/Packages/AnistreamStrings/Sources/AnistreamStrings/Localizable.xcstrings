@@ -614,7 +614,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ did not answer."
+            "value" : "%1$@ didn't answer."
           }
         }
       }
@@ -866,7 +866,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Other trackers are in Settings, under Accounts."
+            "value" : "Other trackers are in Accounts."
           }
         }
       }
@@ -2593,6 +2593,18 @@
         }
       }
     },
+    "cause-sources-timed-out" : {
+      "comment" : "Reason: a play waited too long for its sources to give it a stream, and gave up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sources took too long to answer. Try again, or choose another source."
+          }
+        }
+      }
+    },
     "cause-subtitles-left-apart" : {
       "comment" : "Part of a finished download's toast: merging failed, so the subtitles stay as files beside it. Argument 1: reason (Text).",
       "extractionState" : "manual",
@@ -2706,7 +2718,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drop"
+            "value" : "Move to Dropped"
           }
         }
       }
@@ -2862,7 +2874,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue E%1$lld · %2$@"
+            "value" : "Resume E%1$lld · %2$@"
           }
         }
       }
@@ -2874,7 +2886,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue E%1$lld dubbed · %2$@"
+            "value" : "Resume E%1$lld dubbed · %2$@"
           }
         }
       }
@@ -3826,7 +3838,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloads keep going when you close the window, if you choose to."
+            "value" : "Closing the window asks whether to keep downloading."
           }
         }
       }
@@ -3922,7 +3934,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloaded ahead · Removed a day after you watch it"
+            "value" : "Downloaded ahead · removed a day after you watch it"
           }
         }
       }
@@ -4542,7 +4554,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached."
+            "value" : "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Settings, under Sources, is reached."
           }
         }
       }
@@ -4674,7 +4686,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lldd"
+            "value" : "%1$lld d"
           }
         }
       }
@@ -4686,7 +4698,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lldd %2$lldh"
+            "value" : "%1$lld d %2$lld h"
           }
         }
       }
@@ -4698,7 +4710,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lldh"
+            "value" : "%1$lld h"
           }
         }
       }
@@ -4710,7 +4722,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lldh %2$lldm"
+            "value" : "%1$lld h %2$lld min"
           }
         }
       }
@@ -4722,7 +4734,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lldm"
+            "value" : "%1$lld min"
           }
         }
       }
@@ -4734,7 +4746,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lldm %2$@s"
+            "value" : "%1$lld min %2$@ s"
           }
         }
       }
@@ -4746,7 +4758,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$llds"
+            "value" : "%1$lld s"
           }
         }
       }
@@ -4794,7 +4806,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn't download episode %1$lld. Download again."
+            "value" : "Couldn't download episode %1$lld. Try again."
           }
         }
       }
@@ -5094,7 +5106,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Still hidden: spoiler protection"
+            "value" : "Hidden by spoiler protection"
           }
         }
       }
@@ -5248,7 +5260,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your sign-in has expired. Sign in again under Accounts."
+            "value" : "Your sign-in has expired. Sign in again in Accounts."
           }
         }
       }
@@ -5266,25 +5278,25 @@
       }
     },
     "film-length-hours" : {
-      "comment" : "Length of a film or a single episode that is a whole number of hours, such as \"2 hr\". Argument 1: hours (Int).",
+      "comment" : "Length of a film or a single episode that is a whole number of hours, such as \"2 h\". Argument 1: hours (Int).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld hr"
+            "value" : "%1$lld h"
           }
         }
       }
     },
     "film-length-hours-minutes" : {
-      "comment" : "Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as \"1 hr 52 min\". Argument 1: hours (Int). Argument 2: minutes (Int).",
+      "comment" : "Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as \"1 h 52 min\". Argument 1: hours (Int). Argument 2: minutes (Int).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld hr %2$lld min"
+            "value" : "%1$lld h %2$lld min"
           }
         }
       }
@@ -6316,7 +6328,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add to planning"
+            "value" : "Add to Planning"
           }
         }
       }
@@ -6340,7 +6352,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Added to planning."
+            "value" : "Added to Planning."
           }
         }
       }
@@ -7018,13 +7030,13 @@
       }
     },
     "menu-join-plugin-store" : {
-      "comment" : "Mac menu bar item that opens the sheet for joining a plugin store.",
+      "comment" : "Mac menu bar item that opens the sheet for joining a plugin store. Title Case, so the words are typed.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Join Store…"
+            "value" : "Join Plugin Store…"
           }
         }
       }
@@ -7533,6 +7545,66 @@
         }
       }
     },
+    "more-followed-progress" : {
+      "comment" : "Line of a followed person's list entry: their status and how far they are. Both are already worded. Argument 1: status (Text). Argument 2: progress (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "more-followed-score" : {
+      "comment" : "What a followed person gave the show, out of ten. The score is a whole number. Argument 1: score (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld/10"
+          }
+        }
+      }
+    },
+    "more-following" : {
+      "comment" : "Heading of the list of people the viewer follows who have the show on their list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "People you follow"
+          }
+        }
+      }
+    },
+    "more-following-line" : {
+      "comment" : "A followed person's status and score, such as \"Completed · 9/10\". The status is already worded. Argument 1: status (Text). Argument 2: score (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld/10"
+          }
+        }
+      }
+    },
+    "more-following-note" : {
+      "comment" : "Note under that list: where the names come from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From AniList"
+          }
+        }
+      }
+    },
     "more-hide-spoiler-tags" : {
       "comment" : "Button that hides the spoiler tags.",
       "extractionState" : "manual",
@@ -7541,6 +7613,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hide spoiler tags"
+          }
+        }
+      }
+    },
+    "more-like-this" : {
+      "comment" : "Heading of the list of titles people who liked this one also liked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More like this"
           }
         }
       }
@@ -7880,7 +7964,7 @@
       }
     },
     "notice-anilist-paste-flow" : {
-      "comment" : "Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.",
+      "comment" : "Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7898,7 +7982,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AniList is unreachable. Using the fallback for fresh data for now."
+            "value" : "AniList isn't answering. Showing data from another service for now."
           }
         }
       }
@@ -8143,6 +8227,18 @@
         }
       }
     },
+    "notice-database-set-aside" : {
+      "comment" : "Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync. Argument 1: path (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The database was damaged, so anistream started a new one. The old file is kept at %1$@. Your trackers bring back what they hold at the next sync."
+          }
+        }
+      }
+    },
     "notice-discussion-sign-in" : {
       "comment" : "Toast when the viewer tried to like or post in a discussion without signing in to AniList.",
       "extractionState" : "manual",
@@ -8334,7 +8430,7 @@
       }
     },
     "notice-downloads-none-new" : {
-      "comment" : "Toast after a range was asked for and every episode was in the queue already. Argument 1: existing (Cause).",
+      "comment" : "Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`. Argument 1: existing (Cause).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8346,7 +8442,7 @@
       }
     },
     "notice-downloads-none-new-stopped" : {
-      "comment" : "Toast as above, with the reason the range stopped. Argument 1: existing (Cause). Argument 2: reason (Cause).",
+      "comment" : "Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. Argument 1: existing (Cause). Argument 2: reason (Cause).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8377,6 +8473,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing queued. %1$@"
+          }
+        }
+      }
+    },
+    "notice-engine-fault" : {
+      "comment" : "Toast when something went wrong inside the engine and it carried on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again."
           }
         }
       }
@@ -8427,6 +8535,18 @@
         }
       }
     },
+    "notice-episodes-failed" : {
+      "comment" : "Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the episodes. %1$@"
+          }
+        }
+      }
+    },
     "notice-episodes-queued" : {
       "comment" : "Toast after episodes are added to the download queue. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -8462,7 +8582,7 @@
       }
     },
     "notice-episodes-queued-existing" : {
-      "comment" : "Toast after a range was asked for, some episodes were queued and some were there already. Argument 1: count (Int). Argument 2: existing (Cause).",
+      "comment" : "Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`. Argument 1: count (Int). Argument 2: existing (Cause).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8496,7 +8616,7 @@
       }
     },
     "notice-episodes-queued-existing-stopped" : {
-      "comment" : "Toast as above, with some episodes in the queue already and the reason the range stopped. Argument 1: count (Int). Argument 2: existing (Cause). Argument 3: reason (Cause).",
+      "comment" : "Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. Argument 1: count (Int). Argument 2: existing (Cause). Argument 3: reason (Cause).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8630,7 +8750,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file."
+            "value" : "MyAnimeList needs a client id. Register an app with the type \"other\" at myanimelist.net/apiconfig, then set %1$@ in the config file."
           }
         }
       }
@@ -8719,6 +8839,18 @@
         }
       }
     },
+    "notice-match-uncertain" : {
+      "comment" : "Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ found more than one show that could be this one, so these episodes are from AniList for now."
+          }
+        }
+      }
+    },
     "notice-metadata-cached" : {
       "comment" : "Toast when no metadata service answered and the last cached data is shown.",
       "extractionState" : "manual",
@@ -8732,7 +8864,7 @@
       }
     },
     "notice-mpv-missing" : {
-      "comment" : "Toast at launch when the mpv program is missing. The binary is the name the settings give it. Argument 1: binary (Text).",
+      "comment" : "Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps. Argument 1: binary (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8744,7 +8876,7 @@
       }
     },
     "notice-mpv-old" : {
-      "comment" : "Toast at launch when mpv is too old for anistream's own player. Argument 1: version (Text).",
+      "comment" : "Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps. Argument 1: version (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -9353,6 +9485,18 @@
         }
       }
     },
+    "notice-subtitles-unavailable" : {
+      "comment" : "Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This source's subtitles couldn't be loaded. Choose another source to try again."
+          }
+        }
+      }
+    },
     "notice-summary" : {
       "comment" : "What the system shows under a group of new-episode notifications. The system fills in the count at %u.",
       "extractionState" : "manual",
@@ -9450,7 +9594,7 @@
       }
     },
     "notice-update-available" : {
-      "comment" : "Toast when a new release of anistream is out, on the terminal app. The command is not translated. Argument 1: tag (Text).",
+      "comment" : "Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps. Argument 1: tag (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -9714,7 +9858,7 @@
       }
     },
     "pad-help-cancel" : {
-      "comment" : "Controller help: cancels the Up Next card.",
+      "comment" : "Controller help: cancels the Up next card.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -9882,7 +10026,7 @@
       }
     },
     "pad-help-play-now" : {
-      "comment" : "Controller help: starts the next episode now, while the Up Next card shows.",
+      "comment" : "Controller help: starts the next episode now, while the Up next card shows.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -10249,6 +10393,18 @@
         }
       }
     },
+    "party-choose-server" : {
+      "comment" : "Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it. Argument 1: server (Text). Argument 2: operator (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a server for the watch party first. %1$@ is run by %2$@."
+          }
+        }
+      }
+    },
     "party-choose-source" : {
       "comment" : "Button that lists what each source has for the episode.",
       "extractionState" : "manual",
@@ -10340,7 +10496,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The party ended before it began."
+            "value" : "The watch party ended before it began."
           }
         }
       }
@@ -10628,7 +10784,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "That party link is missing its server, room or episode."
+            "value" : "That watch party link is missing its server, room or episode."
           }
         }
       }
@@ -10742,7 +10898,7 @@
       }
     },
     "party-needs-server" : {
-      "comment" : "Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Argument 1: server (Text). Argument 2: operator (Text).",
+      "comment" : "Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps. Argument 1: server (Text). Argument 2: operator (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -10766,7 +10922,7 @@
       }
     },
     "party-nosource-missing-detail" : {
-      "comment" : "Line under it. The reason is a sentence without its full stop. Argument 1: why (Text). Argument 2: what (Text).",
+      "comment" : "Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence. Argument 1: why (Text). Argument 2: what (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -10790,7 +10946,7 @@
       }
     },
     "party-nosource-none-detail" : {
-      "comment" : "Line under it. Argument 1: what (Text).",
+      "comment" : "Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence. Argument 1: what (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -12676,7 +12832,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ is not a plugin that is loaded."
+            "value" : "%1$@ isn't loaded. Check that it's installed under Sources."
           }
         }
       }
@@ -13422,7 +13578,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Results wait for Return while AniList’s rate limit recovers"
+            "value" : "Searching as you type is paused for a moment, to stay within AniList's limits. Press Return to search now."
           }
         }
       }
@@ -13434,7 +13590,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Results wait for Search while AniList’s rate limit recovers"
+            "value" : "Searching as you type is paused for a moment, to stay within AniList's limits. Press Search to search now."
           }
         }
       }
@@ -14260,13 +14416,13 @@
       }
     },
     "settings-download-cellular" : {
-      "comment" : "Settings row: download over cellular data.",
+      "comment" : "Settings row: download over mobile data.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download on cellular"
+            "value" : "Download on mobile data"
           }
         }
       }
@@ -15580,7 +15736,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Retry"
+            "value" : "Try again"
           }
         }
       }
@@ -15850,7 +16006,7 @@
       }
     },
     "settings-title-note-follows" : {
-      "comment" : "Note under the examples when the tracker's choice is picked and nobody is signed in. Argument 1: tracker (Text). Argument 2: then (Text).",
+      "comment" : "Note under the examples when the tracker's choice is picked and nobody is signed in. `then` is a whole sentence, the text of `settings-title-note-signed-out`. Argument 1: tracker (Text). Argument 2: then (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -15862,7 +16018,7 @@
       }
     },
     "settings-title-note-follows-set" : {
-      "comment" : "Note under the examples when the tracker's choice is picked and the account has a language. Argument 1: tracker (Text). Argument 2: language (Text). Argument 3: then (Text).",
+      "comment" : "Note under the examples when the tracker's choice is picked and the account has a language. `then` is a whole sentence, the text of `settings-title-note-signed-out`. Argument 1: tracker (Text). Argument 2: language (Text). Argument 3: then (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -15940,7 +16096,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torrents on cellular"
+            "value" : "Torrents on mobile data"
           }
         }
       }
@@ -16025,18 +16181,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wi-Fi only"
-          }
-        }
-      }
-    },
-    "settings-translation" : {
-      "comment" : "Settings row for the audio translation, as the engine names the setting.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Translation"
           }
         }
       }
@@ -16468,7 +16612,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This link does not lead to a plugin store. Ask the plugin store's owner for a new invite."
+            "value" : "This link doesn't lead to a plugin store. Ask the plugin store's owner for a new invite."
           }
         }
       }
@@ -16576,7 +16720,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "anistream could not start"
+            "value" : "anistream couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu."
           }
         }
       }
@@ -17386,7 +17530,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contacts no hosts"
+            "value" : "Lists no hosts to contact"
           }
         }
       }
@@ -17410,7 +17554,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disabled. It keeps its place and is not tried."
+            "value" : "Off. It keeps its place and isn't tried."
           }
         }
       }
@@ -17470,7 +17614,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The site did not answer."
+            "value" : "The source didn't answer."
           }
         }
       }
@@ -18085,6 +18229,90 @@
         }
       }
     },
+    "start-failed" : {
+      "comment" : "Message when anistream itself could not start. The reason comes from the system or the engine. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't start. Quit and open it again. %1$@"
+          }
+        }
+      }
+    },
+    "start-failed-config" : {
+      "comment" : "Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can. Argument 1: path (Text). Argument 2: problem (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has a setting anistream can't use: %2$@. Fix or remove it, then try again."
+          }
+        }
+      }
+    },
+    "start-failed-database" : {
+      "comment" : "Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. Argument 1: path (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't open its database at %1$@. If another anistream app is open on this folder, quit it and try again. %2$@"
+          }
+        }
+      }
+    },
+    "start-failed-folder" : {
+      "comment" : "Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system. Argument 1: path (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't create the folder %1$@. Check that the disk has room and the folder can be written to, then try again. %2$@"
+          }
+        }
+      }
+    },
+    "start-failed-network" : {
+      "comment" : "Message when anistream could not start its network connection from the network settings. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't set up its network connection from the network settings in config.toml. %1$@"
+          }
+        }
+      }
+    },
+    "start-failed-player" : {
+      "comment" : "Message when the built-in player could not start. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The player couldn't start. %1$@"
+          }
+        }
+      }
+    },
+    "start-failed-remote" : {
+      "comment" : "Message when the TV remote could not start listening or could not forget a phone. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The remote couldn't start. %1$@"
+          }
+        }
+      }
+    },
     "state-check-connection" : {
       "comment" : "Next step under any \"couldn't load\" title.",
       "extractionState" : "manual",
@@ -18217,18 +18445,6 @@
         }
       }
     },
-    "status-playing" : {
-      "comment" : "Status line while an episode plays. Argument 1: title (Text). Argument 2: episode (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Playing %1$@, episode %2$@"
-          }
-        }
-      }
-    },
     "status-searching-sources" : {
       "comment" : "Job note while the sources are asked for an episode. The episode is its label, often a number. Argument 1: episode (Text).",
       "extractionState" : "manual",
@@ -18241,20 +18457,8 @@
         }
       }
     },
-    "status-starting-player" : {
-      "comment" : "Status while the player opens.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starting mpv…"
-          }
-        }
-      }
-    },
     "status-waiting-for-redirect" : {
-      "comment" : "Status line while the browser sign-in is open and the app waits for it to come back. Argument 1: tracker (Text).",
+      "comment" : "Job note while the browser sign-in is open and the terminal app waits for it to come back. Argument 1: tracker (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -18290,7 +18494,7 @@
       }
     },
     "store-admin-open-failed" : {
-      "comment" : "Toast when the browser could not be opened for the store's admin page. The reason comes from the system. Argument 1: reason (Text).",
+      "comment" : "Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run. Argument 1: reason (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -18308,7 +18512,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opened the admin page in your browser. The link works once, for ten minutes."
+            "value" : "Opened the admin page in your browser. The link works once, for 10 minutes."
           }
         }
       }
@@ -18428,7 +18632,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The plugin store's key is damaged."
+            "value" : "This plugin store's key on this device is damaged. Leave the plugin store and join it again with a new invite."
           }
         }
       }
@@ -18452,7 +18656,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The plugin store made a bad link. %1$@"
+            "value" : "The plugin store sent a link that doesn't work. Ask its owner to check the plugin store. %1$@"
           }
         }
       }
@@ -20850,7 +21054,29 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld ep"
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episode"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episodes"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -20863,6 +21089,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unwatched"
+          }
+        }
+      }
+    },
+    "title-fact-after" : {
+      "comment" : "Value of the fact on a cancelled show: the last episode that aired. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After episode %1$lld"
           }
         }
       }
@@ -20887,6 +21125,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Also on"
+          }
+        }
+      }
+    },
+    "title-fact-now" : {
+      "comment" : "Value of the fact on a show that is airing and has no known start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now"
+          }
+        }
+      }
+    },
+    "title-fact-range" : {
+      "comment" : "Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates. Argument 1: from (Text). Argument 2: to (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "title-fact-released" : {
+      "comment" : "Label of a fact: the date a film or a one-off was released.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Released"
+          }
+        }
+      }
+    },
+    "title-fact-starts" : {
+      "comment" : "Label of a fact: the date a show not yet out starts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts"
+          }
+        }
+      }
+    },
+    "title-fact-tba" : {
+      "comment" : "Value of the fact on a show with no announced start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To be announced"
+          }
+        }
+      }
+    },
+    "title-genres" : {
+      "comment" : "Label of a fact: the genres, joined in its value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genres"
           }
         }
       }
@@ -20958,7 +21268,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AniList did not answer."
+            "value" : "AniList didn't answer."
           }
         }
       }
@@ -21210,7 +21520,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The interface closed before torrents started."
+            "value" : "anistream closed before torrents started."
           }
         }
       }
@@ -21228,13 +21538,13 @@
       }
     },
     "torrent-no-kill-switch" : {
-      "comment" : "Toast when torrents are up but no operating-system firewall rule backs the VPN guard.",
+      "comment" : "Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice."
+            "value" : "Nothing on this device stops torrent traffic if the VPN drops. Run \"anistream --doctor\" to set that up."
           }
         }
       }
@@ -21342,7 +21652,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The check could not be made through this proxy"
+            "value" : "The check couldn't be made through this proxy"
           }
         }
       }
@@ -21426,7 +21736,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The check could not be made. %1$@"
+            "value" : "The check couldn't be made. %1$@"
           }
         }
       }
@@ -21702,7 +22012,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings."
+            "value" : "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources."
           }
         }
       }
@@ -21882,7 +22192,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "With no protection, anistream does not check the connection."
+            "value" : "With no protection, anistream doesn't check the connection."
           }
         }
       }
@@ -22242,7 +22552,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection."
+            "value" : "Other people can see your IP address while you download and share a torrent, and anistream doesn't check the connection."
           }
         }
       }
@@ -22854,7 +23164,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Play on TV did not start: %1$@"
+            "value" : "Play on TV didn't start: %1$@"
           }
         }
       }
@@ -23310,7 +23620,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Something went wrong talking to the TV. Try again."
+            "value" : "Lost contact with the TV. Check that it's on and on the same network, then try again."
           }
         }
       }
@@ -23447,6 +23757,30 @@
         }
       }
     },
+    "up-next-because-detail" : {
+      "comment" : "Line in the preview of a recommended suggestion, naming the show the recommendation came from. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended on AniList by people who liked %1$@"
+          }
+        }
+      }
+    },
+    "up-next-broadcast" : {
+      "comment" : "Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. Argument 1: episode (Int). Argument 2: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld · %2$@"
+          }
+        }
+      }
+    },
     "up-next-heading" : {
       "comment" : "Heading over the suggestions under a short { -continue-cap } list.",
       "extractionState" : "manual",
@@ -23459,6 +23793,30 @@
         }
       }
     },
+    "up-next-hidden" : {
+      "comment" : "Notice after Not interested on a suggestion that is already airing. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is hidden from Up next for you"
+          }
+        }
+      }
+    },
+    "up-next-hidden-until-airs" : {
+      "comment" : "Notice after Not interested on a suggestion that has not started airing. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is hidden until it airs"
+          }
+        }
+      }
+    },
     "up-next-not-interested" : {
       "comment" : "Menu item on a suggestion. The show stays hidden until it starts airing.",
       "extractionState" : "manual",
@@ -23467,6 +23825,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not interested"
+          }
+        }
+      }
+    },
+    "up-next-out" : {
+      "comment" : "The time of an episode that came out earlier today. The span is already worded, such as \"2h ago\". Argument 1: ago (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "out %1$@"
           }
         }
       }
@@ -23527,6 +23897,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recommended for you"
+          }
+        }
+      }
+    },
+    "up-next-row-starts" : {
+      "comment" : "Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. Argument 1: reason (Text). Argument 2: starts (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
           }
         }
       }
@@ -23730,7 +24112,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Could not check."
+            "value" : "Couldn't check for updates. Try again later."
           }
         }
       }
@@ -23742,7 +24124,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The update did not finish."
+            "value" : "The update didn't finish. Try again."
           }
         }
       }
@@ -23754,7 +24136,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version %1$@ didn't install. About can try again."
+            "value" : "Version %1$@ didn't install. Try again from About."
           }
         }
       }
@@ -23850,7 +24232,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The update feed does not have this version yet."
+            "value" : "The update feed doesn't have this version yet."
           }
         }
       }
@@ -23862,7 +24244,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The Fixtures app does not install updates."
+            "value" : "The Fixtures app doesn't install updates."
           }
         }
       }
@@ -23898,7 +24280,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The updater is not ready. Try again in a moment."
+            "value" : "The updater isn't ready. Try again in a moment."
           }
         }
       }
@@ -24426,7 +24808,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The download stopped: the server answered %1$lld."
+            "value" : "The download stopped: the server refused it (%1$lld). Try again later."
           }
         }
       }
@@ -25006,7 +25388,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start %1$@"
+            "value" : "Play %1$@"
           }
         }
       }
@@ -25436,7 +25818,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start %1$@"
+            "value" : "Play %1$@"
           }
         }
       }

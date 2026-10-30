@@ -287,7 +287,7 @@ impl Page {
                 }
                 self.fill(entry);
             }
-            Event::Episodes { id, rows } if *id == self.id => {
+            Event::Episodes { id, rows, .. } if *id == self.id => {
                 self.listed.set(true);
                 self.rows.replace(rows.clone());
                 self.draw_episodes();
@@ -296,7 +296,7 @@ impl Page {
                     self.fill(&entry);
                 }
             }
-            // No table until a match is picked.
+            // The candidates come first, then AniList's table until a match is picked.
             Event::MatchChoices { id, .. } if *id == self.id => {
                 self.listed.set(true);
                 self.episodes_state.empty();
@@ -495,7 +495,7 @@ impl Page {
         {
             text.append(&widgets::haze(other, ""));
         }
-        text.append(&widgets::haze(&say::meta_line(entry), "numeric"));
+        text.append(&widgets::haze(&say::title_line(entry), "numeric"));
         if let Some(line) = self.dubbed_to.borrow().as_deref() {
             text.append(&widgets::haze(line, "numeric"));
         }
@@ -687,20 +687,20 @@ impl Page {
         let details = gtk::Box::new(gtk::Orientation::Vertical, 6);
         details.append(&widgets::heading(&t::title_details()));
         let mut facts: Vec<(String, String)> = Vec::new();
-        if let Some(studio) = &entry.studio {
-            facts.push((t::title_studio(), studio.clone()));
+        if let Some(source) = entry.source {
+            facts.push((t::title_based_on(), say::material(source)));
+        }
+        if let Some(line) = say::airing_fact(entry) {
+            facts.push((t::filter_status(), line));
+        }
+        if let Some(made) = anistream_model::present::made_in(entry) {
+            facts.push((t::filter_country(), made));
         }
         if !entry.genres.is_empty() {
             facts.push((
                 t::filter_genres(),
-                entry.genres.iter().map(|g| say::genre(g)).collect::<Vec<_>>().join(", "),
+                entry.genres.iter().map(|g| say::genre(g)).collect::<Vec<_>>().join(" · "),
             ));
-        }
-        if let Some(source) = entry.source {
-            facts.push((t::title_based_on(), say::material(source)));
-        }
-        if let Some(status) = entry.status {
-            facts.push((t::filter_status(), say::airing_status(status)));
         }
         for (name, value) in facts {
             let line = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -711,6 +711,22 @@ impl Page {
             line.append(&value);
             details.append(&line);
         }
+        let more = gtk::Button::with_label(&t::title_more_about());
+        more.add_css_class("pill");
+        more.set_halign(gtk::Align::Start);
+        more.set_margin_top(6);
+        more.set_sensitive(entry.detail.is_some());
+        more.connect_clicked({
+            let ctx = Rc::downgrade(&self.ctx);
+            let id = entry.id;
+            move |_| {
+                let Some(ctx) = ctx.upgrade() else { return };
+                if let Some(entry) = ctx.hub.entry(id) {
+                    crate::pages::more_about::open(&ctx, &entry);
+                }
+            }
+        });
+        details.append(&more);
         self.side.append(&details);
 
         let related: Vec<LinkedTitle> = entry

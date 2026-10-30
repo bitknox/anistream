@@ -48,9 +48,9 @@ struct ReducerTests {
         let queue = store.continuing.queue(store.titles)
         #expect(queue.inProgress.map(\.id) == [900_001, 900_005, 900_002])
         #expect(queue.inProgress.map(\.action) == [
-            "Continue E7 · 10:06", "Continue E2 · 13:30", "Play E4",
+            "Resume E7 · 10:06", "Resume E2 · 13:30", "Play E4",
         ])
-        #expect(queue.newThisWeek.map(\.action) == ["Play E8 · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.action) == ["Play E8 · out 19 h ago"])
         let first = try! #require(queue.inProgress.first)
         #expect(first.buttonTitle == "Resume episode 7 · 10:06")
         #expect(first.minutesLeft == 14)
@@ -71,12 +71,12 @@ struct ReducerTests {
         ])
         let queue = store.continuing.queue(store.titles)
         #expect(queue.inProgress.map(\.action) == [
-            "Continue E7 · 10:06", "Continue E2 dubbed · 13:30", "Play E4",
+            "Resume E7 · 10:06", "Resume E2 dubbed · 13:30", "Play E4",
         ])
         #expect(queue.inProgress.map(\.buttonTitle) == [
             "Resume episode 7 · 10:06", "Resume episode 2 · Dubbed · 13:30", "Play episode 4",
         ])
-        #expect(queue.newThisWeek.map(\.action) == ["Play E8 dubbed · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.action) == ["Play E8 dubbed · out 19 h ago"])
         #expect(queue.newThisWeek.map(\.buttonTitle) == ["Play episode 8 · Dubbed"])
         #expect(queue.all.map(\.dubbed) == [false, true, false, true])
     }
@@ -153,7 +153,7 @@ struct ReducerTests {
         ))
         #expect(store.titles[900_002]?.progress == TitleProgress(done: 4, next: 5))
         let row = store.continuing.queue(store.titles).inProgress.first { $0.id == 900_002 }
-        #expect(row?.action == "Continue E5 · 5:00")
+        #expect(row?.action == "Resume E5 · 5:00")
         #expect(store.seasonal.state == .loaded([900_002]))
     }
 
@@ -372,7 +372,6 @@ struct ReducerTests {
         store.apply([
             .toast(Notice(kind: .info, text: "plugin update ready: alpha", hint: .openStores)),
             .toast(Notice(kind: .alert, text: "AniList is not answering", hint: nil)),
-            .status(.verbatim(text: "syncing")),
         ])
         #expect(store.notices.log.map(\.notice.text) == [
             "AniList is not answering", "plugin update ready: alpha",
@@ -381,7 +380,6 @@ struct ReducerTests {
         #expect(current.isAlert)
         store.notices.dismiss(current)
         #expect(store.notices.current == nil)
-        #expect(store.notices.status == "syncing")
     }
 
     @Test func theSyncCapsuleSaysWhereSyncStands() {

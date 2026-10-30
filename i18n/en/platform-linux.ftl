@@ -155,6 +155,18 @@ seasonal-format-ona-ova = ONA and OVA
 # @arg title: text
 title-open-named = Open { $title }
 
+# Accessible name of a card or row in Continue: the title, then what is said under it.
+# @only linux
+# @arg title: text
+# @arg detail: text
+continue-row-spoken = { $title }, { $detail }
+
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 # @only linux
 continue-preview = Preview
+
+# Under a suggestion that airs later today when no episode number is known: the time it airs.
+# @only linux
+# @arg time: text
+# @max 28
+up-next-airs-at = Airs at { $time }

@@ -89,7 +89,7 @@ episode-download-text = Download episode { $episode }
 # Title page: an episode row's download button after a failure, for an episode numbered other than as a whole number.
 # @only windows
 # @arg episode: text
-episode-download-failed-text = Couldn't download episode { $episode }. Download again.
+episode-download-failed-text = Couldn't download episode { $episode }. Try again.
 
 # Title page: an episode row with no name of its own, numbered other than as a whole number, such as "Episode 12.5".
 # @only windows
@@ -111,16 +111,6 @@ episode-row-spoken = { $heading }, { $line }
 # Title page: the line of an episode that only AniList lists, so nothing can play it yet.
 # @only windows
 episode-listed-by-anilist = Listed by AniList
-
-# Title page details: the studio that made the show.
-# @only windows
-# @arg studio: text
-title-studio-line = Studio: { $studio }
-
-# Title page details: what the show is adapted from, such as "Based on: Manga".
-# @only windows
-# @arg material: text
-title-based-on-line = Based on: { $material }
 
 # Title page: a related title's line, its relation and its format, such as "Sequel · TV".
 # @only windows

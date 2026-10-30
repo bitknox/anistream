@@ -17,11 +17,14 @@ use anistream_model::{
     command::Command,
     episodes::EpisodeRow,
     event::Event,
+    up_next::{UpNextAction, UpNextItem, UpNextReason},
 };
 use gtk::{gdk, gio, glib};
 
 use crate::{
-    nagare, say,
+    motion, nagare,
+    pages::calendar,
+    say,
     say::{Queue, QueueRow},
     states::{Shape, States},
     widgets,
@@ -41,6 +44,28 @@ struct Page {
     selected: Cell<Option<u32>>,
     settle: RefCell<Option<glib::SourceId>>,
     shown: Cell<u32>,
+    /// "Up next for you": the engine's suggestions, less those just dismissed.
+    up: RefCell<Vec<UpNextItem>>,
+    /// Whether the group is under the queue now, so it fades in only as it arrives.
+    up_on_screen: Cell<bool>,
+    /// The suggestions as last drawn, and whether Continue has answered at all.
+    drawn_up: RefCell<Vec<UpNextItem>>,
+    continue_in: Cell<bool>,
+    /// The group is Airing today, not suggestions, so its heading says so.
+    fallback: Rc<Cell<bool>>,
+    /// The welcome's two sources: the calendar's rows with the instant they count from, and
+    /// the season's titles. A source that has not answered holds the empty state back.
+    calendar: RefCell<Vec<Entry>>,
+    anchor: Cell<i64>,
+    /// The wall clock when the anchor arrived, so the engine's now can be told later.
+    anchor_at: Cell<i64>,
+    calendar_in: Cell<bool>,
+    season: RefCell<Vec<Entry>>,
+    season_in: Cell<bool>,
+    /// Where the empty state goes: the welcome, or Nagare when there is nothing to welcome with.
+    holder: gtk::Box,
+    nagare: adw::StatusPage,
+    welcome: RefCell<Option<gtk::Widget>>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -48,12 +73,18 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     list.add_css_class("queue");
     list.set_selection_mode(gtk::SelectionMode::Browse);
     list.set_activate_on_single_click(false);
-    list.set_header_func(|row, before| {
+    let fallback = Rc::new(Cell::new(false));
+    let heading_fallback = Rc::clone(&fallback);
+    list.set_header_func(move |row, before| {
         let group = row.widget_name();
         let changed = before.is_none_or(|b| b.widget_name() != group);
         if changed {
-            let text =
-                if group == "new" { t::group_new_this_week() } else { t::group_in_progress() };
+            let text = match group.as_str() {
+                "new" => t::group_new_this_week(),
+                "up" if heading_fallback.get() => t::continue_airing_today(),
+                "up" => t::up_next_heading(),
+                _ => t::group_in_progress(),
+            };
             let label = widgets::heading(&text);
             label.add_css_class("queue-heading");
             row.set_header(Some(&label));
@@ -84,7 +115,9 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         Some(&browse),
     );
     let rows = Shape::Rows { count: 5, width: 36, height: 54 };
-    let body = States::new(&ctx.hub, &scroll, rows, &empty, &t::continue_load_failed());
+    let holder = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    holder.append(&empty);
+    let body = States::new(&ctx.hub, &scroll, rows, &holder, &t::continue_load_failed());
     body.loading(Some(t::activity_continue()));
     body.on_retry({
         let hub = Rc::downgrade(&ctx.hub);
@@ -133,9 +166,25 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         selected: Cell::new(None),
         settle: RefCell::default(),
         shown: Cell::new(0),
+        up: RefCell::default(),
+        up_on_screen: Cell::new(false),
+        drawn_up: RefCell::default(),
+        continue_in: Cell::new(false),
+        fallback,
+        calendar: RefCell::default(),
+        anchor: Cell::new(0),
+        anchor_at: Cell::new(0),
+        calendar_in: Cell::new(false),
+        season: RefCell::default(),
+        season_in: Cell::new(false),
+        holder,
+        nagare: empty,
+        welcome: RefCell::default(),
     });
     page.wire();
     ctx.hub.send(Command::LoadContinue);
+    ctx.hub.send(Command::LoadUpNext);
+    ctx.hub.send(Command::LoadCalendar);
     ctx.hub.send(Command::LoadSeasonal);
 
     let root = adw::NavigationPage::builder().title(t::nav_continue()).child(&split).build();
@@ -171,6 +220,9 @@ impl Page {
         let weak = Rc::downgrade(self);
         keys.connect_key_pressed(move |_, key, _, modifiers| {
             let Some(page) = weak.upgrade() else { return glib::Propagation::Proceed };
+            if let Some(up) = page.selected_up() {
+                return page.suggestion_key(&up, key);
+            }
             let Some(item) = page.selected_item() else { return glib::Propagation::Proceed };
             let id = item.entry.id.get();
             let play = (id, item.episode.to_string()).to_variant();
@@ -195,6 +247,18 @@ impl Page {
             }
         });
         self.list.add_controller(keys);
+
+        // Not interested, from a suggestion's menu or the Delete key.
+        let actions = gio::SimpleActionGroup::new();
+        let dismiss = gio::SimpleAction::new("dismiss", Some(glib::VariantTy::UINT32));
+        let weak = Rc::downgrade(self);
+        dismiss.connect_activate(move |_, id| {
+            if let (Some(page), Some(id)) = (weak.upgrade(), id.and_then(u32::from_variant)) {
+                page.dismiss(id);
+            }
+        });
+        actions.add_action(&dismiss);
+        self.list.insert_action_group("up", Some(&actions));
 
         let weak = Rc::downgrade(self);
         self.ctx.on_size(move |_| {
@@ -227,10 +291,12 @@ impl Page {
             Event::Content { view: ContentFor::Continue, content } => match content {
                 ContentList::Loading => self.body.loading(Some(t::activity_continue())),
                 ContentList::Entries(entries) => {
+                    self.continue_in.set(true);
                     *self.ids.borrow_mut() = entries.iter().map(|e| e.id.get()).collect();
                     self.rebuild();
                 }
                 ContentList::Empty => {
+                    self.continue_in.set(true);
                     self.ids.borrow_mut().clear();
                     self.rebuild();
                 }
@@ -239,6 +305,24 @@ impl Page {
                     self.body.failed(why);
                 }
             },
+            Event::UpNext(items) => {
+                *self.up.borrow_mut() = items.clone();
+                self.rebuild();
+            }
+            Event::CalendarWindow { anchor, .. } => {
+                self.anchor.set(*anchor);
+                self.anchor_at.set(now());
+            }
+            Event::Content { view: ContentFor::Calendar, content } => {
+                *self.calendar.borrow_mut() = content.entries().to_vec();
+                self.calendar_in.set(!matches!(content, ContentList::Loading));
+                self.welcome_changed();
+            }
+            Event::Content { view: ContentFor::Seasonal, content } => {
+                *self.season.borrow_mut() = content.entries().to_vec();
+                self.season_in.set(!matches!(content, ContentList::Loading));
+                self.welcome_changed();
+            }
             Event::Progress { id, .. } => {
                 if self.ids.borrow().contains(&id.get()) {
                     self.rebuild();
@@ -252,7 +336,7 @@ impl Page {
             Event::LastAired(_) => self.rebuild(),
             // Titles are named another way now: the queue and its preview again.
             Event::TitlesChanged(_) => self.ctx.hub.send(Command::LoadContinue),
-            Event::Episodes { id, rows } => {
+            Event::Episodes { id, rows, .. } => {
                 self.episodes.borrow_mut().insert(id.get(), rows.clone());
                 // A row plays the next episode a source lists, so a table can move it.
                 if self.ids.borrow().contains(&id.get()) {
@@ -266,14 +350,31 @@ impl Page {
         }
     }
 
-    /// The queue from what is known of each title, in the engine's order.
+    /// The suggestions to draw: none with the welcome, and none for a title the queue holds or
+    /// one just dismissed.
+    fn suggestions(&self, queue: &Queue) -> Vec<UpNextItem> {
+        if queue.is_empty() {
+            return Vec::new();
+        }
+        let queued: Vec<u32> = queue.all().map(|r| r.entry.id.get()).collect();
+        self.up
+            .borrow()
+            .iter()
+            .filter(|i| !queued.contains(&i.entry.id.get()))
+            .cloned()
+            .collect()
+    }
+
+    /// The queue from what is known of each title, in the engine's order, and under it the
+    /// suggestions.
     fn rebuild(self: &Rc<Self>) {
         let entries: Vec<Entry> = {
             let known = self.ctx.hub.known.borrow();
             self.ids.borrow().iter().filter_map(|id| known.entries.get(id).cloned()).collect()
         };
         let queue = say::queue(&entries, &[], &self.episodes.borrow());
-        let same = *self.queue.borrow() == queue;
+        let up = self.suggestions(&queue);
+        let same = *self.queue.borrow() == queue && *self.drawn_up.borrow() == up;
         *self.queue.borrow_mut() = queue;
         if same && self.list.first_child().is_some() && self.body.has_answer() {
             return;
@@ -288,12 +389,170 @@ impl Page {
                 self.list.append(&self.row(group, item));
             }
         }
+        self.fallback.set(up.first().is_some_and(|i| i.fallback));
+        let arriving = !up.is_empty() && !self.up_on_screen.get();
+        for item in &up {
+            let row = self.up_row(item);
+            self.list.append(&row);
+            if arriving {
+                // The group comes in as one, and nothing above it moves.
+                motion::fade_in(&row);
+                if let Some(header) = row.header() {
+                    motion::fade_in(&header);
+                }
+            }
+        }
+        self.up_on_screen.set(!up.is_empty());
+        *self.drawn_up.borrow_mut() = up;
         if queue.is_empty() {
-            self.body.empty();
+            self.empty_state();
         } else {
             self.body.content();
         }
         self.layout();
+    }
+
+    /// Nothing is under way: the welcome once its two sources have answered, with nothing to
+    /// show in it Nagare.
+    fn empty_state(self: &Rc<Self>) {
+        if !(self.calendar_in.get() && self.season_in.get()) {
+            self.body.loading(Some(t::activity_continue()));
+            return;
+        }
+        if let Some(old) = self.welcome.borrow_mut().take() {
+            self.holder.remove(&old);
+        }
+        let welcome = self.welcome_view();
+        self.nagare.set_visible(welcome.is_none());
+        if let Some(welcome) = welcome {
+            self.holder.append(&welcome);
+            *self.welcome.borrow_mut() = Some(welcome);
+        }
+        self.body.empty();
+    }
+
+    /// The calendar or the season answered: the welcome may now be drawn.
+    fn welcome_changed(self: &Rc<Self>) {
+        if self.continue_in.get() && self.queue.borrow().is_empty() {
+            self.empty_state();
+        }
+    }
+
+    /// The engine's now, in Unix seconds: its calendar's anchor and the time since, which is
+    /// the wall clock wherever the engine has no clock of its own to set.
+    fn engine_now(&self) -> i64 {
+        match self.anchor.get() {
+            0 => now(),
+            anchor => anchor + (now() - self.anchor_at.get()),
+        }
+    }
+
+    /// What airs today, in the order it airs, one card to a title.
+    fn airing_today(&self) -> Vec<(Entry, u32, i64)> {
+        let anchor = self.anchor.get();
+        let today = glib::DateTime::from_unix_local(self.engine_now())
+            .ok()
+            .and_then(|d| d.format("%F").ok());
+        let mut seen = Vec::new();
+        let mut out: Vec<(Entry, u32, i64)> = self
+            .calendar
+            .borrow()
+            .iter()
+            .filter_map(|e| {
+                let (airing_in, episode) = (e.airing_in?, e.airing_episode?);
+                let airs = anchor + airing_in;
+                let day = glib::DateTime::from_unix_local(airs).ok()?.format("%F").ok();
+                (day == today).then(|| (e.clone(), episode, airs))
+            })
+            .collect();
+        out.sort_by_key(|(_, _, airs)| *airs);
+        out.retain(|(e, ..)| {
+            let fresh = !seen.contains(&e.id.get());
+            seen.push(e.id.get());
+            fresh
+        });
+        out.truncate(4);
+        out
+    }
+
+    /// The welcome: Airing today as wide cards, This season as posters. `None` when both are
+    /// empty.
+    fn welcome_view(self: &Rc<Self>) -> Option<gtk::Widget> {
+        let today = self.airing_today();
+        let season: Vec<Entry> = self.season.borrow().iter().take(6).cloned().collect();
+        if today.is_empty() && season.is_empty() {
+            return None;
+        }
+        let hub = &self.ctx.hub;
+        let now = self.engine_now();
+        let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
+        column.set_margin_start(24);
+        column.set_margin_end(24);
+        column.set_margin_top(8);
+        column.set_margin_bottom(24);
+
+        if !today.is_empty() {
+            column.append(&section(
+                &t::continue_airing_today(),
+                &t::nav_calendar(),
+                "calendar",
+            ));
+            let cards = flow(4);
+            for (entry, episode, airs) in &today {
+                let card = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                card.set_size_request(CARD_WIDTH, -1);
+                let art = widgets::banner(hub, entry, 136, "welcome-card");
+                art.set_halign(gtk::Align::Fill);
+                card.append(&art);
+                card.append(&caption_title(&entry.title, 8));
+                let line = if *airs <= now {
+                    t::up_next_broadcast(
+                        i64::from(*episode),
+                        &t::up_next_out(&say::ago(now - airs)),
+                    )
+                } else {
+                    t::up_next_broadcast(i64::from(*episode), &calendar::time(*airs))
+                };
+                let dot = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+                if *airs <= now && !entry_watched(entry, *episode) {
+                    let water = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                    water.add_css_class("state-dot");
+                    water.set_valign(gtk::Align::Center);
+                    dot.append(&water);
+                }
+                let label = widgets::haze(&line, "caption");
+                label.add_css_class("numeric");
+                label.set_wrap(false);
+                label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                dot.append(&label);
+                card.append(&dot);
+                cards.append(&opens(
+                    &card,
+                    entry,
+                    &t::continue_row_spoken(&entry.title, &line),
+                ));
+            }
+            column.append(&cards);
+        }
+        if !season.is_empty() {
+            let head = section(&t::continue_this_season(), &t::nav_seasonal(), "seasonal");
+            head.set_margin_top(if today.is_empty() { 0 } else { 14 });
+            column.append(&head);
+            let posters = flow(6);
+            for entry in &season {
+                let poster = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                poster.append(&widgets::cover(hub, entry, 128, 192));
+                poster.append(&caption_title(&entry.title, 8));
+                posters.append(&opens(&poster, entry, &entry.title));
+            }
+            column.append(&posters);
+        }
+        let scroll = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .vexpand(true)
+            .child(&adw::Clamp::builder().maximum_size(1100).child(&column).build())
+            .build();
+        Some(scroll.upcast())
     }
 
     fn row(&self, group: &str, item: &QueueRow) -> gtk::ListBoxRow {
@@ -361,6 +620,119 @@ impl Page {
         row
     }
 
+    /// A suggestion: the queue row's height, cover and type, with a second line that says why
+    /// it is there. No bar and no water dot.
+    fn up_row(&self, item: &UpNextItem) -> gtk::ListBoxRow {
+        let id = item.entry.id.get();
+        let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        line.set_widget_name(&id.to_string());
+        line.append(&widgets::cover(&self.ctx.hub, &item.entry, 36, 54));
+        let text = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        text.set_valign(gtk::Align::Center);
+        text.set_hexpand(true);
+        let title = widgets::show_title(&item.entry.title, "row");
+        title.set_wrap(false);
+        title.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        text.append(&title);
+        let why = say::up_next_line(item, self.engine_now(), &calendar::time);
+        let reason = widgets::haze(&why, "caption");
+        reason.add_css_class("numeric");
+        reason.set_wrap(false);
+        reason.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        text.append(&reason);
+        line.append(&text);
+        line.set_size_request(-1, 54);
+        let row = gtk::ListBoxRow::builder().child(&line).build();
+        row.set_widget_name("up");
+        row.update_property(&[gtk::accessible::Property::Label(&t::continue_row_spoken(
+            &item.entry.title,
+            &why,
+        ))]);
+
+        let menu = gio::Menu::new();
+        let first = gio::Menu::new();
+        match item.action {
+            UpNextAction::PlayFirstEpisode => first.append(
+                Some(&t::title_button_play(1)),
+                Some(&format!("win.play((uint32 {id}, '1'))")), // i18n-skip
+            ),
+            UpNextAction::AddToPlanning => first.append(
+                Some(&t::up_next_add_planning()),
+                Some(&format!("win.plan(uint32 {id})")), // i18n-skip
+            ),
+            UpNextAction::Nothing => {}
+        }
+        first.append(Some(&t::title_open()), Some(&format!("win.open-title(uint32 {id})"))); // i18n-skip
+        menu.append_section(None, &first);
+        let second = gio::Menu::new();
+        second.append(
+            Some(&t::up_next_not_interested()),
+            Some(&format!("up.dismiss(uint32 {id})")), // i18n-skip
+        );
+        menu.append_section(None, &second);
+        widgets::context_menu(&row, &menu);
+        row
+    }
+
+    fn selected_up(&self) -> Option<UpNextItem> {
+        let id = self.selected.get()?;
+        self.drawn_up.borrow().iter().find(|i| i.entry.id.get() == id).cloned()
+    }
+
+    /// Return does a suggestion's one action; Delete is Not interested.
+    fn suggestion_key(self: &Rc<Self>, item: &UpNextItem, key: gdk::Key) -> glib::Propagation {
+        let id = item.entry.id.get();
+        match key {
+            gdk::Key::Return | gdk::Key::KP_Enter if !self.split.is_collapsed() => {
+                let _ = match item.action {
+                    UpNextAction::PlayFirstEpisode => self
+                        .list
+                        .activate_action("win.play", Some(&(id, "1".to_owned()).to_variant())),
+                    UpNextAction::AddToPlanning => {
+                        self.list.activate_action("win.plan", Some(&id.to_variant()))
+                    }
+                    UpNextAction::Nothing => {
+                        self.list.activate_action("win.open-title", Some(&id.to_variant()))
+                    }
+                };
+                glib::Propagation::Stop
+            }
+            gdk::Key::Delete => {
+                self.dismiss(id);
+                glib::Propagation::Stop
+            }
+            _ => glib::Propagation::Proceed,
+        }
+    }
+
+    /// Not interested: the row goes at once, the selection moves to the next, and a notice
+    /// offers Undo.
+    fn dismiss(self: &Rc<Self>, id: u32) {
+        let Some(at) = self.up.borrow().iter().position(|i| i.entry.id.get() == id) else {
+            return;
+        };
+        let item = self.up.borrow_mut().remove(at);
+        self.ctx.hub.send(Command::DismissUpNext { id: AnilistId::new(id) });
+        let next = {
+            let shown = self.drawn_up.borrow();
+            let at = shown.iter().position(|i| i.entry.id.get() == id).unwrap_or(0);
+            shown
+                .get(at + 1)
+                .or_else(|| at.checked_sub(1).and_then(|b| shown.get(b)))
+                .map(|i| i.entry.id.get())
+        };
+        if self.selected.get() == Some(id) {
+            self.selected.set(next);
+        }
+        let text = if item.starts.is_some() {
+            t::up_next_hidden_until_airs(&item.entry.title)
+        } else {
+            t::up_next_hidden(&item.entry.title)
+        };
+        self.ctx.toast_to(&text, &t::action_undo(), "win.restore-up-next", &id.to_string());
+        self.rebuild();
+    }
+
     fn selected_item(&self) -> Option<QueueRow> {
         let id = self.selected.get()?;
         self.queue.borrow().all().find(|i| i.entry.id.get() == id).cloned()
@@ -419,6 +791,9 @@ impl Page {
     }
 
     fn show_preview(&self, fade: bool) {
+        if let Some(up) = self.selected_up() {
+            return self.show_suggestion(&up, fade);
+        }
         let Some(item) = self.selected_item() else { return };
         let id = item.entry.id.get();
         let name = format!(
@@ -449,6 +824,133 @@ impl Page {
                 }
             });
         }
+    }
+
+    /// The preview of a suggestion, crossfaded in like a queue row's.
+    fn show_suggestion(&self, item: &UpNextItem, fade: bool) {
+        let id = item.entry.id.get();
+        let name = format!("u{id}-{:?}", item.action);
+        if self.preview.child_by_name(&name).is_none() {
+            self.preview.add_named(&self.suggestion_preview(item), Some(&name));
+        }
+        self.preview.set_transition_type(if fade {
+            gtk::StackTransitionType::Crossfade
+        } else {
+            gtk::StackTransitionType::None
+        });
+        let old = self.preview.visible_child();
+        self.preview.set_visible_child_name(&name);
+        self.preview_page.set_title(&item.entry.title);
+        self.shown.set(id);
+        if let Some(old) = old.filter(|o| self.preview.visible_child().as_ref() != Some(o)) {
+            let stack = self.preview.clone();
+            glib::timeout_add_local_once(std::time::Duration::from_millis(400), move || {
+                if stack.visible_child().as_ref() != Some(&old) {
+                    stack.remove(&old);
+                }
+            });
+        }
+    }
+
+    /// A suggestion's preview: the title, why it is suggested, the one amber action it has, and
+    /// the synopsis. An announced title has no banner to speak of, so its cover stands beside
+    /// the title instead. Signed out, an announced title has no button at all.
+    fn suggestion_preview(&self, item: &UpNextItem) -> gtk::Widget {
+        let hub = &self.ctx.hub;
+        let entry = &item.entry;
+        let id = entry.id.get();
+        let announced = item.action != UpNextAction::PlayFirstEpisode;
+        let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
+        column.set_margin_start(36);
+        column.set_margin_end(36);
+        column.set_margin_bottom(36);
+
+        let head = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        if let Some(english) = entry.title_english.as_deref().filter(|e| *e != entry.title) {
+            head.append(&widgets::haze(english, ""));
+        }
+        let meta = say::meta_line(entry);
+        if !meta.is_empty() {
+            let meta = widgets::haze(&meta, "caption");
+            meta.add_css_class("numeric");
+            head.append(&meta);
+        }
+        let why = say::up_next_line(item, self.engine_now(), &calendar::time);
+        let why = gtk::Label::builder().label(&why).xalign(0.0).wrap(true).build();
+        why.set_margin_top(6);
+        let detail = match (item.reason, item.because.as_deref()) {
+            (UpNextReason::Recommended, Some(title)) => {
+                Some(widgets::haze(&t::up_next_because_detail(title), ""))
+            }
+            _ => None,
+        };
+
+        let title = widgets::show_title(&entry.title, "title-2");
+        if announced {
+            let top = gtk::Box::new(gtk::Orientation::Horizontal, 20);
+            top.set_margin_top(12);
+            top.append(&widgets::cover(hub, entry, 120, 180));
+            let text = gtk::Box::new(gtk::Orientation::Vertical, 6);
+            text.set_valign(gtk::Align::End);
+            text.append(&title);
+            if head.first_child().is_some() {
+                text.append(&head);
+            }
+            text.append(&why);
+            top.append(&text);
+            column.append(&top);
+        } else {
+            let banner = widgets::banner(hub, entry, 360, "preview");
+            banner.set_halign(gtk::Align::Fill);
+            banner.set_cursor_from_name(Some("pointer"));
+            let open = gtk::GestureClick::new();
+            open.connect_released({
+                let banner = banner.clone();
+                move |_, _, _, _| {
+                    let _ = banner.activate_action("win.open-title", Some(&id.to_variant()));
+                }
+            });
+            banner.add_controller(open);
+            column.append(&banner);
+            title.set_margin_top(12);
+            column.append(&title);
+            if head.first_child().is_some() {
+                column.append(&head);
+            }
+            column.append(&why);
+        }
+        if let Some(detail) = detail {
+            column.append(&detail);
+        }
+
+        let button = match item.action {
+            UpNextAction::PlayFirstEpisode => {
+                Some((t::title_button_play(1), "win.play", (id, "1".to_owned()).to_variant()))
+            }
+            UpNextAction::AddToPlanning => {
+                Some((t::up_next_add_planning(), "win.plan", id.to_variant()))
+            }
+            UpNextAction::Nothing => None,
+        };
+        if let Some((label, action, target)) = button {
+            let button = gtk::Button::with_label(&label);
+            button.add_css_class("pill");
+            button.add_css_class("suggested-action");
+            button.set_halign(gtk::Align::Start);
+            button.set_margin_top(6);
+            button.set_action_name(Some(action));
+            button.set_action_target_value(Some(&target));
+            column.append(&button);
+        }
+        if !entry.synopsis.is_empty() {
+            let synopsis = gtk::Label::new(Some(&entry.synopsis));
+            synopsis.set_wrap(true);
+            synopsis.set_xalign(0.0);
+            synopsis.set_margin_top(12);
+            synopsis.set_max_width_chars(80);
+            column.append(&synopsis);
+        }
+        adw::Clamp::builder().maximum_size(720).child(&column).build().upcast()
     }
 
     fn preview_of(&self, item: &QueueRow) -> gtk::Widget {
@@ -565,4 +1067,69 @@ impl Page {
 /// The title a queue row is for.
 fn row_id(row: &gtk::ListBoxRow) -> Option<u32> {
     row.child()?.widget_name().parse().ok()
+}
+
+/// A card under Airing today is a quarter of the content's width at its widest.
+const CARD_WIDTH: i32 = 232;
+
+/// The wall clock, in Unix seconds.
+fn now() -> i64 {
+    glib::DateTime::now_utc().map_or(0, |t| t.to_unix())
+}
+
+/// A section's heading with the pill that opens the page it is a part of.
+fn section(title: &str, button: &str, dest: &str) -> gtk::Box {
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    let heading = widgets::heading(title);
+    heading.set_hexpand(true);
+    row.append(&heading);
+    let open = gtk::Button::with_label(button);
+    open.add_css_class("pill");
+    open.set_action_name(Some("win.go"));
+    open.set_action_target_value(Some(&dest.to_variant()));
+    row.append(&open);
+    row
+}
+
+/// A grid of at most `columns` across that gives each cell the same room.
+fn flow(columns: u32) -> gtk::FlowBox {
+    let flow = gtk::FlowBox::new();
+    flow.set_selection_mode(gtk::SelectionMode::None);
+    flow.set_homogeneous(false);
+    flow.set_max_children_per_line(columns);
+    flow.set_column_spacing(16);
+    flow.set_row_spacing(16);
+    flow.set_valign(gtk::Align::Start);
+    // Takes the room its cells ask for, so they sit together at the start.
+    flow.set_halign(gtk::Align::Start);
+    flow
+}
+
+/// A title under its art, cut at one line.
+fn caption_title(text: &str, top: i32) -> gtk::Label {
+    let title = widgets::show_title(text, "row");
+    title.set_wrap(false);
+    title.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    // Asks for no width of its own: the art above sets it, and the title is cut to fit.
+    title.set_max_width_chars(1);
+    title.set_margin_top(top);
+    title
+}
+
+/// `card` as a flat button that opens the title, read as `label`.
+fn opens(card: &gtk::Box, entry: &Entry, label: &str) -> gtk::Widget {
+    let id = entry.id.get();
+    let button = gtk::Button::builder().child(card).build();
+    button.add_css_class("flat");
+    button.set_halign(gtk::Align::Start);
+    button.set_action_name(Some("win.open-title"));
+    button.set_action_target_value(Some(&id.to_variant()));
+    button.update_property(&[gtk::accessible::Property::Label(label)]);
+    widgets::title_menu(&button, id, true);
+    button.upcast()
+}
+
+/// Whether the viewer has watched `episode` of the title.
+fn entry_watched(entry: &Entry, episode: u32) -> bool {
+    entry.progress.as_ref().is_some_and(|p| p.done >= episode)
 }

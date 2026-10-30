@@ -126,7 +126,7 @@ episode-row-not-out = Not out yet
 episode-row-airs = Airs { $when }
 
 # Accessibility label of an episode's still while spoiler protection hides it.
-episode-spoiler-hidden = Still hidden: spoiler protection
+episode-spoiler-hidden = Hidden by spoiler protection
 
 # Accessibility label of the button that opens an episode's menu.
 episode-options = Episode options
@@ -192,6 +192,24 @@ more-recommendations = Recommendations
 # Heading of the list of rankings.
 more-rankings = Rankings
 
+# Heading of the list of people the viewer follows who have the show on their list.
+more-following = People you follow
+
+# Note under that list: where the names come from.
+more-following-note = From AniList
+
+# What a followed person gave the show, out of ten. The score is a whole number.
+# @arg score: int
+more-followed-score = { $score }/10
+
+# Heading of the list of titles people who liked this one also liked.
+more-like-this = More like this
+
+# Line of a followed person's list entry: their status and how far they are. Both are already worded.
+# @arg status: text
+# @arg progress: text
+more-followed-progress = { $status } · { $progress }
+
 # Line when AniList has no cast, staff or recommendations for a show.
 more-empty = AniList has no cast, staff or recommendations for this show yet.
 
@@ -223,3 +241,36 @@ title-button-play-dubbed = Play episode { $episode } · { -dubbed-cap }
 # @arg time: text
 # @max 46
 title-button-resume-dubbed = Resume episode { $episode } · { -dubbed-cap } · { $time }
+
+## Facts in the title page's side column
+
+# Label of a fact: the genres, joined in its value.
+title-genres = Genres
+
+# Label of a fact: the date a show not yet out starts.
+title-fact-starts = Starts
+
+# Label of a fact: the date a film or a one-off was released.
+title-fact-released = Released
+
+# Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.
+# @arg from: text
+# @arg to: text
+title-fact-range = { $from } to { $to }
+
+# Value of the fact on a cancelled show: the last episode that aired.
+# @arg episode: int
+title-fact-after = After episode { $episode }
+
+# Value of the fact on a show that is airing and has no known start.
+title-fact-now = Now
+
+# Value of the fact on a show with no announced start.
+title-fact-tba = To be announced
+
+## More about this show, the sheet
+
+# A followed person's status and score, such as "Completed · 9/10". The status is already worded.
+# @arg status: text
+# @arg score: int
+more-following-line = { $status } · { $score }/10

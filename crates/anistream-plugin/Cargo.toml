@@ -14,7 +14,7 @@ doctest = false
 default = ["fetch"]
 # Lend plugins the browser-emulating HTTP client. Off, a host can only ask plugins to describe
 # themselves — enough for a plugin store's server, without the network stack in its build.
-fetch = ["dep:anistream-net"]
+fetch = ["dep:anistream-net", "dep:wreq"]
 # Run plugins in wasmtime's interpreter, Pulley, rather than as native code, on any platform, as
 # iOS always does: the conformance suite on the path an iPhone takes, run where it can be.
 interpret = ["wasmtime/pulley"]
@@ -23,6 +23,8 @@ interpret = ["wasmtime/pulley"]
 anistream-core.workspace = true
 anyhow.workspace = true
 anistream-net = { workspace = true, optional = true }
+# The fetch response, read a chunk at a time against the size ceiling.
+wreq = { workspace = true, optional = true }
 async-trait.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
@@ -57,6 +59,8 @@ cbc = { version = "0.2", features = ["alloc"] }
 wasmtime = { version = "49.0", default-features = false, features = ["pulley"] }
 
 [dev-dependencies]
+# A fetch response built in a test, for the size ceiling.
+http = "1"
 tempfile = "3"
 
 [lints]

@@ -117,6 +117,11 @@ fn airs_when(at: i64, now: i64, zone: &jiff::tz::TimeZone) -> Option<Cause> {
 /// An episode's streams and playback context, as resolution produces them.
 pub type Resolved = (Vec<anistream_core::stream::Stream>, playback::PlaybackContext);
 
+/// How long a play waits for its sources to give it a stream, all told.
+const RESOLVE_WAIT: std::time::Duration = std::time::Duration::from_secs(
+    anistream_providers::torrent::session::METADATA_WAIT.as_secs() + 30,
+);
+
 /// Everything needed before mpv can be spawned: a stream, and the context history needs.
 #[allow(clippy::too_many_arguments, clippy::result_large_err)]
 pub async fn resolve_for_playback(
@@ -128,18 +133,15 @@ pub async fn resolve_for_playback(
     pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
     job: Option<&JobGuard>,
-    tx: &Outbox,
 ) -> std::result::Result<
     (Vec<anistream_core::stream::Stream>, playback::PlaybackContext),
     Unplayable,
 > {
-    // The step under way, on the job when there is one; the CLI has no activity row and reads
-    // the status channel instead.
+    // The step under way, on the job when there is one; with none, as the command line plays,
+    // only the log has it.
     let step = |text: Msg| match job {
         Some(job) => job.note(text, None),
-        None => {
-            let _ = tx.send(Event::Status(Some(text)));
-        }
+        None => tracing::info!(step = %text.english(), "playback"),
     };
     let began = std::time::Instant::now();
     tracing::info!(
@@ -204,75 +206,93 @@ pub async fn resolve_for_playback(
     let target = media.match_target();
 
     step(Msg::StatusSearchingSources { episode: episode.to_owned() });
-    let mut streams = match &pick {
-        // A picked release goes straight to its provider, no failover: substituting a
-        // different stream for the one the user chose would silently undo the choice. Matched
-        // on that provider, whose key it is.
-        Some((provider_id, source_id)) => {
-            let source = registry
-                .pinned(provider_id)
-                .ok_or_else(|| Cause::SourceGone { source: provider_id.clone() })?;
-            let resolution = anistream_providers::resolve(
-                store,
-                &source,
-                id,
-                &target,
-                playback.translation,
-                now,
-            )
-            .await;
-            let key = resolution
-                .key()
-                .cloned()
-                .ok_or_else(|| Cause::TitleNoMatch { detail: resolution.explain() })?;
-            source
-                .resolve_source(
-                    provider_id,
-                    &key,
-                    episode,
-                    playback.translation,
-                    source_id,
-                    now,
-                )
-                .await
-                .map_err(|e| Cause::ReleaseFailed { detail: e.to_string() })?
-        }
-        None => {
-            let from_release = pinned_release(
-                store,
-                registry,
-                id,
-                &target,
-                episode,
-                playback.translation,
-                now,
-            )
-            .await;
-            if let Some(streams) = from_release {
-                streams
-            } else {
-                let answer = anistream_providers::first_answer(
+    // Bounded as a whole, beyond each source's own limits: a play that never ends leaves the
+    // starting screen up with nothing to say. A torrent waits up to `METADATA_WAIT` for its
+    // metadata, so this leaves room for that and the asking around it.
+    let asked = tokio::time::timeout(RESOLVE_WAIT, async {
+        Ok::<_, Unplayable>(match &pick {
+            // A picked release goes straight to its provider, no failover: substituting a
+            // different stream for the one the user chose would silently undo the choice. Matched
+            // on that provider, whose key it is.
+            Some((provider_id, source_id)) => {
+                let source = registry
+                    .pinned(provider_id)
+                    .ok_or_else(|| Cause::SourceGone { source: provider_id.clone() })?;
+                let resolution = anistream_providers::resolve(
                     store,
-                    registry,
+                    &source,
                     id,
                     &target,
                     playback.translation,
                     now,
-                    |source, key| async move {
-                        source.resolve(&key, episode, playback.translation, now).await
-                    },
                 )
                 .await;
-                match answer {
-                    anistream_providers::Answer::Answered { value, .. } => value,
-                    anistream_providers::Answer::Ambiguous { .. } => {
-                        return Err(Cause::TitleNoMatch { detail: answer.explain() }.into());
-                    }
-                    anistream_providers::Answer::Unanswered { matched, .. } => {
-                        return Err(no_source_has(episode, matched, &answer.explain()).into());
+                let key = resolution
+                    .key()
+                    .cloned()
+                    .ok_or_else(|| Cause::TitleNoMatch { detail: resolution.explain() })?;
+                source
+                    .resolve_source(
+                        provider_id,
+                        &key,
+                        episode,
+                        playback.translation,
+                        source_id,
+                        now,
+                    )
+                    .await
+                    .map_err(|e| Cause::ReleaseFailed { detail: e.to_string() })?
+            }
+            None => {
+                let from_release = pinned_release(
+                    store,
+                    registry,
+                    id,
+                    &target,
+                    episode,
+                    playback.translation,
+                    now,
+                )
+                .await;
+                if let Some(streams) = from_release {
+                    streams
+                } else {
+                    let answer = anistream_providers::first_answer(
+                        store,
+                        registry,
+                        id,
+                        &target,
+                        playback.translation,
+                        now,
+                        |source, key| async move {
+                            source.resolve(&key, episode, playback.translation, now).await
+                        },
+                    )
+                    .await;
+                    match answer {
+                        anistream_providers::Answer::Answered { value, .. } => value,
+                        anistream_providers::Answer::Ambiguous { .. } => {
+                            return Err(Cause::TitleNoMatch { detail: answer.explain() }.into());
+                        }
+                        anistream_providers::Answer::Unanswered { matched, .. } => {
+                            return Err(
+                                no_source_has(episode, matched, &answer.explain()).into()
+                            );
+                        }
                     }
                 }
             }
+        })
+    })
+    .await;
+    let mut streams = match asked {
+        Ok(streams) => streams?,
+        Err(_) => {
+            tracing::warn!(
+                secs = RESOLVE_WAIT.as_secs(),
+                "the sources took too long to answer; the play is given up"
+            );
+            return Err(Cause::SourcesTimedOut.into());
         }
     };
 
@@ -474,7 +494,6 @@ mod tests {
         let meta = Meta::new(AniList::new(http, 30), None, store.clone());
         let registry =
             ProviderRegistry::new(sources.into_iter().map(MockProvider::arc).collect());
-        let tx = Outbox::from(tokio::sync::mpsc::unbounded_channel().0);
         let playback = anistream_core::config::PlaybackConfig::default();
         let found = resolve_for_playback(
             &meta,
@@ -485,7 +504,6 @@ mod tests {
             None,
             &playback,
             None,
-            &tx,
         )
         .await;
         found.expect_err("the play fails")

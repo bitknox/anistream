@@ -153,7 +153,9 @@ impl TitleCache {
                 rails.iter().flat_map(|rail| &rail.entries).for_each(|entry| self.know(entry));
                 None
             }
-            Event::Episodes { id, rows } => {
+            // A table that failed to load says nothing of the episodes: what is known stands.
+            Event::Episodes { failed: Some(_), .. } => None,
+            Event::Episodes { id, rows, failed: None } => {
                 self.table = Some((*id, rows.clone()));
                 self.episodes.insert(*id, rows.iter().map(EpisodeProgress::from).collect());
                 self.let_go();
@@ -644,7 +646,7 @@ mod tests {
         cache.observe(&Event::Detail(Box::new(Entry::new(id, "Hoshikuzu no Tabibito"))), None);
         let mut table = rows(1..=3);
         table[0].completed = true;
-        cache.observe(&Event::Episodes { id, rows: table }, None);
+        cache.observe(&Event::Episodes { id, rows: table, failed: None }, None);
         for kind in [PlayKind::Staged, PlayKind::Party] {
             let PlayHints { title, next, episodes, .. } = cache.hints(id, "2", false, kind);
             assert_eq!(title, "Hoshikuzu no Tabibito");
@@ -671,7 +673,7 @@ mod tests {
             .into_iter()
             .map(|row| EpisodeRow { metadata_only: true, ..row })
             .collect();
-        cache.observe(&Event::Episodes { id, rows: table }, None);
+        cache.observe(&Event::Episodes { id, rows: table, failed: None }, None);
         // No Up Next, no Episodes menu and no names from it: no source numbers it so.
         let PlayHints { next, episodes, .. } = cache.hints(id, "1", false, PlayKind::Staged);
         assert_eq!((next, episodes.len()), (None, 0));
@@ -698,7 +700,10 @@ mod tests {
                 Entry::new(AnilistId::new(2), "Title 1"),
             ],
         );
-        cache.observe(&Event::Episodes { id: AnilistId::new(1), rows: rows(1..=12) }, None);
+        cache.observe(
+            &Event::Episodes { id: AnilistId::new(1), rows: rows(1..=12), failed: None },
+            None,
+        );
         let other = cache.hints(AnilistId::new(2), "1", false, PlayKind::Staged);
         assert_eq!((other.next, other.episodes.len()), (None, 0));
         assert_eq!(other.title, "Title 1");
@@ -711,7 +716,10 @@ mod tests {
         // A native app keeps every table it loaded: the first title's rows must move on with
         // its watches and marks after the second's table has loaded, as its count does.
         let mut cache = at_episodes(Some((0, 1)), &[]);
-        cache.observe(&Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3) }, None);
+        cache.observe(
+            &Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3), failed: None },
+            None,
+        );
         let said = |cache: &TitleCache| {
             let Some(Event::Progress { episodes, .. }) = cache.progress(SHOW) else {
                 panic!("the title is known")
@@ -744,7 +752,10 @@ mod tests {
     fn a_mark_out_of_order_or_undone_moves_the_count_of_a_title_whose_table_is_not_held() {
         // Read against the list kept of the title's episodes, as against its table when held.
         let mut cache = at_episodes(Some((1, 2)), &[1]);
-        cache.observe(&Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3) }, None);
+        cache.observe(
+            &Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3), failed: None },
+            None,
+        );
         cache.marked(SHOW, &["5".into()], true, |_| true);
         assert_eq!(standing(&cache, SHOW).0, Some((2, 6)), "out of order, counted");
         cache.marked(SHOW, &["1".into()], false, |_| false);
@@ -756,8 +767,14 @@ mod tests {
         // As the terminal holds one: a title whose table was replaced plays as one with none,
         // its episodes loaded behind the playback.
         let mut cache = TitleCache::default();
-        cache.observe(&Event::Episodes { id: AnilistId::new(1), rows: rows(1..=12) }, None);
-        cache.observe(&Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3) }, None);
+        cache.observe(
+            &Event::Episodes { id: AnilistId::new(1), rows: rows(1..=12), failed: None },
+            None,
+        );
+        cache.observe(
+            &Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3), failed: None },
+            None,
+        );
         assert!(
             cache.hints(AnilistId::new(1), "1", false, PlayKind::Staged).episodes.is_empty()
         );
@@ -794,7 +811,7 @@ mod tests {
         for filler in [2, 3] {
             table[filler].skippable = true;
         }
-        cache.observe(&Event::Episodes { id, rows: table }, None);
+        cache.observe(&Event::Episodes { id, rows: table, failed: None }, None);
         let next = |skip| cache.hints(id, "2", skip, PlayKind::Staged).next.map(|n| n.number);
         assert_eq!(next(false).as_deref(), Some("3"));
         assert_eq!(next(true).as_deref(), Some("5"), "3 and 4 are filler");
@@ -847,7 +864,7 @@ mod tests {
                 row.watched = 1.0;
             }
         }
-        cache.observe(&Event::Episodes { id: SHOW, rows: table }, None);
+        cache.observe(&Event::Episodes { id: SHOW, rows: table, failed: None }, None);
         cache
     }
 

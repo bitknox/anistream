@@ -151,8 +151,6 @@ pub enum Event {
     /// names titles the old way, so it loads what it shows again; what arrives from now on is
     /// named the new way.
     TitlesChanged(TitleLanguage),
-    /// What the work is doing now, for the status line; `None` clears it.
-    Status(Option<Msg>),
     Toast(Notice),
     Providers(Vec<ProviderRow>),
     /// The metadata ladder's condition: which rung is serving, and why.
@@ -354,9 +352,14 @@ pub enum Event {
     Conflicts(Vec<ConflictRow>),
     /// A title's episode table, named so a slow load for a title already left cannot fill the
     /// table of the one opened since.
+    ///
+    /// `failed` is why the table could not be loaded at all, when it could not: `rows` is
+    /// empty then, and the page says this rather than that the title has no episodes.
     Episodes {
         id: AnilistId,
         rows: Vec<EpisodeRow>,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        failed: Option<Msg>,
     },
     /// How far title `id`'s dub goes, as the source a dubbed play would use lists it: the
     /// answer to [`Command::LoadDub`]. `None` when that source has no dub of it, and when it

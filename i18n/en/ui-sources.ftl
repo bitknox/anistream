@@ -148,13 +148,13 @@ sources-detail-not-answering-plain = Not answering.
 sources-detail-held-back = Held back until the connection check passes.
 
 # Status line: disabled.
-sources-detail-disabled = Disabled. It keeps its place and is not tried.
+sources-detail-disabled = Off. It keeps its place and isn't tried.
 
 # Status line: the source is gone.
 sources-detail-gone = This { -source } is no longer here.
 
 # Status line: the site did not answer.
-sources-detail-site = The site did not answer.
+sources-detail-site = The { -source } didn't answer.
 
 # Row label: version.
 sources-version = Version
@@ -187,7 +187,7 @@ sources-contacts-line = { $more ->
  }
 
 # Line: the plugin contacts no host.
-sources-contacts-none = Contacts no hosts
+sources-contacts-none = Lists no hosts to contact
 
 # Value when no host is listed.
 sources-no-hosts = No hosts

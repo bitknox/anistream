@@ -20,9 +20,13 @@ pub mod commands;
 
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
+use anistream_core::ProviderError;
 use anistream_core::{config::Config, ids::AnilistId, media::Translation};
 use anistream_model::{Cause, Msg, event::Event, notice::Notice};
-use anistream_providers::{ProviderRegistry, torrent::TorrentSession};
+use anistream_providers::{
+    ProviderRegistry,
+    torrent::{TorrentSession, session::DownloadHandle},
+};
 use anistream_store::{Download, DownloadState, Store};
 
 use crate::outbox::Outbox;
@@ -60,6 +64,10 @@ pub fn spawn(
         // Anything the last run left mid-flight is back in the queue, not lost. It was `active` in
         // the database and there is no torrent for it in this process, so without this it would sit
         // at "downloading" forever with nothing behind it.
+        //
+        // This assumes one app at a time on a data folder. The Mac app and the terminal app
+        // share one, as do the Linux app and the terminal, and nothing locks it: a second app
+        // opened while the first downloads takes those rows back and starts them again.
         if let Ok(pending) = store.pending_downloads() {
             for row in pending.iter().filter(|d| d.state == DownloadState::Active) {
                 let _ = store.set_download_state(row.id, DownloadState::Queued);
@@ -69,6 +77,11 @@ pub fn spawn(
             }
         }
 
+        // Downloads whose torrents are being added, each in a task of its own: a magnet can take
+        // up to `METADATA_WAIT` to answer, and one with nobody sharing it held this loop for as
+        // long, so nothing else reported progress or started. Owned by this task, so they end
+        // with it when the session is stopped.
+        let mut starting = Starting::default();
         loop {
             tokio::time::sleep(POLL).await;
             // Snapshotted per tick, so a folder or seeding change applies to the next
@@ -77,7 +90,8 @@ pub fn spawn(
             let current =
                 config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
             poll_running(&store, &session, &current, &tx, &mut running).await;
-            start_queued(&store, &session, &tx, &mut running).await;
+            take_started(&store, &session, &tx, &mut running, &mut starting);
+            start_queued(&store, &session, &mut running, &mut starting).await;
         }
     })
 }
@@ -215,17 +229,110 @@ async fn poll_running(
     }
 }
 
-/// Start downloads while there is room.
-async fn start_queued(
+/// Downloads being started: their torrents added in tasks of their own, by row.
+#[derive(Default)]
+struct Starting {
+    tasks: tokio::task::JoinSet<(Download, Result<DownloadHandle, ProviderError>)>,
+    /// Each start's task and the row it starts.
+    rows: Vec<(tokio::task::Id, i64)>,
+}
+
+impl Starting {
+    fn len(&self) -> usize {
+        self.rows.len()
+    }
+
+    fn has(&self, row: i64) -> bool {
+        self.rows.iter().any(|(_, id)| *id == row)
+    }
+
+    /// Add `row`'s torrent to `session` in a task of its own.
+    fn start(&mut self, session: &Arc<TorrentSession>, row: Download) {
+        let (id, session) = (row.id, Arc::clone(session));
+        let task = self.tasks.spawn(async move {
+            let episode = row.episode.trim().parse::<u32>().ok();
+            let added = session.download(&row.magnet, episode).await;
+            (row, added)
+        });
+        self.rows.push((task.id(), id));
+    }
+}
+
+/// Take in the downloads whose torrents have been added since the last tick: each one running
+/// from now on, or failed with why.
+fn take_started(
     store: &Store,
     session: &TorrentSession,
     tx: &Outbox,
     running: &mut Vec<Running>,
+    starting: &mut Starting,
+) {
+    while let Some(done) = starting.tasks.try_join_next_with_id() {
+        let (row, added) = match done {
+            Ok((task, done)) => {
+                starting.rows.retain(|(id, _)| *id != task);
+                done
+            }
+            // Its task panicked: the row is still queued, for a later tick to try again.
+            Err(e) => {
+                tracing::warn!(error = %e, "a download's start ended without an answer");
+                starting.rows.retain(|(id, _)| *id != e.id());
+                continue;
+            }
+        };
+        match added {
+            Ok(handle) => {
+                tracing::info!(row = row.id, torrent = handle.id, file = %handle.name, "download started");
+                let _ = store.update_download_progress(
+                    row.id,
+                    0,
+                    handle.total,
+                    Some(&session.output_dir().join(&handle.name).display().to_string()),
+                );
+                // Running from now on, even if it was paused or cancelled while it started: the
+                // next poll reads its row and pauses it, or forgets it with its file.
+                running.push(Running {
+                    row_id: row.id,
+                    torrent_id: handle.id,
+                    path: Some(session.output_dir().join(&handle.name)),
+                });
+            }
+            Err(e) => {
+                // Cancelled while it started: there is nothing left to fail, or to tell of.
+                let present = store
+                    .downloads()
+                    .map(|all| all.iter().any(|d| d.id == row.id))
+                    .unwrap_or(true);
+                if !present {
+                    continue;
+                }
+                // Named on the row rather than only toasted: the screen has to be able to say
+                // why afterwards, and a toast lasts seconds.
+                let reason = e.to_string();
+                tracing::warn!(row = row.id, %reason, "download could not start");
+                let _ = store.fail_download(row.id, &reason);
+                let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeDownloadFailed {
+                    title: row.title.clone(),
+                    episode: row.episode.clone(),
+                    reason,
+                })));
+            }
+        }
+        publish(store, tx);
+    }
+}
+
+/// Start downloads while there is room.
+async fn start_queued(
+    store: &Store,
+    session: &Arc<TorrentSession>,
+    running: &mut Vec<Running>,
+    starting: &mut Starting,
 ) {
     let Ok(pending) = store.pending_downloads() else { return };
     // A download asked to start now, with every place taken: the one that would have been last
     // to start goes back to waiting, behind it, as "Start now" says.
-    if running.len() >= CONCURRENCY {
+    if running.len() + starting.len() >= CONCURRENCY {
         let paused: Vec<i64> = store
             .downloads()
             .map(|all| {
@@ -252,46 +359,16 @@ async fn start_queued(
     }
 
     for row in pending {
-        if running.len() >= CONCURRENCY {
+        if running.len() + starting.len() >= CONCURRENCY {
             break;
         }
-        if running.iter().any(|r| r.row_id == row.id) {
+        if running.iter().any(|r| r.row_id == row.id) || starting.has(row.id) {
             continue;
         }
         if row.state != DownloadState::Queued {
             continue;
         }
-
-        let episode = row.episode.trim().parse::<u32>().ok();
-        match session.download(&row.magnet, episode).await {
-            Ok(handle) => {
-                tracing::info!(row = row.id, torrent = handle.id, file = %handle.name, "download started");
-                let _ = store.update_download_progress(
-                    row.id,
-                    0,
-                    handle.total,
-                    Some(&session.output_dir().join(&handle.name).display().to_string()),
-                );
-                running.push(Running {
-                    row_id: row.id,
-                    torrent_id: handle.id,
-                    path: Some(session.output_dir().join(&handle.name)),
-                });
-            }
-            Err(e) => {
-                // Named on the row rather than only toasted: the screen has to be able to say why
-                // afterwards, and a toast lasts seconds.
-                let reason = e.to_string();
-                tracing::warn!(row = row.id, %reason, "download could not start");
-                let _ = store.fail_download(row.id, &reason);
-                let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeDownloadFailed {
-                    title: row.title.clone(),
-                    episode: row.episode.clone(),
-                    reason,
-                })));
-            }
-        }
-        publish(store, tx);
+        starting.start(session, row);
     }
 }
 

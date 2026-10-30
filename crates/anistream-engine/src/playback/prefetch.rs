@@ -4,10 +4,8 @@
 use std::{sync::Arc, time::Duration};
 
 use anistream_core::ids::AnilistId;
-use tokio::sync::mpsc;
 
 use crate::{
-    outbox::Outbox,
     playback::resolve::{Resolved, resolve_for_playback},
     services::Services,
     state::EngineState,
@@ -98,11 +96,9 @@ pub fn prefetch(id: AnilistId, episode: String, engine: &EngineState, services: 
     tokio::spawn(async move {
         // Quiet: the steps of a search nobody is waiting on must not take the status
         // line from the episode playing. Nothing reads this channel.
-        let quiet = Outbox::from(mpsc::unbounded_channel().0);
-        let found = resolve_for_playback(
-            &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
-        )
-        .await;
+        let found =
+            resolve_for_playback(&meta, &store, &registry, id, &episode, None, &playback, None)
+                .await;
         match found {
             Ok(resolved) => prefetch.keep(id, &episode, playback.translation, resolved),
             Err(reason) => {
