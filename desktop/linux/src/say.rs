@@ -73,7 +73,7 @@ pub fn countdown(seconds: i64) -> String {
     if seconds <= 0 { t::time_now() } else { span(Span::countdown(seconds)) }
 }
 
-/// How long ago, as a sentence part: "2h 5m ago", or "Just now" inside the first minute.
+/// How long ago, as a sentence part: "2 h 5 min ago", or "Just now" inside the first minute.
 pub fn ago(seconds: i64) -> String {
     if seconds < 60 { t::time_just_now() } else { t::time_ago(&countdown(seconds)) }
 }
@@ -419,7 +419,7 @@ pub fn marked(line: String, dubbed: bool) -> String {
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueueRow {
     item: QueueItem,
-    /// "Continue E7 · 10:06", "Play E4", "Caught up · E9 airs in 2d 3h".
+    /// "Resume E7 · 10:06", "Play E4", "Caught up · E9 airs in 2 d 3 h".
     pub action: String,
     /// "Resume episode 7 · 10:06", "Play episode 8"; `None` with nothing out to play.
     pub button: Option<String>,
@@ -615,13 +615,13 @@ mod tests {
         e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
         e.watched_in = Some(Translation::Dub);
         let item = queue_item(&e, None);
-        assert_eq!(item.action, "Continue E7 dubbed · 10:06");
+        assert_eq!(item.action, "Resume E7 dubbed · 10:06");
         assert_eq!(item.button.as_deref(), Some("Resume episode 7 · 10:06 · Dubbed"));
         assert_eq!(item.left.as_deref(), Some("14 min left"));
         for watched_in in [Some(Translation::Sub), None] {
             e.watched_in = watched_in;
             let item = queue_item(&e, None);
-            assert_eq!(item.action, "Continue E7 · 10:06");
+            assert_eq!(item.action, "Resume E7 · 10:06");
             assert_eq!(item.button.as_deref(), Some("Resume episode 7 · 10:06"));
         }
     }
@@ -658,8 +658,8 @@ mod tests {
         e.watched_in = Some(Translation::Dub);
         let item = queue_item(&e, None);
         assert!(!item.playable);
-        assert_eq!(item.action, "Caught up · E10 airs in 1d 3h");
-        assert_eq!(item.waiting.as_deref(), Some("Episode 10 airs in 1d 3h"));
+        assert_eq!(item.action, "Caught up · E10 airs in 1 d 3 h");
+        assert_eq!(item.waiting.as_deref(), Some("Episode 10 airs in 1 d 3 h"));
         assert_eq!(item.button, None);
     }
 
@@ -724,7 +724,7 @@ mod tests {
         e.format = Some("MOVIE".into());
         e.episodes = None;
         e.film_length = Some(anistream_model::catalog::RunLength { hours: 1, minutes: 52 });
-        assert_eq!(title_line(&e), "Movie · 2026 · 1 hr 52 min · Atelier Hotaru · 79%");
+        assert_eq!(title_line(&e), "Movie · 2026 · 1 h 52 min · Atelier Hotaru · 79%");
     }
 
     #[test]
@@ -753,7 +753,7 @@ mod tests {
         assert_eq!(rate(1_500_000), "1.5 MB/s");
         assert_eq!(percent(82.0), "82%");
         assert_eq!(ago(30), "Just now");
-        assert_eq!(ago(2 * 3600 + 5 * 60), "2h 5m ago");
+        assert_eq!(ago(2 * 3600 + 5 * 60), "2 h 5 min ago");
     }
 
     #[test]
@@ -817,6 +817,6 @@ mod tests {
         item.entry.next_episode = Some(6);
         assert_eq!(up_next_line(&item, 0, &clock), "Episode 6 · 18:30");
         item.entry.last_aired = Some(Aired { episode: 5, ago: 0 });
-        assert!(up_next_line(&item, 8_200, &clock).starts_with("Episode 5 · out 2h"));
+        assert!(up_next_line(&item, 8_200, &clock).starts_with("Episode 5 · out 2 h"));
     }
 }

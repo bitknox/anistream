@@ -672,7 +672,7 @@ fn form(
     // This form's number in the line of checks, let go as it closes.
     let number = NEXT_FORM.get();
     NEXT_FORM.set(number + 1);
-    // Why a check could not be made comes just after its verdict, and shows here under the
+    // Why a check couldn't be made comes just after its verdict, and shows here under the
     // failure, not as a toast, for as long as the form is open.
     let claim = ctx.claim_alerts({
         let (words, dot) = (words.clone(), dot.clone());
@@ -884,12 +884,12 @@ mod tests {
         );
         assert_eq!(
             not_saved(&GuardView::Unreachable, Purpose::Protect),
-            "Not saved. The check could not be made through this proxy, so the saved \
+            "Not saved. The check couldn't be made through this proxy, so the saved \
              protection stays."
         );
         assert_eq!(
             not_saved(&GuardView::Unreachable, Purpose::TurnOn),
-            "Torrents are still off. The check could not be made through this proxy."
+            "Torrents are still off. The check couldn't be made through this proxy."
         );
         assert_eq!(saved(Purpose::EditProxy), "Proxy saved");
     }
