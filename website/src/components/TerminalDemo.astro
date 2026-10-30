@@ -15,7 +15,7 @@ const mk = (src: string) =>
 const pad = (s: string, col: number) => s + ' '.repeat(Math.max(1, col - s.length));
 
 const RULE = `{d|${'─'.repeat(82)}}`;
-const HEADER = `anistream                                              sources {a|●}  vpn {a|●}  anilist {w|⇅}`;
+const HEADER = `anistream                                       torrent {a|●}  plugins {a|●}  ·  anilist {w|⇅}`;
 
 const skel = [
 	HEADER,
@@ -46,16 +46,16 @@ const home = [
 	'{a|▌} ▸  Continue   {a|4} │  {a|▌} Hoshikuzu no Tabibito',
 	'  ▤  Calendar     │    {d|Stardust Wayfarer}',
 	'  ▦  Seasonal     │',
-	'  /  Search       │    {d|TV · 24 EP · SUMMER 2026 · 79%}',
-	'  ▥  Library      │    {d|ADVENTURE · FANTASY}',
+	'  /  Search       │    {d|TV · 24 episodes · 2026 · 79%}',
+	'  ▥  Library      │    {d|Adventure · Fantasy}',
 	'  ↓  Downloads  {a|2} │',
-	'  ◇  Sources      │    {d|EP 9 out 5d ago · EP 10 in 1d 21h}',
+	'  ◇  Sources      │    {d|E9 out 5d ago · E10 in 1d 21h}',
 	'  ◎  Accounts     │',
 	'  ⚙  Settings     │',
 	'                  │',
 	'                  │    {a|▌▌▌▌▏}{d|░░░░░░░░░░░░}  6 / 24',
 	'                  │',
-	'                  │    {d|resume · EP 7 · 14 min left}',
+	'                  │    {d|Continue E7 · 14 min left}',
 	'                  │',
 	RULE,
 	'{d|sub · 1080p}                                   {a|↵} play   {a|e} episodes   {a|?} keys',
@@ -67,9 +67,9 @@ const home = [
 const searchTop = [HEADER, RULE].map(mk).join('\n');
 const searchRows = [
 	// The first row's marker markup is four characters longer than the cell it draws.
-	pad('{a|▌} Hoshikuzu no Tabibito', 42 + 4) + '{d|TV · 24 EP · 2026 · 79%}',
-	pad('  Hoshikuzu no Tabibito: Ferry Days', 42) + '{d|ONA · 6 EP · 2026}',
-	pad('  Tsukiakari no Teishajo', 42) + '{d|TV · 12 EP · 2025}',
+	pad('{a|▌} Hoshikuzu no Tabibito', 42 + 4) + '{d|TV · 24 episodes · 2026 · 79%}',
+	pad('  Hoshikuzu no Tabibito: Ferry Days', 42) + '{d|ONA · 6 episodes · 2026}',
+	pad('  Tsukiakari no Teishajo', 42) + '{d|TV · 12 episodes · 2025}',
 ].map(mk);
 const searchBottom = [RULE, '{a|↵} open   {a|e} episodes   {a|esc} back'].map(mk).join('\n');
 
