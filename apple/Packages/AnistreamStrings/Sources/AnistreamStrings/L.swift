@@ -1125,6 +1125,9 @@ public enum L {
     /// Line where the rest of the week would be when it could not be loaded.
     public static var calendarLoadWeekFailed: String { string("calendar-load-week-failed", fallback: "Couldn't load this week") }
 
+    /// Line in the iPhone agenda, under Today, when My list is chosen and nothing on it airs in the next four weeks.
+    public static var calendarEmptyMineAheadApple: String { string("calendar-empty-mine-ahead-apple", fallback: "Nothing on your list airs in the next 4 weeks.") }
+
     /// Calendar filter on the Mac and iPad, in title case like the menus: every airing show.
     public static var calendarFilterAllTitle: String { string("calendar-filter-all-title", fallback: "All Airing") }
 
@@ -2916,9 +2919,6 @@ public enum L {
 
     /// Line where later broadcasts would be when they could not be loaded.
     public static var calendarLoadLaterFailed: String { string("calendar-load-later-failed", fallback: "Couldn't load later broadcasts") }
-
-    /// Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.
-    public static var calendarEmptyMineAhead: String { string("calendar-empty-mine-ahead", fallback: "Nothing on your list airs in the next 4 weeks.") }
 
     /// Button under the line saying nothing on the person's list airs: shows every airing show.
     public static var calendarShowAll: String { string("calendar-show-all", fallback: "Show all airing") }

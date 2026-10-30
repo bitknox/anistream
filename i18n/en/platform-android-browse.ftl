@@ -6,6 +6,11 @@
 # @arg name: text
 account-button-named = { $name }, accounts and settings
 
+# Line under Today in the calendar when My list is chosen and nothing on it airs in the next four weeks.
+# @only android
+# @max 60
+calendar-empty-mine-ahead = Nothing on your list airs in the next 4 weeks.
+
 # Line above the first day of the calendar: it goes no further back.
 # @only android
 # @max 60

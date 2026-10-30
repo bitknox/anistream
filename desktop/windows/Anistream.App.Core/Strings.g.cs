@@ -1362,9 +1362,6 @@ public static partial class T
     /// <summary>Line where later broadcasts would be when they could not be loaded.</summary>
     public static string CalendarLoadLaterFailed => Get("CalendarLoadLaterFailed");
 
-    /// <summary>Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.</summary>
-    public static string CalendarEmptyMineAhead => Get("CalendarEmptyMineAhead");
-
     /// <summary>Button under the line saying nothing on the person's list airs: shows every airing show.</summary>
     public static string CalendarShowAll => Get("CalendarShowAll");
 
@@ -5897,7 +5894,6 @@ public static partial class T
         ["CalendarLoadingLater"] = "Loading later broadcasts",
         ["CalendarLoadEarlierFailed"] = "Couldn't load earlier broadcasts",
         ["CalendarLoadLaterFailed"] = "Couldn't load later broadcasts",
-        ["CalendarEmptyMineAhead"] = "Nothing on your list airs in the next 4 weeks.",
         ["CalendarShowAll"] = "Show all airing",
         ["CalendarNowSpoken"] = "Now, {time}",
         ["ActionTryAgain"] = "Try again",

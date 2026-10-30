@@ -6235,11 +6235,6 @@ pub fn calendar_load_later_failed() -> String {
     text("calendar-load-later-failed", &[])
 }
 
-/// Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.
-pub fn calendar_empty_mine_ahead() -> String {
-    text("calendar-empty-mine-ahead", &[])
-}
-
 /// Button under the line saying nothing on the person's list airs: shows every airing show.
 pub fn calendar_show_all() -> String {
     text("calendar-show-all", &[])

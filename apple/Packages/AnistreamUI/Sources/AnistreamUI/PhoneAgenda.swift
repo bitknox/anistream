@@ -155,7 +155,7 @@ struct PhoneCalendar: View {
                         .accessibilityRotorEntry(id: day, in: rotor)
                     if day == today, mineBare {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(L.calendarEmptyMineAhead).font(.ui(15)).foregroundStyle(.haze)
+                            Text(L.calendarEmptyMineAheadApple).font(.ui(15)).foregroundStyle(.haze)
                             Button(L.calendarShowAll) { store.setSwitch(.calendarMine, on: false) }
                                 .buttonStyle(SecondaryCapsuleStyle(height: 36, fontSize: 15))
                         }

@@ -1973,8 +1973,8 @@
         }
       }
     },
-    "calendar-empty-mine-ahead" : {
-      "comment" : "Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.",
+    "calendar-empty-mine-ahead-apple" : {
+      "comment" : "Line in the iPhone agenda, under Today, when My list is chosen and nothing on it airs in the next four weeks.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

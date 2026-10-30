@@ -1907,10 +1907,6 @@
     <value>Couldn't load later broadcasts</value>
     <comment>Line where later broadcasts would be when they could not be loaded.</comment>
   </data>
-  <data name="CalendarEmptyMineAhead" xml:space="preserve">
-    <value>Nothing on your list airs in the next 4 weeks.</value>
-    <comment>Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.</comment>
-  </data>
   <data name="CalendarShowAll" xml:space="preserve">
     <value>Show all airing</value>
     <comment>Button under the line saying nothing on the person's list airs: shows every airing show.</comment>

@@ -3914,9 +3914,6 @@ calendar-load-earlier-failed = [Çöüļðñ'ţ ļöàð éàŕļîéŕ ƀŕöà
 # Line where later broadcasts would be when they could not be loaded.
 calendar-load-later-failed = [Çöüļðñ'ţ ļöàð ļàţéŕ ƀŕöàðçàšţš~~~~~~~~~]
 
-# Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.
-calendar-empty-mine-ahead = [Ñöţĥîñĝ öñ ýöüŕ ļîšţ àîŕš îñ ţĥé ñéẋţ 4 ŵééķš.~~~~~~~~~~~~~~]
-
 # Button under the line saying nothing on the person's list airs: shows every airing show.
 calendar-show-all = [Šĥöŵ àļļ àîŕîñĝ~~~~~]
 

@@ -929,6 +929,10 @@ object Strings {
     fun accountButtonNamed(context: Context, name: String): String =
         context.getString(R.string.account_button_named, name)
 
+    /** Line under Today in the calendar when My list is chosen and nothing on it airs in the next four weeks. */
+    fun calendarEmptyMineAhead(context: Context): String =
+        context.getString(R.string.calendar_empty_mine_ahead)
+
     /** Line above the first day of the calendar: it goes no further back. */
     fun calendarFloorLine(context: Context): String =
         context.getString(R.string.calendar_floor_line)
@@ -2512,10 +2516,6 @@ object Strings {
     /** Line where later broadcasts would be when they could not be loaded. */
     fun calendarLoadLaterFailed(context: Context): String =
         context.getString(R.string.calendar_load_later_failed)
-
-    /** Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks. */
-    fun calendarEmptyMineAhead(context: Context): String =
-        context.getString(R.string.calendar_empty_mine_ahead)
 
     /** Button under the line saying nothing on the person's list airs: shows every airing show. */
     fun calendarShowAll(context: Context): String =

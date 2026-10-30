@@ -498,6 +498,8 @@
     </plurals>
     <!-- Accessibility label of the account button in the top bar when someone is signed in. -->
     <string name="account_button_named">%1$s, accounts and settings</string>
+    <!-- Line under Today in the calendar when My list is chosen and nothing on it airs in the next four weeks. -->
+    <string name="calendar_empty_mine_ahead">Nothing on your list airs in the next 4 weeks.</string>
     <!-- Line above the first day of the calendar: it goes no further back. -->
     <string name="calendar_floor_line">The calendar goes back 3 months.</string>
     <!-- Line below the last day of the calendar: it goes no further ahead. -->
@@ -1350,8 +1352,6 @@
     <string name="calendar_load_earlier_failed">Couldn\'t load earlier broadcasts</string>
     <!-- Line where later broadcasts would be when they could not be loaded. -->
     <string name="calendar_load_later_failed">Couldn\'t load later broadcasts</string>
-    <!-- Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks. -->
-    <string name="calendar_empty_mine_ahead">Nothing on your list airs in the next 4 weeks.</string>
     <!-- Button under the line saying nothing on the person's list airs: shows every airing show. -->
     <string name="calendar_show_all">Show all airing</string>
     <!-- What a screen reader says for the line that marks the time now. The time is already worded. -->
