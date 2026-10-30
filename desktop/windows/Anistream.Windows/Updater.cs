@@ -145,7 +145,7 @@ sealed class Updater
         }
         catch (Exception e) when (e is Win32Exception or IOException or UnauthorizedAccessException)
         {
-            File.Delete(marker);
+            SmallFiles.Delete(marker);
             Set(new UpdateState(UpdateStep.Failed, version, Reason: T.UpdatesWhyInstaller(e.Message)));
             return;
         }
@@ -158,19 +158,22 @@ sealed class Updater
     /// </summary>
     public (bool Installed, string Version)? AfterRestart()
     {
+        // A marker that can't be read or removed, or that says nothing a version can be read
+        // from, is let go of: it must not come back on every launch.
+        if (SmallFiles.Read(marker) is not { } version)
+            return null;
+        if (!SmallFiles.Delete(marker) || version.Length == 0)
+            return null;
         try
         {
-            if (!File.Exists(marker))
-                return null;
-            var version = File.ReadAllText(marker).Trim();
-            File.Delete(marker);
             var installed = !Updates.Older(Current, version);
             if (installed)
                 Tidy(null);
             return (installed, version);
         }
-        catch (IOException)
+        catch (Exception e)
         {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the update marker said no version: {e.Message}");
             return null;
         }
     }
