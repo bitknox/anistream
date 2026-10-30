@@ -6,38 +6,50 @@ cast-episode = [Éþîšöðé { $episode }~~~~]
 # What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
 cast-episode-titled = [Éþîšöðé { $episode } · { $title }~~~~~~]
 
-# The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-notice-cast-video-codec = [Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ṽîðéö ({ $codec }). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]
+# The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+notice-cast-video-codec = [{ $name } çàñ'ţ þļàý ţĥîš ṽîðéö ({ $codec }). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]
 
-# The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-notice-cast-audio-codec = [Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš àüðîö ({ $codec }), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+notice-cast-audio-codec = [{ $name } çàñ'ţ þļàý ţĥîš àüðîö ({ $codec }), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# The stream comes in a kind of file the TV can't read.
-notice-cast-container = [Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]
+# The stream comes in a kind of file the TV can't read. The name is the TV's own.
+notice-cast-container = [{ $name } çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]
 
 # The episode opens in another app, which this device can't cast.
 notice-cast-deep-link = [Ţĥîš éþîšöðé öþéñš îñ àñöţĥéŕ àþþ, šö îţ çàñ'ţ ƀé çàšţ.~~~~~~~~~~~~~~~~~]
 
-# The TV accepted the stream but never started reading it.
-notice-cast-never-fetches = [Ţĥé ŢṼ ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Çĥéçķ ţĥàţ ţĥîš ðéṽîçé àñð ţĥé ŢṼ àŕé öñ ţĥé šàɱé ñéţŵöŕķ, ŵîţĥöüţ à ṼÞÑ îñ ƀéţŵééñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+notice-cast-never-fetches = [{ $name } ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Å ṼÞÑ öŕ à ƒîŕéŵàļļ öñ ţĥîš ðéṽîçé ɱàý ƀé îñ ţĥé ŵàý.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# The TV tried every way of playing the stream and played none of them.
-notice-cast-refused = [Ţĥé ŢṼ çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]
+# The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+notice-cast-refused = [{ $name } çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~]
 
-# Someone started something else on the TV, which ends the cast.
-notice-cast-taken-over = [Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~~]
+# Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+notice-cast-taken-over = [Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ { $name }, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~]
 
-# This device isn't on the TV's network, or reaches it through a VPN.
-notice-cast-not-same-network = [Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ŢṼ'š ñéţŵöŕķ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+notice-cast-not-same-network = [Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ñéţŵöŕķ { $name } îš öñ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# The TV stopped answering mid-cast.
-notice-cast-lost = [Ļöšţ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~]
+# The TV stopped answering mid-cast. The name is the TV's own.
+notice-cast-lost = [Ļöšţ { $name }, šö çàšţîñĝ šţöþþéð.~~~~~~~~~]
 
 # The TV picked to cast to has left the network.
 notice-cast-no-device = [Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]
 
 # This build of the app has no casting.
 notice-cast-unavailable = [Ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ çàñ'ţ çàšţ ţö ŢṼš.~~~~~~~~~~~~~~]
+
+# The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+cast-phase-starting = [Šţàŕţîñĝ öñ { $name }~~~~~]
+
+# The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+cast-phase-starting-for = [Šţàŕţîñĝ öñ { $name } · { $seconds } š~~~~~~~]
+
+# The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+cast-phase-waiting = [Ŵàîţîñĝ ƒöŕ { $name } · { $seconds } š~~~~~~~]
+
+# The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+cast-phase-preparing = [Þŕéþàŕîñĝ ţĥé šţŕéàɱ · { $seconds } š~~~~~~~~~]
 
 # A comment's age, beside its author, when it was written under a minute ago.
 discussion-age-now = [ñöŵ~]
@@ -3145,6 +3157,12 @@ settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~
 
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
+
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
 
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]

@@ -217,6 +217,13 @@ impl Msg {
         self.text(english_localizer())
     }
 
+    /// The message in the language `tag` names, as `anistream_i18n::languages()` lists them:
+    /// English for a language this build lacks. For what the engine writes where no front end
+    /// renders it, such as the episode line a TV shows while casting.
+    pub fn text_in(&self, tag: &str) -> String {
+        self.text(&Localizer::new(tag))
+    }
+
     /// Text anistream does not own, shown as it is.
     pub fn verbatim(text: impl Into<String>) -> Msg {
         Msg::Verbatim { text: text.into() }

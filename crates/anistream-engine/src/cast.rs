@@ -14,7 +14,11 @@ use std::{
     collections::BTreeMap,
     io,
     path::PathBuf,
-    sync::{Arc, Mutex, OnceLock, PoisonError, Weak},
+    sync::{
+        Arc, Mutex, OnceLock, PoisonError, Weak,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::{Duration, Instant},
 };
 
 pub use anistream_cast as protocol;
@@ -22,8 +26,10 @@ use anistream_cast::{
     AacEncoder, CastDevice, CastFailure, CastMemory, CastPlayer, CastState, CastStatus,
     NoEncoder, PlainHttp, Timings, Upstream, UpstreamResponse, formats::is_loopback_url,
 };
-use anistream_model::event::Event;
+use anistream_core::ids::AnilistId;
+use anistream_model::{event::Event, playback::SkipKind};
 use anistream_net::HttpClient;
+use anistream_playback::{PlaybackEvent, ScriptEvent};
 use anistream_remote::state::{RemoteState, StateFolder};
 use async_trait::async_trait;
 use futures::StreamExt;
@@ -46,6 +52,95 @@ pub struct CastHub {
     cast: Mutex<Current>,
     /// Counts up whenever the devices or the cast read differently.
     changes: watch::Sender<u64>,
+    /// Whether the TV picker lists TVs with Chromecast built in: Settings' row.
+    show_tvs: AtomicBool,
+    /// The language the front end speaks, for the TV's episode lines.
+    language: Mutex<Option<String>>,
+}
+
+/// How long Up Next counts down without an ending to start it, when the setting says none:
+/// the hosted players' own.
+const UP_NEXT_COUNTDOWN: u32 = 10;
+/// Without an ending, a file longer than two minutes shows Up Next this long before its end.
+const UP_NEXT_WITHOUT_ENDING: f64 = 30.0;
+/// An automatic skip's Undo stays for this much playback.
+const UNDO_PLAYBACK: f64 = 6.0;
+/// And for this long at most, however little played: a paused cast lets it go too.
+const UNDO_LONGEST: Duration = Duration::from_secs(15);
+
+/// What plays next, as the session said it, and how far the card's countdown has gone.
+#[derive(Debug, Clone, PartialEq)]
+pub struct UpNext {
+    pub number: String,
+    pub title: Option<String>,
+    /// The episode's still, by URL.
+    pub still: Option<String>,
+    /// The episode rolls on by itself when the count ends.
+    pub auto: bool,
+    /// Where the card shows: the ending's start, when known.
+    at: Option<f64>,
+    countdown: u32,
+    /// The viewer said no, for this episode.
+    cancelled: bool,
+    /// Play next was asked for, by the count or the viewer.
+    played: bool,
+    /// Where the count runs from since a seek landed in it.
+    restarted_at: Option<f64>,
+}
+
+impl UpNext {
+    /// Where the card shows and its count starts: the ending, or near the end of the file.
+    fn shows_at(&self, duration: Option<f64>) -> Option<f64> {
+        if let Some(at) = self.at {
+            return Some(at);
+        }
+        let duration = duration.filter(|d| *d > 0.0)?;
+        Some(if duration > 120.0 {
+            duration - UP_NEXT_WITHOUT_ENDING
+        } else {
+            (duration - f64::from(self.countdown())).max(0.0)
+        })
+    }
+
+    fn countdown(&self) -> u32 {
+        if self.countdown > 0 { self.countdown } else { UP_NEXT_COUNTDOWN }
+    }
+
+    /// Whether the card is up at `position`.
+    pub fn shown(&self, position: f64, duration: Option<f64>) -> bool {
+        !self.cancelled
+            && !self.played
+            && self.shows_at(duration).is_some_and(|at| position >= at)
+    }
+
+    /// Seconds left on the count at `position`, while it runs: never with no countdown, where
+    /// the card waits for the viewer.
+    pub fn remaining(&self, position: f64, duration: Option<f64>) -> Option<f64> {
+        if !self.auto || self.cancelled || self.countdown == 0 {
+            return None;
+        }
+        let shows = self.shows_at(duration)?;
+        let start = self.restarted_at.map_or(shows, |r| r.max(shows));
+        (position >= start).then(|| (f64::from(self.countdown) - (position - start)).max(0.0))
+    }
+}
+
+/// The note that an automatic skip can be undone.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Undo {
+    pub kind: SkipKind,
+    /// Where Undo seeks back to.
+    pub to: f64,
+    /// Where playback was when the note was first seen with a position after the skip.
+    landed: Option<f64>,
+    since: Instant,
+}
+
+impl Undo {
+    /// When the skip was made.
+    pub fn since(&self) -> Instant {
+        self.since
+    }
 }
 
 /// The cast running now, and what the card reads of it.
@@ -59,6 +154,17 @@ struct Current {
     state: Option<RemoteState>,
     /// The viewer stopped casting, or the cast ended for good.
     over: bool,
+    /// When the episode now starting was asked for: the tap, or the end of the one before.
+    /// `None` once it plays.
+    starting: Option<Instant>,
+    /// A load began since `starting`, so a status that plays is this episode's.
+    loading: bool,
+    next: Option<UpNext>,
+    /// The skip on offer: what it skips and where to.
+    skip: Option<(SkipKind, f64)>,
+    undo: Option<Undo>,
+    /// The title and episode the cast was last asked to play, for Try again.
+    asked: Option<(AnilistId, String)>,
 }
 
 /// The cast as the card reads it.
@@ -71,6 +177,13 @@ pub struct CastView {
     /// What the engine's events say of the playback.
     pub state: Option<RemoteState>,
     pub over: bool,
+    /// When the episode now starting was asked for, until it plays.
+    pub starting: Option<Instant>,
+    pub next: Option<UpNext>,
+    pub skip: Option<(SkipKind, f64)>,
+    pub undo: Option<Undo>,
+    /// The title and episode the cast was last asked to play.
+    pub asked: Option<(AnilistId, String)>,
 }
 
 impl CastHub {
@@ -97,7 +210,32 @@ impl CastHub {
             devices: Mutex::new(BTreeMap::new()),
             cast: Mutex::new(Current::default()),
             changes,
+            show_tvs: AtomicBool::new(true),
+            language: Mutex::new(None),
         }
+    }
+
+    /// Whether the TV picker lists TVs with Chromecast built in, from Settings.
+    pub fn set_show_tvs(&self, show: bool) {
+        if self.show_tvs.swap(show, Ordering::Relaxed) != show {
+            if !show {
+                lock(&self.devices).clear();
+            }
+            self.bump();
+        }
+    }
+
+    pub fn shows_tvs(&self) -> bool {
+        self.show_tvs.load(Ordering::Relaxed)
+    }
+
+    /// The language the front end speaks, as a tag, for what the TV shows.
+    pub fn set_language(&self, language: Option<String>) {
+        *lock(&self.language) = language;
+    }
+
+    pub fn language(&self) -> Option<String> {
+        lock(&self.language).clone()
     }
 
     /// What the engine has learned of each TV, read the first time it is needed.
@@ -135,7 +273,7 @@ impl CastHub {
     /// A device the browse found, from its TXT record. Speaker groups and receivers without a
     /// screen are left out.
     pub fn found(&self, device: CastDevice) {
-        if !device.shown() {
+        if !device.shown() || !self.shows_tvs() {
             return;
         }
         lock(&self.devices).insert(device.id.clone(), device);
@@ -180,8 +318,17 @@ impl CastHub {
 
     /// The viewer cast to `device`: the card is for it from now.
     pub fn begin(&self, device: CastDevice) {
-        *lock(&self.cast) = Current { device: Some(device), ..Current::default() };
+        *lock(&self.cast) = Current {
+            device: Some(device),
+            starting: Some(Instant::now()),
+            ..Current::default()
+        };
         self.bump();
+    }
+
+    /// The episode the cast was asked to play, for Try again to ask for it once more.
+    pub fn asked(&self, id: AnilistId, episode: String) {
+        lock(&self.cast).asked = Some((id, episode));
     }
 
     /// The viewer stopped casting, or it ended for good.
@@ -229,9 +376,131 @@ impl CastHub {
         });
     }
 
-    fn set_status(&self, status: CastStatus) {
-        lock(&self.cast).status = Some(status);
+    pub(crate) fn set_status(&self, status: CastStatus) {
+        let play_next = {
+            let mut cast = lock(&self.cast);
+            if status.step.is_some() {
+                cast.loading = true;
+            }
+            let playing = matches!(
+                status.state,
+                CastState::Playing | CastState::Paused | CastState::Buffering
+            );
+            if cast.loading && playing && status.plan.is_some() && status.step.is_none() {
+                cast.starting = None;
+                cast.loading = false;
+            }
+            let (position, duration) = (status.position, status.duration);
+            if let Some(undo) = cast.undo.as_mut().filter(|_| playing) {
+                let landed = *undo.landed.get_or_insert(position);
+                if position - landed >= UNDO_PLAYBACK
+                    || position < landed - 1.0
+                    || undo.since.elapsed() >= UNDO_LONGEST
+                {
+                    cast.undo = None;
+                }
+            }
+            // The count ran out: the TV plays the next episode, as a hosted player asks.
+            let ran_out = status.state == CastState::Playing
+                && cast.next.as_ref().is_some_and(|next| {
+                    !next.played && next.remaining(position, duration).is_some_and(|r| r <= 0.0)
+                });
+            if ran_out && let Some(next) = cast.next.as_mut() {
+                next.played = true;
+            }
+            cast.status = Some(status);
+            ran_out.then(|| cast.player.upgrade()).flatten()
+        };
+        if let Some(player) = play_next {
+            tracing::info!("Up Next's count ended on the cast; playing the next episode");
+            player.say(PlaybackEvent::Script(ScriptEvent::PlayNext));
+        }
         self.bump();
+    }
+
+    /// What the session shows a player: the cast keeps what the sender's card draws, Up Next,
+    /// the skip on offer and the Undo note, and that the next episode is starting.
+    pub(crate) fn overlay(&self, overlay: &crate::playback::link::Overlay) {
+        use crate::playback::{link::Overlay, offered};
+        {
+            let mut cast = lock(&self.cast);
+            match overlay {
+                Overlay::Next { card: Some(card), still, countdown } => {
+                    // The same episode keeps what the viewer did to its card.
+                    let kept = cast.next.take().filter(|next| next.number == card.number);
+                    cast.next = Some(UpNext {
+                        number: card.number.clone(),
+                        title: card.title.clone(),
+                        still: still.clone(),
+                        auto: card.auto,
+                        at: card.at,
+                        countdown: *countdown,
+                        cancelled: kept.as_ref().is_some_and(|k| k.cancelled),
+                        played: kept.as_ref().is_some_and(|k| k.played),
+                        restarted_at: kept.and_then(|k| k.restarted_at),
+                    });
+                }
+                Overlay::Next { card: None, .. } => cast.next = None,
+                Overlay::SkipOffer { kind, to } => cast.skip = Some((offered(*kind), *to)),
+                Overlay::SkipCleared => cast.skip = None,
+                Overlay::Skipped { kind, from, .. } => {
+                    cast.undo = Some(Undo {
+                        kind: offered(*kind),
+                        to: *from,
+                        landed: None,
+                        since: Instant::now(),
+                    });
+                }
+                // A file is starting on the TV: the first, or the next after one ended.
+                Overlay::Starting { id, episode, .. } => {
+                    cast.asked = Some((*id, episode.clone()));
+                    if cast.starting.is_none() {
+                        cast.starting = Some(Instant::now());
+                        cast.loading = false;
+                    }
+                    cast.skip = None;
+                    cast.undo = None;
+                }
+                _ => return,
+            }
+        }
+        self.bump();
+    }
+
+    /// The TV was asked to seek to `target`: an Up Next count it lands in runs again from its
+    /// full length there.
+    pub(crate) fn seeked(&self, target: f64) {
+        {
+            let mut cast = lock(&self.cast);
+            let duration = cast.status.as_ref().and_then(|s| s.duration);
+            let Some(next) = cast.next.as_mut().filter(|n| !n.played) else { return };
+            next.restarted_at =
+                next.shows_at(duration).filter(|start| target >= *start).map(|_| target);
+        }
+        self.bump();
+    }
+
+    /// The viewer said no to the next episode, or asked for it now: the card comes down.
+    pub fn next_answered(&self, play: bool) {
+        {
+            let mut cast = lock(&self.cast);
+            let Some(next) = cast.next.as_mut() else { return };
+            if play {
+                next.played = true;
+            } else {
+                next.cancelled = true;
+            }
+        }
+        self.bump();
+    }
+
+    /// The Undo note was taken.
+    pub fn undo_taken(&self) -> Option<Undo> {
+        let undo = lock(&self.cast).undo.take();
+        if undo.is_some() {
+            self.bump();
+        }
+        undo
     }
 
     /// The player casting now, while it is.
@@ -265,6 +534,11 @@ impl CastHub {
             status: cast.status.clone(),
             state: cast.state.clone(),
             over: cast.over,
+            starting: cast.starting,
+            next: cast.next.clone(),
+            skip: cast.skip,
+            undo: cast.undo.clone(),
+            asked: cast.asked.clone(),
         }
     }
 

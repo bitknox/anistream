@@ -138,6 +138,7 @@ pub fn cast_to(
         tracing::warn!(error = %e, "couldn't make the cast's scratch directory");
     }
     hub.begin(device.clone());
+    hub.asked(id, episode.clone());
     engine.casting = Some(Arc::new(CastOpener::new(Arc::clone(hub), device, scratch)));
     play(id, episode, from_start, job, engine, services, tx);
 }
@@ -557,11 +558,32 @@ fn spawn_playback(
     tx: &Outbox,
 ) {
     let hub = services.party.clone();
+    // A cast with Torrents while casting off passes torrents over, and the next source plays.
+    let no_torrents = matches!(opener.target(), crate::playback::link::PlayerTarget::Cast(_))
+        && !anistream_model::settings::while_casting(config);
+    let registry = if no_torrents {
+        services.registry.without_kind(anistream_core::traits::ProviderKind::Torrent)
+    } else {
+        services.registry.clone()
+    };
+    let prefetched = if no_torrents {
+        prefetched
+            .map(|(streams, context)| {
+                let streams: Vec<_> = streams
+                    .into_iter()
+                    .filter(|s| s.kind != anistream_core::stream::StreamKind::TorrentHttp)
+                    .collect();
+                (streams, context)
+            })
+            .filter(|(streams, _)| !streams.is_empty())
+    } else {
+        prefetched
+    };
     let (config, meta, store, registry, http, machine, slot, tx) = (
         config.clone(),
         services.meta.clone(),
         services.store.clone(),
-        services.registry.clone(),
+        registry,
         services.http.clone(),
         machine(opener, services),
         services.slot.clone(),
