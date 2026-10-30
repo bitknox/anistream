@@ -123,6 +123,14 @@ public final class ArtworkStore {
         return artwork(url)?.image
     }
 
+    /// How many pixels wide `url`'s file is, once its art is here: what says whether a cover is
+    /// large enough to fill a frame.
+    public func sourceWidth(_ url: String) -> Int? {
+        _ = arrival(url).count
+        guard let art = artwork(url), art.longSide > 0 else { return nil }
+        return art.sourceLongSide * art.image.width / art.longSide
+    }
+
     /// How many times `url`'s art has landed.
     func arrivalCount(_ url: String) -> Int {
         arrivals[url]?.count ?? 0
