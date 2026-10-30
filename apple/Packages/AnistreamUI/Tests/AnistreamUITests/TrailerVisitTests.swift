@@ -28,6 +28,20 @@ private func visit(
     return (visit, surface)
 }
 
+/// Wait for `condition`, five seconds at most. The visit's timers run on the main actor with every
+/// other test's, so a fixed sleep can end before a second timer, started by the first, has fired.
+@MainActor
+private func until(_ condition: () -> Bool) async throws {
+    let deadline = ContinuousClock.now + .seconds(5)
+    while !condition() {
+        guard ContinuousClock.now < deadline else {
+            Issue.record("timed out")
+            return
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
+}
+
 @MainActor
 struct TrailerVisitTests {
     @Test func theBannerStaysUntilAFrameIsOnScreen() {
@@ -50,7 +64,7 @@ struct TrailerVisitTests {
 
     @Test func nothingPlayingInTimeLeavesTheBannerAndLetsGo() async throws {
         let (visit, surface) = visit(load: .milliseconds(40))
-        try await Task.sleep(for: .milliseconds(500))
+        try await until { !visit.live }
         #expect(!visit.live)
         #expect(!visit.shown)
         #expect(surface.released)
@@ -70,7 +84,7 @@ struct TrailerVisitTests {
         surface.signal?(.ending)
         #expect(!visit.shown)
         #expect(visit.live, "kept while the banner fades back")
-        try await Task.sleep(for: .milliseconds(500))
+        try await until { !visit.live }
         #expect(!visit.live)
         #expect(surface.released)
         #expect(surface.controls.isEmpty, "never paused: no end screen to show")
@@ -82,7 +96,7 @@ struct TrailerVisitTests {
         visit.scrolledAway(true)
         #expect(!visit.shown)
         #expect(surface.controls.isEmpty, "the banner is fading back over a playing video")
-        try await Task.sleep(for: .milliseconds(500))
+        try await until { !surface.controls.isEmpty }
         #expect(surface.controls == [.pause])
     }
 
@@ -90,7 +104,7 @@ struct TrailerVisitTests {
         let (visit, surface) = visit(fade: .milliseconds(20))
         surface.signal?(.playing)
         visit.scrolledAway(true)
-        try await Task.sleep(for: .milliseconds(300))
+        try await until { surface.controls == [.pause] }
         visit.scrolledAway(false)
         #expect(surface.controls == [.pause, .play])
         #expect(!visit.shown)
@@ -112,7 +126,7 @@ struct TrailerVisitTests {
         let (visit, surface) = visit(away: .milliseconds(60), fade: .milliseconds(10))
         surface.signal?(.playing)
         visit.scrolledAway(true)
-        try await Task.sleep(for: .milliseconds(600))
+        try await until { !visit.live }
         #expect(!visit.live)
         #expect(surface.released)
         visit.begin { _ in FakeSurface() }
