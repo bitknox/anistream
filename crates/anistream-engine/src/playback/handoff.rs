@@ -71,12 +71,33 @@ impl Handoff {
     /// the old playback ends. A later playback's handover reaches it the same way.
     pub async fn keep(
         self,
-        mut controls: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
+        controls: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
         reason: String,
+    ) {
+        if let Some(previous) = &self.previous {
+            let _ = previous.send(anistream_model::command::PlayerCommand::Alert(reason));
+        }
+        self.relay(controls).await;
+    }
+
+    /// A newer playback was asked for while this one was still finding its stream, and took
+    /// this one's controls: whatever it sends them, its handover first, goes on to the playback
+    /// in the window, until that one lets the window go. So the newer one takes the window from
+    /// the episode on screen, with nothing in between.
+    pub async fn pass_on(
+        self,
+        controls: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
+    ) {
+        self.relay(controls).await;
+    }
+
+    /// Pass on the controls to the playback before until it ends.
+    async fn relay(
+        self,
+        mut controls: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
     ) {
         use anistream_model::command::PlayerCommand;
         let Some(previous) = self.previous else { return };
-        let _ = previous.send(PlayerCommand::Alert(reason));
         loop {
             tokio::select! {
                 command = controls.recv() => match command {

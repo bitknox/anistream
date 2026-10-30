@@ -492,12 +492,26 @@ fn watch_for_stop(finding: &mut Option<watch::Sender<bool>>) -> watch::Receiver<
     stopped
 }
 
-/// Until a Stop reaches the playback `stopped` watches for; never, once nothing can send one,
-/// a newer playback having taken the controls.
-async fn stop_asked(stopped: &mut watch::Receiver<bool>) {
-    if stopped.wait_for(|stop| *stop).await.is_err() {
-        std::future::pending::<()>().await;
+/// What ended a playback's wait for its stream before the stream was found.
+enum Overtaken {
+    /// The viewer stopped it.
+    Stopped,
+    /// A newer playback was asked for, which took its controls and dropped its watch.
+    Superseded,
+}
+
+/// Until a Stop reaches the playback `stopped` watches for, or a newer playback replaces the
+/// watch, which only a newer one does.
+async fn stop_asked(stopped: &mut watch::Receiver<bool>) -> Overtaken {
+    match stopped.wait_for(|stop| *stop).await {
+        Ok(_) => Overtaken::Stopped,
+        Err(_) => Overtaken::Superseded,
     }
+}
+
+/// Whether a newer playback has replaced the watch `stopped` reads.
+fn superseded(stopped: &watch::Receiver<bool>) -> bool {
+    stopped.has_changed().is_err() && !*stopped.borrow()
 }
 
 /// A playback stopped before it opened a player: it says it ended, stopped, and nothing opens.
@@ -581,14 +595,26 @@ fn spawn_playback(
         // it was to take the window from. Read in the controls, it would open the player first.
         let resolved = tokio::select! {
             biased;
-            () = stop_asked(&mut stopped) => None,
-            resolved = resolving => Some(resolved),
+            overtaken = stop_asked(&mut stopped) => Err(overtaken),
+            resolved = resolving => Ok(resolved),
         };
-        let Some(resolved) = resolved else {
+        let resolved = match resolved {
+            Ok(resolved) => resolved,
             // The episode it was to take over stops with it: what the viewer stopped.
-            handoff.stop();
-            stopped_unopened(&slot, &tx);
-            return;
+            Err(Overtaken::Stopped) => {
+                handoff.stop();
+                stopped_unopened(&slot, &tx);
+                return;
+            }
+            // Asked past, as N pressed again: the newer playback takes the window from the
+            // episode on screen through this one's controls, and this one finds nothing more.
+            // It says no ending, since its successor is the playback the apps now show.
+            Err(Overtaken::Superseded) => {
+                tracing::info!(episode = %episode, "a newer playback was asked for; giving way");
+                drop(job);
+                handoff.pass_on(commands).await;
+                return;
+            }
         };
         let context = match resolved {
             Ok(pair) => pair,
@@ -665,6 +691,12 @@ fn spawn_playback(
         // Stopped while the window was handed over: the one parked for it closes.
         if *stopped.borrow() {
             stopped_unopened(&slot, &tx);
+            return;
+        }
+        // Asked past while the window was handed over: the window stays parked for the newer
+        // playback, which is waiting for these controls to close.
+        if superseded(&stopped) {
+            tracing::info!(episode = %episode, "a newer playback was asked for; leaving it the window");
             return;
         }
         // Opening from here: a Stop is the session's, read off its controls.
