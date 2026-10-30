@@ -347,6 +347,9 @@ struct PhoneCalendar: View {
             navigator.calendarOpensOn = 0
         }
         position.scrollTo(id: target, anchor: .top)
+        // A jump without animation can land before the visibility callback reports the new days,
+        // which leaves the strip on the agenda's first week; the strip follows the target now.
+        topDay = target
         opened = true
         if target != today { return }
     }
