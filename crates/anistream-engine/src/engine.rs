@@ -115,6 +115,10 @@ pub struct RemoteSender {
 /// A sender whose commands a test reads back, with no engine behind it.
 #[cfg(all(test, feature = "cast"))]
 impl RemoteSender {
+    #[allow(
+        irrefutable_let_patterns,
+        reason = "Message has more variants with the testing feature"
+    )]
     pub(crate) fn recording() -> (Self, impl FnMut() -> Vec<Command>) {
         let (commands, mut rx) = mpsc::unbounded_channel();
         let read = move || {
