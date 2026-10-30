@@ -17,7 +17,7 @@ use crate::{
     layout,
     nav::{Focus, Section},
     theme::{Role, glyph},
-    widgets::{Hairline, ObiList, ObiRow, truncate, wrap},
+    widgets::{Cells, Hairline, ObiList, ObiRow, truncate, wrap},
 };
 
 use super::{
@@ -46,19 +46,19 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
         // Active filters are shown where they act, or a filtered search would read as
         // AniList having quietly lost titles the user knows exist.
         let summary = crate::app::search_filter_summary(&app.search_filter);
-        let mut used = prompt.chars().count() as u16;
+        let mut used = prompt.cells() as u16;
         if !summary.is_empty() {
             let at = used + 3;
             if at < area.width {
                 let shown = truncate(&summary, (area.width - at) as usize);
-                used = at + shown.chars().count() as u16;
+                used = at + shown.cells() as u16;
                 buf.set_string(area.left() + at, y, shown, app.palette.style(Role::TextDim));
             }
         }
         // That the answer stopped at one page, at the far end of the prompt. Without it a
         // capped list read as everything AniList had.
         if let Some(caption) = app.list_caption() {
-            let width = caption.chars().count() as u16;
+            let width = caption.cells() as u16;
             if used + width + 3 <= area.width {
                 line(buf, area.right() - width, y, caption, app.palette.style(Role::TextDim));
             }
@@ -119,8 +119,19 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 rows.push(ObiRow::heading(caption).ruled());
             }
             let cursor = app.cursors.section(section);
+            // Continue with Up next under it is drawn whole and windowed afterwards, by display
+            // rows: the rail's blank and heading are rows the cursor's window does not count,
+            // and with Continue a screenful long a selected suggestion was never drawn while
+            // Enter and `x` still acted on it.
+            let rail = app.up_next_here();
+            let home_rail = section == Section::Home && !rail.is_empty();
+            if home_rail {
+                rows.push(ObiRow::heading(t::continue_heading()).ruled());
+            }
             let start = if section == Section::Calendar {
                 calendar_window(&app.clock, entries, cursor.offset, cursor.selected, visible)
+            } else if home_rail {
+                0
             } else {
                 cursor.offset
             };
@@ -128,14 +139,11 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
             // numbers line up down the list rather than floating at each row's end.
             let calendar_columns = (section == Section::Calendar).then(|| {
                 let shown = entries.iter().skip(start).take(visible);
-                let episode = shown
-                    .clone()
-                    .map(|e| calendar_episode(e).chars().count())
-                    .max()
-                    .unwrap_or(0);
+                let episode =
+                    shown.clone().map(|e| calendar_episode(e).cells()).max().unwrap_or(0);
                 let time = shown
                     .filter_map(|e| Some(calendar_when(e, e.airing_in?)))
-                    .map(|when| when.chars().count())
+                    .map(|when| when.cells())
                     .max()
                     .unwrap_or(0);
                 (episode, time)
@@ -158,7 +166,8 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
             };
             rows.extend((0..slack).map(|_| ObiRow::new(String::new())));
             // The caption's row comes out of the window, not off the end of the list.
-            let fits = visible.saturating_sub(rows.len());
+            let fits =
+                if home_rail { entries.len() } else { visible.saturating_sub(rows.len()) };
             for (i, entry) in entries.iter().enumerate().skip(start).take(fits) {
                 if section == Section::Calendar
                     && let Some(secs) = entry.airing_in
@@ -249,20 +258,20 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 rows.push(row);
             }
 
-            // "Up next for you", a short rail under Continue once all of its rows are in view.
-            let rail = app.up_next_here();
-            if section == Section::Home && !rail.is_empty() && start + fits >= entries.len() {
+            // "Up next for you", a short rail under Continue, then the window over both.
+            if home_rail {
                 rows.push(ObiRow::new(String::new()));
                 rows.push(ObiRow::heading(t::up_next_heading()).ruled());
+                let room = (list_col.width as usize).saturating_sub(3);
                 for (n, item) in rail.iter().enumerate() {
-                    if rows.len() >= visible {
-                        break;
-                    }
                     let selected = entries.len() + n == cursor.selected;
-                    let mut row = ObiRow::new(item.entry.title.clone()).selected(selected);
-                    row = row.trailing(up_next_reason(item));
-                    rows.push(row);
+                    let row = ObiRow::new(item.entry.title.clone()).selected(selected);
+                    rows.push(row.trailing(up_next_reason(item, reason_room(room))));
                 }
+                let at = home_row(entries.len(), cursor.selected);
+                let first = home_row(entries.len(), cursor.offset.min(entries.len()));
+                rows =
+                    rows.split_off(home_window(first, at, visible, rows.len(), entries.len()));
             }
 
             ObiList::new(&rows, &app.palette)
@@ -276,9 +285,54 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
     }
 }
 
+/// Where item `item` of Continue and the rail under it sits among the rows drawn: Continue's
+/// heading first, then its rows, then a blank and the rail's heading before the suggestions.
+fn home_row(continuing: usize, item: usize) -> usize {
+    if item < continuing { 1 + item } else { 1 + continuing + 2 + (item - continuing) }
+}
+
+/// The first row drawn of Continue and its rail, `total` rows long, `visible` at a time: where
+/// the cursor's window starts, moved as little as keeps row `at` in view. The first suggestion
+/// brings the rail's heading with it, and the top of the list its own.
+fn home_window(
+    first: usize,
+    at: usize,
+    visible: usize,
+    total: usize,
+    continuing: usize,
+) -> usize {
+    let visible = visible.max(1);
+    let mut start = if first <= 1 { 0 } else { first };
+    let heading = 1 + continuing + 1;
+    let wanted = if at == heading + 1 {
+        heading
+    } else if at == 1 {
+        0
+    } else {
+        at
+    };
+    if wanted < start {
+        start = wanted;
+    }
+    if at >= start + visible {
+        start = at + 1 - visible;
+    }
+    start.min(total.saturating_sub(visible))
+}
+
+/// The cells a suggestion's reason may take beside its title in a row `room` wide: the title
+/// keeps at least [`TITLE_ROOM`].
+fn reason_room(room: usize) -> usize {
+    room.saturating_sub(TITLE_ROOM.min(room / 2) + 1)
+}
+
+/// The fewest cells a suggestion's title keeps beside its reason.
+const TITLE_ROOM: usize = 12;
+
 /// What a suggestion under Continue says beside its title: when it starts, if it has not, and
-/// otherwise why it is there.
-fn up_next_reason(item: &anistream_model::up_next::UpNextItem) -> String {
+/// otherwise why it is there, in `room` cells. "Because you finished" always shows; the title
+/// it names is cut to what is left.
+fn up_next_reason(item: &anistream_model::up_next::UpNextItem, room: usize) -> String {
     use anistream_model::up_next::UpNextReason;
     if let Some(date) = item.starts {
         let day = (date.month, date.day);
@@ -298,7 +352,21 @@ fn up_next_reason(item: &anistream_model::up_next::UpNextItem) -> String {
     match (item.reason, &item.because) {
         (UpNextReason::NewSeason, _) => t::up_next_reason_new_season(),
         (UpNextReason::Planning, _) => t::up_next_reason_planning(),
-        (UpNextReason::Recommended, Some(title)) => t::up_next_reason_recommended(title),
+        (UpNextReason::Recommended, Some(title)) => {
+            let said = t::up_next_reason_recommended(title);
+            let over = said.cells().saturating_sub(room);
+            if over == 0 {
+                said
+            } else {
+                // Short of the few cells a cut title needs, the reason without one.
+                let left = title.cells().saturating_sub(over);
+                if left < 4 {
+                    t::up_next_reason_recommended_plain()
+                } else {
+                    t::up_next_reason_recommended(&truncate(title, left))
+                }
+            }
+        }
         (UpNextReason::Recommended, None) => t::up_next_reason_recommended_plain(),
         (UpNextReason::AiringToday, _) => t::up_next_reason_airing_today(),
     }
@@ -388,7 +456,7 @@ pub(super) fn render_loading(buf: &mut Buffer, app: &App, area: Rect) {
     // what, and a reader who cannot see the animation gets nothing from it at all.
     if area.width > 16 {
         buf.set_string(
-            area.left() + pulse.chars().count() as u16 + 2,
+            area.left() + pulse.cells() as u16 + 2,
             area.top(),
             t::lists_loading(),
             app.palette.style(Role::TextDim),
@@ -618,7 +686,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
         let meter_y = area.bottom().saturating_sub(1);
         // A meter only when there is something to measure against; the label keeps its room.
         let meter_width = if entry.progress_of().is_some() {
-            (area.width as usize).saturating_sub(label.chars().count() + 2).min(20)
+            (area.width as usize).saturating_sub(label.cells() + 2).min(20)
         } else {
             0
         };
@@ -667,7 +735,7 @@ pub(super) fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
         let label = segment_label(segment);
         // Room for the obi, the label and a gap. Segments that would be clipped are dropped
         // rather than truncated — half a word reads as a rendering fault.
-        let needed = label.chars().count() as u16 + 4;
+        let needed = label.cells() as u16 + 4;
         if x + needed > area.right() {
             break;
         }

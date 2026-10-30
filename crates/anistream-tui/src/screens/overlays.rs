@@ -13,7 +13,7 @@ use crate::{
         Role,
         glyph::{self, OBI},
     },
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, tail, truncate},
 };
 
 use super::{
@@ -212,11 +212,9 @@ pub(super) fn render_overlay(
             help.columns.iter().skip(page * help.across).take(help.across).cloned().collect();
         // Each column only as wide as its longest row needs. Stretched to share a wide band,
         // the keys sat a hundred cells from the labels they belong to.
-        let natural = rows
-            .iter()
-            .map(|(key, label)| label.chars().count() + key.chars().count() + 3)
-            .max()
-            .unwrap_or(0) as u16;
+        let natural =
+            rows.iter().map(|(key, label)| label.cells() + key.cells() + 3).max().unwrap_or(0)
+                as u16;
         let width = (available / help.across.max(1) as u16).min(natural + 2);
         let position =
             (pages > 1).then(|| t::overlays_help_page(page as i64 + 1, pages as i64));
@@ -291,7 +289,7 @@ pub(super) fn render_overlay(
         // A link is longer than the band, and the end is where the cursor is, so the end is
         // what shows.
         Overlay::JoinStore => {
-            let room = (band.width as usize).saturating_sub(title.chars().count() + 8);
+            let room = (band.width as usize).saturating_sub(title.cells() + 8);
             titled(&format!("{}▏", tail(&field_text(app, Field::JoinLink), room)))
         }
         Overlay::InviteName => typed(Field::InviteName),
@@ -351,8 +349,8 @@ pub(super) fn render_overlay(
         _ => title.clone(),
     };
     // Where in a table too long for the band the window is, so the rest is known to exist.
-    let position = position.filter(|p| p.chars().count() + 8 < band.width as usize);
-    let position_room = position.as_ref().map_or(0, |p| p.chars().count() as u16 + 2);
+    let position = position.filter(|p| p.cells() + 8 < band.width as usize);
+    let position_room = position.as_ref().map_or(0, |p| p.cells() as u16 + 2);
     line(
         buf,
         band.left() + 2,
@@ -361,7 +359,7 @@ pub(super) fn render_overlay(
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     if let Some(position) = &position {
-        let x = band.right().saturating_sub(position.chars().count() as u16 + 2);
+        let x = band.right().saturating_sub(position.cells() as u16 + 2);
         buf.set_string(x, title_y, position, app.palette.style(Role::TextDim));
     }
     if title_y + 1 < band.bottom() {
@@ -378,7 +376,7 @@ pub(super) fn render_overlay(
             continue;
         }
         let x = band.left() + 2 + column as u16 * column_width;
-        let key_width = key.chars().count() as u16;
+        let key_width = key.cells() as u16;
         let label_room = column_width.saturating_sub(key_width + 3) as usize;
 
         // The obi again, in the one place a modal has a focused row.
@@ -417,16 +415,6 @@ pub(super) fn render_overlay(
 pub(super) fn field_text(app: &App, field: Field) -> String {
     let line = app.field(field);
     if field.masked() { "•".repeat(line.len()) } else { line.as_str().to_owned() }
-}
-
-/// The last `room` characters of `text`, with an ellipsis when that is not all of it.
-fn tail(text: &str, room: usize) -> String {
-    let len = text.chars().count();
-    if len <= room || room < 2 {
-        return text.to_owned();
-    }
-    let kept: String = text.chars().skip(len - (room - 1)).collect();
-    format!("…{}", kept)
 }
 
 fn help_rows(app: &App) -> Vec<(String, String)> {

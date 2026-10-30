@@ -59,6 +59,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier},
 };
+use unicode_width::UnicodeWidthStr;
 
 // ── The harness ────────────────────────────────────────────────────────────────────────────────
 
@@ -326,7 +327,15 @@ fn snapshot(buffer: &Buffer) -> String {
     let Rect { width, height, .. } = buffer.area;
     let mut out = String::new();
     for y in 0..height {
-        let row: String = (0..width).map(|x| buffer[(x, y)].symbol()).collect();
+        // A wide character's second cell is written as nothing, the way a terminal shows it,
+        // so a row of native script reads at its true width.
+        let mut row = String::new();
+        let mut x = 0;
+        while x < width {
+            let symbol = buffer[(x, y)].symbol();
+            row.push_str(symbol);
+            x += UnicodeWidthStr::width(symbol).max(1) as u16;
+        }
         out.push_str(row.trim_end());
         out.push('\n');
     }
@@ -434,6 +443,8 @@ macro_rules! scenarios {
 
 scenarios! {
     continue_watching,
+    continue_native,
+    continue_up_next,
     continue_loading,
     calendar,
     seasonal,
@@ -771,6 +782,53 @@ fn settled_on(s: &mut Screen, section: u8) -> Option<Command> {
 fn continue_watching(s: &mut Screen) {
     settled_on(s, 1);
     s.list(vec![hoshikuzu(), kaze(), yoru(), tsuki()]);
+}
+
+/// Continue with titles in Japanese script, two cells a character: each is cut at its column,
+/// never running into the trailing text, and the long one ends in an ellipsis.
+fn continue_native(s: &mut Screen) {
+    settled_on(s, 1);
+    let named = |entry: Entry, title: &str| Entry { title: title.into(), ..entry };
+    s.list(vec![
+        named(hoshikuzu(), "星屑の旅人"),
+        named(kaze(), "風の手紙"),
+        named(yoru(), "夜の図書館と眠らない司書たちの長い長い夜の物語"),
+        named(tsuki(), "月と鯨の歌"),
+    ]);
+}
+
+/// Continue longer than the screen with Up next under it, the cursor on the last suggestion:
+/// the window follows it down, and a reason too long for the row cuts the title it names
+/// rather than running over the rail.
+fn continue_up_next(s: &mut Screen) {
+    use anistream_model::up_next::{UpNextAction, UpNextItem, UpNextReason};
+    settled_on(s, 1);
+    let continuing = catalogue(16);
+    let suggestions = catalogue(20).split_off(16);
+    let item = |entry: Entry, reason: UpNextReason, because: Option<&str>| UpNextItem {
+        entry,
+        reason,
+        because: because.map(Into::into),
+        starts: None,
+        action: UpNextAction::PlayFirstEpisode,
+        airs_at: None,
+        fallback: false,
+    };
+    let mut rail = suggestions.into_iter();
+    let mut next = || rail.next().expect("four suggestions");
+    let items = vec![
+        item(next(), UpNextReason::NewSeason, None),
+        item(next(), UpNextReason::Planning, None),
+        item(
+            next(),
+            UpNextReason::Recommended,
+            Some("Ame Furu Machi no Robotto to Chiisana Hoshi no Yakusoku"),
+        ),
+        item(next(), UpNextReason::Recommended, Some("Kumo no Ue no Gakkou")),
+    ];
+    s.list(continuing);
+    s.apply(Event::UpNext(items));
+    s.press(&["j"; 19]);
 }
 
 /// The first frame after launch: Continue asked for, nothing back yet, the skeleton's shimmer a

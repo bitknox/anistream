@@ -10,7 +10,7 @@ use crate::{
     app::{App, countdown_text, push_detail},
     nav::{Focus, Section},
     theme::{Role, glyph},
-    widgets::{Hairline, truncate, wrap},
+    widgets::{Cells, Hairline, truncate, wrap},
 };
 
 use super::{chrome::mark_selected, draw_artwork, line, lists::render_loading, set_meter};
@@ -35,8 +35,8 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         .detail
         .as_ref()
         .and_then(|e| app.dub_line(e.id))
-        .filter(|dub| room >= dub.chars().count() + DUB_GAP + MIN_TITLE);
-    let title_room = dub.as_ref().map_or(room, |dub| room - dub.chars().count() - DUB_GAP);
+        .filter(|dub| room >= dub.cells() + DUB_GAP + MIN_TITLE);
+    let title_room = dub.as_ref().map_or(room, |dub| room - dub.cells() - DUB_GAP);
     buf.set_string(
         area.left(),
         area.top(),
@@ -44,7 +44,7 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     if let Some(dub) = dub {
-        let width = dub.chars().count() as u16;
+        let width = dub.cells() as u16;
         buf.set_string(
             area.right().saturating_sub(width),
             area.top(),
@@ -145,7 +145,7 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     // it is narrowing the table, invisible when it is not.
     if app.episode_filter != crate::app::EpisodeFilter::All {
         let marker = app.episode_filter.label();
-        let width = marker.chars().count() as u16;
+        let width = marker.cells() as u16;
         if table.left() + cols.state + 10 + width < table.right() {
             buf.set_string(
                 table.right().saturating_sub(width),

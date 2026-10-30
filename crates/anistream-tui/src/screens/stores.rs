@@ -11,7 +11,7 @@ use crate::{
     clock::Clock,
     nav::Focus,
     theme::{Role, glyph},
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, truncate},
 };
 
 use super::{
@@ -213,7 +213,7 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         let tag = t::stores_owner_tag();
         line(
             buf,
-            area.right().saturating_sub(tag.chars().count() as u16 + 1),
+            area.right().saturating_sub(tag.cells() as u16 + 1),
             area.top(),
             tag,
             app.palette.style(Role::TextDim),
@@ -728,7 +728,7 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
                 t::stores_label_device(),
                 t::stores_label_offers(),
             ];
-            let indent = labels.iter().map(|l| l.chars().count()).max().unwrap_or(0) + 3;
+            let indent = labels.iter().map(|l| l.cells()).max().unwrap_or(0) + 3;
             let [address, key, run_by, device, offers] = labels;
             let labelled = |label: &str, value: &str| row(&format!("{label:<indent$}{value}")); // i18n-skip
             let fingerprint = if preview.anonymous {

@@ -13,6 +13,8 @@ use ratatui::{
     widgets::Widget,
 };
 
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+
 use crate::{
     nav::{Focus, RailWidth, Section},
     theme::{
@@ -228,7 +230,14 @@ impl Widget for ObiList<'_> {
                 label_x = text_x + MARK_COLUMN;
             }
 
-            let trailing_width = row.trailing.as_ref().map_or(0, |t| t.chars().count() + 1);
+            // Trailing text stays inside the list: cut at its left edge, never drawn over the
+            // rail and the divider beside it. A caller that wants the label to keep room bounds
+            // its trailing text itself, as Up next does.
+            let trailing = row
+                .trailing
+                .as_deref()
+                .map(|trailing| truncate(trailing, text_width.saturating_sub(1)));
+            let trailing_width = trailing.as_ref().map_or(0, |t| t.cells() + 1);
             let label_room = text_width
                 .saturating_sub(trailing_width)
                 .saturating_sub((label_x - text_x) as usize);
@@ -241,15 +250,15 @@ impl Widget for ObiList<'_> {
             // same stroke that separates every other section of the app. A caps word
             // alone sits at the same weight as a dim row and vanishes into the column.
             if row.is_heading && row.ruled {
-                let rule_from = label_x + label.chars().count() as u16 + 2;
+                let rule_from = label_x + label.cells() as u16 + 2;
                 for x in rule_from..area.right().saturating_sub(1) {
                     buf[(x, y)].set_char(RULE_H).set_style(self.palette.style(Role::Rule));
                 }
             }
 
-            if let Some(trailing) = &row.trailing {
-                let tw = trailing.chars().count() as u16;
-                if area.right() > tw + 1 {
+            if let Some(trailing) = trailing.filter(|t| !t.is_empty()) {
+                let tw = trailing.cells() as u16;
+                if area.width > tw + 1 {
                     // An actionable fact carries the state role; metadata recedes.
                     let trailing_style = if row.fresh {
                         self.palette.style(Role::State)
@@ -370,7 +379,7 @@ impl Widget for Header<'_> {
         }
         let y = area.top();
         let title = truncate(self.title, area.width as usize);
-        let title_width = title.chars().count() as u16;
+        let title_width = title.cells() as u16;
         buf.set_string(
             area.left(),
             y,
@@ -469,7 +478,7 @@ impl Widget for StatusLine<'_> {
         // Hints give way from the front, so the last — `? keys`, the way to every other key —
         // is the one a narrow line keeps; for that one the state text is cut short instead.
         // Overlapping text is worse than absent text, so nothing is ever drawn over anything.
-        let state_width = self.state.chars().count() as u16;
+        let state_width = self.state.cells() as u16;
         let mut shown = self.hints;
         let mut line = line_of(shown);
         while shown.len() > 1 && line.width() as u16 + state_width + 2 > area.width {
@@ -497,19 +506,56 @@ pub fn meta_line(parts: &[&str]) -> String {
     parts.join("  ·  ")
 }
 
-/// Truncate to a cell budget with an ellipsis, counting characters rather than bytes.
+/// The cells text takes on screen, rather than its characters or bytes: a Japanese title takes
+/// two cells a character, and a cut must never split one.
+pub trait Cells {
+    fn cells(&self) -> usize;
+}
+
+impl Cells for str {
+    fn cells(&self) -> usize {
+        UnicodeWidthStr::width(self)
+    }
+}
+
+/// As much of `text` from its start as fits in `max` cells, never half a wide character.
+fn leading(text: &str, max: usize) -> String {
+    let mut used = 0;
+    text.chars()
+        .take_while(|c| {
+            used += c.width().unwrap_or(0);
+            used <= max
+        })
+        .collect()
+}
+
+/// Truncate to a cell budget with an ellipsis.
 pub fn truncate(text: &str, max: usize) -> String {
-    let len = text.chars().count();
-    if len <= max {
+    if text.cells() <= max {
         return text.to_owned();
     }
     if max == 0 {
         return String::new();
     }
-    if max == 1 {
-        return "…".to_owned();
+    leading(text, max - 1) + "…"
+}
+
+/// The last `room` cells of `text`, with an ellipsis in front when that is not all of it.
+pub fn tail(text: &str, room: usize) -> String {
+    if text.cells() <= room || room < 2 {
+        return text.to_owned();
     }
-    text.chars().take(max - 1).collect::<String>() + "…"
+    let mut used = 0;
+    let mut kept: Vec<char> = text
+        .chars()
+        .rev()
+        .take_while(|c| {
+            used += c.width().unwrap_or(0);
+            used < room
+        })
+        .collect();
+    kept.reverse();
+    format!("…{}", kept.into_iter().collect::<String>())
 }
 
 /// Wrap text to a width, breaking on whitespace. A newline in the text starts a new line and a
@@ -523,8 +569,7 @@ pub fn wrap(text: &str, width: usize, max_lines: usize) -> Vec<String> {
         let mut current = String::new();
         let before = lines.len();
         for word in paragraph.split_whitespace() {
-            if !current.is_empty() && current.chars().count() + 1 + word.chars().count() > width
-            {
+            if !current.is_empty() && current.cells() + 1 + word.cells() > width {
                 lines.push(std::mem::take(&mut current));
             }
             if !current.is_empty() {
@@ -552,7 +597,7 @@ pub fn wrap(text: &str, width: usize, max_lines: usize) -> Vec<String> {
         // Mark the truncation rather than stopping silently, so the reader knows there is
         // more. One mark: a word that was itself cut short already ends in one.
         if let Some(last) = lines.last_mut() {
-            let kept: String = last.chars().take(width.saturating_sub(1)).collect();
+            let kept = leading(last, width.saturating_sub(1));
             *last = kept.trim_end_matches('…').trim_end().to_owned() + "…";
         }
     }
@@ -814,13 +859,28 @@ mod tests {
     }
 
     #[test]
-    fn truncation_counts_characters_not_bytes() {
-        // Multibyte titles are the norm here, so a byte-based truncate would corrupt them.
-        assert_eq!(truncate("星屑のトラベラー", 4), "星屑の…");
+    fn truncation_counts_cells_not_characters_or_bytes() {
+        // A native title takes two cells a character: counted as one, it ran past its column
+        // into the next. A cut never splits one either.
+        assert_eq!("星屑のトラベラー".cells(), 16);
+        assert_eq!(truncate("星屑のトラベラー", 4), "星…");
+        assert_eq!(truncate("星屑のトラベラー", 6), "星屑…");
+        assert_eq!(truncate("星屑のトラベラー", 16), "星屑のトラベラー");
+        assert_eq!(truncate("Café", 4), "Café");
         assert_eq!(truncate("abc", 10), "abc");
         assert_eq!(truncate("abcdef", 3), "ab…");
         assert_eq!(truncate("abc", 0), "");
         assert_eq!(truncate("abc", 1), "…");
+    }
+
+    #[test]
+    fn a_tail_and_a_wrap_measure_cells_too() {
+        assert_eq!(tail("星屑のトラベラー", 7), "…ベラー");
+        assert_eq!(tail("abcdef", 4), "…def");
+        assert_eq!(tail("abc", 4), "abc");
+        let lines = wrap("星屑の 旅人 です 終わり", 7, 2);
+        assert!(lines.iter().all(|l| l.cells() <= 7), "{lines:?}");
+        assert_eq!(lines.len(), 2, "{lines:?}");
     }
 
     #[test]

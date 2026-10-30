@@ -6,7 +6,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 use crate::{
     app::App,
     theme::{Role, glyph},
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, truncate},
 };
 
 use super::chrome::mark_selected;
@@ -73,7 +73,7 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 // and disappeared.
                 let label = truncate(name, area.width as usize);
                 buf.set_string(area.left(), y, &label, app.palette.style(Role::Text));
-                let from = area.left() + label.chars().count() as u16 + 2;
+                let from = area.left() + label.cells() as u16 + 2;
                 for x in from..area.right().saturating_sub(1) {
                     buf[(x, y)]
                         .set_char(glyph::RULE_H)

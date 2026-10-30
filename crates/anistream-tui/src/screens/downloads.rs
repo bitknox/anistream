@@ -10,7 +10,7 @@ use crate::{
     keymap::Action,
     nav::Section,
     theme::Role,
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, truncate},
 };
 
 use super::{
@@ -92,7 +92,7 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     // as a column. Sized per row, they were as wide as each row's note let them be — and a bar
     // one cell wide drew only its half block, which is the selection mark's glyph.
     let room = area.right().saturating_sub(meter_x) as usize;
-    let widest = app.downloads.iter().map(|r| download_note(app, r).chars().count()).max();
+    let widest = app.downloads.iter().map(|r| download_note(app, r).cells()).max();
     let meter_width = match room.saturating_sub(widest.unwrap_or(0)).min(20) {
         width if width < 4 => 0,
         width => width,
@@ -119,7 +119,7 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
                 t::downloads_row_episode(&row.episode)
             }
         );
-        let label = match room.checked_sub(episode.chars().count()) {
+        let label = match room.checked_sub(episode.cells()) {
             Some(title_room) if title_room >= 4 => {
                 format!("{}{}", truncate(&row.title, title_room), episode)
             }
@@ -305,7 +305,7 @@ fn render_seeding(buf: &mut Buffer, app: &App, area: Rect) {
                 )
             );
             let room = area.right().saturating_sub(state_x) as usize;
-            let meter_width = room.saturating_sub(detail.chars().count()).min(12);
+            let meter_width = room.saturating_sub(detail.cells()).min(12);
             set_meter(buf, state_x, y, &app.palette, fraction, meter_width, Role::State);
             buf.set_string(
                 state_x + meter_width as u16,
