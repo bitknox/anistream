@@ -87,3 +87,16 @@ pub fn trailer_may_autoplay(entry: Entry, spoiler_protection: bool) -> bool {
 pub fn trailer_state_script() -> String {
     trailer::STATE_SCRIPT.to_owned()
 }
+
+/// The preview's style that hides YouTube's own controls in its frame, for a user script in every
+/// frame of the preview's web view. Never for Play trailer.
+#[uniffi::export]
+pub fn trailer_chrome_script() -> String {
+    trailer::CHROME_SCRIPT.to_owned()
+}
+
+/// What the chrome script says once its style is in place.
+#[uniffi::export]
+pub fn trailer_chrome_message() -> String {
+    trailer::CHROME_MESSAGE.to_owned()
+}
