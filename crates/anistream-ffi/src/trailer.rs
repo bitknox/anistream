@@ -80,3 +80,10 @@ pub fn trailer_embeddable(trailer: Trailer) -> bool {
 pub fn trailer_may_autoplay(entry: Entry, spoiler_protection: bool) -> bool {
     trailer::trailer_may_autoplay(&entry, spoiler_protection)
 }
+
+/// The script that reads YouTube's player state back from the page, for the log when the front
+/// end gives up on a trailer: a number, or null while there is no player.
+#[uniffi::export]
+pub fn trailer_state_script() -> String {
+    trailer::STATE_SCRIPT.to_owned()
+}
