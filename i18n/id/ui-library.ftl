@@ -1,0 +1,75 @@
+queue-episodes-left = { $count ->
+   *[other] Sisa { $count } episode di { $title }
+ }
+episodes-count = { $count ->
+   *[other] { $count } episode
+ }
+progress-episodes = { $total ->
+   *[other] { $watched } dari { $total } episode
+ }
+duration-days-hours = { $days } hari { $hours } jam
+group-in-progress = Sedang ditonton
+group-new-this-week = Baru minggu ini
+continue-empty-title = Belum ada yang ditonton
+continue-empty-detail = Pilih sesuatu dari Musiman, atau cari judul.
+continue-empty-action = Jelajahi Musiman
+continue-load-failed = { -continue-cap } tidak dapat dimuat
+continue-heading = { -continue-cap }
+continue-airing-today = Tayang hari ini
+continue-this-season = Musim ini
+continue-hide = Sembunyikan dari { -continue-cap }
+continue-hidden = Disembunyikan dari { -continue-cap }.
+continue-drop = Pindahkan ke Ditinggalkan
+continue-more-for = Lainnya untuk { $title }
+continue-row-resume = Lanjutkan E{ $episode } · { $clock }
+continue-row-resume-dubbed = Lanjutkan E{ $episode } { -dubbed } · { $clock }
+continue-row-start = Putar E{ $episode }
+continue-row-start-dubbed = Putar E{ $episode } { -dubbed }
+continue-row-start-aired = Putar E{ $episode } · terbit { $ago }
+continue-row-caught-up = Sudah sampai terbaru · E{ $episode } { $when }
+continue-row-caught-up-plain = Sudah sampai terbaru
+continue-widget-connect = Hubungkan AniList untuk melihatnya di sini.
+continue-caught-up = Anda sudah sampai episode terbaru.
+title-button-resume = Lanjutkan episode { $episode } · { $time }
+title-button-play = Putar episode { $episode }
+title-button-add-source = Tambahkan { -source } untuk memutar
+library-status-watching = Sedang ditonton
+library-status-planning = Rencana
+library-status-completed = Selesai
+library-status-paused = Dijeda
+library-status-dropped = Ditinggalkan
+library-sort-updated = Terakhir diubah
+library-sort-title = Judul
+library-sort-score = Nilai
+library-sort-button = Urutan: { $sort }
+library-sort-label = Urutkan berdasarkan { $sort }
+library-signed-out-title = Daftar Anda berasal dari AniList
+library-signed-out-detail = Masuk untuk menyinkronkan apa yang Anda tonton dan di mana Anda berhenti.
+library-signed-out-action = Masuk ke AniList
+library-list-empty = Belum ada di daftar { $list } Anda
+library-list-empty-detail = Judul yang Anda tambahkan ke daftar ini di AniList akan muncul di sini.
+library-list-load-failed = Daftar { $list } Anda tidak dapat dimuat
+library-loading = Memuat daftar Anda
+library-add-to-list = Tambahkan ke daftar
+library-add-planning = Tambahkan ke Rencana
+library-added-planning = Ditambahkan ke Rencana.
+library-on-your-list = Ada di daftar Anda
+library-in-your-list = Di daftar Anda
+progress-episodes-short = E{ $done } dari { $total }
+progress-episode-short = E{ $done }
+continue-row-start-aired-dubbed = Putar E{ $episode } { -dubbed } · terbit { $ago }
+up-next-heading = { -up-next-cap } untuk Anda
+up-next-starts = Mulai { $date }
+up-next-reason-new-season = Musim baru
+up-next-reason-planning = Ada di daftar Rencana Anda
+up-next-reason-recommended = Karena Anda menyelesaikan { $title }
+up-next-reason-recommended-plain = Direkomendasikan untuk Anda
+up-next-because-detail = Direkomendasikan di AniList oleh orang yang menyukai { $title }
+up-next-reason-airing-today = Tayang hari ini
+up-next-add-planning = Tambahkan ke Rencana
+up-next-not-interested = Tidak tertarik
+up-next-row-starts = { $reason } · { $starts }
+up-next-hidden = { $title } disembunyikan dari { -up-next-cap } untuk Anda
+up-next-hidden-until-airs = { $title } disembunyikan sampai mulai tayang
+up-next-broadcast = Episode { $episode } · { $when }
+up-next-out = terbit { $ago }

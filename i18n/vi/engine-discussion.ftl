@@ -1,0 +1,9 @@
+discussion-age-now = vừa xong
+discussion-age-minutes = { $minutes } phút
+discussion-age-hours = { $hours } giờ
+discussion-age-days = { $days } ngày
+discussion-age-weeks = { $weeks } tuần
+discussion-age-years = { $years } năm
+notice-comment-like-failed = Không thể thích bình luận. Hãy thử lại.
+notice-comment-delete-failed = Không thể xóa bình luận. Hãy thử lại.
+notice-discussion-sign-in = Đăng nhập AniList để thích và trả lời.

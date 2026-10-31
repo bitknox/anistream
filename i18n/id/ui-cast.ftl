@@ -1,0 +1,17 @@
+cast-chromecast = Chromecast
+cast-none-found-extra = TV dengan Chromecast bawaan juga akan tampil di sini.
+cast-local-network = Izinkan { -app-name } menemukan { -device-pl } di jaringan lokal Anda
+cast-tvs-label = Tampilkan TV dengan Chromecast bawaan
+cast-torrents-label = Torrent saat casting
+cast-tvs-note-mac = Muncul di bawah Chromecast pada Putar di TV. Mac ini mengirimkan episode ke TV tersebut.
+cast-tvs-note-iphone = Muncul di bawah Chromecast pada Putar di TV. iPhone ini mengirimkan episode ke TV tersebut.
+cast-tvs-note-ipad = Muncul di bawah Chromecast pada Putar di TV. iPad ini mengirimkan episode ke TV tersebut.
+cast-torrents-note-mac = Memungkinkan TV dengan Chromecast bawaan memutar torrent. Mac ini mengirim episode selama episode diputar.
+cast-torrents-note-iphone = Memungkinkan TV dengan Chromecast bawaan memutar torrent. iPhone ini mengirim episode selama episode diputar.
+cast-torrents-note-ipad = Memungkinkan TV dengan Chromecast bawaan memutar torrent. iPad ini mengirim episode selama episode diputar.
+cast-up-next-plays-in = { -up-next-cap } · diputar dalam { $seconds } dtk
+cast-couldnt-start = Tidak bisa mulai di { $name }
+cast-stopped = Casting dihentikan
+cast-play-here = Putar di sini
+cast-stop = Hentikan casting
+cast-volume-fixed = Diatur di TV

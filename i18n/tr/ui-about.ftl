@@ -1,0 +1,11 @@
+about-title = Hakkında
+about-title-app = { -app-name } hakkında
+about-version = Versiyon { $version }
+about-licence = MIT lisansıyla yayımlanmıştır.
+about-acknowledgements = Teşekkürler
+about-licences = Lisanslar
+about-website = Web sitesi
+about-report-bug = Hata bildir
+about-report-bug-detail = GitHub'da bir hata bildirimi açar ve orada oturum açarsınız. Versiyon bilgilerinizi ve son hatayı taşır; adresleri, dosya yollarını veya başlıkları içermez.
+about-artwork = Bazı görseller Creative Commons BY-NC 4.0 lisansı altındadır.
+about-font-licence = SIL Open Font License 1.1 ile lisanslanmıştır.

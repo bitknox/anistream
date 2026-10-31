@@ -1,0 +1,14 @@
+nav-continue = { -continue-cap }
+nav-calendar = Kalender
+nav-seasonal = Musiman
+nav-library = { -library-cap }
+nav-search = Cari
+nav-downloads = Unduhan
+nav-plugin-stores = { -plugin-store-cap-pl }
+nav-settings = Pengaturan
+nav-accounts = Akun
+nav-accounts-and-settings = Akun dan pengaturan
+nav-sections-label = Bagian
+nav-collapse = Ciutkan navigasi
+nav-expand = Perluas navigasi
+tooltip-with-key = { $name } ({ $key })

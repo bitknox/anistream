@@ -1,0 +1,9 @@
+discussion-age-now = baru saja
+discussion-age-minutes = { $minutes } mnt
+discussion-age-hours = { $hours } j
+discussion-age-days = { $days } h
+discussion-age-weeks = { $weeks } mg
+discussion-age-years = { $years } th
+notice-comment-like-failed = Gagal menyukai komentar. Coba lagi.
+notice-comment-delete-failed = Gagal menghapus komentar. Coba lagi.
+notice-discussion-sign-in = Masuk dengan AniList untuk menyukai dan membalas.

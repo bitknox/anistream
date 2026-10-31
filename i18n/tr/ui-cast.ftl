@@ -1,0 +1,17 @@
+cast-chromecast = Chromecast
+cast-none-found-extra = Chromecast özellikli TV'ler de burada görünür.
+cast-local-network = { -app-name } uygulamasının yerel ağınızdaki { -device-pl }ı bulmasına izin verin
+cast-tvs-label = Chromecast özellikli TV'leri göster
+cast-torrents-label = Yayın sırasında torrent'ler
+cast-tvs-note-mac = Chromecast bölümünde, TV'de oynat altında görünürler. Bölümü bu Mac gönderir.
+cast-tvs-note-iphone = Chromecast bölümünde, TV'de oynat altında görünürler. Bölümü bu iPhone gönderir.
+cast-tvs-note-ipad = Chromecast bölümünde, TV'de oynat altında görünürler. Bölümü bu iPad gönderir.
+cast-torrents-note-mac = Chromecast özellikli TV'lerin torrent oynatmasına izin verir. Oynatma sürdüğü sürece bölümü bu Mac gönderir.
+cast-torrents-note-iphone = Chromecast özellikli TV'lerin torrent oynatmasına izin verir. Oynatma sürdüğü sürece bölümü bu iPhone gönderir.
+cast-torrents-note-ipad = Chromecast özellikli TV'lerin torrent oynatmasına izin verir. Oynatma sürdüğü sürece bölümü bu iPad gönderir.
+cast-up-next-plays-in = { -up-next-cap } · { $seconds } sn içinde oynatılır
+cast-couldnt-start = { $name } üzerinde başlatılamadı
+cast-stopped = Yayın durduruldu
+cast-play-here = Burada oynat
+cast-stop = Yayını durdur
+cast-volume-fixed = TV'den ayarlanır

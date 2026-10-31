@@ -1,0 +1,32 @@
+title-episode-short-dubbed = E{ $episode } { -dubbed }
+title-episode-long-dubbed = Episode { $episode } · { -dubbed-cap }
+continue-row-left = E{ $episode } · { $left }
+continue-row-left-dubbed = E{ $episode } { -dubbed } · { $left }
+continue-widget-resume = Lanjut E{ $episode }
+continue-widget-resume-dubbed = Lanjut E{ $episode } { -dubbed }
+downloads-continued-title = Mengunduh episode
+downloads-continued-left = { $count ->
+   *[other] { $count } episode tersisa
+ }
+title-also-on = Juga di { $places }
+calendar-time-approximate = ~{ $time }
+calendar-day-empty-apple = Tidak ada tayangan
+calendar-loading-week = Memuat minggu ini
+calendar-load-week-failed = Tidak bisa memuat minggu ini
+calendar-empty-mine-ahead-apple = Tidak ada di daftar Anda yang tayang 4 minggu ke depan.
+calendar-filter-all-title = Semua Tayangan
+calendar-filter-mine-title = Daftar Saya
+calendar-last-week = Minggu Lalu
+calendar-line-out-apple = E{ $episode } sudah tayang { $ago }
+calendar-line-out-dubbed = E{ $episode } sudah tayang { $ago } · { -dubbed-cap }
+calendar-line-in-apple = E{ $episode } tayang dalam { $span }
+calendar-line-in-dubbed = E{ $episode } tayang dalam { $span } · { -dubbed-cap }
+title-swipe-download = Unduh
+title-episode-of = Episode { $episode } dari { $total }
+browse-list-failed = Tidak bisa memuat daftar
+downloads-subtitle-free = { $free } tersedia · Unduhan memakan { $size }
+downloads-group-summary-apple = { $count } · { $size }
+downloads-of-total = { $done } dari { $total }
+downloads-rate-apple = { $rate }/s
+downloads-time-left-apple = { $left } tersisa
+downloads-seeding-uploaded = Dibagikan { $shared } dari { $goal } · { $left } · { $size } diunggah

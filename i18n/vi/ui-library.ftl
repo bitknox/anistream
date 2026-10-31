@@ -1,0 +1,75 @@
+queue-episodes-left = { $count ->
+   *[other] Còn { $count } tập của { $title }
+ }
+episodes-count = { $count ->
+   *[other] { $count } tập
+ }
+progress-episodes = { $total ->
+   *[other] { $watched } trên { $total } tập
+ }
+duration-days-hours = { $days } ngày { $hours } giờ
+group-in-progress = Đang xem
+group-new-this-week = Mới trong tuần
+continue-empty-title = Chưa xem gì
+continue-empty-detail = Chọn gì đó trong Theo mùa, hoặc tìm một tựa.
+continue-empty-action = Xem Theo mùa
+continue-load-failed = Không tải được { -continue-cap }
+continue-heading = { -continue-cap } đang xem
+continue-airing-today = Chiếu hôm nay
+continue-this-season = Mùa này
+continue-hide = Ẩn khỏi { -continue-cap }
+continue-hidden = Đã ẩn khỏi { -continue-cap }.
+continue-drop = Chuyển sang Đã bỏ
+continue-more-for = Thêm cho { $title }
+continue-row-resume = Tiếp tục E{ $episode } · { $clock }
+continue-row-resume-dubbed = Tiếp tục E{ $episode } { -dubbed } · { $clock }
+continue-row-start = Phát E{ $episode }
+continue-row-start-dubbed = Phát E{ $episode } { -dubbed }
+continue-row-start-aired = Phát E{ $episode } · ra mắt { $ago }
+continue-row-caught-up = Đã xem hết · E{ $episode } { $when }
+continue-row-caught-up-plain = Đã xem hết
+continue-widget-connect = Kết nối AniList để xem tại đây.
+continue-caught-up = Bạn đã xem hết.
+title-button-resume = { -continue-cap } tập { $episode } · { $time }
+title-button-play = Phát tập { $episode }
+title-button-add-source = Thêm { -source } để phát
+library-status-watching = Đang xem
+library-status-planning = Kế hoạch
+library-status-completed = Đã xem xong
+library-status-paused = Tạm dừng
+library-status-dropped = Đã bỏ
+library-sort-updated = Cập nhật gần đây
+library-sort-title = Tên
+library-sort-score = Điểm
+library-sort-button = Sắp xếp: { $sort }
+library-sort-label = Sắp xếp theo { $sort }
+library-signed-out-title = Danh sách của bạn lấy từ AniList
+library-signed-out-detail = Đăng nhập để đồng bộ những gì bạn xem và chỗ bạn đã dừng.
+library-signed-out-action = Đăng nhập AniList
+library-list-empty = Chưa có gì trong danh sách { $list }
+library-list-empty-detail = Các tựa bạn thêm vào danh sách này trên AniList sẽ hiện ở đây.
+library-list-load-failed = Không tải được danh sách { $list } của bạn
+library-loading = Đang tải danh sách của bạn
+library-add-to-list = Thêm vào danh sách
+library-add-planning = Thêm vào Kế hoạch
+library-added-planning = Đã thêm vào Kế hoạch.
+library-on-your-list = Trong danh sách
+library-in-your-list = Đã có
+progress-episodes-short = E{ $done } trên { $total }
+progress-episode-short = E{ $done }
+continue-row-start-aired-dubbed = Phát E{ $episode } { -dubbed } · ra mắt { $ago }
+up-next-heading = { -up-next-cap } cho bạn
+up-next-starts = Bắt đầu { $date }
+up-next-reason-new-season = Mùa mới
+up-next-reason-planning = Có trong Kế hoạch của bạn
+up-next-reason-recommended = Vì bạn đã xem xong { $title }
+up-next-reason-recommended-plain = Gợi ý cho bạn
+up-next-because-detail = AniList gợi ý, dựa trên những người thích { $title }
+up-next-reason-airing-today = Chiếu hôm nay
+up-next-add-planning = Thêm vào Kế hoạch
+up-next-not-interested = Không quan tâm
+up-next-row-starts = { $reason } · { $starts }
+up-next-hidden = { $title } đã bị ẩn khỏi { -up-next-cap } của bạn
+up-next-hidden-until-airs = { $title } bị ẩn cho đến khi phát sóng
+up-next-broadcast = Tập { $episode } · { $when }
+up-next-out = ra mắt { $ago }

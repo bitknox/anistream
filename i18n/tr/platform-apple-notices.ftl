@@ -1,0 +1,10 @@
+notice-out = Bölüm { $episode } yayında.
+notice-out-dubbed = Bölüm { $episode } yayında, { -dubbed }.
+notice-out-behind = Bölüm { $episode } yayında. { -up-next-cap } sizin için: bölüm { $next }.
+notice-out-dubbed-behind = Bölüm { $episode } yayında, { -dubbed }. { -up-next-cap } sizin için: bölüm { $next }.
+notice-hidden-preview = Yeni bölüm
+notice-summary = %u yeni bölüm daha
+notice-dismiss = Bildirimi kapat
+accounts-code-expired-detail = Bu kodun süresi doldu. { $tracker } hesabına giriş yapmak için yeni bir kod alın.
+list-refresh-failed = Yenilenemedi. Yüklenen içerik gösteriliyor.
+sign-in-failed = { $tracker } hesabına giriş yapılamadı. Yeniden deneyin.

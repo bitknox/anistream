@@ -1,0 +1,14 @@
+nav-continue = { -continue-cap }
+nav-calendar = Lịch
+nav-seasonal = Theo mùa
+nav-library = { -library-cap }
+nav-search = Tìm kiếm
+nav-downloads = Đã tải xuống
+nav-plugin-stores = { -plugin-store-cap-pl }
+nav-settings = Cài đặt
+nav-accounts = Tài khoản
+nav-accounts-and-settings = Tài khoản và cài đặt
+nav-sections-label = Mục
+nav-collapse = Thu gọn thanh điều hướng
+nav-expand = Mở rộng thanh điều hướng
+tooltip-with-key = { $name } ({ $key })

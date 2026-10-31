@@ -1,0 +1,47 @@
+tv-picker-episode-of = { $title }, Bölüm { $episode }
+episode-label = Bölüm { $episode }
+episode-label-of = { $title }, Bölüm { $episode }
+tv-connecting-to-tv = Televizyona bağlanılıyor
+tv-device-code = Bir TV bu { -device } için { $code } kodunu gösterir. Burada bir TV'yi unutursanız bu { -device } da unutulur.
+tv-unnamed = TV
+tv-another-short = Başka TV…
+tv-volume-label = TV sesi
+tv-waiting = TV yanıtı bekleniyor
+tv-waiting-for = { $name } yanıtı bekleniyor
+tv-row-name = { $name }, { $detail }
+tv-row-name-connected = { $name }, { $detail }, bağlı
+tv-row-pair-help = Bu TV ile eşleştirilir
+tv-none-found-name = { $title }. { $detail }
+tv-setting-value = { $setting }, { $value }
+party-choose-source-for = Bölüm { $episode } için bir { -source } seçin
+party-nosource-unaired-title = Bölüm { $episode } henüz yayınlanmadı
+party-nosource-unaired-when = { $when } Kaynaklarınızda bu bölüm bu tarihe kadar olmayacak. { -source-pl }dan biri bölümü sunduğunda odayla birlikte oynatılır.
+sources-check = { -source-pl }ı denetle
+sources-origin-version = { $origin } · Versiyon { $version }
+sources-standing = Durum
+sources-status-working = Hazır
+sources-torrent-indexes = Ayarlarda açık olan dizinlerde arar.
+sources-version-ready = Versiyon { $version } hazır
+sources-use-this = Bu { -source } kullanılsın
+sources-use-name = { $name } açık
+sources-remove-detail = Bölümler için artık denenmez. Bunu { -plugin-store }ndan yeniden kurabilirsiniz.
+stores-updates-count = { $count ->
+    [one] Bir güncelleme var
+   *[other] { $count } güncelleme var
+ }
+stores-offline-keep-working = { -plugin-store-cap } bu { -device } son istediğinde yanıt vermedi. Kurduğunuz { -plugin-pl } çalışmaya devam eder.
+stores-standing-version = { $standing } · Versiyon { $version }
+stores-unreachable = { -plugin-store }na ulaşılamadı. Bağlantıyı ve internet bağlantınızı kontrol edip yeniden deneyin.
+stores-already-joined-title = { $name } zaten katılmış
+stores-owner-sees-as = Sahibi bu { -device }ı şu adla görür
+downloads-free-used = { $free } boş · { $used } indirmelerde
+downloads-group-line = { $episodes } · { $size }
+downloads-line-rate = { $line } · { $rate }
+downloads-line-left = { $line } · { $left } kaldı
+downloads-failed-row = İndirme tamamlanamadı. Yeniden deneyin veya kuyruktan kaldırın.
+downloads-play-label = Bölüm { $episode } oynat
+downloads-progress-name = { $name } ilerlemesi
+torrents-proxy-host-example = proxy.example
+tv-problem-no-code = Bu kodun süresi doldu. TV'den yeni bir kod isteyin.
+tv-cast-through-pc = Bu PC üzerinden oynatılır
+tv-cast-firewall-ahead = Windows, { -app-name } uygulamasının TV'nize erişmesine izin verip vermeyeceğinizi soracak.

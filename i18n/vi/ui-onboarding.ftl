@@ -1,0 +1,11 @@
+onboarding-welcome = Chào mừng
+onboarding-welcome-to = Chào mừng đến với { -app-name }
+onboarding-tagline = Theo dõi anime và xem từ { -source-pl } bạn chọn.
+onboarding-continue = { -continue-cap }
+onboarding-skip = Bỏ qua
+onboarding-skip-for-now = Bỏ qua lúc này
+onboarding-not-now = Để sau
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl } là { -plugin-pl }, được chia sẻ qua { -plugin-store-pl } bằng lời mời.
+onboarding-join = Tham gia
+onboarding-invite-hint = Liên kết mời
