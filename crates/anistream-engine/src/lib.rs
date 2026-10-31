@@ -110,6 +110,7 @@ pub mod engine;
 pub mod error;
 pub mod host;
 pub mod jobs;
+pub mod licensed;
 pub mod logged;
 pub mod new_episodes;
 pub mod options;

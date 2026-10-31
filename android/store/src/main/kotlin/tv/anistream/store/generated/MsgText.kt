@@ -65,6 +65,8 @@ fun Msg.text(context: Context): String =
         is Msg.HomeThisSeason -> Strings.homeThisSeason(context)
         is Msg.HomeBecause -> Strings.homeBecause(context, this.title)
         is Msg.HomeMoreGenre -> Strings.homeMoreGenre(context, this.genre)
+        is Msg.LicensedReturn -> Strings.licensedReturn(context, this.episode.toInt(), this.service)
+        is Msg.LicensedMarked -> Strings.licensedMarked(context, this.episode.toInt())
         is Msg.NoticeReason -> Strings.noticeReason(context, this.reason.text(context))
         is Msg.NoticeNotAired -> Strings.noticeNotAired(context, this.episode.toInt(), this.`when`.text(context))
         is Msg.NoticeNotAiredYet -> Strings.noticeNotAiredYet(context, this.episode.toInt(), this.next.toInt(), this.`when`.text(context))
