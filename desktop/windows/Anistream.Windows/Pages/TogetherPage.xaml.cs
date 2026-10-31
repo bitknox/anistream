@@ -87,6 +87,15 @@ public sealed partial class TogetherPage : Page
         ctx.Send(new Command.Party(new PartyCommand.Lobby(server, target.Room, ctx.Known.PartyForm?.Name, null)));
     }
 
+    /// <summary>What are you watching?, then the party dialog for that title's next episode.</summary>
+    async Task StartParty()
+    {
+        if (XamlRoot is not { } root)
+            return;
+        if (await new PartyTitleDialog(ctx, root).ShowAsync() is { } pick)
+            ctx.Window.ShowParty(new PartyDialog.For.Episode(pick.Id, pick.Episode));
+    }
+
     void Show()
     {
         // The join field and its line outlive a rebuild; let go of their old parents first.
@@ -118,8 +127,7 @@ public sealed partial class TogetherPage : Page
 
         Stack.Children.Add(Section(T.TogetherStart));
         Stack.Children.Add(Ui.Haze(T.TogetherStartLine));
-        // A party starts from a title: its page has Watch together, and search finds the title.
-        Stack.Children.Add(Ui.Label(T.PartyStartParty, (_, _) => ctx.Window.Go("search"), accent: true));
+        Stack.Children.Add(Ui.Label(T.PartyStartParty, async (_, _) => await StartParty(), accent: true));
 
         Stack.Children.Add(Section(T.TogetherJoin));
         Stack.Children.Add(Ui.Haze(T.TogetherJoinLine));
@@ -171,7 +179,7 @@ public sealed partial class TogetherPage : Page
         var members = ctx.Known.PartyMembers ?? [];
         if (party.Connection is PartyConnection.Reconnecting retry)
             Stack.Children.Add(new InfoBar { Severity = InfoBarSeverity.Warning, IsOpen = true, IsClosable = false, Message = T.PartyConnectionLost(retry.Attempt, retry.Of) });
-        if (party.Starter is { Length: > 0 } starter)
+        if (party.Starter is { Length: > 0 } starter && starter != party.Name)
             Stack.Children.Add(Ui.Haze(T.PartyInvitedBy(starter)));
 
         // What the room is watching, from its playlist: nobody picks a title to join.

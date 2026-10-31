@@ -311,7 +311,8 @@ public sealed partial class PlayerView : UserControl
                 break;
             case PlayerUi.UpNext next:
                 UpNextTitle.Text = Lines.EpisodeNamed(next.Next.Number, next.Next.Title);
-                upNext = new Coming(next.Auto, next.EndingAt, next.Countdown);
+                // In a party everyone moves on together: the countdown always runs, with no Play now or Cancel.
+                upNext = new Coming(next.Auto || InParty, next.EndingAt, InParty ? Math.Max(10, next.Countdown) : next.Countdown);
                 UpNextStill.Source = null;
                 UpNextStillFrame.Visibility = next.Next.Thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
                 ctx?.Art.Bind(next.Next.Thumbnail, image => UpNextStill.Source = image);
@@ -953,9 +954,12 @@ public sealed partial class PlayerView : UserControl
                 : Math.Max(0, Countdown - (position - start));
     }
 
+    bool InParty => ctx?.Known.Party is not null;
+
     void ShowUpNext()
     {
         var card = upNext;
+        UpNextButtons.Visibility = InParty ? Visibility.Collapsed : Visibility.Visible;
         var shown = card is { Cancelled: false } && card.ShowsAt(duration) is { } at && position >= at;
         upNextShown = shown;
         UpdateCorner();
@@ -967,7 +971,7 @@ public sealed partial class PlayerView : UserControl
         if (left is { } l)
         {
             UpNextBar.Value = l / card.Countdown;
-            UpNextLine.Text = T.PlayerPlaysIn((long)Math.Ceiling(l));
+            UpNextLine.Text = InParty ? T.PartyNextLine((long)Math.Ceiling(l)) : T.PlayerPlaysIn((long)Math.Ceiling(l));
             if (l <= 0)
                 PlayNext(auto: true);
         }
@@ -1408,7 +1412,7 @@ public sealed partial class PlayerView : UserControl
             Send(new PlayerCommand.StallSwitch());
         else if (cornerCard == UndoCard)
             Undo();
-        else if (cornerCard == UpNextCard)
+        else if (cornerCard == UpNextCard && !InParty)
             PlayNext(auto: false);
         else if (cornerCard == SkipSlot)
             Send(new PlayerCommand.TakeSkip());
@@ -1423,7 +1427,7 @@ public sealed partial class PlayerView : UserControl
             discussion.Close();
         else if (mini)
             ToggleMini();
-        else if (cornerCard == UpNextCard)
+        else if (cornerCard == UpNextCard && !InParty)
             CancelNext();
         else if (cornerCard == StallCard)
             Send(new PlayerCommand.StallWait());

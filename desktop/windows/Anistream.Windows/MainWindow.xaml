@@ -76,7 +76,28 @@
           </StackPanel>
         </NavigationViewItem>
       </NavigationView.FooterMenuItems>
-      <Frame x:Name="ContentFrame" Navigated="OnFrameNavigated" />
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <!-- While in a party: where it is and a way back to it, above every page but Together. -->
+        <Grid x:Name="PartyBar" Visibility="Collapsed" Background="{ThemeResource RaisedBrush}" Padding="20,8,20,8" ColumnSpacing="12"
+              AutomationProperties.LandmarkType="Custom" AutomationProperties.LocalizedLandmarkType="{x:Bind app:T.TogetherTitle}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="PartyBarTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+            <TextBlock x:Name="PartyBarLine" Style="{StaticResource HazeCaptionStyle}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <Button Grid.Column="1" Content="{x:Bind app:T.TogetherOpenLobby}" Click="OnPartyBarOpen" />
+          <Button Grid.Column="2" Content="{x:Bind app:T.PartyLeave}" Click="OnPartyBarLeave" />
+        </Grid>
+        <Frame x:Name="ContentFrame" Grid.Row="1" Navigated="OnFrameNavigated" />
+      </Grid>
     </NavigationView>
 
     <!-- The player, over the page it came from, with the title bar as its top bar. -->

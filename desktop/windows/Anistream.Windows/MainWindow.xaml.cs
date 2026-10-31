@@ -685,6 +685,7 @@ public sealed partial class MainWindow : Window
         else
             Nav.SelectedItem = null;
         selecting = false;
+        UpdatePartyBar();
     }
 
     void OnBackRequested(TitleBar sender, object args) => GoBack();
