@@ -125,10 +125,10 @@ fun HomeScreen(actions: AppActions) {
         view?.offline == true && offlineSince != null -> FrameLine.OfflineFrom(Strings.homeOffline(context, clock(offlineSince)))
         // Offline with nothing kept: the block below says it, and Home says it once.
         view?.offline == true && (view?.spotlight != null || view?.sections.orEmpty().isNotEmpty()) -> FrameLine.Offline
-        view?.offline == true -> null
-        slow -> FrameLine.Words(Strings.homeLoading(context))
         else -> null
     }
+    // In the account button's place, so the page under the bar stays where it is.
+    val activity = if (slow && view?.offline != true) Strings.homeLoading(context) else null
 
     ScreenFrame(
         title = stringResource(R.string.home_title),
@@ -137,6 +137,7 @@ fun HomeScreen(actions: AppActions) {
         // Home's line is the only one: the engine's job for Home would say the same again.
         line = line,
         ownLine = true,
+        activity = activity,
     ) { padding ->
         val top = padding.calculateTopPadding()
         Refreshable({ store.loadHome(refresh = true) }, top = top) {

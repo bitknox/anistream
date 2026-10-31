@@ -339,8 +339,8 @@ private fun HomePoster(item: HomeItem, width: Dp, from: String, h: HomeHandlers)
 }
 
 /**
- * This week by day from today. A phone lists the next three days; wider windows set the days side
- * by side, four or seven of them.
+ * This week by day from today. A phone sets the seven days in a sideways strip, 150 wide each, as
+ * the board draws it; wider windows set the days side by side, four or seven of them.
  */
 @Composable
 internal fun WeekShelf(section: HomeSection, items: List<HomeItem>) {
@@ -348,7 +348,7 @@ internal fun WeekShelf(section: HomeSection, items: List<HomeItem>) {
     val days = when {
         width >= 900 -> 7
         width >= 700 -> 4
-        else -> 3
+        else -> 7
     }
     val byDay = items.groupBy { (it.day ?: 0u).toInt() }
     Column(Modifier.padding(top = shelfTop())) {
@@ -358,8 +358,8 @@ internal fun WeekShelf(section: HomeSection, items: List<HomeItem>) {
                 for (day in 0 until days) Box(Modifier.weight(1f)) { DayCell(day, byDay[day].orEmpty(), cap = 3) }
             }
         } else {
-            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                for (day in 0 until days) DayCell(day, byDay[day].orEmpty(), cap = 4)
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(cardGap())) {
+                items(days, key = { "day-$it" }) { day -> Box(Modifier.width(150.dp)) { DayCell(day, byDay[day].orEmpty(), cap = 3) } }
             }
         }
     }
