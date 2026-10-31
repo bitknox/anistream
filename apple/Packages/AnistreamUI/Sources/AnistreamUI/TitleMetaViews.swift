@@ -205,7 +205,7 @@ struct RelatedCard: View {
 struct MoreAboutSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = SurfaceDismiss()
     let id: AnilistId
     /// The spoiler tags, shown for as long as the sheet is open and never remembered.
     @State private var spoilersShown = false

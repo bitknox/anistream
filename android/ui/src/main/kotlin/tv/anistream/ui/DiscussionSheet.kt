@@ -45,6 +45,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -128,19 +129,22 @@ fun DiscussionSheet(entry: Entry, episode: UInt, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scope = rememberCoroutineScope()
     val close: () -> Unit = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } }
+    // A comment being written holds the sheet against a tap outside (Light dismiss).
+    var typed by remember { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        properties = sheetProperties(typed),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
     ) {
-        DiscussionContent(entry, episode, view, close)
+        DiscussionContent(entry, episode, view, close, onTyped = { typed = it })
     }
 }
 
 @Composable
-private fun DiscussionContent(entry: Entry, episode: UInt, view: DiscussionView?, onDismiss: () -> Unit) {
+private fun DiscussionContent(entry: Entry, episode: UInt, view: DiscussionView?, onDismiss: () -> Unit, onTyped: (Boolean) -> Unit) {
     val store = LocalAppStore.current
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
@@ -191,12 +195,14 @@ private fun DiscussionContent(entry: Entry, episode: UInt, view: DiscussionView?
                 editing = editing,
                 onDone = { replying = null; editing = null },
                 onSignIn = { onDismiss(); navigator.open(settingsRoute(SettingsPane.Accounts)) },
+                onTyped = onTyped,
             )
         }
     }
     deleting?.let { comment ->
         AlertDialog(
             onDismissRequest = { deleting = null },
+            properties = AskingDialog,
             title = { Text(stringResource(R.string.discussion_delete_title)) },
             text = { Text(stringResource(R.string.discussion_delete_body)) },
             confirmButton = { TextButton(onClick = { store.deleteComment(comment.id); deleting = null }) { Text(stringResource(R.string.action_delete)) } },
@@ -548,7 +554,14 @@ private fun Block(commentId: Int, index: Int, block: CommentBlock, view: Discuss
 
 /** The field and Post, or what stands in their place: sign in, or posting waiting for the network. */
 @Composable
-private fun Composer(view: DiscussionView, replying: CommentView?, editing: CommentView?, onDone: () -> Unit, onSignIn: () -> Unit) {
+private fun Composer(
+    view: DiscussionView,
+    replying: CommentView?,
+    editing: CommentView?,
+    onDone: () -> Unit,
+    onSignIn: () -> Unit,
+    onTyped: (Boolean) -> Unit,
+) {
     val store = LocalAppStore.current
     val colors = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -557,6 +570,9 @@ private fun Composer(view: DiscussionView, replying: CommentView?, editing: Comm
             !view.canPost -> Text(stringResource(R.string.discussion_offline_post), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(8.dp))
             else -> {
                 var field by remember(replying?.id, editing?.id) { mutableStateOf(TextFieldValue(editing?.markdown.orEmpty(), TextRange(editing?.markdown?.length ?: 0))) }
+                val typed = field.text.isNotBlank() && field.text != editing?.markdown
+                SideEffect { onTyped(typed) }
+                DisposableEffect(Unit) { onDispose { onTyped(false) } }
                 val target = editing ?: replying
                 if (target != null) {
                     Row(

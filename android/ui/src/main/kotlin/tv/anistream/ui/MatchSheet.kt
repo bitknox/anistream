@@ -42,6 +42,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,33 +109,47 @@ private fun MatchSheet(entry: Entry, request: MatchPickerRequest) {
     // From the menu the field is filled and the sheet full; asked by the page, the candidates stand
     // at the middle and the field takes the sheet up when it takes focus.
     LaunchedEffect(request) { if (request.fromMenu) sheetState.expand() }
+    // A search typed into the field holds the sheet against a tap outside (Light dismiss).
+    var typed by remember { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = { store.match.dismiss() },
         sheetState = sheetState,
+        properties = sheetProperties(typed),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
     ) {
-        MatchContent(entry, request, dialog = false, close = close, onFieldFocus = { scope.launch { sheetState.expand() } })
+        MatchContent(entry, request, dialog = false, close = close, onFieldFocus = { scope.launch { sheetState.expand() } }, onTyped = { typed = it })
     }
 }
 
 @Composable
 private fun MatchDialog(entry: Entry, request: MatchPickerRequest) {
     val store = LocalAppStore.current
-    Dialog(onDismissRequest = { store.match.dismiss() }, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+    var typed by remember { mutableStateOf(false) }
+    Dialog(
+        onDismissRequest = { store.match.dismiss() },
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = !typed),
+    ) {
         androidx.compose.material3.Surface(
             modifier = Modifier.width(560.dp),
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            MatchContent(entry, request, dialog = true, close = { store.match.dismiss() }, onFieldFocus = {})
+            MatchContent(entry, request, dialog = true, close = { store.match.dismiss() }, onFieldFocus = {}, onTyped = { typed = it })
         }
     }
 }
 
 @Composable
-private fun MatchContent(entry: Entry, request: MatchPickerRequest, dialog: Boolean, close: () -> Unit, onFieldFocus: () -> Unit) {
+private fun MatchContent(
+    entry: Entry,
+    request: MatchPickerRequest,
+    dialog: Boolean,
+    close: () -> Unit,
+    onFieldFocus: () -> Unit,
+    onTyped: (Boolean) -> Unit,
+) {
     val store = LocalAppStore.current
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
@@ -142,6 +157,8 @@ private fun MatchContent(entry: Entry, request: MatchPickerRequest, dialog: Bool
     val state by store.match.state.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
     var query by rememberSaveable(id) { mutableStateOf(if (request.fromMenu) entry.showTitle else "") }
+    val typed = changedSinceOpened(query)
+    SideEffect { onTyped(typed) }
     var searchSlow by remember { mutableStateOf(false) }
     var pickSlow by remember { mutableStateOf(false) }
 

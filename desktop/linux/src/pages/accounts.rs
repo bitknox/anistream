@@ -435,7 +435,8 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     dialog.connect_response(None, |_, _| {
         CODE.with_borrow_mut(|(open, _)| *open = None);
     });
-    dialog.present(Some(&ctx.window));
+    // Close leaves the wait running, so a click outside loses nothing.
+    widgets::present_light_dismiss(&dialog, &ctx.window);
     // Focus on the way there, not the code: a focused label selects all of itself.
     dialog.set_focus(Some(&open));
     CODE.with_borrow_mut(|(open, _)| *open = Some(dialog.clone()));

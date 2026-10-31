@@ -13,13 +13,16 @@ namespace Anistream.Windows.Pages;
 /// <summary>
 /// More about this show: who the viewer follows who has it, its rankings and cast on the left;
 /// where it streams, its staff and tags on the right; similar shows under both. Close is the
-/// only button. Spoiler tags stay folded away until the viewer opens them.
+/// only button, and a click outside or Esc closes it too (an <see cref="InfoCard"/>). Spoiler tags
+/// stay folded away until the viewer opens them.
 /// </summary>
 sealed class TitleMoreDialog
 {
     readonly Ctx ctx;
     readonly Entry entry;
-    readonly ContentDialog dialog;
+    readonly XamlRoot root;
+    readonly StackPanel header = new() { Spacing = 2 };
+    readonly FrameworkElement body;
     readonly StackPanel tagRow = new() { Spacing = 4 };
     bool spoilers;
 
@@ -27,32 +30,13 @@ sealed class TitleMoreDialog
     {
         this.ctx = ctx;
         this.entry = entry;
-        var header = new StackPanel { Spacing = 2 };
+        this.root = root;
         header.Children.Add(Ui.Text(entry.Title, "TitleTextBlockStyle"));
         header.Children.Add(Ui.Haze(T.TitleMoreAbout));
-        dialog = new ContentDialog
-        {
-            XamlRoot = root,
-            Title = header,
-            Content = Body(),
-            CloseButtonText = T.ActionClose,
-            DefaultButton = ContentDialogButton.None,
-            CloseButtonStyle = Close(),
-        };
-        dialog.Resources["ContentDialogMaxWidth"] = 820.0;
-        dialog.Resources["ContentDialogMaxHeight"] = 700.0;
+        body = Body();
     }
 
-    /// <summary>Close is the only button, 120 by 32 and not amber.</summary>
-    static Style Close()
-    {
-        var style = new Style(typeof(Button)) { BasedOn = Ui.Res<Style>("DefaultButtonStyle") };
-        style.Setters.Add(new Setter(FrameworkElement.WidthProperty, 120.0));
-        style.Setters.Add(new Setter(FrameworkElement.HeightProperty, 32.0));
-        return style;
-    }
-
-    public async void Show() => await Dialogs.Show(dialog);
+    public async void Show() => await InfoCard.Show(root, header, body, 840, 700);
 
     static TextBlock Heading(string text) => new()
     {
@@ -60,7 +44,7 @@ sealed class TitleMoreDialog
         Style = Ui.Res<Style>("BodyStrongTextBlockStyle"),
     };
 
-    UIElement Body()
+    FrameworkElement Body()
     {
         var detail = entry.Detail;
         var left = new StackPanel { Spacing = 20 };
@@ -273,7 +257,7 @@ sealed class TitleMoreDialog
             var target = t.Id;
             button.Click += (_, _) =>
             {
-                dialog.Hide();
+                InfoCard.HideOpen();
                 ctx.OpenTitle(target);
             };
             row.Children.Add(button);

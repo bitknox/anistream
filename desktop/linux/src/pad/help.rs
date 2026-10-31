@@ -102,5 +102,5 @@ pub fn show(ctx: &Ctx, context: &PadContext) {
         .content_height(640)
         .child(&view)
         .build();
-    dialog.present(Some(&ctx.window));
+    crate::widgets::present_light_dismiss(&dialog, &ctx.window);
 }

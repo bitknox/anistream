@@ -121,7 +121,7 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
             }
         }
     });
-    dialog.present(Some(&ctx.window));
+    crate::widgets::present_light_dismiss(&dialog, &ctx.window);
     true
 }
 

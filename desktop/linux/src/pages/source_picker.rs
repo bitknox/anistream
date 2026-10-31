@@ -126,7 +126,8 @@ pub fn open(ctx: &Rc<Ctx>, parent: &impl IsA<gtk::Widget>, id: AnilistId) -> adw
     });
     crate::widgets::keep(&dialog, Rc::clone(&picker));
     ctx.hub.send(Command::LoadSourceOptions(id));
-    dialog.present(Some(parent));
+    // A pick applies at once, so a click outside loses nothing.
+    crate::widgets::present_light_dismiss(&dialog, parent);
     picker.focus_chosen();
     dialog
 }

@@ -116,6 +116,8 @@ struct FirstLaunch: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.ground)
         .animation(reduceMotion ? nil : .standard, value: page)
+        // An invite link in the field holds the iPad's sheet open; a swipe down is Skip until then.
+        .holdsInput(when: !link.isEmpty)
         // An invite link opened from Messages or Mail jumps here, filled in.
         .onChange(of: navigator.invite) { _, invite in
             if let invite {

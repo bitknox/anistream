@@ -81,11 +81,13 @@ struct MacShell: View {
         .overlay(alignment: .bottom) {
             NoticeCapsule().padding(.bottom, 16)
         }
-        .sheet(isPresented: $navigator.messagesShown) {
+        // Messages, the show's settings, More about and the source picker lose nothing to a click
+        // outside, so they are cards over the window (Light dismiss).
+        .infoSurface(isPresented: $navigator.messagesShown) {
             MessagesView()
         }
         .modifier(AppSheets())
-        .sheet(item: Binding<ShowItem?>(
+        .infoSurface(item: Binding<ShowItem?>(
             get: { navigator.showSettings.flatMap { store.titles[$0] }.map(ShowItem.init) },
             set: { (item: ShowItem?) in navigator.showSettings = item?.entry.id }
         )) { item in

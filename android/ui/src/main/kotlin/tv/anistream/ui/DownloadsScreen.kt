@@ -361,6 +361,7 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
     if (deleting) {
         AlertDialog(
             onDismissRequest = { deleting = false },
+            properties = AskingDialog,
             title = { Text(stringResource(R.string.downloads_delete_title, stringResource(R.string.downloads_episode_name, row.episode.toInt()))) },
             text = { Text(stringResource(R.string.downloads_delete_detail)) },
             confirmButton = {

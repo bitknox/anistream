@@ -144,6 +144,8 @@ struct MatchPickerSheet: View {
     #endif
 
     @State private var query = ""
+    /// What the sheet filled the field with: typing anything else holds the sheet open.
+    @State private var filled = ""
     /// The row Return picks on the Mac: the best one at first.
     @State private var selected: ProviderKey?
     /// The search has run 600 ms: the searching row shows.
@@ -191,6 +193,7 @@ struct MatchPickerSheet: View {
                 if selected == nil, case .candidates(_, _, let candidates) = now { selected = best(candidates) }
             }
             .onDisappear { store.match.closed(id) }
+            .holdsInput(when: query != filled)
             .onChange(of: store.match.settled) { _, settled in
                 if settled?.id == id { dismiss() }
             }
@@ -231,6 +234,7 @@ struct MatchPickerSheet: View {
 
     private func show(query: String) {
         self.query = query
+        filled = query
         #if os(iOS)
         detent = .large
         #endif

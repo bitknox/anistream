@@ -318,6 +318,42 @@ pub fn keep<T: 'static>(widget: &impl IsA<gtk::Widget>, value: T) {
     widget.as_ref().connect_destroy(move |_| drop(value.borrow_mut().take()));
 }
 
+/// Present a dialog with nothing to lose (Light dismiss, native-ux.md): a click on the dimmed
+/// window around it closes it, as Esc does. libadwaita's bottom sheet closes on a click on its
+/// dimming; this gives the floating dialog the same. A dialog that holds input never takes it.
+pub fn present_light_dismiss(dialog: &impl IsA<adw::Dialog>, parent: &impl IsA<gtk::Widget>) {
+    let dialog = dialog.as_ref().clone();
+    dialog.present(Some(parent));
+    let Some(window) = dialog.root().map(|root| root.upcast::<gtk::Widget>()) else {
+        return;
+    };
+    let click = gtk::GestureClick::new();
+    click.set_propagation_phase(gtk::PropagationPhase::Capture);
+    click.connect_pressed({
+        let dialog = dialog.downgrade();
+        move |gesture, _, x, y| {
+            let (Some(dialog), Some(window)) = (dialog.upgrade(), gesture.widget()) else {
+                return;
+            };
+            // The dialog's own content, not the dialog: the dialog widget spans its dimming too.
+            let Some(card) = dialog.child().and_then(|child| child.compute_bounds(&window))
+            else {
+                return;
+            };
+            if !card.contains_point(&gtk::graphene::Point::new(x as f32, y as f32)) {
+                dialog.close();
+            }
+        }
+    });
+    window.add_controller(click.clone());
+    let window = window.downgrade();
+    dialog.connect_closed(move |_| {
+        if let Some(window) = window.upgrade() {
+            window.remove_controller(&click);
+        }
+    });
+}
+
 /// A title in a grid, kept in the grid's model.
 pub type Item = glib::BoxedAnyObject;
 

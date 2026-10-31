@@ -488,6 +488,7 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
     if (removing && info != null) {
         AlertDialog(
             onDismissRequest = { removing = false },
+            properties = AskingDialog,
             title = { Text(stringResource(R.string.stores_remove_plugin_title, info.name)) },
             text = { Text(stringResource(R.string.stores_remove_plugin_detail)) },
             confirmButton = {
@@ -539,6 +540,7 @@ internal fun UpdateDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = AskingDialog,
         title = { Text(stringResource(R.string.sources_update_title, plugin)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

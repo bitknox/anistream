@@ -123,7 +123,7 @@ struct ShowSourcePicker<Label: View>: View {
 /// The Mac's sheet, over the title's page.
 struct ShowSettingsSheet: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = SurfaceDismiss()
     let entry: Entry
 
     var body: some View {

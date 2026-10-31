@@ -182,7 +182,7 @@ pub fn shortcuts(ctx: &Ctx) {
         .content_height(640)
         .child(&view)
         .build();
-    dialog.present(Some(&ctx.window));
+    crate::widgets::present_light_dismiss(&dialog, &ctx.window);
 }
 
 /// Closing the window while episodes download or seed: keep them going, stop and close, or

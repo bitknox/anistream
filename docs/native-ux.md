@@ -63,6 +63,24 @@ Swipe actions on iPhone and iPad:
 
 Home's cards and posters have no swipe actions, as they sit in rows that scroll sideways. Their actions are in the long-press menu.
 
+## Light dismiss
+
+A surface with nothing to lose closes on a click or tap outside it, as well as on Esc, Back or its own Done. A surface that holds what the person typed, or asks a question they have to answer, stays open until one of its buttons, Esc or Back closes it, as the sections above and below say. Once the person has typed or changed something, a surface stops closing on a click outside. The rule is the same on every platform with a pointer: Mac, iPad with a pointer, Windows, Linux, and Android with a mouse.
+
+Nothing to lose: More about this show, Messages, the show's own settings and the source picker (each change applies as it is made), a sign-in code (closing it leaves the wait running), Keyboard Shortcuts, controller help, About, the trailer, an invite link to share, popovers such as running jobs and the party panel, and the hover card, which closes as it always has.
+
+Holds input: the torrent sheet and the proxy form, Kitsu sign-in, joining a plugin store, a new invite, publishing a store, the watch party form, the match picker's search, a comment being written, and the invite field on first launch. Where the platform's sheet closes on a tap outside (iPhone, iPad, Android), it does so only until the person types or changes something.
+
+Asks a question: confirmations (leave, remove, delete, reset, update a plugin, no protection, allow installs), sync conflicts, the no-source question in a watch party, and first launch. A click outside does nothing.
+
+How each platform does it:
+
+- On the Mac a sheet never closes on a click outside, so the surfaces with nothing to lose are cards in the window instead: centred, inside the window by 32 pt, over the window dimmed to the ground at 35 %, as the ⌘K palette dims it. A click on the dimming, Esc or Done closes the card. It fades in (fade-in) and out (fade-out), and VoiceOver treats it as modal. Everything else stays a sheet.
+- On iPhone and iPad a sheet keeps the system's swipe down, and on iPad the tap outside a form or page sheet, until the person types or changes something; from then on `interactiveDismissDisabled` holds it and only its buttons close it. A swipe down is a sheet's Cancel, so a sheet that asks a question but holds nothing typed keeps it.
+- On Android a sheet closes on a tap on its scrim until it holds something typed, and a sheet that asks a question never does (`shouldDismissOnClickOutside`). A dialog that asks a question sets `dismissOnClickOutside` to false. Back and the drag down still close a sheet, and Back is a dialog's Cancel.
+- On Windows a `ContentDialog` has no light dismiss, so More about this show and Keyboard Shortcuts are a light-dismiss `Popup` (`IsLightDismissEnabled`) styled as the app's dialogs, over the same 35 % dim. Dialogs that ask or hold input stay `ContentDialog`s.
+- On Linux popovers hide by themselves. A floating `AdwDialog` with nothing to lose closes on a click on the dimmed window around it, as libadwaita's own bottom sheet does on its dimming. The rest close on Esc and their buttons only.
+
 ## Keyboard and menus
 
 Every action is a menu bar item, so the Help menu's search (⇧⌘/) is the command palette and no custom palette is built. Frequent actions get a shortcut; the rest are menu items without one, as in Apple's apps. Mac and iPad share one `.commands` definition. The menus are anistream, File (Join Plugin Store…), Edit, View (sidebar, sections, Refresh), Title (actions on the selected title), Playback, Window (Mini Player, Messages) and Help (Keyboard Shortcuts).

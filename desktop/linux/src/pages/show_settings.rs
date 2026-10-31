@@ -251,7 +251,8 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
     });
     widgets::keep(&dialog, Rc::clone(&sheet));
     ctx.hub.send(Command::LoadShowSettings { id });
-    dialog.present(Some(&ctx.window));
+    // Each change applies as it is made, so a click outside loses nothing.
+    widgets::present_light_dismiss(&dialog, &ctx.window);
 }
 
 fn title_of(key: S) -> String {
