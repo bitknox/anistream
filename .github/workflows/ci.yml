@@ -1009,6 +1009,21 @@ jobs:
       - name: The Linux app's
         run: packaging/rust-licences/generate.sh linux "$RUNNER_TEMP/linux.txt"
 
+  # A pull request that releases must raise the workspace version above the newest release tag.
+  # The merge train sets it; packaging/next-version.sh says what to set when it did not.
+  version:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Two commits: the merge, whose first parent is the base. The tags are fetched for the
+      # newest release.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - run: git fetch --tags --force origin
+      - run: packaging/next-version.sh --check-pr HEAD^1
+
   # The one check main requires, so GitHub's auto-merge can merge a pull request once it is
   # green. It waits for every other check on the pull request's head commit, whichever workflow
   # or app reports it (the apps' release builds, the release build, the store image and

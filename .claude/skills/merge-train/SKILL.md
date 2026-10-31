@@ -21,12 +21,19 @@ CI is expensive and every merge to main releases, so ready branches ship togethe
    builds and the Mac Release plus `adhoc-sign.sh` when Apple or packaging changed. Fix what
    breaks with small signed train commits that say what they fix. Code that only breaks in
    combination is the usual find.
-4. **PR.** Push the branch and open ONE PR against main. The first paragraphs become release
+4. **Version.** After the merges, choose the bump: minor if the train merged any `feat/*`
+   branch, otherwise patch; major only when Johan asks (a plugin API change that needs plugins
+   rebuilt, data or config the last version can't read, a store protocol break, a dropped OS).
+   Set `[workspace.package] version` in `Cargo.toml` above the newest `v*` tag, run
+   run `cargo check --locked` so `Cargo.lock` matches (fix it with `cargo update -w` if not),
+   and commit `Release X.Y.Z`. A PR check fails a release that isn't newer than the newest tag.
+5. **PR.** Push the branch and open ONE PR against main. The first paragraphs become release
    notes and the apps' update notes (about 500 characters), so keep them short and plain. List
-   the branches, conflicts and resolutions, train fixes, what was checked and what wasn't. End
+   the version, the branches, conflicts and resolutions, train fixes, what was checked and what
+   wasn't. End
    with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
-5. **Auto-merge.** Confirm protection first:
+6. **Auto-merge.** Confirm protection first:
    `gh api repos/bitknox/anistream/branches/main/protection/required_status_checks -q .contexts`
    must list `CI passed`. Then `gh pr merge <n> --auto --merge -R bitknox/anistream`. Never merge
    without `--auto`; without protection it merges at once.
-6. **After merge,** confirm the Release run on the merge commit published (see `ci-triage`).
+7. **After merge,** confirm the Release run on the merge commit published (see `ci-triage`).
