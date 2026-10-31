@@ -104,6 +104,10 @@
     <string name="home_because">Because you finished %1$s</string>
     <!-- Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha". -->
     <string name="home_more_genre">More %1$s</string>
+    <!-- Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream. -->
+    <string name="licensed_return">Watched episode %1$d on %2$s?</string>
+    <!-- Notice after Mark as watched on the return notice. It holds Undo. -->
+    <string name="licensed_marked">Episode %1$d marked as watched.</string>
     <!-- A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. -->
     <string name="notice_reason">%1$s</string>
     <!-- Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. -->

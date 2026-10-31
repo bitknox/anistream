@@ -7,7 +7,11 @@
 
 use anistream_meta::Meta;
 use anistream_model::{
-    Msg, Span, command::Command, event::Event, notice::Notice, show::ShowSettingKey,
+    Msg, Span,
+    command::{Command, LicensedCommand},
+    event::Event,
+    notice::Notice,
+    show::ShowSettingKey,
 };
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -81,6 +85,44 @@ pub(crate) fn lend(services: &Services, tx: &Outbox) -> Lent {
         stores: services.stores.clone(),
         tx: tx.clone(),
     }
+}
+
+/// The licensed services commands. Settings are kept in the database with no job; the title's
+/// availability reads AniList through one.
+fn licensed_command(command: LicensedCommand, services: &Services, tx: &Outbox) {
+    match command {
+        LicensedCommand::Load { system_region } => {
+            crate::licensed::remember_system_region(system_region.as_deref(), &services.store);
+            publish_licensed(services, tx);
+        }
+        LicensedCommand::SetServices { services: chosen } => {
+            crate::licensed::set_services(chosen, &services.store);
+            publish_licensed(services, tx);
+        }
+        LicensedCommand::SetRegion { region } => {
+            crate::licensed::set_region(region, &services.store);
+            publish_licensed(services, tx);
+        }
+        LicensedCommand::SetShowOthers { show } => {
+            crate::licensed::set_show_others(show, &services.store);
+            publish_licensed(services, tx);
+        }
+        LicensedCommand::LoadAvailability { id, plays_here } => {
+            spawn(None, services, tx, move |lent| {
+                crate::licensed::load_availability(lent, id, plays_here)
+            })
+        }
+        LicensedCommand::Open { id, service, url, episode } => {
+            crate::licensed::open(id, service, url, episode, services, tx)
+        }
+        LicensedCommand::Returned => crate::licensed::returned(services, tx),
+    }
+}
+
+/// Send the Licensed services page, once AniList's list of services is in hand.
+fn publish_licensed(services: &Services, tx: &Outbox) {
+    let now = services.clock.now();
+    spawn(None, services, tx, move |lent| crate::licensed::publish(lent, now));
 }
 
 /// List title `id`'s episodes again, quietly: no activity row, as a source change is not
@@ -318,6 +360,9 @@ pub(crate) fn dispatch(
             play_trailer(url, title, job, engine, services, tx)
         }
         Command::OpenExternal { url } => open_external(url, services, tx),
+
+        // The licensed services: kept in the database, with no job.
+        Command::Licensed(command) => licensed_command(command, services, tx),
 
         // An episode's discussion: off the loop, with no job, each answered with the
         // discussion whole. See `discussion`.

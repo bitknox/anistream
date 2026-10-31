@@ -105,6 +105,11 @@ pub enum FfiScene {
     /// [`Self::Watching`] with AniList failing everything but the queue's own titles and their
     /// broadcasts: Continue shows, the discovery shelves are left out and one notice says so.
     Failed,
+    /// [`Self::Sourceless`] with the viewer's licensed services chosen: Lantern Stream, which
+    /// AniList lists for Hoshikuzu no Tabibito. Its page is the licensed-service case where the
+    /// title does not play here and the main action is Watch on Lantern Stream, and the Licensed
+    /// services page has one service ticked and the rest to choose.
+    Licensed,
     /// Nothing watched and offline from the start: the fake AniList hangs up on every request
     /// and the engine is told the path is offline, whatever the host says, so Home has nothing
     /// saved to show. [`FfiEngine::testing_set_offline`] does the same to any other scene once
@@ -339,7 +344,7 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
 /// streams the test kit's episode-long clip, or `media` in a scene that plays. None at all for
 /// [`FfiScene::Sourceless`].
 fn scene_sources(scene: &FfiScene, art: &str, provided: &[(Media, u32)]) -> ProviderRegistry {
-    if *scene == FfiScene::Sourceless {
+    if matches!(scene, FfiScene::Sourceless | FfiScene::Licensed) {
         return ProviderRegistry::new(Vec::new());
     }
     if *scene == FfiScene::NotFound {
@@ -481,6 +486,9 @@ fn library_statuses(store: &Store, world: &HomeWorld, now: i64) {
 
 /// The history `scene` describes, the newest watch an hour before `now`.
 fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
+    if *scene == FfiScene::Licensed {
+        anistream_engine::licensed::set_services(vec!["Lantern Stream".into()], store);
+    }
     const HOUR: i64 = 3_600;
     const DAY: i64 = 24 * HOUR;
     match scene {
@@ -503,6 +511,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
         FfiScene::Watching
         | FfiScene::WatchingMedia { .. }
         | FfiScene::Sourceless
+        | FfiScene::Licensed
         | FfiScene::Unsure
         | FfiScene::Slow
         | FfiScene::Failed => {
@@ -573,6 +582,18 @@ mod tests {
             "http://127.0.0.1:9/art/",
             &world().provided(),
         );
+        assert!(none.is_empty());
+    }
+
+    #[test]
+    fn licensed_is_sourceless_with_a_service_chosen() {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let store = Store::open(dir.path().join("anistream.db")).expect("a database");
+        seed_scene(&store, &FfiScene::Licensed, 1_800_000_000);
+        assert_eq!(store.continue_list(15).expect("the rail").len(), 4);
+        assert_eq!(anistream_engine::licensed::settings(&store).services, ["Lantern Stream"]);
+        let none =
+            scene_sources(&FfiScene::Licensed, "http://127.0.0.1:9/art/", &world().provided());
         assert!(none.is_empty());
     }
 

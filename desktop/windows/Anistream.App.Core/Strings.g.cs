@@ -168,6 +168,12 @@ public static partial class T
     /// <summary>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</summary>
     public static string HomeMoreGenre(string genre) => Fill(Get("HomeMoreGenre"), ("genre", genre));
 
+    /// <summary>Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.</summary>
+    public static string LicensedReturn(long episode, string service) => Fill(Get("LicensedReturn"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("service", service));
+
+    /// <summary>Notice after Mark as watched on the return notice. It holds Undo.</summary>
+    public static string LicensedMarked(long episode) => Fill(Get("LicensedMarked"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -5909,6 +5915,8 @@ public static partial class T
         ["HomeThisSeason"] = "This season",
         ["HomeBecause"] = "Because you finished {title}",
         ["HomeMoreGenre"] = "More {genre}",
+        ["LicensedReturn"] = "Watched episode {episode} on {service}?",
+        ["LicensedMarked"] = "Episode {episode} marked as watched.",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",

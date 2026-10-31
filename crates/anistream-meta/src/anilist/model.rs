@@ -311,6 +311,10 @@ pub struct ExternalLink {
     /// AniList has switched the link off: the service no longer carries the title.
     #[serde(default)]
     pub is_disabled: bool,
+    /// AniList's free text about the link. It sometimes names the country the link works in
+    /// (`JP`), or a language, or says what the link is.
+    #[serde(default)]
+    pub notes: Option<String>,
 }
 
 impl ExternalLink {
@@ -989,6 +993,12 @@ impl Media {
                 Some((number, url.to_owned()))
             })
             .collect()
+    }
+
+    /// Each episode's own page on a streaming service, by the episode numbers this entry uses.
+    /// The same listings as [`Self::episode_titles`], with their addresses and services.
+    pub fn episode_listings(&self) -> std::collections::BTreeMap<u32, &StreamingEpisode> {
+        self.listings_by_episode()
     }
 
     /// Deep link for a specific episode, if a service published one.

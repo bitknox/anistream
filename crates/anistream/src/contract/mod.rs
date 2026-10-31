@@ -20,6 +20,7 @@ mod follow;
 mod home;
 mod jobs;
 mod keep_next;
+mod licensed;
 mod lists;
 mod preview;
 mod progress;
