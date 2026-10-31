@@ -270,6 +270,33 @@ pub struct Shell {
     party_asked: Cell<bool>,
 }
 
+/// The size for a first launch: 80% of the monitor under the pointer (else the first monitor),
+/// at least 1280 by 800 and at most the monitor itself. The window manager places it.
+fn first_size() -> (i32, i32) {
+    let Some(display) = gtk::gdk::Display::default() else {
+        return (1280, 800);
+    };
+    let monitors = display.monitors();
+    let under_pointer =
+        display.default_seat().and_then(|seat| seat.pointer()).and_then(|pointer| {
+            let (surface, _, _) = pointer.surface_at_position();
+            surface.and_then(|s| display.monitor_at_surface(&s))
+        });
+    let monitor = under_pointer
+        .or_else(|| monitors.item(0).and_then(|m| m.downcast::<gtk::gdk::Monitor>().ok()));
+    match monitor {
+        Some(m) => {
+            let area = m.geometry();
+            (fit(area.width(), 1280), fit(area.height(), 800))
+        }
+        None => (1280, 800),
+    }
+}
+
+fn fit(area: i32, least: i32) -> i32 {
+    (area * 4 / 5).max(least).min(area.max(1))
+}
+
 impl Shell {
     pub fn build(
         app: &adw::Application,
@@ -280,11 +307,12 @@ impl Shell {
         tv: Rc<crate::tv::Tv>,
         fixtures: bool,
     ) -> Rc<Self> {
+        let (width, height) = prefs.saved_size().unwrap_or_else(first_size);
         let window = adw::ApplicationWindow::builder()
             .application(app)
             .title("anistream")
-            .default_width(prefs.width())
-            .default_height(prefs.height())
+            .default_width(width)
+            .default_height(height)
             .width_request(360)
             .height_request(360)
             .build();
@@ -1611,5 +1639,17 @@ mod tests {
         assert_eq!(sign_in_return("anistream://join/abc"), None);
         assert_eq!(sign_in_return("anistream://party?server=a&room=b&title=1&episode=2"), None);
         assert_eq!(sign_in_return("anistream://auth/"), None);
+    }
+}
+
+#[cfg(test)]
+mod first_size_tests {
+    use super::fit;
+
+    #[test]
+    fn a_first_window_is_four_fifths_within_the_floor_and_the_monitor() {
+        assert_eq!(fit(3840, 1280), 3072);
+        assert_eq!(fit(1440, 1280), 1280);
+        assert_eq!(fit(1024, 1280), 1024);
     }
 }

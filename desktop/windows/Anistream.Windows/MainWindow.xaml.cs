@@ -191,7 +191,8 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// The window where it was last left (size, position and maximised), when that still lies on
-    /// a display; otherwise 1280 by 800, centred. The minimum is 500 by 420.
+    /// a display; otherwise 80% of the display's work area (at least 1280 by 800, at most the work area), centred.
+    /// The minimum is 500 by 420.
     /// </summary>
     void Size()
     {
@@ -210,8 +211,8 @@ public sealed partial class MainWindow : Window
             placed = true;
             return;
         }
-        var width = options.Width is { } w ? (int)(w * scale) : Math.Min((int)(1280 * scale), area.Width);
-        var height = options.Height is { } h ? (int)(h * scale) : Math.Min((int)(800 * scale), area.Height);
+        var width = options.Width is { } w ? (int)(w * scale) : Math.Min(Math.Max((int)(area.Width * 0.8), (int)(1280 * scale)), area.Width);
+        var height = options.Height is { } h ? (int)(h * scale) : Math.Min(Math.Max((int)(area.Height * 0.8), (int)(800 * scale)), area.Height);
         AppWindow.MoveAndResize(new RectInt32(
             area.X + Math.Max(0, (area.Width - width) / 2), area.Y + Math.Max(0, (area.Height - height) / 2), width, height));
         placed = true;
