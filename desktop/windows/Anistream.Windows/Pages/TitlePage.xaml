@@ -17,7 +17,7 @@
       <!-- The banner across the content, up to 360 high, the ground over its lower part. -->
       <Grid x:Name="Banner" VerticalAlignment="Top" Height="300">
         <Grid x:Name="Art">
-          <Image x:Name="BannerImage" Stretch="UniformToFill" VerticalAlignment="Center" />
+          <Image x:Name="BannerImage" Stretch="UniformToFill" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
           <Rectangle x:Name="Scrim">
             <Rectangle.Fill>
               <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -41,7 +41,7 @@
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid x:Name="CoverFrame" Width="120" Height="180" CornerRadius="8" VerticalAlignment="Bottom">
-              <Image x:Name="CoverImage" Stretch="UniformToFill" />
+              <Image x:Name="CoverImage" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
             </Grid>
             <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="6">
               <TextBlock x:Name="ShowTitle" Style="{StaticResource ShowTitleLargeStyle}" />
@@ -133,7 +133,7 @@
                       Margin="-12,4,0,0" AutomationProperties.Name="{x:Bind s:T.TitleEpisodes}">
               <ListView.ItemTemplate>
                 <DataTemplate x:DataType="local:EpisodeItem">
-                  <Grid Height="72" Margin="0,4" ColumnSpacing="14" AutomationProperties.Name="{x:Bind Name}" Opacity="{x:Bind Dim}">
+                  <Grid MinHeight="72" Margin="0,4" ColumnSpacing="14" AutomationProperties.Name="{x:Bind Name}" Opacity="{x:Bind Dim}">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="128" />
                       <ColumnDefinition Width="*" />
@@ -150,7 +150,7 @@
                       </MenuFlyout>
                     </Grid.ContextFlyout>
                     <Grid Width="128" Height="72" CornerRadius="6" Background="{ThemeResource RaisedBrush}">
-                      <Image Source="{x:Bind Still, Mode=OneWay}" Stretch="UniformToFill" />
+                      <Image Source="{x:Bind Still, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
                       <!-- A still past the next episode, blurred: the spoiler pattern. -->
                       <Border Visibility="{x:Bind SpoilerShown}" Background="{ThemeResource SpoilerBrush}" />
                     </Grid>
@@ -159,14 +159,14 @@
                       <TextBlock Text="{x:Bind Line}" Style="{StaticResource HazeCaptionStyle}" />
                       <!-- The quiet row under a watched episode whose discussion the engine found. -->
                       <HyperlinkButton Content="{x:Bind DiscussionLine, Mode=OneWay}" Visibility="{x:Bind DiscussionShown, Mode=OneWay}"
-                                       Click="OnEpisodeDiscussion" Tag="{x:Bind}" Padding="0" MinHeight="0" FontSize="12"
+                                       Click="OnEpisodeDiscussion" Tag="{x:Bind}" Padding="0,3" MinHeight="24" FontSize="12"
                                        Foreground="{ThemeResource HazeBrush}" ToolTipService.ToolTip="{x:Bind s:T.DiscussionOpen}">
                         <HyperlinkButton.Resources>
                           <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="#E4E0D6" />
                           <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="#E4E0D6" />
                         </HyperlinkButton.Resources>
                       </HyperlinkButton>
-                      <ProgressBar Value="{x:Bind Watched}" Maximum="1" Width="160" HorizontalAlignment="Left" Visibility="{x:Bind PartWay}" />
+                      <ProgressBar Value="{x:Bind Watched}" Maximum="1" Width="160" HorizontalAlignment="Left" Visibility="{x:Bind PartWay}" AutomationProperties.AccessibilityView="Raw" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <!-- The episode's download: Download on hover or focus, then how far, then a check.

@@ -64,3 +64,52 @@ player-mini-tip = Stays on top. Press { $key } to go back.
 # @arg label: text
 # @arg value: text
 player-stats-row = { $label }: { $value }
+
+# A length of time said for a screen reader, in hours. It is joined with minutes and seconds.
+# @only windows
+# @arg count: int
+player-spoken-hours = { $count ->
+    [one] { $count } hour
+   *[other] { $count } hours
+}
+
+# A length of time said for a screen reader, in minutes. It is joined with hours and seconds.
+# @only windows
+# @arg count: int
+player-spoken-minutes = { $count ->
+    [one] { $count } minute
+   *[other] { $count } minutes
+}
+
+# A length of time said for a screen reader, in seconds. It is joined with hours and minutes.
+# @only windows
+# @arg count: int
+player-spoken-seconds = { $count ->
+    [one] { $count } second
+   *[other] { $count } seconds
+}
+
+# What a screen reader says for the seek bar: where the playhead is and how long the episode is.
+# Both times are already spoken in full, such as "12 minutes 4 seconds".
+# @only windows
+# @arg position: text
+# @arg duration: text
+player-position-spoken = { $position } of { $duration }
+
+# What a screen reader says for the volume slider. The number is 0 to 100.
+# @only windows
+# @arg percent: int
+player-volume-spoken = { $percent } percent
+
+# Name of the volume button while the sound is off. The button opens the volume slider.
+# @only windows
+player-volume-muted = Volume, muted
+
+# Name of the full screen button while the window is full screen. Pressing it leaves full screen.
+# @only windows
+player-exit-fullscreen = Exit full screen
+
+# Name of the account entry in the navigation pane, followed by its state.
+# @only windows
+# @arg state: text
+accounts-pane-name = Account, { $state }

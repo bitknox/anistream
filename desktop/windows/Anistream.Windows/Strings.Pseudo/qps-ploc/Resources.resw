@@ -1343,6 +1343,50 @@
     <value>[{label}: {value}~~~]</value>
     <comment>Screen reader name of one row in Stats for nerds: "Dropped frames: 3".</comment>
   </data>
+  <data name="PlayerSpokenHours_one" xml:space="preserve">
+    <value>[{count} ĥöüŕ~~~]</value>
+    <comment>A length of time said for a screen reader, in hours. It is joined with minutes and seconds.</comment>
+  </data>
+  <data name="PlayerSpokenHours_other" xml:space="preserve">
+    <value>[{count} ĥöüŕš~~~]</value>
+    <comment>A length of time said for a screen reader, in hours. It is joined with minutes and seconds.</comment>
+  </data>
+  <data name="PlayerSpokenMinutes_one" xml:space="preserve">
+    <value>[{count} ɱîñüţé~~~]</value>
+    <comment>A length of time said for a screen reader, in minutes. It is joined with hours and seconds.</comment>
+  </data>
+  <data name="PlayerSpokenMinutes_other" xml:space="preserve">
+    <value>[{count} ɱîñüţéš~~~~]</value>
+    <comment>A length of time said for a screen reader, in minutes. It is joined with hours and seconds.</comment>
+  </data>
+  <data name="PlayerSpokenSeconds_one" xml:space="preserve">
+    <value>[{count} šéçöñð~~~]</value>
+    <comment>A length of time said for a screen reader, in seconds. It is joined with hours and minutes.</comment>
+  </data>
+  <data name="PlayerSpokenSeconds_other" xml:space="preserve">
+    <value>[{count} šéçöñðš~~~~]</value>
+    <comment>A length of time said for a screen reader, in seconds. It is joined with hours and minutes.</comment>
+  </data>
+  <data name="PlayerPositionSpoken" xml:space="preserve">
+    <value>[{position} öƒ {duration}~~~]</value>
+    <comment>What a screen reader says for the seek bar: where the playhead is and how long the episode is. Both times are already spoken in full, such as "12 minutes 4 seconds".</comment>
+  </data>
+  <data name="PlayerVolumeSpoken" xml:space="preserve">
+    <value>[{percent} þéŕçéñţ~~~~]</value>
+    <comment>What a screen reader says for the volume slider. The number is 0 to 100.</comment>
+  </data>
+  <data name="PlayerVolumeMuted" xml:space="preserve">
+    <value>[Ṽöļüɱé, ɱüţéð~~~~]</value>
+    <comment>Name of the volume button while the sound is off. The button opens the volume slider.</comment>
+  </data>
+  <data name="PlayerExitFullscreen" xml:space="preserve">
+    <value>[Éẋîţ ƒüļļ šçŕééñ~~~~~]</value>
+    <comment>Name of the full screen button while the window is full screen. Pressing it leaves full screen.</comment>
+  </data>
+  <data name="AccountsPaneName" xml:space="preserve">
+    <value>[Åççöüñţ, {state}~~~~]</value>
+    <comment>Name of the account entry in the navigation pane, followed by its state.</comment>
+  </data>
   <data name="SettingsLoading" xml:space="preserve">
     <value>[Ļöàðîñĝ šéţţîñĝš~~~~~]</value>
     <comment>Busy line while Settings waits for the engine's values.</comment>

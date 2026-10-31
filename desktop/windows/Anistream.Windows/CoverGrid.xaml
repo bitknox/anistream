@@ -27,7 +27,7 @@
           </ItemContainer.ContextFlyout>
           <StackPanel Width="150" Spacing="2" Padding="0,0,0,6">
             <Grid Tag="cover" Width="150" Height="225" CornerRadius="8" Background="{x:Bind Placeholder}" Margin="0,0,0,6">
-              <Image Source="{x:Bind Cover, Mode=OneWay}" Stretch="UniformToFill" />
+              <Image Source="{x:Bind Cover, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
             </Grid>
             <TextBlock Text="{x:Bind Title}" Style="{StaticResource ShowTitleStyle}" MaxLines="2" TextWrapping="WrapWholeWords" />
             <TextBlock Text="{x:Bind Caption}" Style="{StaticResource HazeCaptionStyle}" />

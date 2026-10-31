@@ -10,7 +10,7 @@
   <Page.Resources>
     <CollectionViewSource x:Name="Groups" IsSourceGrouped="True" />
     <DataTemplate x:Key="QueueRowTemplate" x:DataType="local:QueueRow">
-            <Grid Height="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
+            <Grid MinHeight="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
               <Grid.ContextFlyout>
                 <MenuFlyout>
                   <MenuFlyoutItem Text="{x:Bind MenuPlay}" Click="OnMenuPlay" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}">
@@ -40,18 +40,18 @@
                 <ColumnDefinition Width="*" />
               </Grid.ColumnDefinitions>
               <Grid Width="36" Height="54" CornerRadius="6" Background="{x:Bind Cover.Placeholder}">
-                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
+                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
               </Grid>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                 <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" />
                 <TextBlock Text="{x:Bind Lead}" Style="{StaticResource HazeCaptionStyle}" />
                 <ProgressBar Maximum="1" Value="{x:Bind Fraction}" Height="3" MinHeight="3" Margin="0,2,0,0"
-                             Visibility="{x:Bind MeterShown}" IsHitTestVisible="False" />
+                             Visibility="{x:Bind MeterShown}" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
               </StackPanel>
             </Grid>
           </DataTemplate>
     <DataTemplate x:Key="SuggestionRowTemplate" x:DataType="local:QueueRow">
-            <Grid Height="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
+            <Grid MinHeight="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
               <Grid.ContextFlyout>
                 <MenuFlyout>
                   <MenuFlyoutItem Text="{x:Bind s:T.TitleButtonPlay(1)}" Click="OnSuggestionPlay" Tag="{x:Bind}" Visibility="{x:Bind PlayShown}">
@@ -74,7 +74,7 @@
                 <ColumnDefinition Width="*" />
               </Grid.ColumnDefinitions>
               <Grid Width="36" Height="54" CornerRadius="6" Background="{x:Bind Cover.Placeholder}">
-                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
+                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
               </Grid>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                 <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" />
@@ -131,13 +131,13 @@
       <ScrollViewer Grid.Column="1" x:Name="Preview" VerticalScrollBarVisibility="Auto" Padding="0,0,0,24">
         <StackPanel x:Name="PreviewBody" Spacing="12" MaxWidth="720" HorizontalAlignment="Stretch">
           <Grid x:Name="Banner" CornerRadius="8" Background="{ThemeResource RaisedBrush}" MaxHeight="360"
-                Tapped="OnBannerTapped" SizeChanged="OnBannerSizeChanged" AutomationProperties.Name="{x:Bind s:T.TitleOpen}">
-            <Image x:Name="BannerImage" Stretch="UniformToFill" />
+                Tapped="OnBannerTapped" SizeChanged="OnBannerSizeChanged" AutomationProperties.AccessibilityView="Raw">
+            <Image x:Name="BannerImage" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
           </Grid>
           <TextBlock x:Name="PreviewTitle" Style="{StaticResource ShowTitleLargeStyle}" Margin="0,8,0,0" />
           <TextBlock x:Name="EpisodeLine" Style="{StaticResource BodyLargeTextBlockStyle}" />
           <StackPanel x:Name="Meter" Spacing="6">
-            <ProgressBar x:Name="EpisodeProgress" Maximum="1" Width="320" HorizontalAlignment="Left" />
+            <ProgressBar x:Name="EpisodeProgress" Maximum="1" Width="320" HorizontalAlignment="Left" AutomationProperties.AccessibilityView="Raw" />
             <TextBlock x:Name="LeftLine" Style="{StaticResource HazeCaptionStyle}" />
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
@@ -178,7 +178,7 @@
                         Click="OnWelcomeOpen" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind Name}">
                   <StackPanel>
                     <Grid Height="152" CornerRadius="4" Background="{x:Bind Cover.Placeholder}">
-                      <Image Source="{x:Bind Art, Mode=OneWay}" Stretch="UniformToFill" />
+                      <Image Source="{x:Bind Art, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
                     </Grid>
                     <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" Margin="0,8,0,0" />
                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -214,7 +214,7 @@
                           Click="OnWelcomeOpen" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind Name}">
                     <StackPanel>
                       <Grid Width="132" Height="198" CornerRadius="4" Background="{x:Bind Cover.Placeholder}">
-                        <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
                       </Grid>
                       <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" FontSize="14" LineHeight="19" Margin="0,8,0,0" />
                     </StackPanel>

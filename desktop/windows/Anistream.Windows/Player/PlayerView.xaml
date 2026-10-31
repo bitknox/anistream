@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="using:Anistream.App"
+    xmlns:player="using:Anistream.Windows.Player"
     RequestedTheme="Dark" IsTabStop="True" TabFocusNavigation="Cycle"
     KeyboardAcceleratorPlacementMode="Hidden">
   <UserControl.KeyboardAccelerators>
@@ -48,7 +49,7 @@
 
       <!-- The starting screen: the banner full frame, the episode and a 32 px ring. -->
       <Grid x:Name="Starting" Background="{ThemeResource GroundBrush}" Visibility="Collapsed">
-        <Image x:Name="StartingArt" Stretch="UniformToFill" Opacity="0.45" />
+        <Image x:Name="StartingArt" Stretch="UniformToFill" Opacity="0.45" AutomationProperties.AccessibilityView="Raw" />
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
           <TextBlock x:Name="StartingShow" Style="{StaticResource ShowTitleLargeStyle}" HorizontalAlignment="Center" TextAlignment="Center" />
           <TextBlock x:Name="StartingLine" Style="{StaticResource BodyLargeTextBlockStyle}" HorizontalAlignment="Center"
@@ -172,7 +173,7 @@
                fill are clear so only its thumb shows. -->
           <Grid Grid.Column="4" VerticalAlignment="Center">
             <Canvas x:Name="TimelineUnder" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
-            <Slider x:Name="Timeline" VerticalAlignment="Center" Minimum="0" Maximum="1" StepFrequency="1"
+            <player:SpokenSlider x:Name="Timeline" VerticalAlignment="Center" Minimum="0" Maximum="1" StepFrequency="1" SmallChange="5" LargeChange="30"
                     IsThumbToolTipEnabled="False" ValueChanged="OnTimelineChanged" AutomationProperties.Name="{x:Bind app:T.PlayerPosition}"
                     PointerExited="OnTimelineExited" SizeChanged="OnTimelineSized">
               <Slider.Resources>
@@ -183,7 +184,7 @@
                 <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="Transparent" />
                 <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="Transparent" />
               </Slider.Resources>
-            </Slider>
+            </player:SpokenSlider>
           </Grid>
           <TextBlock x:Name="Remaining" Grid.Column="5" Text="-0:00" VerticalAlignment="Center" Margin="4,0,6,0" Style="{StaticResource BodyTextBlockStyle}"
                      Typography.NumeralAlignment="Tabular" AutomationProperties.AccessibilityView="Raw" />
@@ -191,7 +192,7 @@
             <FontIcon x:Name="VolumeIcon" Glyph="&#xE767;" FontSize="16" />
             <Button.Flyout>
               <Flyout Placement="Top" Opened="OnMenuOpened" Closed="OnMenuClosed">
-                <Slider x:Name="VolumeSlider" Width="160" Minimum="0" Maximum="100" StepFrequency="5" Value="100"
+                <player:SpokenSlider x:Name="VolumeSlider" Width="160" Minimum="0" Maximum="100" StepFrequency="5" Value="100"
                         ValueChanged="OnVolumeChanged" AutomationProperties.Name="{x:Bind app:T.PlayerVolume}" />
               </Flyout>
             </Button.Flyout>
@@ -281,7 +282,7 @@
             <ColumnDefinition Width="*" />
           </Grid.ColumnDefinitions>
           <Border x:Name="UpNextStillFrame" Width="160" Height="90" CornerRadius="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-            <Image x:Name="UpNextStill" Stretch="UniformToFill" />
+            <Image x:Name="UpNextStill" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
           </Border>
           <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
             <TextBlock Text="{x:Bind app:T.PlayerUpNext}" Style="{StaticResource HazeCaptionStyle}" />
@@ -289,9 +290,9 @@
                        MaxLines="3" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
             <TextBlock x:Name="UpNextLine" Style="{StaticResource HazeCaptionStyle}" Typography.NumeralAlignment="Tabular" Margin="0,4,0,0" />
           </StackPanel>
-          <ProgressBar x:Name="UpNextBar" Grid.Row="1" Grid.ColumnSpan="2" Maximum="1" Visibility="Collapsed" />
+          <ProgressBar x:Name="UpNextBar" Grid.Row="1" Grid.ColumnSpan="2" Maximum="1" Visibility="Collapsed" AutomationProperties.AccessibilityView="Raw" />
           <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-            <Button Content="{x:Bind app:T.ActionCancel}" Click="OnCancelNext" />
+            <Button x:Name="UpNextCancel" Content="{x:Bind app:T.ActionCancel}" Click="OnCancelNext" />
             <Button Content="{x:Bind app:T.ActionPlayNow}" Style="{StaticResource AccentButtonStyle}" Click="OnPlayNext" />
           </StackPanel>
         </Grid>
