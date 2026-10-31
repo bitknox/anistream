@@ -17,10 +17,12 @@ allow it for anistream too.
 
 ### Android TV
 
-`anistream-@VERSION@-android-tv.apk`, for Android TV and Google TV on Android 11 or later. One file
-runs on 32-bit and 64-bit ARM boxes, including the Chromecast with Google TV.
+`anistream-@VERSION@-android-tv-arm64.apk` or `anistream-@VERSION@-android-tv-armv7.apk`, for
+Android TV and Google TV on Android 11 or later. Most TV boxes, including the Chromecast with
+Google TV, run a 32-bit system and take the armv7 file; the Nvidia Shield and newer boxes take the
+arm64 file. If the install says the app is not compatible, try the other file.
 
-Install it with a sideloading app on the TV, or with `adb install anistream-@VERSION@-android-tv.apk`
+Install it with a sideloading app on the TV, or with `adb install` and the file's name
 from a computer on the same network. It is signed with the same release key as the phone app and
 installs beside it. It is not on Google Play. Pair it with your phone from the TV's first screen.
 

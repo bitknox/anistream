@@ -316,9 +316,10 @@ jobs:
           done
           (cd dist && sha256sum "$name.apk" > "$name.apk.sha256")
 
-      # The TV app, signed with the same key the same way: one APK with the engine and libmpv for
-      # arm64-v8a and for the 32-bit armeabi-v7a most TV boxes run, from Android 11.
-      - name: Sign and check the TV APK
+      # The TV app, signed with the same key the same way: one APK for each ABI, the engine and
+      # libmpv for arm64-v8a and for the 32-bit armeabi-v7a most TV boxes run, from Android 11.
+      # Both carry the one versionCode; the in-app updater picks the file by the app's ABI.
+      - name: Sign and check the TV APKs
         env:
           STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
@@ -327,43 +328,44 @@ jobs:
           tools="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
           built=android/tv/build/outputs/apk/app/release
           ls -l "$built"
-          name="anistream-$VERSION-android-tv"
-          if [[ -f "$built/tv-app-release.apk" ]]; then
-            cp "$built/tv-app-release.apk" "dist/$name.apk"
-          elif [[ -n "${KEYSTORE_FILE:-}" ]]; then
-            "$tools/apksigner" sign --alignment-preserved --v4-signing-enabled false \
-              --ks "$KEYSTORE_FILE" --ks-type PKCS12 --ks-key-alias "$KEY_ALIAS" \
-              --ks-pass env:STORE_PASSWORD --key-pass env:KEY_PASSWORD \
-              --out "dist/$name.apk" "$built/tv-app-release-unsigned.apk"
-          else
-            name="$name-unsigned"
-            cp "$built/tv-app-release-unsigned.apk" "dist/$name.apk"
-          fi
-          apk="dist/$name.apk"
+          for pair in arm64-v8a:arm64 armeabi-v7a:armv7; do
+            abi="${pair%%:*}"
+            name="anistream-$VERSION-android-tv-${pair##*:}"
+            if [[ -f "$built/tv-app-$abi-release.apk" ]]; then
+              cp "$built/tv-app-$abi-release.apk" "dist/$name.apk"
+            elif [[ -n "${KEYSTORE_FILE:-}" ]]; then
+              "$tools/apksigner" sign --alignment-preserved --v4-signing-enabled false \
+                --ks "$KEYSTORE_FILE" --ks-type PKCS12 --ks-key-alias "$KEY_ALIAS" \
+                --ks-pass env:STORE_PASSWORD --key-pass env:KEY_PASSWORD \
+                --out "dist/$name.apk" "$built/tv-app-$abi-release-unsigned.apk"
+            else
+              name="$name-unsigned"
+              cp "$built/tv-app-$abi-release-unsigned.apk" "dist/$name.apk"
+            fi
+            apk="dist/$name.apk"
 
-          if [[ -n "${KEYSTORE_FILE:-}" ]]; then
-            "$tools/apksigner" verify --min-sdk-version 30 "$apk"
-          fi
-          "$tools/zipalign" -c -P 16 4 "$apk"
-          badging="$("$tools/aapt2" dump badging "$apk")"
-          head -1 <<<"$badging"
-          [[ "$badging" == *"package: name='tv.anistream.tv'"* ]]
-          [[ "$badging" == *"versionCode='$BUILD_NUMBER'"* && "$badging" == *"versionName='$VERSION'"* ]] ||
-            { echo "::error::The TV APK is not numbered $VERSION ($BUILD_NUMBER)"; exit 1; }
-          grep -E "^(sdkVersion|minSdkVersion|native-code)" <<<"$badging"
-          grep -q -E "^(min)?[sS]dkVersion:'30'" <<<"$badging" ||
-            { echo "::error::The TV APK's minimum is not Android 11"; exit 1; }
-          abis="$(sed -n "s/^native-code: //p" <<<"$badging" | tr -d "'" | tr ' ' '\n' | sort | tr '\n' ' ')"
-          [[ "$abis" == "arm64-v8a armeabi-v7a " ]] ||
-            { echo "::error::The TV APK carries ABIs '$abis', not exactly arm64-v8a and armeabi-v7a"; exit 1; }
-          contents="$(unzip -l "$apk")"
-          for abi in arm64-v8a armeabi-v7a; do
+            if [[ -n "${KEYSTORE_FILE:-}" ]]; then
+              "$tools/apksigner" verify --min-sdk-version 30 "$apk"
+            fi
+            "$tools/zipalign" -c -P 16 4 "$apk"
+            badging="$("$tools/aapt2" dump badging "$apk")"
+            head -1 <<<"$badging"
+            [[ "$badging" == *"package: name='tv.anistream.tv'"* ]]
+            [[ "$badging" == *"versionCode='$BUILD_NUMBER'"* && "$badging" == *"versionName='$VERSION'"* ]] ||
+              { echo "::error::The TV APK is not numbered $VERSION ($BUILD_NUMBER)"; exit 1; }
+            grep -E "^(sdkVersion|minSdkVersion|native-code)" <<<"$badging"
+            grep -q -E "^(min)?[sS]dkVersion:'30'" <<<"$badging" ||
+              { echo "::error::The TV APK's minimum is not Android 11"; exit 1; }
+            abis="$(sed -n "s/^native-code: //p" <<<"$badging" | tr -d "'" | tr ' ' '\n' | sort | tr '\n' ' ')"
+            [[ "$abis" == "$abi " ]] ||
+              { echo "::error::The TV APK carries ABIs '$abis', not exactly $abi"; exit 1; }
+            contents="$(unzip -l "$apk")"
             for entry in libanistream_ffi.so libmpv.so libavcodec.so libanistream_mpv.so; do
               grep -q " lib/$abi/$entry\$" <<<"$contents" || { echo "::error::The TV APK has no lib/$abi/$entry"; exit 1; }
             done
+            grep -q " assets/licences/player/NOTICE\$" <<<"$contents" || { echo "::error::The TV APK has no player NOTICE"; exit 1; }
+            (cd dist && sha256sum "$name.apk" > "$name.apk.sha256")
           done
-          grep -q " assets/licences/player/NOTICE\$" <<<"$contents" || { echo "::error::The TV APK has no player NOTICE"; exit 1; }
-          (cd dist && sha256sum "$name.apk" > "$name.apk.sha256")
 
       - name: Forget the release key
         if: always()

@@ -75,14 +75,16 @@ permission back afterwards, go to **Settings › Apps › Special app access ›
 
 ### Android TV
 
-`anistream-<version>-android-tv.apk`, for Android TV or Google TV 11 or later on 32-bit or 64-bit
-ARM. It is a separate app from the phone one, made for the remote.
+`anistream-<version>-android-tv-arm64.apk` or `anistream-<version>-android-tv-armv7.apk`, for
+Android TV or Google TV 11 or later. Most TV boxes, including the Chromecast with Google TV, run a
+32-bit system and take the armv7 file; the Nvidia Shield and newer boxes take the arm64 file. If
+the install says the app is not compatible, try the other one. It is a separate app from the phone one, made for the remote.
 
 With the Downloader app, on the TV itself:
 
 1. Install **Downloader** from Google Play on the TV.
 2. In Downloader, enter `github.com/bitknox/anistream/releases/latest`. The release page opens.
-   Under **Assets**, choose the file that ends in `-android-tv.apk`.
+   Under **Assets**, choose the file that ends in `-android-tv-armv7.apk` or `-android-tv-arm64.apk`.
 3. Android asks whether Downloader may install apps. Allow it, go back, and choose **Install**. On
    most TVs the setting is under **Settings › Apps › Security & restrictions › Unknown sources**.
 
@@ -95,7 +97,7 @@ With adb, from a computer on the same network:
 3. On the computer, run `adb connect <the TV's address>` and accept the prompt on the TV, then:
 
    ```sh
-   adb install anistream-<version>-android-tv.apk
+   adb install anistream-<version>-android-tv-armv7.apk
    ```
 
    If the TV offers **Wireless debugging** with a pairing code instead, run

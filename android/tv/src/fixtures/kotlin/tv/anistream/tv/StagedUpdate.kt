@@ -108,7 +108,7 @@ class StagedUpdate(
         /** The made-up release: a newer version, its size and the first lines of its notes. */
         val OFFER = UpdateOffer(
             version = "2.1.0",
-            url = "https://updates.example/anistream-2.1.0-android-tv.apk",
+            url = "https://updates.example/anistream-2.1.0-android-tv-arm64.apk",
             sha256 = "ab".repeat(32),
             bytes = 48_234_496,
             page = "https://updates.example/releases/v2.1.0",

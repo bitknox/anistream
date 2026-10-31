@@ -29,9 +29,13 @@ pub struct Release {
     /// The Android app, `anistream-<version>-android-arm64.apk`.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub android: Option<ReleaseAsset>,
-    /// The Android TV app, `anistream-<version>-android-tv.apk`.
+    /// The Android TV app for 64-bit ARM, `anistream-<version>-android-tv-arm64.apk`.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub android_tv: Option<ReleaseAsset>,
+    /// The Android TV app for 32-bit ARM, `anistream-<version>-android-tv-armv7.apk`, for the TV
+    /// boxes whose system runs 32-bit apps only.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub android_tv_armv7: Option<ReleaseAsset>,
     /// The Windows app's per-user installer for x64, `anistream-<version>-windows-x64-setup.exe`.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub windows_x64: Option<ReleaseAsset>,

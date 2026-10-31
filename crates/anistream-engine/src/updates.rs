@@ -196,7 +196,8 @@ impl Answer {
             macos: file(format!("anistream-{version}-macos.dmg")),
             ios: file(format!("anistream-{version}-ios-unsigned.ipa")),
             android: file(format!("anistream-{version}-android-arm64.apk")),
-            android_tv: file(format!("anistream-{version}-android-tv.apk")),
+            android_tv: file(format!("anistream-{version}-android-tv-arm64.apk")),
+            android_tv_armv7: file(format!("anistream-{version}-android-tv-armv7.apk")),
             windows_x64: file(format!("anistream-{version}-windows-x64-setup.exe")),
             windows_arm64: file(format!("anistream-{version}-windows-arm64-setup.exe")),
             linux_x86_64: file(format!("anistream-{version}-linux-x86_64.AppImage")),
@@ -389,7 +390,8 @@ async fn ask(http: &HttpClient, api: &str, current: &str, now: i64) -> Result<An
         format!("anistream-{version}-macos.dmg"),
         format!("anistream-{version}-ios-unsigned.ipa"),
         format!("anistream-{version}-android-arm64.apk"),
-        format!("anistream-{version}-android-tv.apk"),
+        format!("anistream-{version}-android-tv-arm64.apk"),
+        format!("anistream-{version}-android-tv-armv7.apk"),
         format!("anistream-{version}-windows-x64-setup.exe"),
         format!("anistream-{version}-windows-arm64-setup.exe"),
         format!("anistream-{version}-linux-x86_64.AppImage"),
@@ -685,7 +687,8 @@ mod tests {
                 "macos.dmg",
                 "ios-unsigned.ipa",
                 "android-arm64.apk",
-                "android-tv.apk",
+                "android-tv-arm64.apk",
+                "android-tv-armv7.apk",
                 "windows-x64-setup.exe",
                 "windows-arm64-setup.exe",
                 "linux-x86_64.AppImage",
@@ -821,20 +824,23 @@ mod tests {
         assert_eq!(android.name, "anistream-2.0.3-android-arm64.apk");
         assert_eq!((android.sha256, android.size), ("2".repeat(64), 1002));
         let tv = release.android_tv.expect("the TV's file");
-        assert_eq!(tv.name, "anistream-2.0.3-android-tv.apk");
+        assert_eq!(tv.name, "anistream-2.0.3-android-tv-arm64.apk");
         assert_eq!((tv.sha256, tv.size), ("3".repeat(64), 1003));
+        let tv32 = release.android_tv_armv7.expect("the 32-bit TV's file");
+        assert_eq!(tv32.name, "anistream-2.0.3-android-tv-armv7.apk");
+        assert_eq!((tv32.sha256, tv32.size), ("4".repeat(64), 1004));
         let windows = release.windows_x64.expect("Windows' x64 installer");
         assert_eq!(windows.name, "anistream-2.0.3-windows-x64-setup.exe");
-        assert_eq!((windows.sha256, windows.size), ("4".repeat(64), 1004));
+        assert_eq!((windows.sha256, windows.size), ("5".repeat(64), 1005));
         let windows = release.windows_arm64.expect("Windows' Arm64 installer");
         assert_eq!(windows.name, "anistream-2.0.3-windows-arm64-setup.exe");
-        assert_eq!((windows.sha256, windows.size), ("5".repeat(64), 1005));
+        assert_eq!((windows.sha256, windows.size), ("6".repeat(64), 1006));
         let linux = release.linux_x86_64.expect("Linux's x86_64 AppImage");
         assert_eq!(linux.name, "anistream-2.0.3-linux-x86_64.AppImage");
-        assert_eq!((linux.sha256, linux.size), ("6".repeat(64), 1006));
+        assert_eq!((linux.sha256, linux.size), ("7".repeat(64), 1007));
         let linux = release.linux_aarch64.expect("Linux's aarch64 AppImage");
         assert_eq!(linux.name, "anistream-2.0.3-linux-aarch64.AppImage");
-        assert_eq!((linux.sha256, linux.size), ("7".repeat(64), 1007));
+        assert_eq!((linux.sha256, linux.size), ("8".repeat(64), 1008));
     }
 
     #[tokio::test]

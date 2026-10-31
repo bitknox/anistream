@@ -88,7 +88,7 @@ if (( ! notes_only )); then
     "$p-amd64.deb" "$p-x86_64.AppImage"
   expect "$terminal" "$p-rust-licences.txt"
   expect_checked "$apps" \
-    "$p-android-arm64.apk" "$p-android-tv.apk" "$p-macos.dmg" "$p-ios-unsigned.ipa" \
+    "$p-android-arm64.apk" "$p-android-tv-arm64.apk" "$p-android-tv-armv7.apk" "$p-macos.dmg" "$p-ios-unsigned.ipa" \
     "$p-apps-third-party.zip" "$p-apps-sources.tar" \
     "$p-windows-x64-setup.exe" "$p-windows-arm64-setup.exe" \
     "$p-linux-x86_64.AppImage" "$p-linux-aarch64.AppImage"
