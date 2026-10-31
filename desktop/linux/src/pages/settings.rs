@@ -1462,7 +1462,12 @@ fn about_pane(page: &adw::PreferencesPage) {
 }
 
 fn version() -> String {
-    t::about_version(anistream_engine::updates::CURRENT)
+    let current = anistream_engine::updates::CURRENT;
+    if crate::updates::RUNNING_BETA.load(std::sync::atomic::Ordering::Relaxed) {
+        t::about_version(&t::updates_version_beta(current))
+    } else {
+        t::about_version(current)
+    }
 }
 
 /// The About dialog: the app icon, the version, the legal line and the notices.

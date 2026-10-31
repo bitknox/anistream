@@ -122,7 +122,8 @@ impl Updater {
                     self.download();
                 }
             }
-            UpdateStatus::UpToDate { .. } => {
+            UpdateStatus::UpToDate { running_beta, .. } => {
+                crate::updates::RUNNING_BETA.store(*running_beta, std::sync::atomic::Ordering::Relaxed);
                 self.release.replace(None);
                 self.stop();
             }

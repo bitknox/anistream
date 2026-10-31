@@ -212,6 +212,7 @@ public static class Updates
         return status switch
         {
             UpdateStatus.Checking => T.UpdatesChecking,
+            UpdateStatus.UpToDate { StableBehind: { } behind } => T.UpdatesStableBehind(behind),
             UpdateStatus.UpToDate => T.UpdatesUpToDate,
             UpdateStatus.Available a when installsHere => T.UpdatesVersionOut(a.Release.Version),
             UpdateStatus.Available a => T.UpdatesVersionOutPage(a.Release.Version),

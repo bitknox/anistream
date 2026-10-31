@@ -1240,6 +1240,8 @@ public class UpdateTests
         Assert.Equal("Not checked yet", Updates.Line(null, UpdateState.Idle, false, false));
         Assert.Equal("Checks once you're back online", Updates.Line(null, UpdateState.Idle, true, false));
         Assert.Equal("Up to date", Updates.Line(new UpdateStatus.UpToDate(null, false), UpdateState.Idle, false, false));
+        Assert.Equal("You have 2.3.4, a beta. Updates resume when a newer stable version is out.",
+            Updates.Line(new UpdateStatus.UpToDate("2.3.4", true), UpdateState.Idle, false, false));
         Assert.Equal("Not checked. Check your connection and try again.", Updates.Line(new UpdateStatus.Failed("gitHub could not be reached"), UpdateState.Idle, false, false));
         Assert.Equal("Version 2.1.0 is out", Updates.Line(available, UpdateState.Idle, false, true));
         Assert.Equal("Version 2.1.0 is out. Its page has the installer.", Updates.Line(available, UpdateState.Idle, false, false));

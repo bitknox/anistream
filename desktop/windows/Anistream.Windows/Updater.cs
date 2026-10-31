@@ -44,6 +44,9 @@ sealed class Updater
     /// <summary>This machine's installer in the release on offer, when it has one.</summary>
     public ReleaseAsset? Installer => release is null ? null : Updates.InstallerFor(release, RuntimeInformation.OSArchitecture);
 
+    /// <summary>Whether the build running is a beta, a release not yet made the stable one, as the last check found.</summary>
+    public bool RunningBeta { get; private set; }
+
     /// <summary>The version running: the one About shows.</summary>
     public static string Current => typeof(Updater).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
@@ -68,7 +71,8 @@ sealed class Updater
                 if (State.Version != release.Version || State.Step == UpdateStep.Idle)
                     Download();
                 break;
-            case UpdateStatus.UpToDate:
+            case UpdateStatus.UpToDate upToDate:
+                RunningBeta = upToDate.RunningBeta;
                 release = null;
                 Stop();
                 break;
