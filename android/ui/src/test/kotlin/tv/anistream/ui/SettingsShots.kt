@@ -119,7 +119,7 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_settings_hidden() = shoot("phone-settings-hidden", settingsRoute(SettingsPane.Hidden)) { store ->
         val hidden = listOf(900002u, 900003u, 900004u).mapNotNull { store.titles[it] }.mapIndexed { i, entry ->
-            tv.anistream.engine.model.HiddenTitle(entry = entry, untilAirs = i == 0)
+            tv.anistream.engine.model.HiddenTitle(entry = entry, untilAirs = i == 0, hiddenAt = System.currentTimeMillis() / 1000 - (i + 1) * 3 * 86_400L)
         }
         store.apply(listOf(Event.HiddenTitles(hidden)))
     }

@@ -157,7 +157,6 @@ private fun HomeItem.detail(context: Context): String? {
         UpNextReason.NEW_SEASON -> Strings.homeReasonNewSeason(context)
         UpNextReason.PLANNING -> Strings.homeReasonPlanning(context)
         UpNextReason.RECOMMENDED -> Strings.homeReasonRecommended(context)
-        UpNextReason.AIRING_TODAY -> Strings.upNextReasonAiringToday(context)
         null -> null
     }
     val starts = starts?.words()?.let { Strings.upNextStarts(context, it) }

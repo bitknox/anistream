@@ -221,7 +221,6 @@ private fun HomeItem.cardLine(context: android.content.Context): String? {
         UpNextReason.NEW_SEASON -> Strings.homeReasonNewSeason(context)
         UpNextReason.PLANNING -> Strings.homeReasonPlanning(context)
         UpNextReason.RECOMMENDED -> Strings.homeReasonRecommended(context)
-        UpNextReason.AIRING_TODAY -> Strings.upNextReasonAiringToday(context)
         null -> null
     }
     val airs = airsAt?.let { at ->
