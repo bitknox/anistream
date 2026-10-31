@@ -51,7 +51,9 @@ import tv.anistream.store.AccountsModel
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.store.AppStore
 import tv.anistream.store.CodeCountdown
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.remote.QrCode
@@ -60,6 +62,10 @@ import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.entryFocus
+import tv.anistream.tv.ui.focusSoon
+import tv.anistream.tv.ui.rememberScreenReader
+import tv.anistream.tv.ui.spelled
+import tv.anistream.tv.ui.spokenBlock
 
 /** How [tracker] signs in on a TV, or that it does not ([None]). */
 enum class SignInWay { Page, DeviceCode, None }
@@ -235,7 +241,16 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
         }
+        val codeFocus = remember { FocusRequester() }
+        val reader by rememberScreenReader()
+        // A screen reader starts on the code and the address, and says a new code when one comes.
+        LaunchedEffect(reader, shown?.code) { if (reader && shown?.code != null) codeFocus.focusSoon() }
+        val spoken = shown?.let { "${spelled(it.code)}. ${it.url}" } // i18n-skip
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Column(
+            (if (spoken != null) Modifier.spokenBlock(spoken, codeFocus) else Modifier),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
             val code = shown?.code
             if (code != null) {
                 Text(
@@ -247,6 +262,7 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
                 Text(stringResource(R.string.tv_signin_asking_code), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
             shown?.let { Text(it.url, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze) }
+          }
             shown?.let { CodeExpiry(it, onExpired = { expired = true }) }
         }
     }
@@ -277,6 +293,8 @@ private fun CodeExpiry(prompt: DeviceCodePrompt, onExpired: () -> Unit) {
             CodeCountdown.line(left),
             style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
             color = if (left == 0L) ObiSilk.Silk else ObiSilk.Haze,
+            // The ticking count is not read out each second; "Code expired" is said once.
+            modifier = if (left == 0L) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier,
         )
     }
 }

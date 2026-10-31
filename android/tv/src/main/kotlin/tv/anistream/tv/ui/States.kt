@@ -3,6 +3,7 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.res.stringResource
 import tv.anistream.i18n.Strings
 import tv.anistream.i18n.R
@@ -68,7 +69,7 @@ fun isOffline(): Boolean = LocalAppStore.current.offline.collectAsStateWithLifec
 @Composable
 fun OfflineLine(modifier: Modifier = Modifier) {
     Row(
-        modifier.semantics(mergeDescendants = true) {},
+        modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -240,14 +241,24 @@ fun NoticeView(shown: ShownNotice?, modifier: Modifier = Modifier) {
 /** Remove animations is on: timed motion lands at once, and nothing turns. */
 val LocalReducedMotion = staticCompositionLocalOf { false }
 
-/** Whether the system's animator duration scale is 0, read once as the root composes. */
+/** Whether the system's animator duration scale is 0, read as the root composes and again whenever it changes. */
 @Composable
 fun rememberReducedMotion(): Boolean {
     val context = LocalContext.current
-    return remember {
-        runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }
-            .getOrDefault(1f) == 0f
+    fun read() = runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }
+        .getOrDefault(1f) == 0f
+    var reduced by remember { mutableStateOf(read()) }
+    DisposableEffect(context) {
+        val observer = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                reduced = read()
+            }
+        }
+        context.contentResolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer)
+        reduced = read()
+        onDispose { context.contentResolver.unregisterContentObserver(observer) }
     }
+    return reduced
 }
 
 /** Fade in on the fade-in token, or at once with Remove animations. */

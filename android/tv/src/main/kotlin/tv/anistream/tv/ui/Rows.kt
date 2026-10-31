@@ -35,6 +35,12 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -80,7 +86,16 @@ fun TvListRow(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = height).onFocusChanged { focused = it.isFocused },
+        modifier = modifier.fillMaxWidth().heightIn(min = height).onFocusChanged { focused = it.isFocused }
+            // The drawn switch and dot, said: Autoplay is on, this track is the selected one.
+            .semantics {
+                if (switch != null) {
+                    role = Role.Switch
+                    toggleableState = ToggleableState(switch)
+                } else if (selected) {
+                    this.selected = true
+                }
+            },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (selected) ObiSilk.AmberContainer else Color.Transparent,
@@ -107,7 +122,7 @@ fun TvListRow(
                 Spacer(Modifier.width(12.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (supporting != null) {
                     val quiet = if (focused || selected) LocalContentColor.current else ObiSilk.Haze
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -210,7 +225,9 @@ fun TvTab(
     chip: Boolean = false,
 ) {
     var focused by remember { mutableStateOf(false) }
-    if (settle != null) {
+    // Selecting on focus changes the page under a screen reader without a word; there, Center selects.
+    val screenReader by rememberScreenReader()
+    if (settle != null && !screenReader) {
         LaunchedEffect(focused, selected) {
             if (focused && !selected) {
                 delay(settle)
@@ -220,7 +237,11 @@ fun TvTab(
     }
     Surface(
         onClick = onSelect,
-        modifier = modifier.height(40.dp).onFocusChanged { focused = it.isFocused },
+        modifier = modifier.heightIn(min = 40.dp).onFocusChanged { focused = it.isFocused }
+            .semantics {
+                role = Role.Tab
+                this.selected = selected
+            },
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = when {
@@ -236,7 +257,7 @@ fun TvTab(
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
-        Row(Modifier.padding(PaddingValues(horizontal = 16.dp)).height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(PaddingValues(horizontal = 16.dp)).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
             if (count != null) {
                 Spacer(Modifier.width(8.dp))

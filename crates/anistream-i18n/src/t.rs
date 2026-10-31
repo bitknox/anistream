@@ -9365,6 +9365,16 @@ pub fn player_position() -> String {
     text("player-position", &[])
 }
 
+/// Accessibility action on the seek bar: go to the start of the chapter before.
+pub fn player_chapter_previous() -> String {
+    text("player-chapter-previous", &[])
+}
+
+/// Accessibility action on the seek bar: go to the start of the next chapter.
+pub fn player_chapter_next() -> String {
+    text("player-chapter-next", &[])
+}
+
 /// Accessibility label of the volume control.
 pub fn player_volume() -> String {
     text("player-volume", &[])

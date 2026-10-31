@@ -1365,6 +1365,8 @@
     <string name="tv_hero_resume">Resume %1$s</string>
     <!-- TV, Continue hero: the amber action for an episode the viewer has not started. -->
     <string name="tv_hero_start">Play %1$s</string>
+    <!-- Poster card, spoken: the state of a title that has a new episode, which the water dot shows. -->
+    <string name="poster_new">New</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
@@ -2692,6 +2694,10 @@
     <string name="player_forward_10">Forward 10 seconds</string>
     <!-- Accessibility label of the seek bar. -->
     <string name="player_position">Position</string>
+    <!-- Accessibility action on the seek bar: go to the start of the chapter before. -->
+    <string name="player_chapter_previous">Previous chapter</string>
+    <!-- Accessibility action on the seek bar: go to the start of the next chapter. -->
+    <string name="player_chapter_next">Next chapter</string>
     <!-- Accessibility label of the volume control. -->
     <string name="player_volume">Volume</string>
     <!-- Note on screen after the volume changed. The number is a percentage. -->

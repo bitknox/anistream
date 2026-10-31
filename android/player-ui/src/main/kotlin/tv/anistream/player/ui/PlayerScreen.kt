@@ -69,6 +69,15 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onLayoutRectChanged
@@ -78,7 +87,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -219,7 +231,35 @@ fun PlayerScreen(
         }
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
+    // A hardware keyboard, or a switch interface that sends keys: the player answers them, and any
+    // key brings the controls up. Keys act on the player only while it holds focus itself; a
+    // focused button or the seek bar keeps its own Space and arrows.
+    val keys = remember { FocusRequester() }
+    var keysFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { runCatching { keys.requestFocus() } }
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .focusRequester(keys)
+            .onFocusChanged { keysFocused = it.isFocused }
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown || model.inPip) return@onPreviewKeyEvent false
+                model.poke()
+                if (sheet != null) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.Escape -> { close(); true }
+                    else -> if (!keysFocused) false else when (event.key) {
+                        Key.Spacebar, Key.K -> { model.togglePause(); true }
+                        Key.DirectionLeft -> { model.seekBy(-SEEK_STEP); true }
+                        Key.DirectionRight -> { model.seekBy(SEEK_STEP); true }
+                        // Up and Down show the controls (done above) and move focus onto them.
+                        else -> false
+                    }
+                }
+            }
+            .focusable(),
+    ) {
         val rect = videoRect(maxWidth, maxHeight, model.aspect ?: (16.0 / 9.0))
         val density = LocalDensity.current
         val pip = model.inPip
@@ -371,7 +411,13 @@ fun PlayerScreen(
             }
         }
 
-        AnimatedVisibility(chromeVisible, enter = fadeIn(Motion.fadeIn()), exit = fadeOut(Motion.fadeOut())) {
+        // "Still watching?" is the only thing a screen reader reaches while it shows.
+        AnimatedVisibility(
+            chromeVisible,
+            modifier = if (model.stillWatching) Modifier.clearAndSetSemantics { } else Modifier,
+            enter = fadeIn(Motion.fadeIn()),
+            exit = fadeOut(Motion.fadeOut()),
+        ) {
             PlayerChrome(
                 model,
                 onClose = { still.freeze(surfaceView) { close() } },
@@ -385,7 +431,7 @@ fun PlayerScreen(
 
         if (still.frame == null && !pip) {
             CornerCard(model, chromeVisible, { ground.value }, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 88.dp))
-            ResumeNote(model, Modifier.align(Alignment.BottomStart).padding(start = 48.dp, bottom = 88.dp))
+            ResumeNote(model, Modifier.align(Alignment.BottomStart).padding(start = 48.dp, bottom = 84.dp))
             AlertNote(model, Modifier.align(Alignment.TopCenter).padding(top = 80.dp))
             StillWatching(model)
         }
@@ -519,23 +565,24 @@ private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onC
                 val failure = model.failure
                 if (failure != null) {
                     // It never played: said where the viewer is looking, with another source to choose.
-                    Text(Strings.playerFailedTitleText(LocalContext.current, failure.episode), style = line, color = ObiSilk.Silk)
+                    Text(Strings.playerFailedTitleText(LocalContext.current, failure.episode), style = line, color = ObiSilk.Silk, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                     Text(
                         // Why, as the engine said it, when it did.
                         failure.reasonText(LocalContext.current)?.let { "$it." } ?: stringResource(R.string.player_failed_detail), // i18n-skip
                         style = MaterialTheme.typography.bodyMedium,
                         color = ObiSilk.Haze,
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier.padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 } else {
+                    val loading = stringResource(R.string.state_loading)
                     CircularProgressIndicator(
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(32.dp).semantics { contentDescription = loading },
                         color = ObiSilk.Silk,
                         strokeWidth = 3.dp,
                         trackColor = Color.Transparent,
                     )
                     Spacer(Modifier.height(16.dp))
-                    Text(model.startingLine(LocalContext.current) ?: model.startingEpisode?.let { Strings.playerStartingText(LocalContext.current, it) }.orEmpty(), style = line, color = ObiSilk.Silk)
+                    Text(model.startingLine(LocalContext.current) ?: model.startingEpisode?.let { Strings.playerStartingText(LocalContext.current, it) }.orEmpty(), style = line, color = ObiSilk.Silk, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                 }
                 StartingChoices(model, onChooseSource)
             }

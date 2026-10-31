@@ -81,7 +81,8 @@ fun ReleasesPanel(choices: List<SourceCandidate>?, onPick: (SourceCandidate) -> 
     BackHandler(onBack = onClose)
     Column(
         modifier
-            .width(400.dp)
+            .width(panelWidth())
+            .panelFocus(stringResource(R.string.player_choose_source))
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
             .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),

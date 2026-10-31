@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +50,10 @@ import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.entryFocus
+import tv.anistream.tv.ui.focusSoon
+import tv.anistream.tv.ui.rememberScreenReader
+import tv.anistream.tv.ui.spelled
+import tv.anistream.tv.ui.spokenBlock
 
 /** A QR code of [text], silk modules on ground with a quiet zone of four, [size] square. */
 @Composable
@@ -81,11 +87,12 @@ fun qr(text: String): BitMatrix = QRCodeWriter().encode(
 fun grouped(code: String): String = if (code.length == 6) "${code.take(3)} ${code.drop(3)}" else code
 
 @Composable
-private fun Code(code: String) {
+private fun Code(code: String, modifier: Modifier = Modifier) {
     Text(
         grouped(code),
         style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Monospace, letterSpacing = 4.sp),
         color = ObiSilk.Silk,
+        modifier = modifier,
     )
 }
 
@@ -94,6 +101,12 @@ private fun Code(code: String) {
 fun PairRequestDialog(request: PairRequest, onCancel: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
         val cancel = remember { FocusRequester() }
+        val codeFocus = remember { FocusRequester() }
+        val reader by rememberScreenReader()
+        // A screen reader starts on the question and the code, read together, then the button.
+        LaunchedEffect(reader, request.code) { if (reader) codeFocus.focusSoon() }
+        val title = stringResource(R.string.tv_pair_request, request.phone)
+        val detail = stringResource(R.string.tv_pair_request_detail)
         Column(
             Modifier
                 .entryFocus(cancel)
@@ -102,9 +115,11 @@ fun PairRequestDialog(request: PairRequest, onCancel: () -> Unit) {
                 .padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(stringResource(R.string.tv_pair_request, request.phone), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
-            Code(request.code)
-            Text(stringResource(R.string.tv_pair_request_detail), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            Column(Modifier.spokenBlock("$title ${spelled(request.code)}. $detail", codeFocus), verticalArrangement = Arrangement.spacedBy(16.dp)) { // i18n-skip
+                Text(title, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+                Code(request.code)
+                Text(detail, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            }
             Spacer(Modifier.height(8.dp))
             TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(cancel)) { ButtonLabel(stringResource(R.string.action_cancel)) }
         }
@@ -183,11 +198,20 @@ fun PairPage(name: String, code: String?, link: String?, address: String?, onClo
                 } else {
                     Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.tv_or_enter_code), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
+                val enter = stringResource(R.string.tv_or_enter_code)
+                val thisTv = address?.let { stringResource(R.string.tv_this_tv, name, it) }
+                val codeFocus = remember { FocusRequester() }
+                val reader by rememberScreenReader()
+                // A screen reader starts on the code, and says a new one when it changes.
+                LaunchedEffect(reader, code) { if (reader && code != null) codeFocus.focusSoon() }
+                Column(
+                    Modifier.spokenBlock(listOfNotNull(enter, code?.let(::spelled), thisTv).joinToString(". "), codeFocus), // i18n-skip
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(enter, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
                     if (code != null) Code(code) else Text(stringResource(R.string.downloads_notice_starting), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
-                    if (address != null) {
-                        Text(stringResource(R.string.tv_this_tv, name, address), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                    if (thisTv != null) {
+                        Text(thisTv, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
                     }
                 }
             }

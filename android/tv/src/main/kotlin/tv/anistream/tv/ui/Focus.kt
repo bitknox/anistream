@@ -159,7 +159,8 @@ fun Modifier.entryFocus(target: FocusRequester): Modifier {
         target.focusSoon()
         holding = false
     }
-    return focusRequester(holder).focusProperties { canFocus = holding }.focusable()
+    // Once focus has moved on it is not a stop for a screen reader either: a nameless, screen-sized node.
+    return focusRequester(holder).focusProperties { canFocus = holding }.then(if (holding) Modifier.focusable() else Modifier)
 }
 
 /** This item is remembered under [key] in [memory], and focused again when the screen returns. */

@@ -5141,6 +5141,12 @@ public enum L {
     /// Accessibility label of the seek bar.
     public static var playerPosition: String { string("player-position", fallback: "Position") }
 
+    /// Accessibility action on the seek bar: go to the start of the chapter before.
+    public static var playerChapterPrevious: String { string("player-chapter-previous", fallback: "Previous chapter") }
+
+    /// Accessibility action on the seek bar: go to the start of the next chapter.
+    public static var playerChapterNext: String { string("player-chapter-next", fallback: "Next chapter") }
+
     /// Accessibility label of the volume control.
     public static var playerVolume: String { string("player-volume", fallback: "Volume") }
 

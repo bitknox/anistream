@@ -3,6 +3,10 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.foundation.focusGroup
+import androidx.compose.ui.ExperimentalComposeUiApi
 import tv.anistream.i18n.Strings
 import android.content.Context
 import tv.anistream.i18n.R
@@ -35,6 +39,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -100,6 +106,28 @@ fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * A 400 dp panel's width: wider with the font size, 600 dp at twice the size, so rows have the
+ * room to wrap in. A wide panel (the match search) keeps the width it asked for.
+ */
+@Composable
+fun panelWidth(base: Dp = 400.dp): Dp {
+    if (base > 400.dp) return base
+    val scale = LocalDensity.current.fontScale
+    return base + (base * 0.5f) * (scale - 1f).coerceIn(0f, 1f)
+}
+
+/**
+ * A panel holds focus while it is open: the D-pad does not leave it for what is behind (Back closes
+ * it), and a screen reader hears its title as it opens.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun Modifier.panelFocus(title: String): Modifier =
+    focusProperties { exit = { FocusRequester.Cancel } }
+        .focusGroup()
+        .semantics { paneTitle = title }
+
 /** A panel's end padding: its rows stop at the safe area's edge, 48 in from the screen's. */
 val PANEL_END = 48.dp
 
@@ -111,7 +139,8 @@ private fun Sheet(host: ActionsHost, sheet: ActionSheet, modifier: Modifier) {
     val first = remember(sheet) { FocusRequester() }
     Column(
         modifier
-            .width(sheet.width)
+            .width(panelWidth(sheet.width))
+            .panelFocus(sheet.title)
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
             // Rows end on the safe area's edge, 48 in from the screen's.

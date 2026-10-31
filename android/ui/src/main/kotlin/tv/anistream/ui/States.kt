@@ -4,6 +4,8 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
 import tv.anistream.i18n.R
 import androidx.compose.ui.res.stringResource
 import tv.anistream.store.plainReason
@@ -156,7 +158,7 @@ internal fun after(active: Boolean, millis: Long = JobsModel.DELAY_MILLIS): Bool
 internal fun WorkRing(working: Boolean, modifier: Modifier = Modifier) {
     AnimatedVisibility(after(working), modifier, enter = fadeIn(Motion.fadeIn()), exit = fadeOut(Motion.fadeOut())) {
         CircularProgressIndicator(
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.loadingName().size(16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0f),
             strokeWidth = 2.dp,
@@ -438,3 +440,14 @@ internal fun Swipeable(start: SwipeAction?, end: SwipeAction?, modifier: Modifie
         },
     ) { content() }
 }
+
+/** A spinner's name for a screen reader, so it is not an unnamed progress bar. */
+@Composable
+internal fun Modifier.loadingName(): Modifier {
+    val name = stringResource(R.string.state_loading)
+    return semantics { contentDescription = name }
+}
+
+/** Lines a one-line title may take: two once the text is much larger than usual, so a fixed-width card does not cut it. */
+@Composable
+internal fun largeTextLines(): Int = if (LocalDensity.current.fontScale > 1.3f) 2 else 1

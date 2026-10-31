@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.semantics.contentDescription
 import tv.anistream.engine.ffi.trailerEmbeddable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -127,7 +128,7 @@ fun TrailerSheet(entry: Entry, trailer: Trailer, onDismiss: () -> Unit) {
                         if (hero != HeroArt.Compact) ArtworkImage(url = hero.url, plate = null, maxPixelSize = pixels(412.dp), modifier = Modifier.fillMaxSize())
                     }
                 }
-                if (spinner && !playing && !failed) CircularProgressIndicator(Modifier.align(Alignment.Center).size(32.dp))
+                if (spinner && !playing && !failed) CircularProgressIndicator(Modifier.loadingName().align(Alignment.Center).size(32.dp))
                 if (failed && !playing) {
                     Column(
                         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),

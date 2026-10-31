@@ -78,7 +78,16 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,6 +112,9 @@ import tv.anistream.store.AppClock
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.ButtonLabel
+import tv.anistream.tv.ui.panelFocus
+import tv.anistream.tv.ui.panelWidth
+import tv.anistream.tv.ui.rememberScreenReader
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.LocalReducedMotion
 import tv.anistream.tv.ui.PANEL_END
@@ -164,9 +176,13 @@ fun TvPlayerScreen(
     var headAt by remember { mutableStateOf<Double?>(null) }
     var heldSince by remember { mutableLongStateOf(0L) }
 
+    // A screen reader keeps the chrome up, and Up next waits for it: it reads only what takes focus.
+    val screenReader by rememberScreenReader()
+    LaunchedEffect(screenReader) { model.assisted = screenReader }
+
     // A playback that failed keeps the starting screen up, saying so.
     val starting = model.starting != null || !model.hasPicture || model.failure != null
-    val chrome = !starting && (model.paused || panel != null || headAt != null || model.clock - model.lastInput < CHROME_HIDE)
+    val chrome = !starting && (model.paused || panel != null || headAt != null || model.clock - model.lastInput < CHROME_HIDE || model.assisted)
     val skip = model.skip?.takeIf { model.corner == PlayerModel.Corner.Skip }
     val skipFresh = skip != null && model.clock - skip.since < SKIP_FRESH
 
@@ -317,6 +333,7 @@ fun TvPlayerScreen(
         }
     }
 
+    val rootName = "${model.showTitle}, ${model.episodeLine(context)}" // i18n-skip
     Box(
         modifier
             .fillMaxSize()
@@ -348,13 +365,21 @@ fun TvPlayerScreen(
                 }
             }
             .focusRequester(root)
+            // With the chrome hidden the root holds focus; it says what is playing rather than nothing.
+            .semantics { if (!chrome && !starting) contentDescription = rootName }
             .onKeyEvent { event -> if (!chrome && !starting) hiddenKey(event) else false }
             .onFocusChanged { onRoot = it.isFocused }
             .focusable(),
     ) {
         video(Modifier.fillMaxSize())
         StartingLayer(model, starting, onClose = { model.viewerClosed() })
-        AnimatedVisibility(visible = chrome, enter = enterFade(), exit = exitFade()) {
+        AnimatedVisibility(
+            visible = chrome,
+            // A panel over it is all a screen reader reaches.
+            modifier = if (panel != null) Modifier.clearAndSetSemantics { } else Modifier,
+            enter = enterFade(),
+            exit = exitFade(),
+        ) {
             Chrome(
                 model,
                 headAt = headAt,
@@ -574,13 +599,17 @@ private fun Chrome(
         }
         // Bottom: the times over the seek bar, then the buttons, which end on the safe area's edge.
         Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 48.dp, end = 48.dp, bottom = 27.dp)) {
-            Row(Modifier.fillMaxWidth()) {
+            // The seek bar says the times itself; reading these as well would say them twice.
+            Row(Modifier.fillMaxWidth().clearAndSetSemantics { }) {
                 Text(clockTime(headAt ?: position), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
                 Spacer(Modifier.weight(1f))
                 if (duration > 0) Text(remainingTime(headAt ?: position, duration), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
             }
             Spacer(Modifier.height(6.dp))
-            SeekBar(position, duration, headAt, model.segments, model.buffered, Modifier.focusRequester(barFocus), onBarKey)
+            SeekBar(
+                position, duration, headAt, model.segments, model.buffered, Modifier.focusRequester(barFocus), onBarKey,
+                onSeekTo = model::seekTo, onSeekBy = model::seekBy,
+            )
             Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TonalButton(
@@ -602,6 +631,44 @@ private fun Chrome(
 }
 
 /**
+ * What a screen reader gets of the seek bar: its name, the place in words, a range in 10 s steps
+ * that TalkBack's adjust gesture moves, and the same two jumps as the remote's keys.
+ */
+@Composable
+internal fun Modifier.seekSemantics(
+    position: Double,
+    duration: Double,
+    headAt: Double?,
+    onSeekTo: (Double) -> Unit,
+    onSeekBy: (Double) -> Unit,
+): Modifier {
+    val context = LocalContext.current
+    val name = stringResource(R.string.player_position)
+    val back = stringResource(R.string.player_back_10)
+    val forward = stringResource(R.string.player_forward_10)
+    val at = (headAt ?: position).coerceIn(0.0, maxOf(duration, 0.0))
+    val state = if (duration > 0) Strings.playerPositionState(context, spokenTime(at), spokenTime(duration)) else null
+    return semantics(mergeDescendants = true) {
+        contentDescription = name
+        state?.let { stateDescription = it }
+        if (duration > 0) {
+            progressBarRangeInfo = ProgressBarRangeInfo(at.toFloat(), 0f..duration.toFloat(), maxOf(0, (duration / SEEK_STEP).toInt() - 1))
+            setProgress { target ->
+                onSeekTo(target.toDouble().coerceIn(0.0, duration))
+                true
+            }
+            customActions = listOf(
+                CustomAccessibilityAction(back) { onSeekBy(-SEEK_STEP); true },
+                CustomAccessibilityAction(forward) { onSeekBy(SEEK_STEP); true },
+            )
+        }
+    }
+}
+
+/** The step TalkBack's adjust gesture and the two custom actions move the bar by. */
+private const val SEEK_STEP = 10.0
+
+/**
  * The seek bar, 6 high: amber played on the rule colour, what is buffered ahead in silk at 20 %, and
  * the opening and ending in water on top of both, so they show behind the playhead too.
  * Focused, it shows a head that Left and Right move without seeking, and Center jumps to.
@@ -615,6 +682,8 @@ private fun SeekBar(
     buffered: List<TimeRange>,
     modifier: Modifier,
     onKey: (KeyEvent) -> Boolean,
+    onSeekTo: (Double) -> Unit,
+    onSeekBy: (Double) -> Unit,
 ) {
     val interactions = remember { MutableInteractionSource() }
     val focused by interactions.collectIsFocusedAsState()
@@ -623,12 +692,14 @@ private fun SeekBar(
             .fillMaxWidth()
             .height(24.dp)
             .onKeyEvent(onKey)
+            .seekSemantics(position, duration, headAt, onSeekTo, onSeekBy)
             .focusable(interactionSource = interactions),
         contentAlignment = Alignment.CenterStart,
     ) {
         val width = maxWidth
         Canvas(Modifier.fillMaxWidth().height(24.dp)) {
-            val bar = 6.dp.toPx()
+            // Focused, the line thickens, so the remote's focus shows on more than a dot.
+            val bar = (if (focused) 10 else 6).dp.toPx()
             val top = (size.height - bar) / 2
             val radius = CornerRadius(bar / 2)
             drawRoundRect(ObiSilk.Rule, Offset(0f, top), Size(size.width, bar), radius)
@@ -707,19 +778,20 @@ private fun SkipPill(label: String, fresh: Boolean, modifier: Modifier) {
 private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, modifier: Modifier) {
     val current = remember { FocusRequester() }
     val list = remember { FocusRequester() }
+    val title = stringResource(when (panel) {
+        PlayerPanel.Episodes -> R.string.player_episodes
+        PlayerPanel.Tracks -> R.string.player_subtitles_and_audio
+        PlayerPanel.Sources -> R.string.show_settings_source
+        PlayerPanel.Info -> R.string.player_info
+    })
     Column(
         modifier
-            .width(400.dp)
+            .width(panelWidth())
+            .panelFocus(title)
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
             .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
     ) {
-        val title = stringResource(when (panel) {
-            PlayerPanel.Episodes -> R.string.player_episodes
-            PlayerPanel.Tracks -> R.string.player_subtitles_and_audio
-            PlayerPanel.Sources -> R.string.show_settings_source
-            PlayerPanel.Info -> R.string.player_info
-        })
         Text(title, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
         LazyColumn(Modifier.focusRequester(list).focusGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             when (panel) {
@@ -811,12 +883,15 @@ private fun Fading(visible: Boolean, modifier: Modifier, content: @Composable ()
  */
 @Composable
 private fun StallPrompt(model: PlayerModel, stall: tv.anistream.player.StallCard, switch: FocusRequester) {
+    val stallPane = stringResource(R.string.player_stall_detail)
     Column(
         Modifier
             // It comes up in place of the hidden root, which holds focus: taken through the card,
             // so Switch source is drawn focused, not only focused.
             .entryFocus(switch)
             .width(UP_NEXT_WIDTH)
+            // Said once as it comes up; the counting title is not read again each second.
+            .semantics { paneTitle = stallPane }
             .background(ObiSilk.RaisedHigh, RoundedCornerShape(16.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -842,9 +917,11 @@ private fun UpNextCard(model: PlayerModel, next: NextEpisode, play: FocusRequest
             if (play.tryFocus()) return@LaunchedEffect
         }
     }
+    val upNextPane = stringResource(R.string.player_up_next)
     Row(
         modifier
             .width(UP_NEXT_WIDTH)
+            .semantics { paneTitle = upNextPane }
             .background(ObiSilk.RaisedHigh, RoundedCornerShape(16.dp))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -885,10 +962,12 @@ private val UP_NEXT_WIDTH = 560.dp
 private fun StillWatchingDialog(model: PlayerModel) {
     androidx.compose.ui.window.Dialog(onDismissRequest = { model.continueWatching() }) {
         val keep = remember { FocusRequester() }
+        val stillWatchingPane = stringResource(R.string.player_still_watching)
         Column(
             Modifier
                 .entryFocus(keep)
                 .width(480.dp)
+                .semantics { paneTitle = stillWatchingPane }
                 .background(ObiSilk.RaisedHigh, RoundedCornerShape(28.dp))
                 .padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),

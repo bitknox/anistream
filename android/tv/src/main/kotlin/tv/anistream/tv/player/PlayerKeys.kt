@@ -6,6 +6,9 @@ package tv.anistream.tv.player
 
 import tv.anistream.i18n.Strings
 import android.content.Context
+import android.icu.text.MeasureFormat
+import android.icu.util.Measure
+import android.icu.util.MeasureUnit
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToLong
@@ -116,3 +119,14 @@ fun clockTime(seconds: Double): String {
 
 /** "−13:31", the time left. */
 fun remainingTime(position: Double, duration: Double): String = "−" + clockTime(duration - position)
+
+/** "12 minutes, 4 seconds": a time in words, in the viewer's language, for a screen reader. */
+fun spokenTime(seconds: Double): String {
+    val total = seconds.coerceAtLeast(0.0).toLong()
+    val parts = buildList {
+        if (total >= 3600) add(Measure(total / 3600, MeasureUnit.HOUR))
+        if (total >= 60) add(Measure(total / 60 % 60, MeasureUnit.MINUTE))
+        if (total % 60 > 0 || isEmpty()) add(Measure(total % 60, MeasureUnit.SECOND))
+    }
+    return MeasureFormat.getInstance(Locale.getDefault(), MeasureFormat.FormatWidth.WIDE).formatMeasures(*parts.toTypedArray())
+}

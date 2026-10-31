@@ -9,7 +9,8 @@ import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,7 +66,9 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -342,12 +345,27 @@ private fun CommentRow(
     var menu by remember { mutableStateOf(false) }
     var more by remember(comment.id) { mutableStateOf(false) }
     val pending = comment.pending != PostState.POSTED
+    val replyLabel = stringResource(R.string.discussion_reply)
+    val copyLabel = stringResource(R.string.discussion_copy_text)
+    val openLabel = stringResource(R.string.title_open_anilist)
     Row(
         Modifier
             .fillMaxWidth()
             .padding(start = if (depth == 0) 24.dp else 0.dp, end = 24.dp, top = 12.dp, bottom = 4.dp)
             .alpha(if (pending) 0.5f else 1f)
-            .combinedClickable(onClick = {}, onLongClick = { menu = true }),
+            // A long press opens the menu, as before; it is not a button, so nothing announces one.
+            .pointerInput(comment.id) { detectTapGestures(onLongPress = { menu = true }) }
+            // The same three things without the long press, for a screen reader.
+            .semantics {
+                customActions = buildList {
+                    if (view.canPost) add(CustomAccessibilityAction(replyLabel) { onReply(comment); true })
+                    add(CustomAccessibilityAction(copyLabel) {
+                        scope.launch { clipboard.setClipEntry(androidx.compose.ui.platform.ClipEntry(ClipData.newPlainText("", plain(comment)))) }
+                        true
+                    })
+                    add(CustomAccessibilityAction(openLabel) { store.openExternal(view.url); true })
+                }
+            },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         val tint = avatarTint(comment.author)
@@ -387,7 +405,7 @@ private fun CommentRow(
                 val liked = comment.liked
                 Row(
                     Modifier
-                        .heightIn(min = 36.dp)
+                        .heightIn(min = 48.dp)
                         .clickable(onClickLabel = stringResource(R.string.discussion_like)) { store.likeComment(comment.id) }
                         .padding(end = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -407,11 +425,10 @@ private fun CommentRow(
                     }
                 }
                 Spacer(Modifier.weight(1f))
-                if (comment.own) {
-                    Box {
-                        IconButton(onClick = { menu = true }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.More, contentDescription = stringResource(R.string.action_more), tint = colors.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                        }
+                // On every comment: Reply, Copy and Open on AniList are in it, not only Edit and Delete.
+                Box {
+                    IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.More, contentDescription = stringResource(R.string.action_more), tint = colors.onSurfaceVariant, modifier = Modifier.size(18.dp))
                     }
                 }
                 Menu(expanded = menu, onDismissRequest = { menu = false }) {

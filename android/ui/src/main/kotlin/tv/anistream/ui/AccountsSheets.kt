@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.semantics.LiveRegionMode
 import tv.anistream.i18n.Strings
 import tv.anistream.i18n.R
 import androidx.compose.ui.platform.LocalContext
@@ -316,6 +317,8 @@ internal fun CodeExpiry(prompt: DeviceCodePrompt, modifier: Modifier = Modifier,
             CodeCountdown.line(left),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = if (left == 0L) colors.onSurface else colors.onSurfaceVariant,
+            // The count is not read out each second; "Code expired" is said once.
+            modifier = if (left == 0L) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier,
         )
     }
 }
