@@ -711,7 +711,8 @@ mod tests {
             signed_in.contains("score(format: POINT_100)"),
             "a score on one scale whatever each person's list uses"
         );
-        assert!(!signed_in.contains("notes"), "no free text from other people");
+        // The title's own external links carry a notes field, so check the people's part alone.
+        assert!(!FOLLOWING.contains("notes"), "no free text from other people");
     }
 
     #[test]
