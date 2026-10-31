@@ -11,6 +11,7 @@ use anistream_core::ids::AnilistId;
 use crate::{
     Msg,
     catalog::{Entry, FuzzyDate, ResumePoint},
+    present::SeasonYear,
     search::SearchQuery,
     up_next::UpNextReason,
 };
@@ -47,7 +48,8 @@ pub struct HomeView {
     /// it nothing was kept, and the front end shows its offline state over what is local.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub offline: bool,
-    /// When what is shown offline was fetched, in Unix seconds: "Showing Home from 14:20".
+    /// When the oldest part shown offline was fetched, in Unix seconds: "Showing Home from
+    /// 14:20". Never later than any part shown, so the line never overstates how fresh it is.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub offline_since: Option<i64>,
     /// A part failed to load on this send, and only on this one: the front end raises one notice
@@ -55,6 +57,10 @@ pub struct HomeView {
     /// with `refresh`. What failed is left out, or stays as it was when it was already shown.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub failed: bool,
+    /// The season This season holds, for the front end to word beside its heading with its own
+    /// season names ("Autumn 2026"). `None` when there is no This season section.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub season: Option<SeasonYear>,
 }
 
 /// Part of Home that loads on its own, from AniList.
@@ -318,6 +324,7 @@ mod tests {
             offline: false,
             offline_since: None,
             failed: false,
+            season: None,
         }
     }
 

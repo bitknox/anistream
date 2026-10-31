@@ -915,6 +915,10 @@ mod tests {
             offline: true,
             offline_since: Some(1_799_990_000),
             failed: true,
+            season: Some(anistream_model::present::SeasonYear {
+                season: anistream_model::catalog::Season::Fall,
+                year: 2026,
+            }),
         })));
         crosses_intact(Event::Home(Box::default()));
         crosses_intact(Event::TitlePlayable {

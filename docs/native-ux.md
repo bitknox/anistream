@@ -315,6 +315,7 @@ The behaviour the Home board sets for every app (31 October 2026). The engine se
 - Spotlight actions are the main action (Resume episode 3, Play episode 1, or Add to Planning when no source has it), Details, Trailer and More. More holds Not interested for a suggestion or the popular pick, and Mark episode 3 as watched and Remove from Continue for a show in Continue. On TV the tonal Title page button stays beside the main action.
 - Continue cards are 272 × 153 pt on desktops and 240 × 135 pt on phones. Posters are 128 × 192 pt on desktops, 110 × 165 pt on phones and 118 × 177 dp on TV. A poster shows the short reason; the hover card and the accessibility label carry the full one.
 - This week is seven columns from today on desktops, and a list of the next three days on phones.
+- This season carries its season beside the heading (“This season · Autumn 2026”), worded by each app with its own season names from the season the engine sends.
 - A title appears once across the discovery shelves, and Up next for you leaves out the title the spotlight shows.
 - Desktop shelves page with arrows that show while the pointer is over the shelf.
 - On TV, focus starts on the spotlight's main action. A focused card gets the silk 3 dp ring 3 dp outside its art and scales to 1.05; the spotlight never scales.
@@ -366,7 +367,7 @@ Home has no empty state. Its empty sections are left out, and with nothing watch
 
 - `NWPathMonitor` drives one app-wide state. Cached screens stay usable, with “Offline. Downloaded episodes still play.” under the title in haze beside a `wifi.slash` glyph, not a coloured banner.
 - A screen with nothing cached shows `ContentUnavailableView` (“You're offline”) with Show downloads. Nothing is disabled ahead of time. When the connection returns, the line fades and the screen refreshes once.
-- Home offline shows what it last loaded, whatever its age, with “Offline. Showing Home from 14:20.” in the same place and style. With nothing saved it shows Nagare, “You're offline”, “Home needs a connection the first time it opens. Downloads still play.” and Open Downloads.
+- Home offline shows what it last loaded, whatever its age, with “Offline. Showing Home from 14:20.” in the same place and style. The time is when the oldest part shown was loaded. With nothing saved it shows Nagare, “You're offline”, “Home needs a connection the first time it opens. Downloads still play.” and Open Downloads.
 
 ### Errors
 

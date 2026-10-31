@@ -31,6 +31,7 @@ use anistream_model::{
         HomeSection, HomeView, Playable, SHELF_SHOWN, SUGGESTIONS_SHOWN, SectionKind,
         Spotlight, SpotlightCase, WEEK_DAYS,
     },
+    present::SeasonYear,
     present::{Casing, QueueItem},
     search::{SearchQuery, SearchSort},
     up_next::{UpNextAction, UpNextReason},
@@ -56,7 +57,6 @@ const PERSONAL_KEY: &str = "home:personal";
 const WEEK_KEY: &str = "home:week";
 const TODAY_KEY: &str = "home:today";
 /// When the last load had every part answer: what an offline Home says it is from.
-const LAST_KEY: &str = "home:last";
 const DAY: i64 = 86_400;
 /// The Continue rows looked at for something waiting. The heading counts the waiting ones.
 const CONTINUE_LOOKED_AT: u32 = 50;
@@ -193,11 +193,6 @@ struct SchedulePart {
     /// The titles of broadcasts the metadata cache did not have, as the schedule sent them.
     #[serde(default)]
     media: Vec<Media>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct Last {
-    at: i64,
 }
 
 fn kept<T: DeserializeOwned>(store: &Store, key: &str) -> Option<T> {
@@ -893,18 +888,23 @@ fn compose(
         || season.is_some()
         || kept::<SchedulePart>(store, WEEK_KEY).is_some()
         || kept::<SchedulePart>(store, TODAY_KEY).is_some();
+    // The oldest part shown, so the line never makes Home sound fresher than it is.
     let offline_since = (ask.offline && kept_any).then(|| {
-        kept::<Last>(store, LAST_KEY).map(|l| l.at).unwrap_or_else(|| {
-            [
-                personal.as_ref().map(|p| p.at),
-                season.as_ref().map(|p| p.at),
-                kept::<SchedulePart>(store, WEEK_KEY).map(|p| p.at),
-            ]
-            .into_iter()
-            .flatten()
-            .min()
-            .unwrap_or(now)
-        })
+        [
+            personal.as_ref().map(|p| p.at),
+            season.as_ref().map(|p| p.at),
+            kept::<SchedulePart>(store, WEEK_KEY).map(|p| p.at),
+            kept::<SchedulePart>(store, TODAY_KEY).map(|p| p.at),
+        ]
+        .into_iter()
+        .flatten()
+        .min()
+        .unwrap_or(now)
+    });
+    // The season This season holds, for the apps to word beside its heading.
+    let this_season = sections.iter().any(|s| s.kind == SectionKind::ThisSeason).then(|| {
+        let (season, year) = season_on(ask.now, &ask.zone);
+        SeasonYear { season, year: i32::from(year) }
     });
     HomeView {
         spotlight,
@@ -914,6 +914,7 @@ fn compose(
         offline: ask.offline,
         offline_since,
         failed: false,
+        season: this_season,
     }
 }
 
@@ -1063,7 +1064,7 @@ pub async fn load(lent: Lent, memory: HomeMemory, ask: HomeAsk) {
         outcome.is_ok()
     };
     let wanted = |part| due.contains(&part);
-    let (cards, season, personal, week, today) = tokio::join!(
+    tokio::join!(
         async {
             if stale.is_empty() {
                 return true;
@@ -1095,9 +1096,6 @@ pub async fn load(lent: Lent, memory: HomeMemory, ask: HomeAsk) {
             finish(Some(HomePart::Today), load_today(&meta, &store, &ask).await)
         },
     );
-    if cards && season && personal && week && today && !due.is_empty() {
-        keep(&store, LAST_KEY, &Last { at: ask.now });
-    }
 }
 
 /// Continue's titles whose cached record is missing or old: their airing is what says an

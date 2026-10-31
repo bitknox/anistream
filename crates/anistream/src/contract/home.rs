@@ -15,12 +15,14 @@ use anistream_core::{ids::AnilistId, media::SearchHit};
 use anistream_engine::clock::Clock;
 use anistream_model::{
     Msg,
+    catalog::Season,
     command::Command,
     event::Event,
     home::{
         HiddenTitle, HomeAction, HomeEnd, HomeLink, HomeView, Playable, SectionKind,
         SpotlightCase,
     },
+    present::SeasonYear,
     up_next::UpNextReason,
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
@@ -291,6 +293,8 @@ async fn the_popular_pick_is_the_most_popular_title_out_that_may_be_offered() {
         home.section(SectionKind::ThisSeason).unwrap().view_all,
         Some(HomeLink::SeasonalView)
     );
+    // The season beside the heading, for the apps to word with their own season names.
+    assert_eq!(home.season, Some(SeasonYear { season: Season::Fall, year: 2030 }));
 }
 
 #[tokio::test]
@@ -428,6 +432,7 @@ async fn a_cold_failure_still_ends_and_says_so() {
     assert!(sent.iter().any(|home| home.failed));
     assert!(home.pending.is_empty(), "nothing is left loading");
     assert!(home.end.is_some());
+    assert_eq!(home.season, None, "no This season, so no season beside it");
 }
 
 #[tokio::test]
@@ -450,6 +455,30 @@ async fn offline_shows_what_was_kept_and_since_when_and_asks_nothing() {
     assert!((since - now).abs() < 60, "{since} against {now}");
     assert_eq!(shelf(&home, SectionKind::ThisSeason), shelf(&shown, SectionKind::ThisSeason));
     assert_eq!(h.server().requests().len(), before, "nothing asked offline");
+}
+
+#[tokio::test]
+async fn offline_says_when_the_oldest_part_shown_was_fetched() {
+    let now = autumn();
+    let mut h = at(now, None).await;
+    season(&h, []);
+    watch(&h, FINISHED, 1..=12, now, 30 * DAY);
+    let first = last(&mut h).await;
+    assert!(first.section(SectionKind::ThisSeason).is_some());
+
+    // Twenty minutes on, the history moves: the suggestions are fetched again, the season kept.
+    h.advance_engine_clock(20 * 60);
+    watch(&h, PREQUEL, 1..=12, now + 20 * 60, 60);
+    h.send(Command::LoadRecentSearches);
+    let updates = h.settle().await;
+    let moved = homes(&updates).pop().expect("Home sent again as the history moved");
+    assert_eq!(spotlit(&moved), Some((POP_SEQUEL, SpotlightCase::Suggested)));
+
+    h.send(Command::NetworkPath { cellular: false, constrained: false, offline: true });
+    h.settle().await;
+    let home = last(&mut h).await;
+    let since = home.offline_since.expect("when what is shown was fetched");
+    assert!((since - now).abs() < 60, "the season's time, not the newer suggestions': {since}");
 }
 
 #[tokio::test]
