@@ -94,6 +94,16 @@ public class TrailerTests
     }
 
     [Fact]
+    public void ThePageFollowsTheSubtitleLanguageAndCanSwitchTrailers()
+    {
+        var entry = Titled(1, Clip);
+        Assert.Contains("\"de\"", Trailers.Page(entry, EmbedStyle.Banner, "ger"));
+        Assert.NotNull(AnistreamFfiMethods.TrailerLoadScript(Clip));
+        Assert.Contains("youtube", AnistreamFfiMethods.TrailerChromeScript());
+        Assert.Equal("a bad video id", Trailers.Meaning(2));
+    }
+
+    [Fact]
     public void MessagesFromThePageAreReadByTheEngine()
     {
         Assert.IsType<TrailerMessage.Playing>(AnistreamFfiMethods.TrailerMessage("playing"));

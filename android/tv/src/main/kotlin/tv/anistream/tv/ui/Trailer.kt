@@ -46,6 +46,7 @@ private val refusals = setOf(100, 101, 150)
 fun TrailerScreen(trailer: Trailer, onClose: () -> Unit) {
     val store = LocalAppStore.current
     val context = LocalContext.current
+    val subtitles = store.settings.row(tv.anistream.engine.model.SettingKey.SUBTITLES)?.value.orEmpty()
     var playing by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     var attempt by remember { mutableStateOf(0) }
@@ -53,7 +54,7 @@ fun TrailerScreen(trailer: Trailer, onClose: () -> Unit) {
     val player = remember(attempt) {
         failed = false
         playing = false
-        TrailerPlayer(context, trailer, EmbedStyle.FULL) { signal ->
+        TrailerPlayer(context, trailer, EmbedStyle.FULL, subtitles) { signal ->
             when (signal) {
                 TrailerSignal.Playing -> playing = true
                 TrailerSignal.Ended -> { playing = false }

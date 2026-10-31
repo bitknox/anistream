@@ -7,17 +7,6 @@ use anistream_model::{
     trailer::{self, AppIdentity, EmbedStyle, TrailerControl, TrailerMessage},
 };
 
-/// The page to load into the web view for `trailer`, under [`trailer_base_url`]. `None` for a
-/// trailer the app's player does not play: Play trailer opens [`trailer_watch_url`] instead.
-#[uniffi::export]
-pub fn trailer_embed_page(
-    trailer: Trailer,
-    style: EmbedStyle,
-    app: AppIdentity,
-) -> Option<String> {
-    trailer::embed_page(&trailer, style, &app)
-}
-
 /// The page with captions in `subtitle_language` (the playback setting), and with no video for
 /// `None`: a player loaded ahead of the first trailer, which [`trailer_load_script`] then plays.
 #[uniffi::export]

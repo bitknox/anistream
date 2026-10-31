@@ -123,8 +123,27 @@ public static class Trailers
     public static bool Embeddable(Entry entry) =>
         entry.Trailer is { } trailer && AnistreamFfiMethods.TrailerEmbeddable(trailer);
 
-    /// <summary>The page to load for the title's trailer, or null for one the app does not play.</summary>
-    public static string? Page(Entry entry, EmbedStyle style)
+    /// <summary>The playback setting's subtitle language, which the page's captions follow.</summary>
+    public static string SubtitleLanguage(Known known) => known.Setting(SettingKey.Subtitles)?.Value ?? "";
+
+    /// <summary>What YouTube's error code says, for the log.</summary>
+    public static string Meaning(uint code) => code switch
+    {
+        0 => "the page or the player API did not load",
+        2 => "a bad video id",
+        5 => "the HTML5 player failed",
+        100 => "the video is gone or private",
+        101 or 150 => "embedding not allowed, or YouTube's sign-in check (a flagged network, such as a VPN exit)",
+        152 => "the embed's identity was refused",
+        153 => "the embed sent no identity (Referer)",
+        _ => "an unknown code",
+    };
+
+    /// <summary>
+    /// The page to load for the title's trailer, or null for one the app does not play. Its
+    /// captions follow <paramref name="subtitles"/>, the playback setting's language.
+    /// </summary>
+    public static string? Page(Entry entry, EmbedStyle style, string subtitles = "")
     {
 #if ANISTREAM_TESTING
         // The fixture scene's made-up trailer plays a gradient, with no network.
@@ -133,7 +152,7 @@ public static class Trailers
         if (entry.Trailer?.Id == FixtureStuckId)
             return FixtureStuckPage;
 #endif
-        return entry.Trailer is { } trailer ? AnistreamFfiMethods.TrailerEmbedPage(trailer, style, Identity) : null;
+        return entry.Trailer is { } trailer ? AnistreamFfiMethods.TrailerPage(trailer, style, Identity, subtitles) : null;
     }
 
     /// <summary>

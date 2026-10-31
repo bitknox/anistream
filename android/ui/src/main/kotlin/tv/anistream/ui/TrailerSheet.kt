@@ -78,6 +78,7 @@ internal fun playTrailer(store: tv.anistream.store.AppStore, entry: Entry, openS
 fun TrailerSheet(entry: Entry, trailer: Trailer, onDismiss: () -> Unit) {
     val store = LocalAppStore.current
     val context = LocalContext.current
+    val subtitles = store.settings.row(tv.anistream.engine.model.SettingKey.SUBTITLES)?.value.orEmpty()
     var attempt by remember { mutableIntStateOf(0) }
     var failed by remember { mutableStateOf(false) }
     var playing by remember(attempt) { mutableStateOf(false) }
@@ -105,7 +106,7 @@ fun TrailerSheet(entry: Entry, trailer: Trailer, onDismiss: () -> Unit) {
             ) {
                 key(attempt) {
                     val player = remember {
-                        TrailerPlayer(context, trailer, EmbedStyle.FULL) { signal ->
+                        TrailerPlayer(context, trailer, EmbedStyle.FULL, subtitles) { signal ->
                             when (signal) {
                                 TrailerSignal.Playing -> {
                                     playing = true

@@ -278,7 +278,7 @@ fn open(hub: &Rc<Hub>, target: &gtk::Widget, id: u32) {
     if let Some(trailer) = entry.trailer.clone()
         && may_autoplay(hub, &entry)
     {
-        stage.start(&trailer);
+        stage.start(&trailer, &super::subtitle_language(hub));
     }
 }
 
