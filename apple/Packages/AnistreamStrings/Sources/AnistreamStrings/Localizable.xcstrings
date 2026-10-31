@@ -37909,6 +37909,170 @@
         }
       }
     },
+    "library-apply" : {
+      "comment" : "Default button of the episode dialog.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        }
+      }
+    },
+    "library-best-guess" : {
+      "comment" : "Line under a row in Needs a look. Argument 1: title (Text). Argument 2: percent (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best guess: %1$@ · %2$lld%% match"
+          }
+        }
+      }
+    },
+    "library-choose-again" : {
+      "comment" : "Button on a folder that lost permission.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose again"
+          }
+        }
+      }
+    },
+    "library-episode" : {
+      "comment" : "Stepper label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode"
+          }
+        }
+      }
+    },
+    "library-episode-title" : {
+      "comment" : "Title of the dialog that sets one file's episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which episode is this file?"
+          }
+        }
+      }
+    },
+    "library-episodes" : {
+      "comment" : "The episodes part of a folder's summary line. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "1 episode"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episodes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "library-files" : {
+      "comment" : "Count of files in a group. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "1 file"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld files"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "library-fix-count-mismatch" : {
+      "comment" : "Under a result whose episode count does not fit the files. Argument 1: titleEpisodes (Int). Argument 2: files (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has %1$lld episodes, this folder has %2$lld"
+          }
+        }
+      }
+    },
+    "library-fix-title" : {
+      "comment" : "Title of the dialog that fixes a match.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which title is this folder?"
+          }
+        }
+      }
+    },
+    "library-from-files" : {
+      "comment" : "Section on Library for titles kept unmatched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From your files"
+          }
+        }
+      }
+    },
     "library-in-your-list" : {
       "comment" : "Shorter marker used in a widget row.",
       "extractionState" : "manual",
@@ -37971,6 +38135,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "I din lista"
+          }
+        }
+      }
+    },
+    "library-keep-unmatched" : {
+      "comment" : "Item in a not matched row's menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep unmatched"
+          }
+        }
+      }
+    },
+    "library-leave-unmatched" : {
+      "comment" : "Text button under the results of the match dialog.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave unmatched"
           }
         }
       }
@@ -38239,6 +38427,54 @@
         }
       }
     },
+    "library-locate" : {
+      "comment" : "Button on a missing folder: choose where it went.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locate…"
+          }
+        }
+      }
+    },
+    "library-matched" : {
+      "comment" : "Row that opens the list of matched series. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld series matched"
+          }
+        }
+      }
+    },
+    "library-needs-look" : {
+      "comment" : "Heading of the list of folders whose match is uncertain.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a look"
+          }
+        }
+      }
+    },
+    "library-not-matched" : {
+      "comment" : "Heading of the list of files that could not be matched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not matched"
+          }
+        }
+      }
+    },
     "library-on-your-list" : {
       "comment" : "Marker on a title that is already on the person's list.",
       "extractionState" : "manual",
@@ -38301,6 +38537,302 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "På din lista"
+          }
+        }
+      }
+    },
+    "library-page-no-watch" : {
+      "comment" : "Line on a folder's page when it is only rescanned at start. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rescans when anistream starts · last scan %1$@"
+          }
+        }
+      }
+    },
+    "library-page-watching" : {
+      "comment" : "Line on a folder's page while it is watched for changes. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watched for changes · last scan %1$@"
+          }
+        }
+      }
+    },
+    "library-picker-title" : {
+      "comment" : "Title of the picker that adds a folder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a folder with your episodes."
+          }
+        }
+      }
+    },
+    "library-reason-no-episode" : {
+      "comment" : "Why a file group is not matched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No episode number in the name"
+          }
+        }
+      }
+    },
+    "library-reason-no-title" : {
+      "comment" : "Why a file group is not matched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No AniList title found"
+          }
+        }
+      }
+    },
+    "library-reason-not-video" : {
+      "comment" : "Why a file group is not matched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not a video file anistream plays"
+          }
+        }
+      }
+    },
+    "library-remove-detail" : {
+      "comment" : "Line on a folder's page, under Remove folder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your files stay where they are."
+          }
+        }
+      }
+    },
+    "library-remove-folder" : {
+      "comment" : "Button on a folder's page. What it does is said under it on the page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove folder"
+          }
+        }
+      }
+    },
+    "library-rescan" : {
+      "comment" : "Button on a folder's page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rescan"
+          }
+        }
+      }
+    },
+    "library-row-drive-offline" : {
+      "comment" : "Line of a folder on a drive that is not connected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drive not connected"
+          }
+        }
+      }
+    },
+    "library-row-matching" : {
+      "comment" : "Line of a folder row while it matches series. Argument 1: done (Int). Argument 2: total (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching · %1$lld of %2$lld series"
+          }
+        }
+      }
+    },
+    "library-row-missing" : {
+      "comment" : "Line of a folder that was removed or renamed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder not found"
+          }
+        }
+      }
+    },
+    "library-row-needs-look" : {
+      "comment" : "Ends the summary line when some series need a look. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld need a look"
+          }
+        }
+      }
+    },
+    "library-row-no-access" : {
+      "comment" : "Line of a folder the app lost permission to read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream can't open this folder any more"
+          }
+        }
+      }
+    },
+    "library-row-scanning" : {
+      "comment" : "Line of a folder row while it counts files. Argument 1: files (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@files@"
+          },
+          "substitutions" : {
+            "files" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Scanning · 1 file found"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Scanning · %1$lld files found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "library-row-summary" : {
+      "comment" : "Line of a folder row when it is done, such as \"214 episodes of 18 series\". Both parts are worded already by library-episodes and library-series. Argument 1: episodes (Text). Argument 2: series (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "library-row-waiting" : {
+      "comment" : "Added to the matching line while the limiter holds requests back. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for AniList · %1$lld s"
+          }
+        }
+      }
+    },
+    "library-season" : {
+      "comment" : "Stepper label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Season"
+          }
+        }
+      }
+    },
+    "library-series" : {
+      "comment" : "The series part of a folder's summary line. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "1 series"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld series"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "library-set-episode" : {
+      "comment" : "Button on a not matched row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set episode…"
+          }
+        }
+      }
+    },
+    "library-show-explorer" : {
+      "comment" : "Button on a folder's page: show the folder in the file manager.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Explorer"
           }
         }
       }
@@ -39163,6 +39695,30 @@
         }
       }
     },
+    "licensed-body" : {
+      "comment" : "Line under the title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream can open titles in streaming services you pay for. It never plays them itself. Links come from AniList."
+          }
+        }
+      }
+    },
+    "licensed-mark-watched" : {
+      "comment" : "Button on the return notice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark watched"
+          }
+        }
+      }
+    },
     "licensed-marked" : {
       "comment" : "Notice after Mark as watched on the return notice. It holds Undo. Argument 1: episode (Int).",
       "extractionState" : "manual",
@@ -39175,6 +39731,30 @@
         }
       }
     },
+    "licensed-region" : {
+      "comment" : "Label of the region menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region"
+          }
+        }
+      }
+    },
+    "licensed-region-line" : {
+      "comment" : "Line under the region menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hides links AniList marks for other countries. Most links name no country, so choose your services too."
+          }
+        }
+      }
+    },
     "licensed-return" : {
       "comment" : "Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream. Argument 1: episode (Int). Argument 2: service (Text).",
       "extractionState" : "manual",
@@ -39183,6 +39763,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Watched episode %1$lld on %2$@?"
+          }
+        }
+      }
+    },
+    "licensed-row-line" : {
+      "comment" : "Line of the Licensed services row on Your sources. Argument 1: services (Text). Argument 2: region (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "licensed-row-none" : {
+      "comment" : "Line of that row before any service is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the services you pay for"
+          }
+        }
+      }
+    },
+    "licensed-show-all" : {
+      "comment" : "Row that shows the rest of the services. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show all %1$lld"
+          }
+        }
+      }
+    },
+    "licensed-show-others" : {
+      "comment" : "Switch label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show other services on title pages"
+          }
+        }
+      }
+    },
+    "licensed-show-others-line" : {
+      "comment" : "Line under that switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A line under the buttons names services you don't use."
+          }
+        }
+      }
+    },
+    "licensed-title" : {
+      "comment" : "Title of the page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licensed services"
+          }
+        }
+      }
+    },
+    "licensed-yours" : {
+      "comment" : "Heading of the list of services.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your services"
           }
         }
       }
@@ -82619,6 +83283,556 @@
         }
       }
     },
+    "servers-add" : {
+      "comment" : "Button that finishes the dialog.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add server"
+          }
+        }
+      }
+    },
+    "servers-add-title" : {
+      "comment" : "Title of the dialog that adds a media server.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a media server"
+          }
+        }
+      }
+    },
+    "servers-address" : {
+      "comment" : "Label of the address field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server address"
+          }
+        }
+      }
+    },
+    "servers-address-hint" : {
+      "comment" : "Placeholder of the address field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "jellyfin.home.example or 192.168.1.20:8096"
+          }
+        }
+      }
+    },
+    "servers-cert-allow" : {
+      "comment" : "Button on that step.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow this certificate"
+          }
+        }
+      }
+    },
+    "servers-cert-body" : {
+      "comment" : "Text of that step. Argument 1: host (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ uses a certificate this device doesn't trust. That's normal for a server at home. Allow it only if this fingerprint matches the one your server shows."
+          }
+        }
+      }
+    },
+    "servers-cert-title" : {
+      "comment" : "Title of the step that asks about a certificate.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check this server"
+          }
+        }
+      }
+    },
+    "servers-continue" : {
+      "comment" : "Button that goes to the next step.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "servers-error-bad-address" : {
+      "comment" : "Error under the address field when the address cannot be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That doesn't look like an address. Type it the way you open Jellyfin in a browser."
+          }
+        }
+      }
+    },
+    "servers-error-credentials" : {
+      "comment" : "Error under the password field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong user name or password."
+          }
+        }
+      }
+    },
+    "servers-error-not-jellyfin" : {
+      "comment" : "Error under the address field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That address answers, but it isn't a Jellyfin server."
+          }
+        }
+      }
+    },
+    "servers-error-other" : {
+      "comment" : "Error when something else went wrong.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        }
+      }
+    },
+    "servers-error-plain-http" : {
+      "comment" : "Error under the address field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This address isn't on your network and doesn't use HTTPS, so your password would travel unprotected. Use an https:// address."
+          }
+        }
+      }
+    },
+    "servers-error-qc-off" : {
+      "comment" : "Error that replaces the Quick Connect link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Connect is off on this server. Sign in with a password, or turn it on in Jellyfin's dashboard."
+          }
+        }
+      }
+    },
+    "servers-error-too-old" : {
+      "comment" : "Error under the address field. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This server runs Jellyfin %1$@. anistream needs 10.8 or later."
+          }
+        }
+      }
+    },
+    "servers-error-unreachable" : {
+      "comment" : "Error under the address field. Argument 1: address (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't reach %1$@. Check the address and that the server is on."
+          }
+        }
+      }
+    },
+    "servers-libraries-body" : {
+      "comment" : "Line under it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows are matched to AniList so they join Home, your lists and Search."
+          }
+        }
+      }
+    },
+    "servers-libraries-title" : {
+      "comment" : "Title of the step that picks libraries.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose libraries"
+          }
+        }
+      }
+    },
+    "servers-library-line" : {
+      "comment" : "Line of one library: its kind and how many series. Argument 1: kind (Text). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld series"
+          }
+        }
+      }
+    },
+    "servers-looking" : {
+      "comment" : "Row shown while the app looks for servers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for servers…"
+          }
+        }
+      }
+    },
+    "servers-none-found" : {
+      "comment" : "Row shown when nothing answered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No servers found on this network. Type the address instead."
+          }
+        }
+      }
+    },
+    "servers-on-network" : {
+      "comment" : "Heading of the servers found on the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On your network"
+          }
+        }
+      }
+    },
+    "servers-page-line" : {
+      "comment" : "Line at the top of a server's page. Argument 1: address (Text). Argument 2: version (Text). Argument 3: user (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Jellyfin %2$@ · signed in as %3$@"
+          }
+        }
+      }
+    },
+    "servers-password" : {
+      "comment" : "Label of the password field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        }
+      }
+    },
+    "servers-qc-expired" : {
+      "comment" : "Error when the code ran out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code has run out."
+          }
+        }
+      }
+    },
+    "servers-qc-new-code" : {
+      "comment" : "Button that asks for another code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get a new code"
+          }
+        }
+      }
+    },
+    "servers-qc-steps" : {
+      "comment" : "Steps under the Quick Connect code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On a device that's signed in, open Jellyfin, go to your profile, choose Quick Connect and enter this code."
+          }
+        }
+      }
+    },
+    "servers-qc-title" : {
+      "comment" : "Title of the Quick Connect step.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter this code in Jellyfin"
+          }
+        }
+      }
+    },
+    "servers-qc-waiting" : {
+      "comment" : "Under the code while it waits.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for you to approve it"
+          }
+        }
+      }
+    },
+    "servers-remove" : {
+      "comment" : "Button on a server's page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove server"
+          }
+        }
+      }
+    },
+    "servers-report" : {
+      "comment" : "Switch: tell Jellyfin what was watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report what you watch to Jellyfin"
+          }
+        }
+      }
+    },
+    "servers-report-line" : {
+      "comment" : "Line under that switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume points and watched marks follow what you play here."
+          }
+        }
+      }
+    },
+    "servers-row-matching" : {
+      "comment" : "Line of a server row while it matches series. Argument 1: done (Int). Argument 2: total (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching · %1$lld of %2$lld series"
+          }
+        }
+      }
+    },
+    "servers-row-not-answering" : {
+      "comment" : "Line of a server row that does not answer. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not answering · last seen %1$@"
+          }
+        }
+      }
+    },
+    "servers-row-signed-out" : {
+      "comment" : "Line of a server row when the server signed the viewer out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed out by the server"
+          }
+        }
+      }
+    },
+    "servers-row-summary" : {
+      "comment" : "Line of a server row when it is done. Argument 1: libraries (Int). Argument 2: series (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@libraries@"
+          },
+          "substitutions" : {
+            "libraries" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "1 library · %2$lld series"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld libraries · %2$lld series"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "servers-sign-in" : {
+      "comment" : "Sign in button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        }
+      }
+    },
+    "servers-sign-in-again" : {
+      "comment" : "Button on that row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in again"
+          }
+        }
+      }
+    },
+    "servers-sign-in-title" : {
+      "comment" : "Title of the sign-in step. Argument 1: server (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to %1$@"
+          }
+        }
+      }
+    },
+    "servers-sign-out" : {
+      "comment" : "Button on a server's page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out"
+          }
+        }
+      }
+    },
+    "servers-token-note" : {
+      "comment" : "Line under the sign-in fields. The store is where the token is kept, such as Credential Manager. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your password isn't saved. anistream keeps a sign-in token in %1$@."
+          }
+        }
+      }
+    },
+    "servers-use-password" : {
+      "comment" : "Link that switches back to a password.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with a password instead"
+          }
+        }
+      }
+    },
+    "servers-use-quick-connect" : {
+      "comment" : "Link that switches to Quick Connect.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Quick Connect instead"
+          }
+        }
+      }
+    },
+    "servers-user" : {
+      "comment" : "Label of the user name field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User name"
+          }
+        }
+      }
+    },
     "settings-accounts-sync-note" : {
       "comment" : "Footnote of the AniList group in Accounts. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -103267,6 +104481,78 @@
         }
       }
     },
+    "sources-add" : {
+      "comment" : "The Add button on Your sources.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        }
+      }
+    },
+    "sources-add-folder" : {
+      "comment" : "Item in the Add menu: choose a folder with episodes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder…"
+          }
+        }
+      }
+    },
+    "sources-add-folder-button" : {
+      "comment" : "Primary button of the empty state on a computer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a folder"
+          }
+        }
+      }
+    },
+    "sources-add-server" : {
+      "comment" : "Item in the Add menu: add a Jellyfin server.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media server…"
+          }
+        }
+      }
+    },
+    "sources-add-server-button" : {
+      "comment" : "Second button of the empty state.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a media server"
+          }
+        }
+      }
+    },
+    "sources-add-store" : {
+      "comment" : "Item in the Add menu: join a plugin store.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join a plugin store…"
+          }
+        }
+      }
+    },
     "sources-contacts-label" : {
       "comment" : "Row label: the hosts a plugin contacts.",
       "extractionState" : "manual",
@@ -104321,6 +105607,30 @@
         }
       }
     },
+    "sources-empty-body" : {
+      "comment" : "Line under the empty state's title on a computer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join."
+          }
+        }
+      }
+    },
+    "sources-empty-demo-link" : {
+      "comment" : "Link in the empty state's last line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "add the demo"
+          }
+        }
+      }
+    },
     "sources-empty-detail" : {
       "comment" : "Line under it.",
       "extractionState" : "manual",
@@ -104383,6 +105693,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Källor kommer från tilläggsbutiker. Anslut dig till en med den inbjudningslänk som ägaren skickar dig."
+          }
+        }
+      }
+    },
+    "sources-empty-join-link" : {
+      "comment" : "Link in the empty state's last line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "join a plugin store"
+          }
+        }
+      }
+    },
+    "sources-empty-more" : {
+      "comment" : "Line under the empty state's buttons. The links are \"join a plugin store\" and \"add the demo\". Argument 1: join (Text). Argument 2: demo (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or %1$@, or %2$@."
           }
         }
       }
@@ -106103,6 +107437,30 @@
         }
       }
     },
+    "sources-removed" : {
+      "comment" : "Notice after a source is removed. It holds Undo. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ removed"
+          }
+        }
+      }
+    },
+    "sources-removed-files-stay" : {
+      "comment" : "Line of the notice after a folder is removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your files stay where they are."
+          }
+        }
+      }
+    },
     "sources-replace-detail" : {
       "comment" : "Line under the replace question. Argument 1: version (Text). Argument 2: store (Text). Argument 3: detail (Text).",
       "extractionState" : "manual",
@@ -106363,6 +107721,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Svarstid"
+          }
+        }
+      }
+    },
+    "sources-section-builtin" : {
+      "comment" : "Section heading on Your sources: what ships with the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built in"
+          }
+        }
+      }
+    },
+    "sources-section-licensed" : {
+      "comment" : "Section heading on Your sources: the streaming services the viewer pays for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licensed services"
+          }
+        }
+      }
+    },
+    "sources-section-media" : {
+      "comment" : "Section heading on Your sources: folders on this device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your media"
+          }
+        }
+      }
+    },
+    "sources-section-servers" : {
+      "comment" : "Section heading on Your sources: Jellyfin servers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media servers"
+          }
+        }
+      }
+    },
+    "sources-section-store" : {
+      "comment" : "Section heading on Your sources: the plugins of one store. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %1$@"
           }
         }
       }
@@ -123049,6 +124467,18 @@
         }
       }
     },
+    "title-also-on-services" : {
+      "comment" : "Line under the actions of a title that plays here and on a service. Argument 1: services (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also on %1$@"
+          }
+        }
+      }
+    },
     "title-based-on" : {
       "comment" : "Label before the name of the work a show is based on.",
       "extractionState" : "manual",
@@ -123507,6 +124937,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Titta igen"
+          }
+        }
+      }
+    },
+    "title-choose-services" : {
+      "comment" : "Link at the end of that line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your services"
+          }
+        }
+      }
+    },
+    "title-connect-drive" : {
+      "comment" : "Disabled main action on a title whose drive is not connected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect the drive to play"
           }
         }
       }
@@ -125219,6 +126673,18 @@
         }
       }
     },
+    "title-listed-on" : {
+      "comment" : "Line on a title found in none of the viewer's services. Argument 1: services (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not found in your sources. Listed on %1$@."
+          }
+        }
+      }
+    },
     "title-load-failed" : {
       "comment" : "Title of the state when a title page could not load.",
       "extractionState" : "manual",
@@ -126143,6 +127609,18 @@
         }
       }
     },
+    "title-server-not-answering" : {
+      "comment" : "Line on a title page when its server does not answer. Argument 1: server (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ isn't answering. Episodes you downloaded still play."
+          }
+        }
+      }
+    },
     "title-show-watched" : {
       "comment" : "Button that shows the watched episodes of a season again.",
       "extractionState" : "manual",
@@ -126667,6 +128145,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trailerljud"
+          }
+        }
+      }
+    },
+    "title-watch-on" : {
+      "comment" : "Main action on a title that plays only on a service the viewer uses. Argument 1: service (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch on %1$@"
           }
         }
       }

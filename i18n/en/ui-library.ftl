@@ -275,3 +275,156 @@ up-next-broadcast = Episode { $episode } · { $when }
 # @arg ago: text
 # @max 20
 up-next-out = out { $ago }
+
+## Your media: folders on a computer, scanned and matched to AniList.
+
+# Line of a folder row while it counts files.
+# @arg files: int
+library-row-scanning = Scanning · { $files ->
+    [one] 1 file found
+   *[other] { $files } files found
+}
+
+# Line of a folder row while it matches series.
+# @arg done: int
+# @arg total: int
+library-row-matching = Matching · { $done } of { $total } series
+
+# Added to the matching line while the limiter holds requests back.
+# @arg seconds: int
+library-row-waiting = Waiting for AniList · { $seconds } s
+
+# Line of a folder row when it is done, such as "214 episodes of 18 series". Both parts are worded already by library-episodes and library-series.
+# @arg episodes: text
+# @arg series: text
+library-row-summary = { $episodes } of { $series }
+
+# The episodes part of a folder's summary line.
+# @arg count: int
+library-episodes = { $count ->
+    [one] 1 episode
+   *[other] { $count } episodes
+}
+
+# The series part of a folder's summary line.
+# @arg count: int
+library-series = { $count ->
+    [one] 1 series
+   *[other] { $count } series
+}
+
+# Ends the summary line when some series need a look.
+# @arg count: int
+library-row-needs-look = { $count } need a look
+
+# Line of a folder on a drive that is not connected.
+library-row-drive-offline = Drive not connected
+
+# Line of a folder that was removed or renamed.
+library-row-missing = Folder not found
+
+# Line of a folder the app lost permission to read.
+library-row-no-access = { -app-name } can't open this folder any more
+
+# Button on a missing folder: choose where it went.
+# @max 16
+library-locate = Locate…
+
+# Button on a folder that lost permission.
+# @max 16
+library-choose-again = Choose again
+
+# Line on a folder's page while it is watched for changes.
+# @arg time: text
+library-page-watching = Watched for changes · last scan { $time }
+
+# Line on a folder's page when it is only rescanned at start.
+# @arg time: text
+library-page-no-watch = Rescans when { -app-name } starts · last scan { $time }
+
+# Button on a folder's page.
+# @max 16
+library-rescan = Rescan
+
+# Button on a folder's page: show the folder in the file manager.
+# @max 24
+library-show-explorer = Show in Explorer
+
+# Button on a folder's page. What it does is said under it on the page.
+# @max 24
+library-remove-folder = Remove folder
+
+# Heading of the list of folders whose match is uncertain.
+library-needs-look = Needs a look
+
+# Heading of the list of files that could not be matched.
+library-not-matched = Not matched
+
+# Row that opens the list of matched series.
+# @arg count: int
+library-matched = { $count } series matched
+
+# Line under a row in Needs a look.
+# @arg title: text
+# @arg percent: int
+library-best-guess = Best guess: { $title } · { $percent }% match
+
+# Count of files in a group.
+# @arg count: int
+library-files = { $count ->
+    [one] 1 file
+   *[other] { $count } files
+}
+
+# Why a file group is not matched.
+library-reason-no-episode = No episode number in the name
+
+# Why a file group is not matched.
+library-reason-no-title = No AniList title found
+
+# Why a file group is not matched.
+library-reason-not-video = Not a video file { -app-name } plays
+
+# Button on a not matched row.
+# @max 16
+library-set-episode = Set episode…
+
+# Item in a not matched row's menu.
+library-keep-unmatched = Keep unmatched
+
+# Title of the dialog that fixes a match.
+library-fix-title = Which title is this folder?
+
+# Under a result whose episode count does not fit the files.
+# @arg titleEpisodes: int
+# @arg files: int
+library-fix-count-mismatch = Has { $titleEpisodes } episodes, this folder has { $files }
+
+# Text button under the results of the match dialog.
+# @max 24
+library-leave-unmatched = Leave unmatched
+
+# Title of the dialog that sets one file's episode.
+library-episode-title = Which episode is this file?
+
+# Stepper label.
+library-season = Season
+
+# Stepper label.
+library-episode = Episode
+
+# Default button of the episode dialog.
+# @max 16
+library-apply = Apply
+
+# Section on Library for titles kept unmatched.
+library-from-files = From your files
+
+# Disabled main action on a title whose drive is not connected.
+title-connect-drive = Connect the drive to play
+
+# Title of the picker that adds a folder.
+library-picker-title = Choose a folder with your episodes.
+
+# Line on a folder's page, under Remove folder.
+library-remove-detail = Your files stay where they are.

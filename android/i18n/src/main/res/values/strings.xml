@@ -2258,6 +2258,124 @@
     <string name="up_next_broadcast">Episode %1$d · %2$s</string>
     <!-- The time of an episode that came out earlier today. The span is already worded, such as "2h ago". -->
     <string name="up_next_out">out %1$s</string>
+    <!-- Line of a folder row while it counts files. -->
+    <plurals name="library_row_scanning">
+        <item quantity="one">Scanning · 1 file found</item>
+        <item quantity="other">Scanning · %1$d files found</item>
+    </plurals>
+    <!-- Line of a folder row while it matches series. -->
+    <string name="library_row_matching">Matching · %1$d of %2$d series</string>
+    <!-- Added to the matching line while the limiter holds requests back. -->
+    <string name="library_row_waiting">Waiting for AniList · %1$d s</string>
+    <!-- Line of a folder row when it is done, such as "214 episodes of 18 series". Both parts are worded already by library-episodes and library-series. -->
+    <string name="library_row_summary">%1$s of %2$s</string>
+    <!-- The episodes part of a folder's summary line. -->
+    <plurals name="library_episodes">
+        <item quantity="one">1 episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
+    <!-- The series part of a folder's summary line. -->
+    <plurals name="library_series">
+        <item quantity="one">1 series</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <!-- Ends the summary line when some series need a look. -->
+    <string name="library_row_needs_look">%1$d need a look</string>
+    <!-- Line of a folder on a drive that is not connected. -->
+    <string name="library_row_drive_offline">Drive not connected</string>
+    <!-- Line of a folder that was removed or renamed. -->
+    <string name="library_row_missing">Folder not found</string>
+    <!-- Line of a folder the app lost permission to read. -->
+    <string name="library_row_no_access">anistream can\'t open this folder any more</string>
+    <!-- Button on a missing folder: choose where it went. -->
+    <string name="library_locate">Locate…</string>
+    <!-- Button on a folder that lost permission. -->
+    <string name="library_choose_again">Choose again</string>
+    <!-- Line on a folder's page while it is watched for changes. -->
+    <string name="library_page_watching">Watched for changes · last scan %1$s</string>
+    <!-- Line on a folder's page when it is only rescanned at start. -->
+    <string name="library_page_no_watch">Rescans when anistream starts · last scan %1$s</string>
+    <!-- Button on a folder's page. -->
+    <string name="library_rescan">Rescan</string>
+    <!-- Button on a folder's page: show the folder in the file manager. -->
+    <string name="library_show_explorer">Show in Explorer</string>
+    <!-- Button on a folder's page. What it does is said under it on the page. -->
+    <string name="library_remove_folder">Remove folder</string>
+    <!-- Heading of the list of folders whose match is uncertain. -->
+    <string name="library_needs_look">Needs a look</string>
+    <!-- Heading of the list of files that could not be matched. -->
+    <string name="library_not_matched">Not matched</string>
+    <!-- Row that opens the list of matched series. -->
+    <string name="library_matched">%1$d series matched</string>
+    <!-- Line under a row in Needs a look. -->
+    <string name="library_best_guess">Best guess: %1$s · %2$d%% match</string>
+    <!-- Count of files in a group. -->
+    <plurals name="library_files">
+        <item quantity="one">1 file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <!-- Why a file group is not matched. -->
+    <string name="library_reason_no_episode">No episode number in the name</string>
+    <!-- Why a file group is not matched. -->
+    <string name="library_reason_no_title">No AniList title found</string>
+    <!-- Why a file group is not matched. -->
+    <string name="library_reason_not_video">Not a video file anistream plays</string>
+    <!-- Button on a not matched row. -->
+    <string name="library_set_episode">Set episode…</string>
+    <!-- Item in a not matched row's menu. -->
+    <string name="library_keep_unmatched">Keep unmatched</string>
+    <!-- Title of the dialog that fixes a match. -->
+    <string name="library_fix_title">Which title is this folder?</string>
+    <!-- Under a result whose episode count does not fit the files. -->
+    <string name="library_fix_count_mismatch">Has %1$d episodes, this folder has %2$d</string>
+    <!-- Text button under the results of the match dialog. -->
+    <string name="library_leave_unmatched">Leave unmatched</string>
+    <!-- Title of the dialog that sets one file's episode. -->
+    <string name="library_episode_title">Which episode is this file?</string>
+    <!-- Stepper label. -->
+    <string name="library_season">Season</string>
+    <!-- Stepper label. -->
+    <string name="library_episode">Episode</string>
+    <!-- Default button of the episode dialog. -->
+    <string name="library_apply">Apply</string>
+    <!-- Section on Library for titles kept unmatched. -->
+    <string name="library_from_files">From your files</string>
+    <!-- Disabled main action on a title whose drive is not connected. -->
+    <string name="title_connect_drive">Connect the drive to play</string>
+    <!-- Title of the picker that adds a folder. -->
+    <string name="library_picker_title">Choose a folder with your episodes.</string>
+    <!-- Line on a folder's page, under Remove folder. -->
+    <string name="library_remove_detail">Your files stay where they are.</string>
+    <!-- Title of the page. -->
+    <string name="licensed_title">Licensed services</string>
+    <!-- Line under the title. -->
+    <string name="licensed_body">anistream can open titles in streaming services you pay for. It never plays them itself. Links come from AniList.</string>
+    <!-- Label of the region menu. -->
+    <string name="licensed_region">Region</string>
+    <!-- Line under the region menu. -->
+    <string name="licensed_region_line">Hides links AniList marks for other countries. Most links name no country, so choose your services too.</string>
+    <!-- Heading of the list of services. -->
+    <string name="licensed_yours">Your services</string>
+    <!-- Row that shows the rest of the services. -->
+    <string name="licensed_show_all">Show all %1$d</string>
+    <!-- Switch label. -->
+    <string name="licensed_show_others">Show other services on title pages</string>
+    <!-- Line under that switch. -->
+    <string name="licensed_show_others_line">A line under the buttons names services you don\'t use.</string>
+    <!-- Line of the Licensed services row on Your sources. -->
+    <string name="licensed_row_line">%1$s · %2$s</string>
+    <!-- Line of that row before any service is chosen. -->
+    <string name="licensed_row_none">Choose the services you pay for</string>
+    <!-- Main action on a title that plays only on a service the viewer uses. -->
+    <string name="title_watch_on">Watch on %1$s</string>
+    <!-- Line under the actions of a title that plays here and on a service. -->
+    <string name="title_also_on_services">Also on %1$s</string>
+    <!-- Line on a title found in none of the viewer's services. -->
+    <string name="title_listed_on">Not found in your sources. Listed on %1$s.</string>
+    <!-- Link at the end of that line. -->
+    <string name="title_choose_services">Choose your services</string>
+    <!-- Button on the return notice. -->
+    <string name="licensed_mark_watched">Mark watched</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->
@@ -2968,6 +3086,99 @@
     <string name="search_sort_title">Title</string>
     <!-- Search: sort by what is popular right now. -->
     <string name="search_sort_trending">Trending</string>
+    <!-- Title of the dialog that adds a media server. -->
+    <string name="servers_add_title">Add a media server</string>
+    <!-- Heading of the servers found on the network. -->
+    <string name="servers_on_network">On your network</string>
+    <!-- Row shown while the app looks for servers. -->
+    <string name="servers_looking">Looking for servers…</string>
+    <!-- Row shown when nothing answered. -->
+    <string name="servers_none_found">No servers found on this network. Type the address instead.</string>
+    <!-- Label of the address field. -->
+    <string name="servers_address">Server address</string>
+    <!-- Placeholder of the address field. -->
+    <string name="servers_address_hint">jellyfin.home.example or 192.168.1.20:8096</string>
+    <!-- Button that goes to the next step. -->
+    <string name="servers_continue">Continue</string>
+    <!-- Title of the sign-in step. -->
+    <string name="servers_sign_in_title">Sign in to %1$s</string>
+    <!-- Label of the user name field. -->
+    <string name="servers_user">User name</string>
+    <!-- Label of the password field. -->
+    <string name="servers_password">Password</string>
+    <!-- Link that switches to Quick Connect. -->
+    <string name="servers_use_quick_connect">Use Quick Connect instead</string>
+    <!-- Link that switches back to a password. -->
+    <string name="servers_use_password">Sign in with a password instead</string>
+    <!-- Line under the sign-in fields. The store is where the token is kept, such as Credential Manager. -->
+    <string name="servers_token_note">Your password isn\'t saved. anistream keeps a sign-in token in %1$s.</string>
+    <!-- Sign in button. -->
+    <string name="servers_sign_in">Sign in</string>
+    <!-- Title of the Quick Connect step. -->
+    <string name="servers_qc_title">Enter this code in Jellyfin</string>
+    <!-- Steps under the Quick Connect code. -->
+    <string name="servers_qc_steps">On a device that\'s signed in, open Jellyfin, go to your profile, choose Quick Connect and enter this code.</string>
+    <!-- Under the code while it waits. -->
+    <string name="servers_qc_waiting">Waiting for you to approve it</string>
+    <!-- Error when the code ran out. -->
+    <string name="servers_qc_expired">That code has run out.</string>
+    <!-- Button that asks for another code. -->
+    <string name="servers_qc_new_code">Get a new code</string>
+    <!-- Title of the step that picks libraries. -->
+    <string name="servers_libraries_title">Choose libraries</string>
+    <!-- Line under it. -->
+    <string name="servers_libraries_body">Shows are matched to AniList so they join Home, your lists and Search.</string>
+    <!-- Line of one library: its kind and how many series. -->
+    <string name="servers_library_line">%1$s · %2$d series</string>
+    <!-- Switch: tell Jellyfin what was watched. -->
+    <string name="servers_report">Report what you watch to Jellyfin</string>
+    <!-- Line under that switch. -->
+    <string name="servers_report_line">Resume points and watched marks follow what you play here.</string>
+    <!-- Button that finishes the dialog. -->
+    <string name="servers_add">Add server</string>
+    <!-- Line of a server row while it matches series. -->
+    <string name="servers_row_matching">Matching · %1$d of %2$d series</string>
+    <!-- Line of a server row when it is done. -->
+    <plurals name="servers_row_summary">
+        <item quantity="one">1 library · %2$d series</item>
+        <item quantity="other">%1$d libraries · %2$d series</item>
+    </plurals>
+    <!-- Line at the top of a server's page. -->
+    <string name="servers_page_line">%1$s · Jellyfin %2$s · signed in as %3$s</string>
+    <!-- Button on a server's page. -->
+    <string name="servers_sign_out">Sign out</string>
+    <!-- Button on a server's page. -->
+    <string name="servers_remove">Remove server</string>
+    <!-- Error under the address field. -->
+    <string name="servers_error_unreachable">Can\'t reach %1$s. Check the address and that the server is on.</string>
+    <!-- Error under the address field. -->
+    <string name="servers_error_not_jellyfin">That address answers, but it isn\'t a Jellyfin server.</string>
+    <!-- Error under the address field. -->
+    <string name="servers_error_too_old">This server runs Jellyfin %1$s. anistream needs 10.8 or later.</string>
+    <!-- Error under the password field. -->
+    <string name="servers_error_credentials">Wrong user name or password.</string>
+    <!-- Error that replaces the Quick Connect link. -->
+    <string name="servers_error_qc_off">Quick Connect is off on this server. Sign in with a password, or turn it on in Jellyfin\'s dashboard.</string>
+    <!-- Error under the address field. -->
+    <string name="servers_error_plain_http">This address isn\'t on your network and doesn\'t use HTTPS, so your password would travel unprotected. Use an https:// address.</string>
+    <!-- Error under the address field when the address cannot be read. -->
+    <string name="servers_error_bad_address">That doesn\'t look like an address. Type it the way you open Jellyfin in a browser.</string>
+    <!-- Error when something else went wrong. -->
+    <string name="servers_error_other">Something went wrong. Try again.</string>
+    <!-- Title of the step that asks about a certificate. -->
+    <string name="servers_cert_title">Check this server</string>
+    <!-- Text of that step. -->
+    <string name="servers_cert_body">%1$s uses a certificate this device doesn\'t trust. That\'s normal for a server at home. Allow it only if this fingerprint matches the one your server shows.</string>
+    <!-- Button on that step. -->
+    <string name="servers_cert_allow">Allow this certificate</string>
+    <!-- Line of a server row when the server signed the viewer out. -->
+    <string name="servers_row_signed_out">Signed out by the server</string>
+    <!-- Button on that row. -->
+    <string name="servers_sign_in_again">Sign in again</string>
+    <!-- Line of a server row that does not answer. -->
+    <string name="servers_row_not_answering">Not answering · last seen %1$s</string>
+    <!-- Line on a title page when its server does not answer. -->
+    <string name="title_server_not_answering">%1$s isn\'t answering. Episodes you downloaded still play.</string>
     <!-- Settings group and row title for choosing a language. -->
     <string name="settings_language">Language</string>
     <!-- Settings row for the language of the app's own text. -->
@@ -3456,6 +3667,40 @@
     <string name="match_cleared">Matching automatically again.</string>
     <!-- Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. -->
     <string name="match_row_label">%1$s, %2$s, %3$s</string>
+    <!-- Section heading on Your sources: folders on this device. -->
+    <string name="sources_section_media">Your media</string>
+    <!-- Section heading on Your sources: Jellyfin servers. -->
+    <string name="sources_section_servers">Media servers</string>
+    <!-- Section heading on Your sources: the streaming services the viewer pays for. -->
+    <string name="sources_section_licensed">Licensed services</string>
+    <!-- Section heading on Your sources: the plugins of one store. -->
+    <string name="sources_section_store">From %1$s</string>
+    <!-- Section heading on Your sources: what ships with the app. -->
+    <string name="sources_section_builtin">Built in</string>
+    <!-- The Add button on Your sources. -->
+    <string name="sources_add">Add</string>
+    <!-- Item in the Add menu: choose a folder with episodes. -->
+    <string name="sources_add_folder">Folder…</string>
+    <!-- Item in the Add menu: add a Jellyfin server. -->
+    <string name="sources_add_server">Media server…</string>
+    <!-- Item in the Add menu: join a plugin store. -->
+    <string name="sources_add_store">Join a plugin store…</string>
+    <!-- Line under the empty state's title on a computer. -->
+    <string name="sources_empty_body">Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join.</string>
+    <!-- Line under the empty state's buttons. The links are "join a plugin store" and "add the demo". -->
+    <string name="sources_empty_more">Or %1$s, or %2$s.</string>
+    <!-- Link in the empty state's last line. -->
+    <string name="sources_empty_join_link">join a plugin store</string>
+    <!-- Link in the empty state's last line. -->
+    <string name="sources_empty_demo_link">add the demo</string>
+    <!-- Primary button of the empty state on a computer. -->
+    <string name="sources_add_folder_button">Add a folder</string>
+    <!-- Second button of the empty state. -->
+    <string name="sources_add_server_button">Add a media server</string>
+    <!-- Notice after a source is removed. It holds Undo. -->
+    <string name="sources_removed">%1$s removed</string>
+    <!-- Line of the notice after a folder is removed. -->
+    <string name="sources_removed_files_stay">Your files stay where they are.</string>
     <!-- Short label for a joined store, on a row. -->
     <string name="stores_joined">Joined</string>
     <!-- Title of the empty list. -->

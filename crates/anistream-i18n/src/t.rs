@@ -8295,6 +8295,271 @@ pub fn up_next_out(ago: &str) -> String {
     text("up-next-out", &[("ago", Arg::Text(ago))])
 }
 
+/// Line of a folder row while it counts files.
+pub fn library_row_scanning(files: i64) -> String {
+    text("library-row-scanning", &[("files", Arg::Int(files))])
+}
+
+/// Line of a folder row while it matches series.
+pub fn library_row_matching(done: i64, total: i64) -> String {
+    text("library-row-matching", &[("done", Arg::Int(done)), ("total", Arg::Int(total))])
+}
+
+/// Added to the matching line while the limiter holds requests back.
+pub fn library_row_waiting(seconds: i64) -> String {
+    text("library-row-waiting", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Line of a folder row when it is done, such as "214 episodes of 18 series". Both parts are worded already by library-episodes and library-series.
+pub fn library_row_summary(episodes: &str, series: &str) -> String {
+    text("library-row-summary", &[("episodes", Arg::Text(episodes)), ("series", Arg::Text(series))])
+}
+
+/// The episodes part of a folder's summary line.
+pub fn library_episodes(count: i64) -> String {
+    text("library-episodes", &[("count", Arg::Int(count))])
+}
+
+/// The series part of a folder's summary line.
+pub fn library_series(count: i64) -> String {
+    text("library-series", &[("count", Arg::Int(count))])
+}
+
+/// Ends the summary line when some series need a look.
+pub fn library_row_needs_look(count: i64) -> String {
+    text("library-row-needs-look", &[("count", Arg::Int(count))])
+}
+
+/// Line of a folder on a drive that is not connected.
+pub fn library_row_drive_offline() -> String {
+    text("library-row-drive-offline", &[])
+}
+
+/// Line of a folder that was removed or renamed.
+pub fn library_row_missing() -> String {
+    text("library-row-missing", &[])
+}
+
+/// Line of a folder the app lost permission to read.
+pub fn library_row_no_access() -> String {
+    text("library-row-no-access", &[])
+}
+
+/// Button on a missing folder: choose where it went.
+pub fn library_locate() -> String {
+    text("library-locate", &[])
+}
+
+/// Button on a folder that lost permission.
+pub fn library_choose_again() -> String {
+    text("library-choose-again", &[])
+}
+
+/// Line on a folder's page while it is watched for changes.
+pub fn library_page_watching(time: &str) -> String {
+    text("library-page-watching", &[("time", Arg::Text(time))])
+}
+
+/// Line on a folder's page when it is only rescanned at start.
+pub fn library_page_no_watch(time: &str) -> String {
+    text("library-page-no-watch", &[("time", Arg::Text(time))])
+}
+
+/// Button on a folder's page.
+pub fn library_rescan() -> String {
+    text("library-rescan", &[])
+}
+
+/// Button on a folder's page: show the folder in the file manager.
+pub fn library_show_explorer() -> String {
+    text("library-show-explorer", &[])
+}
+
+/// Button on a folder's page. What it does is said under it on the page.
+pub fn library_remove_folder() -> String {
+    text("library-remove-folder", &[])
+}
+
+/// Heading of the list of folders whose match is uncertain.
+pub fn library_needs_look() -> String {
+    text("library-needs-look", &[])
+}
+
+/// Heading of the list of files that could not be matched.
+pub fn library_not_matched() -> String {
+    text("library-not-matched", &[])
+}
+
+/// Row that opens the list of matched series.
+pub fn library_matched(count: i64) -> String {
+    text("library-matched", &[("count", Arg::Int(count))])
+}
+
+/// Line under a row in Needs a look.
+pub fn library_best_guess(title: &str, percent: i64) -> String {
+    text("library-best-guess", &[("title", Arg::Text(title)), ("percent", Arg::Int(percent))])
+}
+
+/// Count of files in a group.
+pub fn library_files(count: i64) -> String {
+    text("library-files", &[("count", Arg::Int(count))])
+}
+
+/// Why a file group is not matched.
+pub fn library_reason_no_episode() -> String {
+    text("library-reason-no-episode", &[])
+}
+
+/// Why a file group is not matched.
+pub fn library_reason_no_title() -> String {
+    text("library-reason-no-title", &[])
+}
+
+/// Why a file group is not matched.
+pub fn library_reason_not_video() -> String {
+    text("library-reason-not-video", &[])
+}
+
+/// Button on a not matched row.
+pub fn library_set_episode() -> String {
+    text("library-set-episode", &[])
+}
+
+/// Item in a not matched row's menu.
+pub fn library_keep_unmatched() -> String {
+    text("library-keep-unmatched", &[])
+}
+
+/// Title of the dialog that fixes a match.
+pub fn library_fix_title() -> String {
+    text("library-fix-title", &[])
+}
+
+/// Under a result whose episode count does not fit the files.
+pub fn library_fix_count_mismatch(titleEpisodes: i64, files: i64) -> String {
+    text("library-fix-count-mismatch", &[("titleEpisodes", Arg::Int(titleEpisodes)), ("files", Arg::Int(files))])
+}
+
+/// Text button under the results of the match dialog.
+pub fn library_leave_unmatched() -> String {
+    text("library-leave-unmatched", &[])
+}
+
+/// Title of the dialog that sets one file's episode.
+pub fn library_episode_title() -> String {
+    text("library-episode-title", &[])
+}
+
+/// Stepper label.
+pub fn library_season() -> String {
+    text("library-season", &[])
+}
+
+/// Stepper label.
+pub fn library_episode() -> String {
+    text("library-episode", &[])
+}
+
+/// Default button of the episode dialog.
+pub fn library_apply() -> String {
+    text("library-apply", &[])
+}
+
+/// Section on Library for titles kept unmatched.
+pub fn library_from_files() -> String {
+    text("library-from-files", &[])
+}
+
+/// Disabled main action on a title whose drive is not connected.
+pub fn title_connect_drive() -> String {
+    text("title-connect-drive", &[])
+}
+
+/// Title of the picker that adds a folder.
+pub fn library_picker_title() -> String {
+    text("library-picker-title", &[])
+}
+
+/// Line on a folder's page, under Remove folder.
+pub fn library_remove_detail() -> String {
+    text("library-remove-detail", &[])
+}
+
+/// Title of the page.
+pub fn licensed_title() -> String {
+    text("licensed-title", &[])
+}
+
+/// Line under the title.
+pub fn licensed_body() -> String {
+    text("licensed-body", &[])
+}
+
+/// Label of the region menu.
+pub fn licensed_region() -> String {
+    text("licensed-region", &[])
+}
+
+/// Line under the region menu.
+pub fn licensed_region_line() -> String {
+    text("licensed-region-line", &[])
+}
+
+/// Heading of the list of services.
+pub fn licensed_yours() -> String {
+    text("licensed-yours", &[])
+}
+
+/// Row that shows the rest of the services.
+pub fn licensed_show_all(count: i64) -> String {
+    text("licensed-show-all", &[("count", Arg::Int(count))])
+}
+
+/// Switch label.
+pub fn licensed_show_others() -> String {
+    text("licensed-show-others", &[])
+}
+
+/// Line under that switch.
+pub fn licensed_show_others_line() -> String {
+    text("licensed-show-others-line", &[])
+}
+
+/// Line of the Licensed services row on Your sources.
+pub fn licensed_row_line(services: &str, region: &str) -> String {
+    text("licensed-row-line", &[("services", Arg::Text(services)), ("region", Arg::Text(region))])
+}
+
+/// Line of that row before any service is chosen.
+pub fn licensed_row_none() -> String {
+    text("licensed-row-none", &[])
+}
+
+/// Main action on a title that plays only on a service the viewer uses.
+pub fn title_watch_on(service: &str) -> String {
+    text("title-watch-on", &[("service", Arg::Text(service))])
+}
+
+/// Line under the actions of a title that plays here and on a service.
+pub fn title_also_on_services(services: &str) -> String {
+    text("title-also-on-services", &[("services", Arg::Text(services))])
+}
+
+/// Line on a title found in none of the viewer's services.
+pub fn title_listed_on(services: &str) -> String {
+    text("title-listed-on", &[("services", Arg::Text(services))])
+}
+
+/// Link at the end of that line.
+pub fn title_choose_services() -> String {
+    text("title-choose-services", &[])
+}
+
+/// Button on the return notice.
+pub fn licensed_mark_watched() -> String {
+    text("licensed-mark-watched", &[])
+}
+
 /// Format of a show: broadcast on television.
 pub fn format_tv() -> String {
     text("format-tv", &[])
@@ -10055,6 +10320,231 @@ pub fn search_sort_trending() -> String {
     text("search-sort-trending", &[])
 }
 
+/// Title of the dialog that adds a media server.
+pub fn servers_add_title() -> String {
+    text("servers-add-title", &[])
+}
+
+/// Heading of the servers found on the network.
+pub fn servers_on_network() -> String {
+    text("servers-on-network", &[])
+}
+
+/// Row shown while the app looks for servers.
+pub fn servers_looking() -> String {
+    text("servers-looking", &[])
+}
+
+/// Row shown when nothing answered.
+pub fn servers_none_found() -> String {
+    text("servers-none-found", &[])
+}
+
+/// Label of the address field.
+pub fn servers_address() -> String {
+    text("servers-address", &[])
+}
+
+/// Placeholder of the address field.
+pub fn servers_address_hint() -> String {
+    text("servers-address-hint", &[])
+}
+
+/// Button that goes to the next step.
+pub fn servers_continue() -> String {
+    text("servers-continue", &[])
+}
+
+/// Title of the sign-in step.
+pub fn servers_sign_in_title(server: &str) -> String {
+    text("servers-sign-in-title", &[("server", Arg::Text(server))])
+}
+
+/// Label of the user name field.
+pub fn servers_user() -> String {
+    text("servers-user", &[])
+}
+
+/// Label of the password field.
+pub fn servers_password() -> String {
+    text("servers-password", &[])
+}
+
+/// Link that switches to Quick Connect.
+pub fn servers_use_quick_connect() -> String {
+    text("servers-use-quick-connect", &[])
+}
+
+/// Link that switches back to a password.
+pub fn servers_use_password() -> String {
+    text("servers-use-password", &[])
+}
+
+/// Line under the sign-in fields. The store is where the token is kept, such as Credential Manager.
+pub fn servers_token_note(store: &str) -> String {
+    text("servers-token-note", &[("store", Arg::Text(store))])
+}
+
+/// Sign in button.
+pub fn servers_sign_in() -> String {
+    text("servers-sign-in", &[])
+}
+
+/// Title of the Quick Connect step.
+pub fn servers_qc_title() -> String {
+    text("servers-qc-title", &[])
+}
+
+/// Steps under the Quick Connect code.
+pub fn servers_qc_steps() -> String {
+    text("servers-qc-steps", &[])
+}
+
+/// Under the code while it waits.
+pub fn servers_qc_waiting() -> String {
+    text("servers-qc-waiting", &[])
+}
+
+/// Error when the code ran out.
+pub fn servers_qc_expired() -> String {
+    text("servers-qc-expired", &[])
+}
+
+/// Button that asks for another code.
+pub fn servers_qc_new_code() -> String {
+    text("servers-qc-new-code", &[])
+}
+
+/// Title of the step that picks libraries.
+pub fn servers_libraries_title() -> String {
+    text("servers-libraries-title", &[])
+}
+
+/// Line under it.
+pub fn servers_libraries_body() -> String {
+    text("servers-libraries-body", &[])
+}
+
+/// Line of one library: its kind and how many series.
+pub fn servers_library_line(kind: &str, count: i64) -> String {
+    text("servers-library-line", &[("kind", Arg::Text(kind)), ("count", Arg::Int(count))])
+}
+
+/// Switch: tell Jellyfin what was watched.
+pub fn servers_report() -> String {
+    text("servers-report", &[])
+}
+
+/// Line under that switch.
+pub fn servers_report_line() -> String {
+    text("servers-report-line", &[])
+}
+
+/// Button that finishes the dialog.
+pub fn servers_add() -> String {
+    text("servers-add", &[])
+}
+
+/// Line of a server row while it matches series.
+pub fn servers_row_matching(done: i64, total: i64) -> String {
+    text("servers-row-matching", &[("done", Arg::Int(done)), ("total", Arg::Int(total))])
+}
+
+/// Line of a server row when it is done.
+pub fn servers_row_summary(libraries: i64, series: i64) -> String {
+    text("servers-row-summary", &[("libraries", Arg::Int(libraries)), ("series", Arg::Int(series))])
+}
+
+/// Line at the top of a server's page.
+pub fn servers_page_line(address: &str, version: &str, user: &str) -> String {
+    text("servers-page-line", &[("address", Arg::Text(address)), ("version", Arg::Text(version)), ("user", Arg::Text(user))])
+}
+
+/// Button on a server's page.
+pub fn servers_sign_out() -> String {
+    text("servers-sign-out", &[])
+}
+
+/// Button on a server's page.
+pub fn servers_remove() -> String {
+    text("servers-remove", &[])
+}
+
+/// Error under the address field.
+pub fn servers_error_unreachable(address: &str) -> String {
+    text("servers-error-unreachable", &[("address", Arg::Text(address))])
+}
+
+/// Error under the address field.
+pub fn servers_error_not_jellyfin() -> String {
+    text("servers-error-not-jellyfin", &[])
+}
+
+/// Error under the address field.
+pub fn servers_error_too_old(version: &str) -> String {
+    text("servers-error-too-old", &[("version", Arg::Text(version))])
+}
+
+/// Error under the password field.
+pub fn servers_error_credentials() -> String {
+    text("servers-error-credentials", &[])
+}
+
+/// Error that replaces the Quick Connect link.
+pub fn servers_error_qc_off() -> String {
+    text("servers-error-qc-off", &[])
+}
+
+/// Error under the address field.
+pub fn servers_error_plain_http() -> String {
+    text("servers-error-plain-http", &[])
+}
+
+/// Error under the address field when the address cannot be read.
+pub fn servers_error_bad_address() -> String {
+    text("servers-error-bad-address", &[])
+}
+
+/// Error when something else went wrong.
+pub fn servers_error_other() -> String {
+    text("servers-error-other", &[])
+}
+
+/// Title of the step that asks about a certificate.
+pub fn servers_cert_title() -> String {
+    text("servers-cert-title", &[])
+}
+
+/// Text of that step.
+pub fn servers_cert_body(host: &str) -> String {
+    text("servers-cert-body", &[("host", Arg::Text(host))])
+}
+
+/// Button on that step.
+pub fn servers_cert_allow() -> String {
+    text("servers-cert-allow", &[])
+}
+
+/// Line of a server row when the server signed the viewer out.
+pub fn servers_row_signed_out() -> String {
+    text("servers-row-signed-out", &[])
+}
+
+/// Button on that row.
+pub fn servers_sign_in_again() -> String {
+    text("servers-sign-in-again", &[])
+}
+
+/// Line of a server row that does not answer.
+pub fn servers_row_not_answering(time: &str) -> String {
+    text("servers-row-not-answering", &[("time", Arg::Text(time))])
+}
+
+/// Line on a title page when its server does not answer.
+pub fn title_server_not_answering(server: &str) -> String {
+    text("title-server-not-answering", &[("server", Arg::Text(server))])
+}
+
 /// Settings group and row title for choosing a language.
 pub fn settings_language() -> String {
     text("settings-language", &[])
@@ -11223,6 +11713,91 @@ pub fn match_cleared() -> String {
 /// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 pub fn match_row_label(title: &str, facts: &str, closeness: &str) -> String {
     text("match-row-label", &[("title", Arg::Text(title)), ("facts", Arg::Text(facts)), ("closeness", Arg::Text(closeness))])
+}
+
+/// Section heading on Your sources: folders on this device.
+pub fn sources_section_media() -> String {
+    text("sources-section-media", &[])
+}
+
+/// Section heading on Your sources: Jellyfin servers.
+pub fn sources_section_servers() -> String {
+    text("sources-section-servers", &[])
+}
+
+/// Section heading on Your sources: the streaming services the viewer pays for.
+pub fn sources_section_licensed() -> String {
+    text("sources-section-licensed", &[])
+}
+
+/// Section heading on Your sources: the plugins of one store.
+pub fn sources_section_store(store: &str) -> String {
+    text("sources-section-store", &[("store", Arg::Text(store))])
+}
+
+/// Section heading on Your sources: what ships with the app.
+pub fn sources_section_builtin() -> String {
+    text("sources-section-builtin", &[])
+}
+
+/// The Add button on Your sources.
+pub fn sources_add() -> String {
+    text("sources-add", &[])
+}
+
+/// Item in the Add menu: choose a folder with episodes.
+pub fn sources_add_folder() -> String {
+    text("sources-add-folder", &[])
+}
+
+/// Item in the Add menu: add a Jellyfin server.
+pub fn sources_add_server() -> String {
+    text("sources-add-server", &[])
+}
+
+/// Item in the Add menu: join a plugin store.
+pub fn sources_add_store() -> String {
+    text("sources-add-store", &[])
+}
+
+/// Line under the empty state's title on a computer.
+pub fn sources_empty_body() -> String {
+    text("sources-empty-body", &[])
+}
+
+/// Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".
+pub fn sources_empty_more(join: &str, demo: &str) -> String {
+    text("sources-empty-more", &[("join", Arg::Text(join)), ("demo", Arg::Text(demo))])
+}
+
+/// Link in the empty state's last line.
+pub fn sources_empty_join_link() -> String {
+    text("sources-empty-join-link", &[])
+}
+
+/// Link in the empty state's last line.
+pub fn sources_empty_demo_link() -> String {
+    text("sources-empty-demo-link", &[])
+}
+
+/// Primary button of the empty state on a computer.
+pub fn sources_add_folder_button() -> String {
+    text("sources-add-folder-button", &[])
+}
+
+/// Second button of the empty state.
+pub fn sources_add_server_button() -> String {
+    text("sources-add-server-button", &[])
+}
+
+/// Notice after a source is removed. It holds Undo.
+pub fn sources_removed(name: &str) -> String {
+    text("sources-removed", &[("name", Arg::Text(name))])
+}
+
+/// Line of the notice after a folder is removed.
+pub fn sources_removed_files_stay() -> String {
+    text("sources-removed-files-stay", &[])
 }
 
 /// Short label for a joined store, on a row.
