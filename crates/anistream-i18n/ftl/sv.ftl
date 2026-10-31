@@ -3043,8 +3043,8 @@ settings-label-presence-title = Närvaron visar titeln
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Rik närvaro
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Torrent källa
+# Settings row: torrent playback on or off.
+settings-label-torrents = Torrentuppspelning
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Fortsätt dela efter visning
@@ -3163,7 +3163,7 @@ settings-note-presence-title = Av visar “Tittar på anime” utan att nämna s
 # Note under the rich presence row.
 settings-note-presence-rich = Lägger till omslag, en förloppsindikator och en AniList-länk. Kräver att titeln visas.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Kräver en konfigurerad VPN. Gäller direkt.
 
 # Note under the VPN mode row.
@@ -6528,7 +6528,7 @@ sources-replace-detail = Version { $version } från { $store } ersätter kopian 
 sources-open-settings = Öppna källainställningarna
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Torrent källa
+sources-torrent-source = Torrentuppspelning
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Källaordning

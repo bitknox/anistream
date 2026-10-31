@@ -1424,7 +1424,7 @@
     <comment>Setting: whether images in discussion comments load inline.</comment>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Torrent source</value>
+    <value>Torrent playback</value>
     <comment>Setting: the switch that turns torrents on.</comment>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
@@ -5900,7 +5900,7 @@
     <comment>Button that opens the settings for sources.</comment>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Torrent source</value>
+    <value>Torrent playback</value>
     <comment>Heading of the torrent group in the settings.</comment>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">

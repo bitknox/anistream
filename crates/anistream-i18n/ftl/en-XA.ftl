@@ -3196,8 +3196,8 @@ settings-label-presence-title = [Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = [Ŕîçĥ þŕéšéñçé~~~~]
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = [Ţöŕŕéñţ šöüŕçé~~~~~]
+# Settings row: torrent playback on or off.
+settings-label-torrents = [Ţöŕŕéñţ þļàýƀàçķ~~~~~]
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = [Šééð àƒţéŕ ŵàţçĥîñĝ~~~~~~]
@@ -3319,7 +3319,7 @@ settings-note-presence-title = [Öƒƒ šĥöŵš “Ŵàţçĥîñĝ àñîɱé
 # Note under the rich presence row.
 settings-note-presence-rich = [Åððš ţĥé çöṽéŕ, à þŕöĝŕéšš ƀàŕ àñð àñ ÅñîĻîšţ ļîñķ. Ñééðš ţĥé ţîţļé šĥöŵñ.~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = [Ñééðš à ṼÞÑ çöñƒîĝüŕéð. Ţàķéš éƒƒéçţ îɱɱéðîàţéļý.~~~~~~~~~~~~~~~]
 
 # Note under the VPN mode row.
@@ -6880,7 +6880,7 @@ sources-replace-detail = [Ṽéŕšîöñ { $version } ƒŕöɱ { $store } ŕé�
 sources-open-settings = [Öþéñ šöüŕçé šéţţîñĝš~~~~~~]
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = [Ţöŕŕéñţ šöüŕçé~~~~~]
+sources-torrent-source = [Ţöŕŕéñţ þļàýƀàçķ~~~~~]
 
 # Row: where the plugin's page stands.
 sources-source-order-row = [Šöüŕçé öŕðéŕ~~~~]

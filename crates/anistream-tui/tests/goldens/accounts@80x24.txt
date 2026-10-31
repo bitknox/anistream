@@ -1,4 +1,4 @@
-anistream           torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal ✕ sign in
+anistream                      plugins ●  ·  anilist ⇅ 2  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────
  ▸ │  ▌ Finish signing in to MyAnimeList
  ▤ │
@@ -25,7 +25,6 @@ plugins · Subbed · 1080p                                      ↵ sign in   ? 
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
-r00 c20-30 fg=text-dim
 r00 c31-39 fg=state
 r00 c40-41 fg=text-dim
 r00 c42-42 fg=rule

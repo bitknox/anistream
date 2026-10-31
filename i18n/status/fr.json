@@ -11430,9 +11430,9 @@
     "at": "2026-10-31"
   },
   "settings-label-torrents": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
+    "by": "agent",
     "at": "2026-10-31"
   },
   "settings-label-torrents-on-cellular": {
@@ -12672,9 +12672,9 @@
     "at": "2026-10-31"
   },
   "settings-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
+    "by": "agent",
     "at": "2026-10-31"
   },
   "settings-torrents-cellular": {
@@ -14412,9 +14412,9 @@
     "at": "2026-10-31"
   },
   "sources-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
+    "by": "agent",
     "at": "2026-10-31"
   },
   "sources-torrents": {

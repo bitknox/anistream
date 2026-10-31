@@ -1684,7 +1684,7 @@
     <string name="sources_update_detail">Versione %1$s da %2$s sostituisce %3$s.</string>
     <string name="sources_replace_detail">Versione %1$s da %2$s sostituisce la copia aggiunta a mano. %3$s.</string>
     <string name="sources_open_settings">Apri impostazioni della fonte</string>
-    <string name="sources_torrent_source">Fonte torrent</string>
+    <string name="sources_torrent_source">Riproduzione torrent</string>
     <string name="sources_source_order_row">Posizione nell\'ordine</string>
     <string name="sources_torrents_note">I torrent fanno parte di anistream, non sono un plugin. La protezione del loro traffico, il controllo della connessione e il seeding si impostano nelle Impostazioni, sotto Fonti.</string>
     <string name="sources_rebuilding">Fonti sono in fase di nuova configurazione</string>

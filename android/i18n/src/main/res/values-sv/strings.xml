@@ -1635,7 +1635,7 @@
     <string name="sources_update_detail">Version %1$s från %2$s ersätter %3$s.</string>
     <string name="sources_replace_detail">Version %1$s från %2$s ersätter kopian som lades till för hand. %3$s.</string>
     <string name="sources_open_settings">Öppna källainställningarna</string>
-    <string name="sources_torrent_source">Torrent källa</string>
+    <string name="sources_torrent_source">Torrentuppspelning</string>
     <string name="sources_source_order_row">Källaordning</string>
     <string name="sources_torrents_note">Torrent ingår i anistream, inte i ett tillägg. Vad som skyddar deras trafik, anslutningskontrollen och seedningen ställs in i Inställningar, under Källor.</string>
     <string name="sources_rebuilding">Källor ställs in på nytt</string>

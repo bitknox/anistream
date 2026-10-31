@@ -3074,8 +3074,8 @@ settings-label-presence-title = La presencia muestra el título
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Presencia enriquecida
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Fuente de torrents
+# Settings row: torrent playback on or off.
+settings-label-torrents = Reproducción de torrents
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Seguir compartiendo después de ver
@@ -3194,7 +3194,7 @@ settings-note-presence-title = Apagado muestra “Viendo anime” sin nombrar la
 # Note under the rich presence row.
 settings-note-presence-rich = Agrega la portada, una barra de progreso y un enlace a AniList. Necesita que el título esté visible.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Necesita una VPN configurada. Se aplica de inmediato.
 
 # Note under the VPN mode row.
@@ -6575,7 +6575,7 @@ sources-replace-detail = La versión { $version } de { $store } reemplaza la cop
 sources-open-settings = Abrir ajustes de la fuente
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Fuente de torrents
+sources-torrent-source = Reproducción de torrents
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Orden de la fuente

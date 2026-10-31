@@ -1683,7 +1683,7 @@
     <string name="sources_update_detail">v%1$s de %2$s substitui %3$s.</string>
     <string name="sources_replace_detail">v%1$s de %2$s substitui a cópia adicionada manualmente. %3$s.</string>
     <string name="sources_open_settings">Abrir configurações de fontes</string>
-    <string name="sources_torrent_source">fonte de torrents</string>
+    <string name="sources_torrent_source">Reprodução de torrents</string>
     <string name="sources_source_order_row">Ordem da fonte</string>
     <string name="sources_torrents_note">Torrents fazem parte do anistream, e não de um plugin. A proteção do tráfego, a verificação de conexão e a semeadura são definidas em Configurações, em Fontes.</string>
     <string name="sources_rebuilding">Fontes estão sendo configuradas de novo</string>

@@ -1,4 +1,4 @@
-anistream                                                   torrent ○  plugins ·
+anistream                                                              plugins ·
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ▒█▓  Loading…
  ▤ │
@@ -25,7 +25,7 @@ plugins · Subbed · 1080p                     j move down   l move right   ? ke
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
-r00 c60-79 fg=text-dim
+r00 c71-79 fg=text-dim
 r01 c00-79 fg=rule
 r02 c00-00 fg=obi
 r02 c01-01 fg=text mod=BOLD

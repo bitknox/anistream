@@ -900,7 +900,7 @@
     <value>コメント内の画像を読み込む</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>トレントソース</value>
+    <value>トレント再生</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>システムに合わせる</value>
@@ -3972,7 +3972,7 @@
     <value>ソースの設定を開く</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>トレントのソース</value>
+    <value>トレント再生</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>ソースの順番</value>

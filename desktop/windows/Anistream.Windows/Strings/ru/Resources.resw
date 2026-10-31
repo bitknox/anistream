@@ -1017,7 +1017,7 @@
     <value>Загружать картинки в комментариях</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Торрент-источник</value>
+    <value>Воспроизведение торрентов</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Системная</value>
@@ -4284,7 +4284,7 @@
     <value>Открыть настройки источника</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Торрент-источник</value>
+    <value>Воспроизведение торрентов</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Порядок проверки</value>

@@ -6261,7 +6261,7 @@ public enum L {
     public static var sourcesOpenSettings: String { string("sources-open-settings", fallback: "Open source settings") }
 
     /// Heading of the torrent group in the settings.
-    public static var sourcesTorrentSource: String { string("sources-torrent-source", fallback: "Torrent source") }
+    public static var sourcesTorrentSource: String { string("sources-torrent-source", fallback: "Torrent playback") }
 
     /// Row: where the plugin's page stands.
     public static var sourcesSourceOrderRow: String { string("sources-source-order-row", fallback: "Source order") }

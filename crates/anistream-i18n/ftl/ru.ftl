@@ -3102,8 +3102,8 @@ settings-label-presence-title = Название в статусе
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Расширенный статус
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Торрент-источник
+# Settings row: torrent playback on or off.
+settings-label-torrents = Воспроизведение торрентов
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Раздавать после просмотра
@@ -3222,7 +3222,7 @@ settings-note-presence-title = При выключении показывает�
 # Note under the rich presence row.
 settings-note-presence-rich = Добавляет обложку, полосу прогресса и ссылку на AniList. Нужно, чтобы название было показано.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Нужен настроенный VPN. Действует сразу.
 
 # Note under the VPN mode row.
@@ -6634,7 +6634,7 @@ sources-replace-detail = Версия { $version } из { $store } замени�
 sources-open-settings = Открыть настройки источника
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Торрент-источник
+sources-torrent-source = Воспроизведение торрентов
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Порядок проверки

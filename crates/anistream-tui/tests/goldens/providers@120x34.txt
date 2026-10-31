@@ -1,4 +1,4 @@
-anistream                                                               torrent ○  plugins ●  Metadata ▲  ·  anilist ⇅ 2
+anistream                                                                          plugins ●  Metadata ▲  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ▸  Continue               │  Sources
   ▤  Calendar               │
@@ -35,7 +35,6 @@ plugins · Subbed · 1080p                                                K/J or
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
-r00 c72-82 fg=text-dim
 r00 c83-91 fg=state
 r00 c92-93 fg=text-dim
 r00 c94-103 fg=alert

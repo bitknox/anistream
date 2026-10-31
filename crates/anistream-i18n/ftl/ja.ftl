@@ -3009,8 +3009,8 @@ settings-label-presence-title = 再生状況にタイトルを表示
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = 詳細な再生状況
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = トレントソース
+# Settings row: torrent playback on or off.
+settings-label-torrents = トレント再生
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = 視聴後のシード
@@ -3129,7 +3129,7 @@ settings-note-presence-title = オフにすると、作品名を出さずに「�
 # Note under the rich presence row.
 settings-note-presence-rich = カバー画像、進行バー、AniListへのリンクを追加します。タイトルの表示が必要です。
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = VPNの設定が必要です。すぐに反映されます。
 
 # Note under the VPN mode row.
@@ -6469,7 +6469,7 @@ sources-replace-detail = { $store }のバージョン{ $version }が、手動で
 sources-open-settings = ソースの設定を開く
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = トレントのソース
+sources-torrent-source = トレント再生
 
 # Row: where the plugin's page stands.
 sources-source-order-row = ソースの順番

@@ -13432,11 +13432,10 @@
     "back": "Token storage"
   },
   "settings-label-torrents": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrents source"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-label-torrents-on-cellular": {
     "source": "718979e305f6",
@@ -14889,11 +14888,10 @@
     "back": "Token storage"
   },
   "settings-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Source of torrents"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-torrents-cellular": {
     "source": "718979e305f6",
@@ -16943,11 +16941,10 @@
     "back": "It searches the torrent indexes activated in Settings."
   },
   "sources-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrent source"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "sources-torrents": {
     "source": "5e719fad3ef5",

@@ -449,7 +449,7 @@ impl SettingKey {
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
             Self::PresenceRich => "rich presence",
-            Self::Torrents => "torrent source",
+            Self::Torrents => "torrent playback",
             Self::SeedRatio => "seed after watching",
             Self::SeedHours => "seed for at most",
             Self::UploadLimit => "upload limit",

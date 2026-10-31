@@ -939,7 +939,7 @@
     <value>Bilder in Kommentaren laden</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Torrent-Quelle</value>
+    <value>Torrent-Wiedergabe</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Automatisch</value>
@@ -4080,7 +4080,7 @@
     <value>Einstellungen für Quellen öffnen</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Quelle für Torrents</value>
+    <value>Torrent-Wiedergabe</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Reihenfolge der Quelle</value>

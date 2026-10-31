@@ -416,7 +416,7 @@ The app then opens on Home.
 
 ### Torrents
 
-Torrents are off by default and live in Settings > Sources as “Torrent source”, on Mac, iPad and iPhone. Turning the switch on opens a sheet before anything starts:
+Torrents are off by default and live in Settings > Sources as “Torrent playback”, on Mac, iPad and iPhone. Turning the switch on opens a sheet before anything starts:
 
 - “Torrents download from other people and share what you download with them while you watch. They can see your IP address.”
 - A “Protect with” picker: SOCKS5 proxy (host, port, user name, password), VPN on this device, or No protection.

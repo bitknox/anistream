@@ -1,4 +1,4 @@
-anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+anistream                                                                                      plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
@@ -10,10 +10,10 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Sources   Episode 4. Enter plays your pick.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  Current pick                                212
-▌ [Lanternlight] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  Subbed and dubbed                             ▲  14
-  [Nagi] Hoshikuzu no Tabibito - 04  ·  0.9 GiB                                                                ✕   3
-  Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed
+  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  212 peers  ·  1.4 GiB  ·  Current pick                1080p
+▌ [Lanternlight] Hoshikuzu no Tabibito 04 [Dual]  ·  14 peers  ·  2.1 GiB  ·  Subbed and dubbed                1080p
+  [Nagi] Hoshikuzu no Tabibito - 04  ·  3 peers  ·  0.9 GiB                                                    1080p
+  Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed                                                           1080p
 
    │    012   The Stardust Traveller                               --:--   ░░░░░░░░          the coach takes a road
    │                                                                                         nobody has charted.
@@ -59,24 +59,26 @@ r10 c02-44 fg=text bg=ground mod=BOLD
 r10 c45-119 fg=rule bg=ground
 r11 c00-119 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
-r12 c02-80 fg=text-dim bg=ground
-r12 c81-110 fg=rule bg=ground
+r12 c02-94 fg=text-dim bg=ground
+r12 c95-110 fg=rule bg=ground
 r12 c111-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
 r13 c00-00 fg=obi bg=ground
 r13 c01-01 fg=rule bg=ground
-r13 c02-81 fg=text bg=ground mod=BOLD
-r13 c82-110 fg=rule bg=ground
+r13 c02-94 fg=text bg=ground mod=BOLD
+r13 c95-110 fg=rule bg=ground
 r13 c111-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
-r14 c02-46 fg=text-dim bg=ground
-r14 c47-110 fg=rule bg=ground
+r14 c02-58 fg=text-dim bg=ground
+r14 c59-110 fg=rule bg=ground
 r14 c111-115 fg=text bg=ground
 r14 c116-119 fg=rule bg=ground
 r15 c00-01 fg=rule bg=ground
 r15 c02-51 fg=text-dim bg=ground
-r15 c52-119 fg=rule bg=ground
+r15 c52-110 fg=rule bg=ground
+r15 c111-115 fg=text bg=ground
+r15 c116-119 fg=rule bg=ground
 r16 c00-119 fg=rule bg=ground
 r17 c00-119 fg=rule
 r18 c00-119 fg=rule

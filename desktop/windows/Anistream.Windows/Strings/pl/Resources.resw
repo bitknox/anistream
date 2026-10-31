@@ -1017,7 +1017,7 @@
     <value>Wczytuj obrazki w komentarzach</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Torrenty jako źródło</value>
+    <value>Odtwarzanie torrentów</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Zgodny z systemem</value>
@@ -4290,7 +4290,7 @@
     <value>Otwórz Źródła</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Źródło torrentowe</value>
+    <value>Odtwarzanie torrentów</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Źródło: pozycja w kolejności</value>

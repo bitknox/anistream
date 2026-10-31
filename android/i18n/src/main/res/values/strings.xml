@@ -3394,7 +3394,7 @@
     <!-- Button that opens the settings for sources. -->
     <string name="sources_open_settings">Open source settings</string>
     <!-- Heading of the torrent group in the settings. -->
-    <string name="sources_torrent_source">Torrent source</string>
+    <string name="sources_torrent_source">Torrent playback</string>
     <!-- Row: where the plugin's page stands. -->
     <string name="sources_source_order_row">Source order</string>
     <!-- Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin. -->

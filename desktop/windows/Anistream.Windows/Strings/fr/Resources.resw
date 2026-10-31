@@ -978,7 +978,7 @@
     <value>Charger les images dans les commentaires</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Source torrent</value>
+    <value>Lecture de torrents</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Adaptatif</value>
@@ -4179,7 +4179,7 @@
     <value>Ouvrir les réglages de la source</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Source torrent</value>
+    <value>Lecture de torrents</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Ordre des sources</value>

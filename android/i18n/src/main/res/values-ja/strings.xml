@@ -1587,7 +1587,7 @@
     <string name="sources_update_detail">%2$sのバージョン%1$sが%3$sを置き換えます。</string>
     <string name="sources_replace_detail">%2$sのバージョン%1$sが、手動で追加されたコピーを置き換えます。%3$s。</string>
     <string name="sources_open_settings">ソースの設定を開く</string>
-    <string name="sources_torrent_source">トレントのソース</string>
+    <string name="sources_torrent_source">トレント再生</string>
     <string name="sources_source_order_row">ソースの順番</string>
     <string name="sources_torrents_note">トレントはプラグインではなく、anistreamに含まれています。通信の保護、接続確認、シーディングは、設定のソースで設定します。</string>
     <string name="sources_rebuilding">ソースを設定し直しています</string>

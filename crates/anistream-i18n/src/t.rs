@@ -5105,7 +5105,7 @@ pub fn settings_label_presence_rich() -> String {
     text("settings-label-presence-rich", &[])
 }
 
-/// Settings row: the torrent source on or off.
+/// Settings row: torrent playback on or off.
 pub fn settings_label_torrents() -> String {
     text("settings-label-torrents", &[])
 }
@@ -5310,7 +5310,7 @@ pub fn settings_note_presence_rich() -> String {
     text("settings-note-presence-rich", &[])
 }
 
-/// Note under the torrent source row.
+/// Note under the torrent playback row.
 pub fn settings_note_torrents() -> String {
     text("settings-note-torrents", &[])
 }

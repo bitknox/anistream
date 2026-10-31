@@ -3196,8 +3196,8 @@ settings-label-presence-title = Presence shows the title
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Rich presence
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Torrent source
+# Settings row: torrent playback on or off.
+settings-label-torrents = Torrent playback
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Seed after watching
@@ -3319,7 +3319,7 @@ settings-note-presence-title = Off shows “Watching anime” without naming the
 # Note under the rich presence row.
 settings-note-presence-rich = Adds the cover, a progress bar and an AniList link. Needs the title shown.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Needs a VPN configured. Takes effect immediately.
 
 # Note under the VPN mode row.
@@ -6880,7 +6880,7 @@ sources-replace-detail = Version { $version } from { $store } replaces the copy 
 sources-open-settings = Open source settings
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Torrent source
+sources-torrent-source = Torrent playback
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Source order

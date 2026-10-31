@@ -106758,61 +106758,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quelle für Torrents"
+            "value" : "Torrent-Wiedergabe"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torrent source"
+            "value" : "Torrent playback"
           }
         },
         "es-419" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fuente de torrents"
+            "value" : "Reproducción de torrents"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Source torrent"
+            "value" : "Lecture de torrents"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fonte torrent"
+            "value" : "Riproduzione torrent"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トレントのソース"
+            "value" : "トレント再生"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Źródło torrentowe"
+            "value" : "Odtwarzanie torrentów"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "fonte de torrents"
+            "value" : "Reprodução de torrents"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Торрент-источник"
+            "value" : "Воспроизведение торрентов"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torrent källa"
+            "value" : "Torrentuppspelning"
           }
         }
       }

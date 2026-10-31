@@ -1630,7 +1630,7 @@
     <string name="sources_update_detail">Version %1$s von %2$s ersetzt %3$s.</string>
     <string name="sources_replace_detail">Version %1$s von %2$s ersetzt die von Hand hinzugefügte Kopie. %3$s.</string>
     <string name="sources_open_settings">Einstellungen für Quellen öffnen</string>
-    <string name="sources_torrent_source">Quelle für Torrents</string>
+    <string name="sources_torrent_source">Torrent-Wiedergabe</string>
     <string name="sources_source_order_row">Reihenfolge der Quelle</string>
     <string name="sources_torrents_note">Torrents gehören zu anistream und sind kein Plugin. Den Schutz des Datenverkehrs, die Verbindungsprüfung und das Seeding stellst du in den Einstellungen unter Quellen ein.</string>
     <string name="sources_rebuilding">Quellen werden neu eingerichtet</string>

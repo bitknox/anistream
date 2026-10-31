@@ -1,4 +1,4 @@
-anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+anistream                                              plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
@@ -7,10 +7,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Sources   Episode 4. Enter plays your pick.
 ────────────────────────────────────────────────────────────────────────────────
-  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  …   212
-▌ [Lanternlight] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  Subb… ▲  14
-  [Nagi] Hoshikuzu no Tabibito - 04  ·  0.9 GiB                        ✕   3
-  Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed
+  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  212 peers  ·… 1080p
+▌ [Lanternlight] Hoshikuzu no Tabibito 04 [Dual]  ·  14 peers  ·  2.1… 1080p
+  [Nagi] Hoshikuzu no Tabibito - 04  ·  3 peers  ·  0.9 GiB            1080p
+  Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed                   1080p
 
    │    009   Postmarked Yesterday                    23:55   ░░░░░░░░
    │    010   The Comet's Wake                        23:55   ░░░░░░░░
@@ -57,13 +57,15 @@ r10 c70-70 fg=rule bg=ground
 r10 c71-75 fg=text bg=ground
 r10 c76-79 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
-r11 c02-46 fg=text-dim bg=ground
-r11 c47-70 fg=rule bg=ground
+r11 c02-58 fg=text-dim bg=ground
+r11 c59-70 fg=rule bg=ground
 r11 c71-75 fg=text bg=ground
 r11 c76-79 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
 r12 c02-51 fg=text-dim bg=ground
-r12 c52-79 fg=rule bg=ground
+r12 c52-70 fg=rule bg=ground
+r12 c71-75 fg=text bg=ground
+r12 c76-79 fg=rule bg=ground
 r13 c00-79 fg=rule bg=ground
 r14 c00-79 fg=rule
 r15 c00-79 fg=rule
