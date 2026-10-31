@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -273,12 +274,16 @@ private fun CastCard(cast: CastModel, shown: CastShown) {
         shown.cast.upNext?.let { CastUpNext(cast, it, entry) }
         CastTransport(cast, now, playing)
         TvDivider(Modifier.padding(top = 8.dp))
-        CastTrackRow(stringResource(R.string.player_subtitles), FfiTvTrackKind.SUBTITLE, now.subtitles, now.subtitlesOff, cast, enabled = playing)
+        // The rows wait for the TV's tracks: never "None" for what is not known yet.
+        val subtitles = playing || now.subtitles.isNotEmpty()
+        if (subtitles) {
+            CastTrackRow(stringResource(R.string.player_subtitles), FfiTvTrackKind.SUBTITLE, now.subtitles, now.subtitlesOff, cast, enabled = playing)
+        }
         if (now.audio.isNotEmpty()) {
-            TvDivider()
+            if (subtitles) TvDivider()
             CastTrackRow(stringResource(R.string.player_audio), FfiTvTrackKind.AUDIO, now.audio, off = false, cast, enabled = playing)
         }
-        TvDivider()
+        if (subtitles || now.audio.isNotEmpty()) TvDivider()
         CastVolume(cast, shown, now, enabled = playing)
     }
     // What each ending offers, as the board lays them out.
@@ -293,10 +298,26 @@ private fun CastCard(cast: CastModel, shown: CastShown) {
         val another = @Composable { CastPill(stringResource(R.string.tv_choose_another), cast::chooseAnother) }
         val source = @Composable { if (choose) CastPill(stringResource(R.string.player_choose_source)) { choosingSource = true } }
         when (notice) {
+            // Three actions on a phone: Choose another TV sits in the overflow.
             null -> {
                 playHere()
-                another()
                 CastPill(stringResource(R.string.cast_card_stop), cast::stop)
+                var more by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { more = true }) {
+                        Icon(Icons.More, contentDescription = stringResource(R.string.action_more), tint = colors.onSurface)
+                    }
+                    Menu(expanded = more, onDismissRequest = { more = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.tv_choose_another), style = MaterialTheme.typography.labelLarge) },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            onClick = {
+                                more = false
+                                cast.chooseAnother()
+                            },
+                        )
+                    }
+                }
             }
             is Msg.NoticeCastNeverFetches -> {
                 CastPill(stringResource(R.string.action_try_again), cast::tryAgain)
