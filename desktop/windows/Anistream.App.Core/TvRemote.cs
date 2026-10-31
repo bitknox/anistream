@@ -1,5 +1,6 @@
 using System.Globalization;
 using Anistream.Engine.Ffi;
+using Anistream.Engine.Model;
 
 namespace Anistream.App;
 
@@ -22,10 +23,32 @@ public sealed record TvPairingStep(string TvName, bool NeedsCode, bool Working, 
 }
 
 /// <summary>What the TV dialog shows: the TVs to choose from and pairing, or the card of the TV driven.</summary>
+/// <summary>Where a cast is: starting, playing, or ended in a way the card keeps and explains.</summary>
+public enum CastStage
+{
+    Starting,
+    Playing,
+    /// <summary>It never started, or the TV stopped it on a stream: the card says why.</summary>
+    Failed,
+    /// <summary>The TV dropped off the network mid-cast.</summary>
+    Lost,
+}
+
+/// <summary>What a cast's card offers once it has ended.</summary>
+public enum CastOffer
+{
+    ChooseSource,
+    PlayHere,
+    TryAgain,
+    ChooseAnother,
+}
+
 public enum TvSheet
 {
     Picker,
     Remote,
+    /// <summary>The card of the TV with Chromecast built in this PC casts to.</summary>
+    Cast,
 }
 
 /// <summary>
@@ -43,6 +66,8 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
     readonly Func<DateTimeOffset> clock = clock ?? (() => DateTimeOffset.UtcNow);
     FfiTvSender? sender;
     FfiTvBrowser? browser;
+    FfiCastBrowser? castBrowser;
+    FfiCastSession? cast;
     FfiTvPairing? steps;
     FfiTvLink? link;
     int browsers, attempt;
@@ -54,6 +79,8 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
     /// <summary>What choosing a TV plays. Null when the picker was opened to pair or connect only.</summary>
     public TvPlay? Request { get; private set; }
     public FfiTvRow[] Rows { get; private set; } = [];
+    /// <summary>The TVs with Chromecast built in the browse found, for the picker's Chromecast group.</summary>
+    public FfiCastRow[] CastRows { get; private set; } = [];
     public FfiPairedTv[] Paired { get; private set; } = [];
     public bool Browsing { get; private set; }
     public TvPairingStep? Pairing { get; private set; }
@@ -88,11 +115,15 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
 
     void Say() => Changed?.Invoke();
 
-    /// <summary>Takes the engine's sender, browsing with <paramref name="with"/> while a picker is up.</summary>
-    public void Attach(FfiTvSender tvSender, FfiTvBrowser with)
+    /// <summary>
+    /// Takes the engine's sender, browsing with <paramref name="with"/> while a picker is up, and
+    /// for TVs with Chromecast built in with <paramref name="casts"/>.
+    /// </summary>
+    public void Attach(FfiTvSender tvSender, FfiTvBrowser with, FfiCastBrowser? casts = null)
     {
         sender = tvSender;
         browser = with;
+        castBrowser = casts;
         ShortFingerprint = tvSender.ShortFingerprint();
         Refresh();
         Watch(tvSender);
@@ -114,6 +145,7 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
             return;
         Rows = sender.Rows();
         Paired = sender.Paired();
+        CastRows = castBrowser is null ? [] : sender.CastRows();
         Say();
     }
 
@@ -147,10 +179,12 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         Say();
     }
 
-    /// <summary>The card of the TV driven, or the picker when there is none.</summary>
+    /// <summary>The card of the cast or the TV driven, or the picker when there is neither.</summary>
     public void OpenRemote()
     {
-        Sheet = Connected is null ? TvSheet.Picker : TvSheet.Remote;
+        if (cast is not null)
+            CastReopened();
+        Sheet = cast is not null ? TvSheet.Cast : Connected is null ? TvSheet.Picker : TvSheet.Remote;
         Say();
     }
 
@@ -163,6 +197,7 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         // A session the TV ended while its card was up ends here as the card goes.
         if (Card?.Over == true)
             Disconnect();
+        CastSheetClosed();
         Say();
     }
 
@@ -175,6 +210,8 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
             return;
         Browsing = true;
         sender.Browse(browser);
+        if (castBrowser is not null)
+            sender.BrowseCast(castBrowser);
         Refresh();
     }
 
@@ -474,6 +511,267 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         OpenPicker();
     }
 
+    // Casting to a TV with Chromecast built in.
+
+    /// <summary>The cast's card as the engine last said it, while there is a cast or its ending is shown.</summary>
+    public FfiCastCard? CastCard { get; private set; }
+    /// <summary>When the card's playhead was last said, for the playhead to move on from.</summary>
+    public DateTimeOffset CastCardAt { get; private set; }
+    /// <summary>When the TV was picked, for the starting line's seconds.</summary>
+    public DateTimeOffset CastPicked { get; private set; }
+    /// <summary>What the cast plays, for Play here and the card while the TV starts.</summary>
+    public TvPlay? CastPlay { get; private set; }
+    /// <summary>The TV the cast went to, for Try again and the card's lines.</summary>
+    public FfiCastRow? CastRow { get; private set; }
+    /// <summary>A cast has reached a TV from this PC once: Windows' firewall has asked by then.</summary>
+    public bool CastServed { get; set; }
+
+    /// <summary>The cast's TV first played: the window keeps that, so the firewall note goes.</summary>
+    public Action? Served { get; set; }
+    /// <summary>Someone else took the TV: the card closed, and the window offers Play here.</summary>
+    public Action<TvPlay, Msg>? TakenOver { get; set; }
+
+    bool castPlayed;
+    bool castReopened;
+    /// <summary>What the TV last said it played, kept where it stopped once a card comes without it.</summary>
+    FfiNowCard? castLastNow;
+
+    /// <summary>A cast is running, or its ending is shown on the card and the title bar.</summary>
+    public bool Casting => cast is not null;
+
+    /// <summary>This PC sends the TV the episode, so it must stay awake while the cast runs.</summary>
+    public bool CastRelaying => cast is not null && CastCard is { Card.Over: false, Route: FfiCastRouteHint.ThroughThisDevice };
+
+    /// <summary>
+    /// A Chromecast row chosen: cast what was asked to it, and show its card at once. A player
+    /// that asked closes once the TV plays it.
+    /// </summary>
+    public void Cast(FfiCastRow row)
+    {
+        if (sender is null || Request is not { } request)
+            return;
+        Problem = null;
+        try
+        {
+            var session = sender.Cast(row.Key, request.Id, request.Episode, request.From);
+            DropCast();
+            cast = session;
+            CastPlay = request;
+            CastRow = row;
+            CastPicked = clock();
+            castPlayed = false;
+            castReopened = false;
+            Request = null;
+            Sheet = TvSheet.Cast;
+            TakeCast(session.Card());
+            ReadCast(session);
+        }
+        catch (Exception e)
+        {
+            Problem = TvWords.Of(e);
+            Say();
+        }
+    }
+
+    async void ReadCast(FfiCastSession reading)
+    {
+        try
+        {
+            while (await reading.NextCard() is { } card)
+            {
+                if (cast != reading)
+                    return;
+                TakeCast(card);
+            }
+        }
+        catch (Exception e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "cast", $"the cast's card stopped: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The card the engine sent. Someone else taking the TV closes it, with Play here offered by
+    /// the window; a cast stopped without a reason goes; any other ending stays on the card.
+    /// </summary>
+    public void TakeCast(FfiCastCard next)
+    {
+        var was = CastCard?.Card.Now;
+        var now = next.Card.Now;
+        // A TV that dropped off sends no playhead: the card keeps the one it had, where it got to.
+        if (now is not null)
+            castLastNow = now;
+        else if (was is not null && Stage == CastStage.Playing)
+            castLastNow = was with { Position = CastPlayhead() ?? was.Position, Paused = true };
+        if (was is null || now is null || was.Position != now.Position || was.Paused != now.Paused || was.Loading != now.Loading)
+            CastCardAt = clock();
+        CastCard = next;
+        // Up next played on the TV: the card, Play here and Try again follow the episode it plays.
+        if (castPlayed && now is { Loading: false } && CastPlay is { } asked && (now.Id != asked.Id || now.Episode != asked.Episode))
+            CastPlay = asked with { Id = now.Id, Title = now.Title, Episode = now.Episode, From = null };
+        if (next.Card.Over && next.Notice is Msg.NoticeCastTakenOver taken && CastPlay is { } play)
+        {
+            DropCast();
+            Say();
+            TakenOver?.Invoke(play, taken);
+            return;
+        }
+        if (next.Card.Over && next.Notice is null)
+        {
+            DropCast();
+            Say();
+            return;
+        }
+        if (!castPlayed && Stage == CastStage.Playing)
+        {
+            castPlayed = true;
+            if (!CastServed)
+            {
+                CastServed = true;
+                Served?.Invoke();
+            }
+            if (CastPlay?.FromPlayer == true)
+                HandedOff?.Invoke();
+        }
+        Say();
+    }
+
+    /// <summary>How the cast stands, for the card's line, dot and buttons.</summary>
+    public CastStage Stage => TvWords.StageOf(CastCard);
+
+    /// <summary>What the TV plays, as the card shows it: what was asked while it starts.</summary>
+    public FfiNowCard? CastNow
+    {
+        get
+        {
+            var told = CastCard?.Card.Now ?? castLastNow;
+            if (told is not null && (castPlayed || Stage is CastStage.Playing or CastStage.Lost || CastPlay is null))
+                return told;
+            if (CastPlay is not { } asked)
+                return told;
+            return new FfiNowCard(
+                Id: asked.Id, Title: asked.Title, Episode: asked.Episode,
+                EpisodeLine: told?.EpisodeLine is { Length: > 0 } line ? line : T.EpisodeLabel(asked.Episode),
+                Loading: Stage == CastStage.Starting, Position: told?.Position ?? asked.From ?? 0, Duration: told?.Duration,
+                Paused: false, Speed: 1, Volume: told?.Volume, Audio: told?.Audio ?? [], Subtitles: told?.Subtitles ?? [],
+                SubtitlesOff: told?.SubtitlesOff ?? false, Skip: null);
+        }
+    }
+
+    /// <summary>Where the TV's playhead is now: moved on from the card on this PC's clock while it plays.</summary>
+    public double? CastPlayhead(DateTimeOffset? at = null)
+    {
+        if ((CastCard?.Card.Now ?? castLastNow) is not { } now)
+            return null;
+        if (Stage != CastStage.Playing)
+            return now.Position;
+        return AnistreamFfiMethods.TvPlayhead(now, Math.Max(0, ((at ?? clock()) - CastCardAt).TotalSeconds));
+    }
+
+    /// <summary>The seconds since the TV was picked, for the starting line's counter.</summary>
+    public TimeSpan CastWaited(DateTimeOffset? at = null) => (at ?? clock()) - CastPicked;
+
+    /// <summary>The TV's name as the card says it.</summary>
+    public string CastName => CastCard?.Card.TvName is { Length: > 0 } name ? name : CastRow?.Name ?? "";
+
+    /// <summary>A control on the cast's card.</summary>
+    public void SendCast(FfiTvCommand command) => cast?.Command(command);
+
+    /// <summary>Play here: the cast stops, and the episode is the window's to play on this PC from where history has it.</summary>
+    public TvPlay? PlayHere()
+    {
+        var play = CastPlay;
+        var held = cast;
+        var ended = Stage is CastStage.Failed or CastStage.Lost;
+        DropCast();
+        if (!ended)
+            held?.PlayHere();
+        Say();
+        return play;
+    }
+
+    /// <summary>Stop casting from the card. The person chose it, so there is nothing to say.</summary>
+    public void StopCasting()
+    {
+        var held = cast;
+        DropCast();
+        held?.Stop();
+        Say();
+    }
+
+    /// <summary>Try again: the same episode to the same TV, from where it got to. The card starts over.</summary>
+    public void CastAgain()
+    {
+        if (CastPlay is not { } play || CastRow is not { } row)
+            return;
+        if (cast is { } held && held.TryAgain())
+        {
+            CastPicked = clock();
+            castPlayed = false;
+            castReopened = false;
+            castLastNow = null;
+            TakeCast(held.Card());
+            return;
+        }
+        DropCast();
+        Request = play;
+        Cast(row);
+    }
+
+    /// <summary>Up next's Play now: the next episode plays on the TV at once.</summary>
+    public void CastPlayNext() => cast?.PlayNext();
+
+    /// <summary>Up next's Cancel: the episode doesn't roll on.</summary>
+    public void CastCancelNext() => cast?.CancelNext();
+
+    /// <summary>Undo on the note an automatic skip leaves: back to where it skipped from.</summary>
+    public void CastUndoSkip() => cast?.UndoSkip();
+
+    /// <summary>Choose another TV: the picker, with the same episode to cast.</summary>
+    public void CastElsewhere()
+    {
+        var play = CastPlay;
+        DropCast();
+        Request = play;
+        Sheet = TvSheet.Picker;
+        Say();
+    }
+
+    /// <summary>Choose source: the card goes, and the episode is the window's to list sources for.</summary>
+    public TvPlay? CastChooseSource()
+    {
+        var play = CastPlay;
+        DropCast();
+        Say();
+        return play;
+    }
+
+    /// <summary>The card is opened again from the title bar.</summary>
+    void CastReopened() => castReopened = cast is not null;
+
+    /// <summary>
+    /// The dialog closed with a cast on it: running, it goes on. One that ended stays for the
+    /// title bar to say so, until its card has been opened again and closed.
+    /// </summary>
+    void CastSheetClosed()
+    {
+        if (cast is not null && Stage is CastStage.Failed or CastStage.Lost && castReopened)
+            DropCast();
+    }
+
+    void DropCast()
+    {
+        cast = null;
+        CastCard = null;
+        CastPlay = null;
+        CastRow = null;
+        castPlayed = false;
+        castReopened = false;
+        castLastNow = null;
+        if (Sheet == TvSheet.Cast)
+            Sheet = null;
+    }
+
     /// <summary>Where the TV's playhead is now: moved on from the card on this PC's clock while it plays.</summary>
     public double? Playhead(DateTimeOffset? at = null)
     {
@@ -587,6 +885,89 @@ public static class TvWords
         FfiLinkPhase.Retrying => T.TvStatusReconnecting(card.TvName),
         _ => T.TvPairAgainWith(card.TvName),
     };
+
+    // Casting.
+
+    /// <summary>A seconds counter joins the starting line after this long; under it, it is only noise.</summary>
+    public static readonly TimeSpan CountAfter = TimeSpan.FromSeconds(4);
+
+    /// <summary>How a cast stands by its card: the engine's reason once it ended, else whether the TV shows a picture.</summary>
+    public static CastStage StageOf(FfiCastCard? card) => card switch
+    {
+        null => CastStage.Starting,
+        { Notice: Msg.NoticeCastLost } => CastStage.Lost,
+        { Notice: not null } => CastStage.Failed,
+        { Card: { Phase: FfiLinkPhase.Connected, Now: { Loading: false, Duration: not null } } } => CastStage.Playing,
+        _ => CastStage.Starting,
+    };
+
+    /// <summary>
+    /// A notice the casting card says itself, with the reason under the episode, or the window's
+    /// own notice for a TV someone else took: the engine's toast for it is left out.
+    /// </summary>
+    public static bool OnCastCard(Msg? notice) => notice is Msg.NoticeCastVideoCodec or Msg.NoticeCastAudioCodec
+        or Msg.NoticeCastContainer or Msg.NoticeCastDeepLink or Msg.NoticeCastNeverFetches or Msg.NoticeCastRefused
+        or Msg.NoticeCastTakenOver or Msg.NoticeCastNotSameNetwork or Msg.NoticeCastLost;
+
+    /// <summary>What a card that ended offers, by the engine's reason.</summary>
+    public static CastOffer[] OffersFor(Msg? notice) => notice switch
+    {
+        Msg.NoticeCastRefused or Msg.NoticeCastVideoCodec or Msg.NoticeCastAudioCodec or Msg.NoticeCastContainer =>
+            [CastOffer.ChooseSource, CastOffer.PlayHere],
+        Msg.NoticeCastNeverFetches => [CastOffer.TryAgain, CastOffer.PlayHere],
+        Msg.NoticeCastDeepLink => [CastOffer.ChooseSource],
+        _ => [CastOffer.PlayHere, CastOffer.ChooseAnother],
+    };
+
+    /// <summary>
+    /// The line while a cast starts: the engine's phase line, else "Starting on Living room",
+    /// with the seconds once it has taken <see cref="CountAfter"/>.
+    /// </summary>
+    public static string CastStarting(FfiCastCard? card, string name, TimeSpan waited)
+    {
+        if (card?.PhaseLine is { } said)
+            return said.Text();
+        var line = card?.Card.PhaseLine is { Length: > 0 } phase ? phase : T.TvStartingOn(name);
+        return waited >= CountAfter ? T.TvCastCounting(line, (long)Math.Floor(waited.TotalSeconds)) : line;
+    }
+
+    /// <summary>The card's header line for a cast, as its stage has it.</summary>
+    public static string CastStatus(CastStage stage, FfiCastCard? card, string name, TimeSpan waited) => stage switch
+    {
+        CastStage.Playing => T.TvStatusPlaying(name),
+        CastStage.Failed => T.TvCastCouldntStart(name),
+        CastStage.Lost => T.TvCastStopped,
+        _ => CastStarting(card, name, waited),
+    };
+
+    /// <summary>The dot beside a cast's line: water while it plays, vermilion once it ended, haze while it starts.</summary>
+    public static Dot CastDot(CastStage stage) => stage switch
+    {
+        CastStage.Playing => Dot.Water,
+        CastStage.Failed or CastStage.Lost => Dot.Vermilion,
+        _ => Dot.Haze,
+    };
+
+    /// <summary>What a Chromecast row says under its name, until the engine knows the route before a pick.</summary>
+    public static string? CastRoute(FfiCastRow row) => row.RouteHint == FfiCastRouteHint.ThroughThisDevice ? T.TvCastThroughPc : null;
+
+    /// <summary>The line over Up next on the casting card: its count while it runs, else Up next alone.</summary>
+    public static string CastUpNext(FfiCastUpNext next) => next.SecondsLeft is { } left ? T.TvCastUpNextIn(left) : T.PlayerUpNext;
+
+    /// <summary>The next episode as Up next names it: "Episode 8 · A Town Without Night".</summary>
+    public static string CastUpNextEpisode(FfiCastUpNext next) =>
+        next.Title is { Length: > 0 } title ? T.CastEpisodeTitled(next.Number, title) : T.CastEpisode(next.Number);
+
+    /// <summary>The note an automatic skip leaves on the casting card.</summary>
+    public static string CastSkipped(FfiCastUndo undo) => undo.Kind == SkipKind.Opening ? T.PlayerSkippedOpening : T.PlayerSkippedEnding;
+
+    /// <summary>The TV volume row's value: the level for a TV that has one, "Set on the TV" for one that doesn't.</summary>
+    public static string CastVolume(FfiCastCard card) => card.VolumeControl == FfiVolumeControl.MuteOnly || card.Card.Now?.Volume is null
+        ? T.TvCastVolumeOnTv
+        : T.TvVolumeOf((long)Math.Round(card.Card.Now.Volume.Value));
+
+    /// <summary>The mute button's word: Unmute while the TV is muted.</summary>
+    public static string MuteWord(bool muted) => muted ? T.TvCastUnmute : T.TvCastMute;
 
     /// <summary>Pairing's way to a fresh code, the one way on once the code ran out.</summary>
     public static string NewCode => T.ActionNewCode;

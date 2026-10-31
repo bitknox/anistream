@@ -455,6 +455,11 @@ impl Inner {
             // The TVs paired for Play on TV lead Integrations, as on the Mac.
             "integrations" => {
                 if let Some(group) = crate::tv::paired::group(&self.ctx) {
+                    // Whether Play on TV lists TVs with Chromecast built in, under the paired TVs.
+                    let cast_tvs = self.ctx.hub.known.borrow().setting(K::CastTvs);
+                    if let Some(row) = cast_tvs {
+                        group.add(&self.row(&row));
+                    }
                     page.add(&group);
                 }
             }
@@ -643,7 +648,14 @@ impl Inner {
             .and_then(|v| v.overridden.iter().find(|o| o.key == key).map(|o| o.shows));
         let subtitle = overridden.map(|n| t::settings_overridden(n as i64)).or_else(|| {
             // The footnote: what trailers are, and when they do not play.
-            (key == K::Trailers).then(t::settings_note_trailers_linux)
+            match key {
+                K::Trailers => Some(t::settings_note_trailers_linux()),
+                K::CastTvs => Some(t::settings_note_cast_tvs_computer()),
+                K::TorrentsWhileCasting => {
+                    Some(t::settings_note_torrents_while_casting_computer())
+                }
+                _ => None,
+            }
         });
 
         if !catalog::editable(row) {
@@ -1266,6 +1278,13 @@ impl Inner {
         });
         group.add(&failed);
         while_on.push(failed.clone().upcast());
+
+        // Whether a cast plays torrents, which this computer then serves to the TV.
+        if let Some(casting) = known.setting(K::TorrentsWhileCasting) {
+            let widget = self.row(&casting);
+            group.add(&widget);
+            while_on.push(widget);
+        }
 
         for widget in &while_on {
             widget.set_visible(on);

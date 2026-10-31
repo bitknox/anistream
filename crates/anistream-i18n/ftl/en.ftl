@@ -1047,6 +1047,12 @@ controller-help-title = Controller
 # Accessible name of the list of controller buttons in the help window.
 controller-help-buttons = Controller buttons
 
+# Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+settings-note-cast-tvs-computer = They appear under Chromecast in Play on TV. This computer sends them the episode.
+
+# Note under the Torrents while casting setting, shown while torrents are on.
+settings-note-torrents-while-casting-computer = Lets a TV with Chromecast built in play torrents. This computer sends the episode for as long as it plays.
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = Open plugin stores
 
@@ -1184,6 +1190,15 @@ tv-track-choice = { $row }, { $track }
 
 # The name this computer goes by in lists of a person's devices, such as a plugin store's.
 shell-device-label = Linux computer
+
+# Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+tv-cast-through-computer = Plays through this computer
+
+# The reason the system gives for keeping the computer from sleeping while it sends a TV with Chromecast built in the episode. Other apps and the desktop may show it.
+tv-cast-inhibit-reason = Sending an episode to a TV
+
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+tv-network-group = On this network
 
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
@@ -3172,12 +3187,6 @@ settings-label-comment-images = Load images in comments
 
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = Calendar shows only my list
-
-# Settings row: whether the TV picker lists TVs with Chromecast built in.
-settings-label-cast-tvs = Show TVs with Chromecast built in
-
-# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
-settings-label-torrents-while-casting = Torrents while casting
 
 # Note under the titles row.
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
@@ -6079,6 +6088,12 @@ settings-value-trailers-wifi-only = Wi-Fi only
 # Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Play trailers
 
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = Show TVs with Chromecast built in
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = Torrents while casting
+
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = { $tracker }'s choice
 
@@ -7967,6 +7982,39 @@ tv-row-needs-update = Needs the same anistream version as this device
 
 # Title of the remote's volume row.
 tv-volume = TV volume
+
+# Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+tv-cast-group = Chromecast
+
+# Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+tv-cast-none-found = TVs with Chromecast built in show here too.
+
+# Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+tv-cast-counting = { $line } · { $seconds } s
+
+# Status line of the casting card when the cast didn't start. The reason shows under the episode.
+tv-cast-couldnt-start = Couldn't start on { $name }
+
+# Status line of the casting card after the TV stopped answering.
+tv-cast-stopped = Casting stopped
+
+# Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+tv-cast-play-here = Play here
+
+# Button on the casting card: stop casting. The TV goes back to what it showed.
+tv-cast-stop = Stop casting
+
+# Button on the casting card's TV volume row: silence the TV.
+tv-cast-mute = Mute
+
+# The same button while the TV is silenced.
+tv-cast-unmute = Unmute
+
+# Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+tv-cast-volume-on-tv = Set on the TV
+
+# Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+tv-cast-up-next-in = Up next · plays in { $seconds } s
 
 # Heading of the update row in settings and about.
 updates-title = Updates

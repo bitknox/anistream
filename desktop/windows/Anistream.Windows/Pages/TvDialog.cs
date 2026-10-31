@@ -1,5 +1,6 @@
 using Anistream.App;
 using Anistream.Engine.Ffi;
+using Anistream.Engine.Model;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -29,6 +30,7 @@ sealed class TvDialog
     readonly XamlRoot root;
     readonly DispatcherQueueTimer clock;
     Action? primary, secondary;
+    string? buttonsSet;
     View? shown;
     UIElement? keysAt;
     bool closing;
@@ -115,8 +117,12 @@ sealed class TvDialog
 
     void Keys(object sender, KeyRoutedEventArgs e)
     {
-        if (shown is RemoteView remote && e.Key is global::Windows.System.VirtualKey.Space or global::Windows.System.VirtualKey.K)
+        if (e.Key is not (global::Windows.System.VirtualKey.Space or global::Windows.System.VirtualKey.K))
+            return;
+        if (shown is RemoteView remote)
             e.Handled = remote.Key(e.Key, FocusManager.GetFocusedElement(root));
+        else if (shown is CastView casting)
+            e.Handled = casting.Key(e.Key, FocusManager.GetFocusedElement(root));
     }
 
     void Resized(XamlRoot sender, XamlRootChangedEventArgs e)
@@ -150,6 +156,7 @@ sealed class TvDialog
         }
         View next = tv.Pairing is { } step ? shown as PairingView ?? new PairingView(this, step)
             : tv.Sheet == TvSheet.Remote ? shown as RemoteView ?? new RemoteView(this)
+            : tv.Sheet == TvSheet.Cast && tv.Casting ? shown as CastView ?? new CastView(this)
             : shown as PickerView ?? new PickerView(this);
         if (next != shown)
         {
@@ -161,6 +168,9 @@ sealed class TvDialog
             body.Children.Add(next.Root);
             Motion.FadeIn(next.Root);
             next.Update();
+            // The row picked has gone with the picker: the focus goes to Done, not the next button along.
+            if (next is CastView)
+                dialog.DispatcherQueue.TryEnqueue(() => (Named(dialog, "CloseButton") as Control)?.Focus(FocusState.Programmatic));
             if (from > 0)
             {
                 next.Root.Measure(new global::Windows.Foundation.Size(body.Width, double.PositiveInfinity));
@@ -171,16 +181,37 @@ sealed class TvDialog
         next.Update();
     }
 
-    /// <summary>The dialog's title and its three buttons, for the view up.</summary>
-    void Buttons(string title, (string Text, Action Act, bool Enabled, bool Accent)? first, (string Text, Action Act, bool Enabled)? second, string close)
+    /// <summary>The element named <paramref name="name"/> in <paramref name="at"/>'s visual tree, such as a dialog's own button.</summary>
+    static DependencyObject? Named(DependencyObject at, string name)
     {
-        dialog.Title = title;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(at); i++)
+        {
+            var child = VisualTreeHelper.GetChild(at, i);
+            if (child is FrameworkElement element && element.Name == name)
+                return child;
+            if (Named(child, name) is { } found)
+                return found;
+        }
+        return null;
+    }
+
+    /// <summary>The dialog's title and its three buttons, for the view up.</summary>
+    void Buttons(string? title, (string Text, Action Act, bool Enabled, bool Accent)? first, (string Text, Action Act, bool Enabled)? second, string close, bool closeAccent = false)
+    {
         primary = first?.Act;
         secondary = second?.Act;
+        // Set again only when they change: a button's style set again takes the focus off it.
+        var key = $"{title}\u0001{first?.Text}\u0001{first?.Enabled}\u0001{first?.Accent}\u0001{second?.Text}\u0001{second?.Enabled}\u0001{close}\u0001{closeAccent}";
+        if (key == buttonsSet)
+            return;
+        buttonsSet = key;
+        dialog.Title = title;
         dialog.PrimaryButtonText = first?.Text ?? "";
         dialog.IsPrimaryButtonEnabled = first?.Enabled ?? false;
         dialog.PrimaryButtonStyle = first is { Accent: true } ? Ui.Res<Style>("AccentButtonStyle") : Ui.Res<Style>("DefaultButtonStyle");
-        dialog.DefaultButton = first is { Accent: true } ? ContentDialogButton.Primary : ContentDialogButton.None;
+        // The casting card keeps Done in amber, as the board draws it, wherever the focus is.
+        dialog.CloseButtonStyle = closeAccent ? Ui.Res<Style>("AccentButtonStyle") : Ui.Res<Style>("DefaultButtonStyle");
+        dialog.DefaultButton = first is { Accent: true } ? ContentDialogButton.Primary : closeAccent ? ContentDialogButton.Close : ContentDialogButton.None;
         dialog.SecondaryButtonText = second?.Text ?? "";
         dialog.IsSecondaryButtonEnabled = second?.Enabled ?? false;
         dialog.CloseButtonText = close;
@@ -259,7 +290,9 @@ sealed class TvDialog
     /// The TVs found and paired, what the engine says under each, and an address typed in for a
     /// TV the browse does not find. While none is listed, nothing for the first 600 ms, as most
     /// TVs answer by then; then the search, said; and after 10 s, what to check. The browse goes
-    /// on throughout, and a TV found replaces the row.
+    /// on throughout, and a TV found replaces the row. With an episode to play, TVs with
+    /// Chromecast built in follow in a group of their own, which comes with its first TV, and
+    /// until a cast from this PC has played, a line saying Windows' firewall will ask.
     /// </summary>
     sealed class PickerView : View
     {
@@ -267,6 +300,10 @@ sealed class TvDialog
         readonly StackPanel root = new() { Spacing = 0 };
         readonly TextBlock line = Ui.Haze("");
         readonly StackPanel rows = new();
+        readonly Border rowsCard;
+        readonly StackPanel castRows = new();
+        readonly StackPanel castGroup = new() { Spacing = 8, Margin = new Thickness(0, 20, 0, 0), Visibility = Visibility.Collapsed };
+        readonly TextBlock firewall = Ui.Text(T.TvCastFirewallAhead, "HazeCaptionStyle");
         readonly StackPanel typed = new() { Spacing = 6, Margin = new Thickness(0, 14, 0, 0), Visibility = Visibility.Collapsed };
         readonly TextBox address = new() { PlaceholderText = "192.168.1.20:47811", Header = T.TvAddress };
         readonly DateTimeOffset opened = DateTimeOffset.UtcNow;
@@ -277,9 +314,16 @@ sealed class TvDialog
         {
             this.owner = owner;
             root.Children.Add(line);
-            var card = Rows(rows);
-            card.Margin = new Thickness(0, 16, 0, 0);
-            root.Children.Add(card);
+            rowsCard = Rows(rows);
+            rowsCard.Margin = new Thickness(0, 16, 0, 0);
+            root.Children.Add(rowsCard);
+            var heading = Ui.Text(T.TvCastGroup, "BodyStrongTextBlockStyle", wrap: false);
+            AutomationProperties.SetHeadingLevel(heading, AutomationHeadingLevel.Level2);
+            castGroup.Children.Add(heading);
+            castGroup.Children.Add(Rows(castRows));
+            firewall.Margin = new Thickness(0, 4, 0, 0);
+            castGroup.Children.Add(firewall);
+            root.Children.Add(castGroup);
             address.InputScope = new InputScope { Names = { new(InputScopeNameValue.Url) } };
             address.TextChanged += (_, _) => owner.dialog.IsPrimaryButtonEnabled = address.Text.Trim().Length > 0;
             address.KeyDown += (_, e) =>
@@ -311,15 +355,31 @@ sealed class TvDialog
                 typing ? (T.TvConnect, Connect, address.Text.Trim().Length > 0, true) : null,
                 typing ? null : (T.TvTypeAddress, Type, true),
                 T.ActionDone);
+            // TVs with Chromecast built in only with an episode to cast; the group comes with its first TV.
+            var casts = tv.Request is null ? [] : tv.CastRows;
+            castGroup.Visibility = casts.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            firewall.Visibility = tv.CastServed ? Visibility.Collapsed : Visibility.Visible;
             // The rows again only when they read differently, so focus stays where it was.
-            var now = string.Join("|", tv.Rows.Select(r => $"{r.Key},{r.Name},{r.Detail},{r.Kind},{r.Fingerprint == tv.Connected}"));
-            if (now == drawn && tv.Rows.Length > 0)
+            var now = string.Join("|", tv.Rows.Select(r => $"{r.Key},{r.Name},{r.Detail},{r.Kind},{r.Fingerprint == tv.Connected}"))
+                + "#" + string.Join("|", casts.Select(r => $"{r.Key},{r.Name}"));
+            if (now == drawn && (tv.Rows.Length > 0 || casts.Length > 0))
                 return;
             drawn = now;
+            castRows.Children.Clear();
+            foreach (var (row, i) in casts.Select((r, i) => (r, i)))
+            {
+                if (i > 0)
+                    castRows.Children.Add(Hairline());
+                castRows.Children.Add(CastRow(row));
+            }
             rows.Children.Clear();
+            // One searching row covers both browses; a TV with Chromecast built in found first
+            // leaves the anistream TVs' card out until one of those answers.
+            rowsCard.Visibility = tv.Rows.Length == 0 && casts.Length > 0 ? Visibility.Collapsed : Visibility.Visible;
             if (tv.Rows.Length == 0)
             {
-                rows.Children.Add(Searching());
+                if (casts.Length == 0)
+                    rows.Children.Add(Searching());
                 return;
             }
             foreach (var (row, i) in tv.Rows.Select((r, i) => (r, i)))
@@ -340,7 +400,7 @@ sealed class TvDialog
 
         public override void Tick()
         {
-            if (owner.tv.Rows.Length == 0)
+            if (owner.tv.Rows.Length == 0 && rowsCard.Visibility == Visibility.Visible)
             {
                 var stage = Stage();
                 if (rows.Children is [Grid { Tag: string was }] && was != stage)
@@ -379,6 +439,8 @@ sealed class TvDialog
                     var none = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
                     none.Children.Add(Ui.Text(TvWords.NoneFound));
                     none.Children.Add(Ui.Text(TvWords.NoneLine(owner.tv.Request), "HazeCaptionStyle"));
+                    if (owner.tv.Request is not null)
+                        none.Children.Add(Ui.Text(T.TvCastNoneFound, "HazeCaptionStyle"));
                     grid.Children.Add(none);
                     break;
                 }
@@ -390,6 +452,29 @@ sealed class TvDialog
                 AutomationProperties.SetName(grid, stage == "looking" ? TvWords.Looking : T.TvNoneFoundName(TvWords.NoneFound, TvWords.NoneLine(owner.tv.Request)));
             }
             return grid;
+        }
+
+        /// <summary>A TV with Chromecast built in: its name, and how the cast reaches it.</summary>
+        Button CastRow(FfiCastRow row)
+        {
+            var words = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            words.Children.Add(Ui.Text(row.Name, wrap: false));
+            if (TvWords.CastRoute(row) is { } route)
+                words.Children.Add(Ui.Text(route, "HazeCaptionStyle", wrap: false));
+            var button = new Button
+            {
+                Content = words,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                MinHeight = 56,
+                Padding = new Thickness(14, 8, 14, 8),
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                BorderThickness = new Thickness(0),
+                CornerRadius = new CornerRadius(6),
+            };
+            AutomationProperties.SetName(button, TvWords.CastRoute(row) is { } spoken ? T.TvRowName(row.Name, spoken) : row.Name);
+            button.Click += (_, _) => owner.tv.Cast(row);
+            return button;
         }
 
         /// <summary>A TV: its name, what the engine says under it, and what choosing it does.</summary>
@@ -769,7 +854,7 @@ sealed class TvDialog
             return true;
         }
 
-        static FrameworkElement Ten(bool back)
+        public static FrameworkElement Ten(bool back)
         {
             var icon = new FontIcon { Glyph = "", FontSize = 20, RenderTransformOrigin = new global::Windows.Foundation.Point(0.5, 0.5) };
             if (back)
@@ -780,7 +865,7 @@ sealed class TvDialog
             return grid;
         }
 
-        static void Style(Button button, string name)
+        public static void Style(Button button, string name)
         {
             button.Width = button.Height = 44;
             button.Padding = new Thickness(0);
@@ -807,7 +892,7 @@ sealed class TvDialog
             return button;
         }
 
-        static Grid SettingRow(string name, TextBlock? note, FrameworkElement control)
+        public static Grid SettingRow(string name, TextBlock? note, FrameworkElement control)
         {
             var grid = new Grid { MinHeight = 52, Padding = new Thickness(14, 8, 10, 8), ColumnSpacing = 12 };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -960,6 +1045,515 @@ sealed class TvDialog
             var now = owner.tv.Now;
             elapsed.Text = AnistreamFfiMethods.PlayClock(position);
             remaining.Text = now?.Duration is { } d ? "-" + AnistreamFfiMethods.PlayClock(Math.Max(0, d - position)) : "";
+            AutomationProperties.SetItemStatus(seek, AnistreamFfiMethods.PlayClock(position));
+        }
+    }
+
+    // The casting card.
+
+    /// <summary>
+    /// The TV with Chromecast built in this PC casts to: the cast's line with its dot, what plays
+    /// with its playhead, back and forward, play or pause and the next episode, then subtitles,
+    /// audio when there is a choice, and the TV's volume: a slider sending steps for a TV with a
+    /// level, Mute for one whose volume is set on the TV. Play here, Stop casting and Done at the
+    /// foot. A cast that couldn't start keeps its card with the engine's reason under the
+    /// episode, and the buttons for that reason.
+    /// </summary>
+    sealed class CastView : View
+    {
+        readonly TvDialog owner;
+        readonly StackPanel root = new() { Spacing = 16 };
+        readonly Ellipse dot = new() { Width = 7, Height = 7, VerticalAlignment = VerticalAlignment.Center };
+        readonly TextBlock status = new() { Style = Ui.Res<Style>("BodyStrongTextBlockStyle"), TextTrimming = TextTrimming.CharacterEllipsis };
+        readonly Grid nowRow = new() { ColumnSpacing = 14 };
+        Border cover = new() { Width = 60, Height = 90, CornerRadius = new CornerRadius(4) };
+        readonly TextBlock title = Ui.Text("", "ShowTitleStyle", wrap: false);
+        readonly TextBlock episode = Ui.Text("", "HazeBodyStyle", wrap: false);
+        readonly TextBlock reason = Ui.Text("", "BodyTextBlockStyle");
+        readonly Button skip = new() { Height = 32 };
+        readonly StackPanel undoNote = new() { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        readonly TextBlock skipped = Ui.Text("", "HazeCaptionStyle", wrap: false);
+        readonly Button undo = new() { Height = 32 };
+        readonly Grid upNext = new() { ColumnSpacing = 12, RowSpacing = 10, Padding = new Thickness(0, 12, 0, 0) };
+        Border upNextCover = new() { Width = 40, Height = 60, CornerRadius = new CornerRadius(4) };
+        uint? upNextCoverFor;
+        readonly TextBlock upNextLine = Ui.Text("", "HazeCaptionStyle", wrap: false);
+        readonly TextBlock upNextEpisode = Ui.Text("", "BodyTextBlockStyle", wrap: false);
+        readonly ProgressBar upNextCount = new() { Minimum = 0, Maximum = 1, Height = 2, MinHeight = 2 };
+        readonly Button upNextCancel = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+        readonly Button upNextPlay = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+        (string Number, uint Seconds)? upNextFrom;
+        readonly StackPanel playhead = new() { Spacing = 0 };
+        readonly Slider seek = new() { Minimum = 0, Maximum = 1, StepFrequency = 1, SmallChange = 10, LargeChange = 60, IsThumbToolTipEnabled = false };
+        readonly TextBlock elapsed = Ui.Text("0:00", "HazeCaptionStyle", wrap: false);
+        readonly TextBlock total = Ui.Text("", "HazeCaptionStyle", wrap: false);
+        readonly StackPanel transport = new() { Orientation = Orientation.Horizontal, Spacing = 24, HorizontalAlignment = HorizontalAlignment.Center };
+        readonly FontIcon playIcon = new() { Glyph = "", FontSize = 20 };
+        readonly Button playButton = new();
+        readonly StackPanel settings = new() { Spacing = 4 };
+        readonly DropDownButton subtitles = new() { MinWidth = 120 };
+        readonly DropDownButton audio = new() { MinWidth = 120 };
+        readonly Border subtitlesRow;
+        readonly Border audioRow;
+        readonly TextBlock volumeNote = Ui.Text("", "HazeCaptionStyle", wrap: false);
+        readonly Slider level = new() { Minimum = 0, Maximum = 100, StepFrequency = 1, SmallChange = 5, LargeChange = 10, Width = 160, IsThumbToolTipEnabled = false };
+        readonly Button mute = new() { Height = 30, Padding = new Thickness(14, 0, 14, 0) };
+        readonly StackPanel volume = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
+        readonly ProblemLine problem = new();
+        readonly DispatcherQueueTimer settle;
+        readonly DispatcherQueueTimer volumeRest;
+        string? statusSaid;
+        double? held;
+        DateTimeOffset heldAt;
+        double? levelDragged;
+        (double To, DateTimeOffset At)? levelHeld;
+        bool quiet;
+        uint? coverFor;
+        string? tracksDrawn;
+
+        public CastView(TvDialog owner)
+        {
+            this.owner = owner;
+            settle = owner.dialog.DispatcherQueue.CreateTimer();
+            settle.Interval = TimeSpan.FromMilliseconds(350);
+            settle.IsRepeating = false;
+            settle.Tick += (_, _) =>
+            {
+                if (held is { } to)
+                    owner.tv.SendCast(new FfiTvCommand.SeekTo(to));
+            };
+            // A level dragged is sent as one step once the drag rests, and held on the slider
+            // until the TV says where it went.
+            volumeRest = owner.dialog.DispatcherQueue.CreateTimer();
+            volumeRest.Interval = TimeSpan.FromMilliseconds(200);
+            volumeRest.IsRepeating = false;
+            volumeRest.Tick += (_, _) =>
+            {
+                if (levelDragged is not { } to)
+                    return;
+                levelDragged = null;
+                var from = owner.tv.CastCard?.Card.Now?.Volume ?? to;
+                levelHeld = (to, DateTimeOffset.UtcNow);
+                if (Math.Abs(to - from) >= 1)
+                    owner.tv.SendCast(new FfiTvCommand.Volume(to - from));
+            };
+
+            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            header.Children.Add(dot);
+            header.Children.Add(status);
+            AutomationProperties.SetAccessibilityView(dot, AccessibilityView.Raw);
+            AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
+            root.Children.Add(header);
+
+            // What plays: the cover, its title and episode, the reason a cast ended under them,
+            // and the skip on offer.
+            nowRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            nowRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            nowRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            nowRow.Children.Add(cover);
+            var words = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+            title.FontSize = 18;
+            words.Children.Add(title);
+            words.Children.Add(episode);
+            reason.Margin = new Thickness(0, 6, 0, 0);
+            reason.Visibility = Visibility.Collapsed;
+            AutomationProperties.SetLiveSetting(reason, AutomationLiveSetting.Assertive);
+            words.Children.Add(reason);
+            Grid.SetColumn(words, 1);
+            nowRow.Children.Add(words);
+            skip.VerticalAlignment = VerticalAlignment.Center;
+            skip.Click += (_, _) => owner.tv.SendCast(new FfiTvCommand.Skip());
+            Grid.SetColumn(skip, 2);
+            nowRow.Children.Add(skip);
+            // An automatic skip, in the skip's place while it can be undone: "Skipped opening · Undo".
+            undo.Content = T.ActionUndo;
+            undo.Click += (_, _) => owner.tv.CastUndoSkip();
+            undoNote.Children.Add(skipped);
+            undoNote.Children.Add(undo);
+            undoNote.Visibility = Visibility.Collapsed;
+            AutomationProperties.SetLiveSetting(skipped, AutomationLiveSetting.Polite);
+            Grid.SetColumn(undoNote, 2);
+            nowRow.Children.Add(undoNote);
+            root.Children.Add(nowRow);
+
+            // The playhead, dragged or stepped to seek.
+            AutomationProperties.SetName(seek, T.PlayerPosition);
+            seek.ValueChanged += (_, e) =>
+            {
+                if (quiet)
+                    return;
+                held = e.NewValue;
+                heldAt = DateTimeOffset.UtcNow;
+                ShowTimes(e.NewValue);
+                settle.Stop();
+                settle.Start();
+            };
+            playhead.Children.Add(seek);
+            Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(elapsed, FontNumeralAlignment.Tabular);
+            Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(total, FontNumeralAlignment.Tabular);
+            var times = new Grid { Margin = new Thickness(0, -6, 0, 0) };
+            total.HorizontalAlignment = HorizontalAlignment.Right;
+            times.Children.Add(elapsed);
+            times.Children.Add(total);
+            playhead.Children.Add(times);
+            root.Children.Add(playhead);
+
+            // Up next, near the end: the next episode, its count, Cancel and Play now.
+            upNext.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            upNext.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            upNext.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            upNext.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            upNext.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            upNext.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            upNext.BorderBrush = Ui.Res<Brush>("CardStrokeColorDefaultBrush");
+            upNext.BorderThickness = new Thickness(0, 1, 0, 0);
+            upNext.Children.Add(upNextCover);
+            var nextWords = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            nextWords.Children.Add(upNextLine);
+            nextWords.Children.Add(upNextEpisode);
+            AutomationProperties.SetLiveSetting(upNextEpisode, AutomationLiveSetting.Polite);
+            Grid.SetColumn(nextWords, 1);
+            Grid.SetColumnSpan(nextWords, 2);
+            upNext.Children.Add(nextWords);
+            upNextCount.Foreground = new SolidColorBrush(Colours.Water);
+            AutomationProperties.SetAccessibilityView(upNextCount, AccessibilityView.Raw);
+            Grid.SetRow(upNextCount, 1);
+            Grid.SetColumnSpan(upNextCount, 3);
+            upNext.Children.Add(upNextCount);
+            upNextCancel.Content = T.ActionCancel;
+            upNextCancel.Click += (_, _) => owner.tv.CastCancelNext();
+            upNextPlay.Content = T.ActionPlayNow;
+            upNextPlay.Style = Ui.Res<Style>("AccentButtonStyle");
+            upNextPlay.Click += (_, _) => owner.tv.CastPlayNext();
+            var nextButtons = new Grid { ColumnSpacing = 8 };
+            nextButtons.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            nextButtons.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            nextButtons.Children.Add(upNextCancel);
+            Grid.SetColumn(upNextPlay, 1);
+            nextButtons.Children.Add(upNextPlay);
+            Grid.SetRow(nextButtons, 2);
+            Grid.SetColumnSpan(nextButtons, 3);
+            upNext.Children.Add(nextButtons);
+            upNext.Visibility = Visibility.Collapsed;
+            Motion.QuickOpacity(upNext);
+            root.Children.Add(upNext);
+
+            // Back and forward 10 seconds, play or pause, and the next episode.
+            transport.Children.Add(Glyph(RemoteView.Ten(back: true), T.PlayerBack10, new FfiTvCommand.Seek(-10)));
+            playButton.Content = playIcon;
+            RemoteView.Style(playButton, T.ActionPause);
+            playButton.Click += (_, _) => owner.tv.SendCast(new FfiTvCommand.TogglePause());
+            transport.Children.Add(playButton);
+            transport.Children.Add(Glyph(RemoteView.Ten(back: false), T.PlayerForward10, new FfiTvCommand.Seek(10)));
+            transport.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 18 }, T.PlayerNextEpisode, new FfiTvCommand.Next()));
+            Motion.QuickOpacity(transport);
+            root.Children.Add(transport);
+
+            // Subtitles, audio while the TV can be given a choice, and the TV's own volume.
+            subtitlesRow = Setting(T.PlayerSubtitles, null, subtitles);
+            settings.Children.Add(subtitlesRow);
+            audioRow = Setting(T.PlayerAudio, null, audio);
+            settings.Children.Add(audioRow);
+            AutomationProperties.SetName(level, T.TvVolumeLabel);
+            level.ValueChanged += (_, e) =>
+            {
+                if (quiet)
+                    return;
+                levelDragged = e.NewValue;
+                volumeRest.Stop();
+                volumeRest.Start();
+            };
+            mute.Click += (_, _) => owner.tv.SendCast(new FfiTvCommand.Mute(!(owner.tv.CastCard?.Muted ?? false)));
+            volume.Children.Add(level);
+            volume.Children.Add(mute);
+            settings.Children.Add(Setting(T.TvVolumeLabel, volumeNote, volume));
+            Motion.QuickOpacity(settings);
+            root.Children.Add(settings);
+
+            root.Children.Add(problem.Root);
+        }
+
+        public override FrameworkElement Root => root;
+
+        /// <summary>A row on its own card, as the Windows card on the board draws them.</summary>
+        static Border Setting(string name, TextBlock? note, FrameworkElement control)
+        {
+            var row = RemoteView.SettingRow(name, note, control);
+            row.MinHeight = 50;
+            row.Padding = new Thickness(14, 6, 10, 6);
+            return new Border
+            {
+                Child = row,
+                Background = Ui.Res<Brush>("CardBackgroundFillColorDefaultBrush"),
+                BorderBrush = Ui.Res<Brush>("CardStrokeColorDefaultBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+            };
+        }
+
+        Button Glyph(FrameworkElement content, string name, FfiTvCommand command)
+        {
+            var button = new Button { Content = content };
+            RemoteView.Style(button, name);
+            button.Click += (_, _) => owner.tv.SendCast(command);
+            return button;
+        }
+
+        /// <summary>Space or K pressed on the card: play or pause, while the TV plays. Not on a focused button or menu.</summary>
+        public bool Key(global::Windows.System.VirtualKey key, object? focused)
+        {
+            if (key == global::Windows.System.VirtualKey.Space && focused is ButtonBase)
+                return false;
+            if (owner.tv.Stage != CastStage.Playing)
+                return false;
+            owner.tv.SendCast(new FfiTvCommand.TogglePause());
+            return true;
+        }
+
+        public override void Update()
+        {
+            var tv = owner.tv;
+            var card = tv.CastCard;
+            var stage = tv.Stage;
+            var now = tv.CastNow;
+            var name = tv.CastName;
+            dot.Fill = new SolidColorBrush(TvWords.CastDot(stage) switch
+            {
+                TvWords.Dot.Water => Colours.Water,
+                TvWords.Dot.Vermilion => Ui.Vermilion,
+                _ => Colours.Haze,
+            });
+            Status();
+            var ended = stage is CastStage.Failed or CastStage.Lost;
+            if (ended)
+                Ended(card?.Notice);
+            else
+                owner.Buttons(null,
+                    (T.TvCastPlayHere, PlayHere, true, false),
+                    (T.TvCastStop, tv.StopCasting, true),
+                    T.ActionDone, closeAccent: true);
+            problem.Say(tv.Problem);
+
+            reason.Text = ended && card?.Notice is { } notice ? notice.Text() : "";
+            reason.Visibility = reason.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (now is null)
+                return;
+            if (coverFor != now.Id)
+            {
+                coverFor = now.Id;
+                nowRow.Children.Remove(cover);
+                cover = Ui.Cover(owner.ctx, now.Id, 60, 90);
+                cover.CornerRadius = new CornerRadius(4);
+                nowRow.Children.Insert(0, cover);
+            }
+            title.Text = now.Title;
+            episode.Text = now.EpisodeLine;
+            var playing = stage == CastStage.Playing;
+            var undoing = playing && card?.Undo is not null;
+            skip.Visibility = playing && now.Skip is not null && !undoing ? Visibility.Visible : Visibility.Collapsed;
+            undoNote.Visibility = undoing ? Visibility.Visible : Visibility.Collapsed;
+            if (card?.Undo is { } undone)
+                skipped.Text = TvWords.CastSkipped(undone);
+            UpNext(card?.UpNext, now, ended);
+            if (now.Skip is { } offered)
+                skip.Content = offered.Label == "Skip ending" ? T.PlayerSkipEnding : T.PlayerSkipOpening;
+
+            // A cast that couldn't start shows no playhead; one lost on the way keeps it where it stopped.
+            playhead.Visibility = stage == CastStage.Failed ? Visibility.Collapsed : Visibility.Visible;
+            transport.Visibility = ended ? Visibility.Collapsed : Visibility.Visible;
+            settings.Visibility = ended ? Visibility.Collapsed : Visibility.Visible;
+            transport.Opacity = playing ? 1 : 0.4;
+            foreach (var child in transport.Children.OfType<Control>())
+                child.IsEnabled = playing;
+            playIcon.Glyph = now.Paused ? "" : "";
+            var word = now.Paused ? T.ActionPlay : T.ActionPause;
+            ToolTipService.SetToolTip(playButton, word);
+            AutomationProperties.SetName(playButton, word);
+            seek.IsEnabled = playing && now.Duration is not null;
+
+            settings.Opacity = playing ? 1 : 0.4;
+            subtitles.IsEnabled = playing && now.Subtitles.Length > 0;
+            // Subtitles once the TV has said what it has, never a guess while it starts.
+            subtitlesRow.Visibility = playing || now.Subtitles.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            audioRow.Visibility = now.Audio.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            audio.IsEnabled = playing;
+            if (card is not null)
+                Volume(card, playing);
+            Tracks(now);
+            Tick();
+        }
+
+        /// <summary>Up next while the engine sends it: the line with its count, the episode, and the count as a bar.</summary>
+        void UpNext(FfiCastUpNext? next, FfiNowCard now, bool ended)
+        {
+            upNext.Visibility = next is not null && !ended ? Visibility.Visible : Visibility.Collapsed;
+            if (next is null)
+            {
+                upNextFrom = null;
+                return;
+            }
+            if (upNextCoverFor != now.Id)
+            {
+                upNextCoverFor = now.Id;
+                upNext.Children.Remove(upNextCover);
+                upNextCover = Ui.Cover(owner.ctx, now.Id, 40, 60);
+                upNextCover.CornerRadius = new CornerRadius(4);
+                upNext.Children.Insert(0, upNextCover);
+            }
+            upNextLine.Text = TvWords.CastUpNext(next);
+            upNextEpisode.Text = TvWords.CastUpNextEpisode(next);
+            // The bar fills as the count runs down, from the most seconds it showed for this episode.
+            if (next.SecondsLeft is { } left)
+            {
+                if (upNextFrom is not { } from || from.Number != next.Number || left > from.Seconds)
+                    upNextFrom = (next.Number, Math.Max(left, 1));
+                upNextCount.Value = 1 - (double)left / upNextFrom!.Value.Seconds;
+                upNextCount.Visibility = Visibility.Visible;
+            }
+            else
+                upNextCount.Visibility = Visibility.Collapsed;
+        }
+
+        void Status()
+        {
+            var tv = owner.tv;
+            status.Text = TvWords.CastStatus(tv.Stage, tv.CastCard, tv.CastName, tv.CastWaited());
+            // Said as the cast changes, not each second the counter moves.
+            var said = $"{tv.Stage}";
+            if (said != statusSaid)
+            {
+                if (statusSaid is not null)
+                    Announce(status);
+                statusSaid = said;
+            }
+        }
+
+        /// <summary>The buttons of a card that ended, by the engine's reason, with Done last.</summary>
+        void Ended(Msg? notice)
+        {
+            var tv = owner.tv;
+            var offers = TvWords.OffersFor(notice).Select(Offer).ToArray();
+            owner.Buttons(null,
+                offers.Length > 0 ? (offers[0].Text, offers[0].Act, true, false) : null,
+                offers.Length > 1 ? (offers[1].Text, offers[1].Act, true) : null,
+                T.ActionDone, closeAccent: true);
+        }
+
+        (string Text, Action Act) Offer(CastOffer offer) => offer switch
+        {
+            CastOffer.ChooseSource => (T.PlayerChooseSource, ChooseSource),
+            CastOffer.TryAgain => (T.ActionTryAgain, owner.tv.CastAgain),
+            CastOffer.ChooseAnother => (owner.Roomy ? T.TvChooseAnother : T.TvAnotherShort, owner.tv.CastElsewhere),
+            _ => (T.TvCastPlayHere, PlayHere),
+        };
+
+        void PlayHere()
+        {
+            if (owner.tv.PlayHere() is { } play)
+                owner.ctx.Play(play.Id, play.Episode);
+        }
+
+        void ChooseSource()
+        {
+            if (owner.tv.CastChooseSource() is { } play)
+                _ = SourcesOnceClosed(owner.ctx, owner.root, play);
+        }
+
+        /// <summary>The episode's sources, once Play on TV's dialog has gone: one dialog at a time.</summary>
+        static async Task SourcesOnceClosed(Ctx ctx, XamlRoot root, TvPlay play)
+        {
+            for (var i = 0; i < 40 && Showing is not null; i++)
+                await Task.Delay(50);
+            try
+            {
+                await PartySourceDialog.ForEpisode(ctx, root, play.Id, play.Episode).ShowAsync();
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                // Another dialog came up first.
+            }
+        }
+
+        /// <summary>The TV volume row: a level on a slider, or "Set on the TV" with Mute.</summary>
+        void Volume(FfiCastCard card, bool playing)
+        {
+            var settable = card.VolumeControl == FfiVolumeControl.Level;
+            level.Visibility = settable ? Visibility.Visible : Visibility.Collapsed;
+            volumeNote.Visibility = settable ? Visibility.Collapsed : Visibility.Visible;
+            volumeNote.Text = T.TvCastVolumeOnTv;
+            mute.Content = TvWords.MuteWord(card.Muted == true);
+            AutomationProperties.SetName(mute, TvWords.MuteWord(card.Muted == true));
+            mute.IsEnabled = playing;
+            level.IsEnabled = playing;
+            if (!settable || levelDragged is not null)
+                return;
+            var told = card.Card.Now?.Volume ?? 0;
+            if (levelHeld is { } h && (Math.Abs(h.To - told) < 1 || DateTimeOffset.UtcNow - h.At > TimeSpan.FromMilliseconds(1500)))
+                levelHeld = null;
+            quiet = true;
+            level.Value = levelHeld?.To ?? told;
+            quiet = false;
+        }
+
+        /// <summary>The subtitle and audio menus, made again only when the tracks change.</summary>
+        void Tracks(FfiNowCard now)
+        {
+            var key = string.Join("|", now.Subtitles.Concat(now.Audio).Select(t => $"{t.Id},{t.Selected},{t.Language},{t.Title}")) + now.SubtitlesOff;
+            if (key == tracksDrawn)
+                return;
+            tracksDrawn = key;
+            subtitles.Content = TvWords.Chosen(now.Subtitles, now.SubtitlesOff);
+            audio.Content = TvWords.Chosen(now.Audio, off: false);
+            AutomationProperties.SetName(subtitles, T.TvSettingValue(T.PlayerSubtitles, (string)subtitles.Content));
+            AutomationProperties.SetName(audio, T.TvSettingValue(T.PlayerAudio, (string)audio.Content));
+            subtitles.Flyout = Menu(FfiTvTrackKind.Subtitle, now.Subtitles, now.SubtitlesOff);
+            audio.Flyout = Menu(FfiTvTrackKind.Audio, now.Audio, off: false);
+        }
+
+        MenuFlyout Menu(FfiTvTrackKind kind, FfiTvTrack[] tracks, bool off)
+        {
+            var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+            var group = kind.ToString();
+            if (kind == FfiTvTrackKind.Subtitle)
+            {
+                var none = new RadioMenuFlyoutItem { Text = T.ValueOff, GroupName = group, IsChecked = off };
+                none.Click += (_, _) => owner.tv.SendCast(new FfiTvCommand.Track(kind, null));
+                menu.Items.Add(none);
+            }
+            foreach (var track in tracks)
+            {
+                var item = new RadioMenuFlyoutItem { Text = TvWords.Track(track), GroupName = group, IsChecked = !off && track.Selected };
+                item.Click += (_, _) => owner.tv.SendCast(new FfiTvCommand.Track(kind, track.Id));
+                menu.Items.Add(item);
+            }
+            return menu;
+        }
+
+        /// <summary>The counter on the starting line and the playhead, moved on once a second.</summary>
+        public override void Tick()
+        {
+            if (owner.tv.Stage == CastStage.Starting)
+                Status();
+            var now = owner.tv.CastNow;
+            if (now is null)
+                return;
+            if (held is not null && DateTimeOffset.UtcNow - heldAt > TimeSpan.FromSeconds(3))
+                held = null;
+            var duration = Math.Max(now.Duration ?? 0, 1);
+            var position = Math.Min(held ?? owner.tv.CastPlayhead() ?? now.Position, duration);
+            quiet = true;
+            seek.Maximum = duration;
+            if (held is null)
+                seek.Value = position;
+            quiet = false;
+            ShowTimes(position);
+        }
+
+        void ShowTimes(double position)
+        {
+            var now = owner.tv.CastNow;
+            elapsed.Text = AnistreamFfiMethods.PlayClock(position);
+            total.Text = now?.Duration is { } d ? AnistreamFfiMethods.PlayClock(d) : "";
             AutomationProperties.SetItemStatus(seek, AnistreamFfiMethods.PlayClock(position));
         }
     }

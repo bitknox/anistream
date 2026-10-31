@@ -11,9 +11,32 @@ namespace Anistream.Windows.Tv;
 /// </summary>
 sealed class DnssdBrowser : FfiTvBrowser
 {
-    const string Query =
+    readonly DnssdWatch watch = new("_anistream._tcp", "tv");
+
+    public void Start(FfiDiscoverySink to) => watch.Start(to.Found, to.Lost);
+
+    public void Stop() => watch.Stop();
+}
+
+/// <summary>
+/// The browse for TVs with Chromecast built in, <c>_googlecast._tcp</c>, the same way, while
+/// Play on TV is open. The engine leaves out speakers, groups and TVs that run the app.
+/// </summary>
+sealed class CastBrowser : FfiCastBrowser
+{
+    readonly DnssdWatch watch = new("_googlecast._tcp", "cast");
+
+    public void Start(FfiCastSink to) => watch.Start(to.Found, to.Lost);
+
+    public void Stop() => watch.Stop();
+}
+
+/// <summary>One DNS-SD service type watched in <c>local</c>, each instance reported as it resolves.</summary>
+sealed class DnssdWatch(string service, string log)
+{
+    readonly string query =
         "System.Devices.AepService.ProtocolId:=\"{4526e8c1-8aac-4153-9b16-55e86ada0e54}\" AND " +
-        "System.Devices.Dnssd.Domain:=\"local\" AND System.Devices.Dnssd.ServiceName:=\"_anistream._tcp\"";
+        $"System.Devices.Dnssd.Domain:=\"local\" AND System.Devices.Dnssd.ServiceName:=\"{service}\"";
 
     const string InstanceName = "System.Devices.Dnssd.InstanceName";
     const string PortNumber = "System.Devices.Dnssd.PortNumber";
@@ -25,17 +48,19 @@ sealed class DnssdBrowser : FfiTvBrowser
     readonly object gate = new();
     readonly Dictionary<string, DeviceInformation> seen = [];
     DeviceWatcher? watcher;
-    FfiDiscoverySink? sink;
+    Action<string, string[], ushort, FfiTxtPair[]>? found;
+    Action<string>? lost;
 
-    public void Start(FfiDiscoverySink to)
+    public void Start(Action<string, string[], ushort, FfiTxtPair[]> onFound, Action<string> onLost)
     {
         lock (gate)
         {
             StopLocked();
-            sink = to;
+            found = onFound;
+            lost = onLost;
             try
             {
-                var next = DeviceInformation.CreateWatcher(Query, Properties, DeviceInformationKind.AssociationEndpointService);
+                var next = DeviceInformation.CreateWatcher(query, Properties, DeviceInformationKind.AssociationEndpointService);
                 next.Added += Added;
                 next.Updated += Updated;
                 next.Removed += Removed;
@@ -45,7 +70,7 @@ sealed class DnssdBrowser : FfiTvBrowser
             catch (Exception e)
             {
                 // No DNS-SD on this machine: the picker says no TV answered, and an address still works.
-                AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "tv", $"the TV browse did not start: {e.Message}");
+                AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, log, $"the {service} browse did not start: {e.Message}");
                 watcher = null;
             }
         }
@@ -68,7 +93,8 @@ sealed class DnssdBrowser : FfiTvBrowser
                 running.Stop();
         }
         watcher = null;
-        sink = null;
+        found = null;
+        lost = null;
         seen.Clear();
     }
 
@@ -101,13 +127,13 @@ sealed class DnssdBrowser : FfiTvBrowser
             if (from != watcher || !seen.Remove(update.Id, out var device))
                 return;
             if (Instance(device) is { } instance)
-                sink?.Lost(instance);
+                lost?.Invoke(instance);
         }
     }
 
     void Report(DeviceInformation device)
     {
-        if (sink is null || Instance(device) is not { } instance)
+        if (found is null || Instance(device) is not { } instance)
             return;
         var props = device.Properties;
         if (!props.TryGetValue(PortNumber, out var portValue) || portValue is null)
@@ -120,7 +146,7 @@ sealed class DnssdBrowser : FfiTvBrowser
         var txt = props.TryGetValue(TextAttributes, out var attributes) && attributes is string[] pairs
             ? pairs.Select(Pair).OfType<FfiTxtPair>().ToArray()
             : [];
-        sink.Found(instance, addresses, port, txt);
+        found(instance, addresses, port, txt);
     }
 
     static string? Instance(DeviceInformation device) =>

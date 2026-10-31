@@ -1023,6 +1023,12 @@ public static partial class T
     /// <summary>Note under the Play trailers setting: what the trailers are and when they do not play.</summary>
     public static string SettingsNoteTrailersWindows => Get("SettingsNoteTrailersWindows");
 
+    /// <summary>Note under the Show TVs with Chromecast built in setting, in the Play on TV group.</summary>
+    public static string SettingsNoteCastTvsPc => Get("SettingsNoteCastTvsPc");
+
+    /// <summary>Note under the Torrents while casting setting, shown while torrents are on.</summary>
+    public static string SettingsNoteTorrentsWhileCastingPc => Get("SettingsNoteTorrentsWhileCastingPc");
+
     /// <summary>The notification area icon's balloon, the first time the window closes with downloads running: its title.</summary>
     public static string TrayStillDownloading => Get("TrayStillDownloading");
 
@@ -1268,6 +1274,12 @@ public static partial class T
 
     /// <summary>When the TV's code has run out. The pairing starts again with a new code.</summary>
     public static string TvProblemNoCode => Get("TvProblemNoCode");
+
+    /// <summary>Under a Chromecast TV in Play on TV: this PC sends the TV the episode while it plays.</summary>
+    public static string TvCastThroughPc => Get("TvCastThroughPc");
+
+    /// <summary>Line under the Chromecast group in Play on TV, until the app has served a TV once: Windows' firewall asks then whether the app may reach the network.</summary>
+    public static string TvCastFirewallAhead => Get("TvCastFirewallAhead");
 
     /// <summary>Under a release in the source picker: how many people share it right now.</summary>
     public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
@@ -3516,6 +3528,12 @@ public static partial class T
     /// <summary>Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.</summary>
     public static string SettingsLabelTrailers => Get("SettingsLabelTrailers");
 
+    /// <summary>Settings row: whether the TV picker lists TVs with Chromecast built in.</summary>
+    public static string SettingsLabelCastTvs => Get("SettingsLabelCastTvs");
+
+    /// <summary>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</summary>
+    public static string SettingsLabelTorrentsWhileCasting => Get("SettingsLabelTorrentsWhileCasting");
+
     /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>
     public static string SettingsTitleTracker(string tracker) => Fill(Get("SettingsTitleTracker"), ("tracker", tracker));
 
@@ -5361,6 +5379,39 @@ public static partial class T
     /// <summary>Title of the remote's volume row.</summary>
     public static string TvVolume => Get("TvVolume");
 
+    /// <summary>Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.</summary>
+    public static string TvCastGroup => Get("TvCastGroup");
+
+    /// <summary>Line under the empty state of Play on TV when no TV was found: casting looks for these too.</summary>
+    public static string TvCastNoneFound => Get("TvCastNoneFound");
+
+    /// <summary>Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.</summary>
+    public static string TvCastCounting(string line, long seconds) => Fill(Get("TvCastCounting"), ("line", line), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Status line of the casting card when the cast didn't start. The reason shows under the episode.</summary>
+    public static string TvCastCouldntStart(string name) => Fill(Get("TvCastCouldntStart"), ("name", name));
+
+    /// <summary>Status line of the casting card after the TV stopped answering.</summary>
+    public static string TvCastStopped => Get("TvCastStopped");
+
+    /// <summary>Button on the casting card: stop casting and play the episode on this device, from where the TV was.</summary>
+    public static string TvCastPlayHere => Get("TvCastPlayHere");
+
+    /// <summary>Button on the casting card: stop casting. The TV goes back to what it showed.</summary>
+    public static string TvCastStop => Get("TvCastStop");
+
+    /// <summary>Button on the casting card's TV volume row: silence the TV.</summary>
+    public static string TvCastMute => Get("TvCastMute");
+
+    /// <summary>The same button while the TV is silenced.</summary>
+    public static string TvCastUnmute => Get("TvCastUnmute");
+
+    /// <summary>Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.</summary>
+    public static string TvCastVolumeOnTv => Get("TvCastVolumeOnTv");
+
+    /// <summary>Line over the next episode on the casting card while its count runs. At 0 the TV plays it.</summary>
+    public static string TvCastUpNextIn(long seconds) => Fill(Get("TvCastUpNextIn"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Heading of the update row in settings and about.</summary>
     public static string UpdatesTitle => Get("UpdatesTitle");
 
@@ -5913,6 +5964,8 @@ public static partial class T
         ["TorrentsDialogTurnOnAction"] = "Turn on",
         ["TorrentsChoiceSpoken"] = "{label}. {detail}",
         ["SettingsNoteTrailersWindows"] = "Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.",
+        ["SettingsNoteCastTvsPc"] = "They appear under Chromecast in Play on TV. This PC sends them the episode.",
+        ["SettingsNoteTorrentsWhileCastingPc"] = "Lets a TV with Chromecast built in play torrents. This PC sends the episode for as long as it plays.",
         ["TrayStillDownloading"] = "anistream is still downloading",
         ["TrayWhere"] = "It's in the notification area.",
         ["TrayOpen"] = "Open anistream",
@@ -5999,6 +6052,8 @@ public static partial class T
         ["DownloadsProgressName"] = "{name} progress",
         ["TorrentsProxyHostExample"] = "proxy.example",
         ["TvProblemNoCode"] = "That code has expired. Ask the TV for a new one.",
+        ["TvCastThroughPc"] = "Plays through this PC",
+        ["TvCastFirewallAhead"] = "Windows will ask to let anistream reach your TV.",
         ["SourcePickerSeeders_one"] = "One seeder",
         ["SourcePickerSeeders_other"] = "{count} seeders",
         ["RatePerSecond"] = "{size}/s",
@@ -6760,6 +6815,8 @@ public static partial class T
         ["SettingsValueTrailersAlways"] = "Always",
         ["SettingsValueTrailersWifiOnly"] = "Wi-Fi only",
         ["SettingsLabelTrailers"] = "Play trailers",
+        ["SettingsLabelCastTvs"] = "Show TVs with Chromecast built in",
+        ["SettingsLabelTorrentsWhileCasting"] = "Torrents while casting",
         ["SettingsTitleTracker"] = "{tracker}'s choice",
         ["SettingsTitleEnglish"] = "English",
         ["SettingsTitleRomaji"] = "Romaji",
@@ -7386,6 +7443,17 @@ public static partial class T
         ["TvAnother"] = "Another TV",
         ["TvRowNeedsUpdate"] = "Needs the same anistream version as this device",
         ["TvVolume"] = "TV volume",
+        ["TvCastGroup"] = "Chromecast",
+        ["TvCastNoneFound"] = "TVs with Chromecast built in show here too.",
+        ["TvCastCounting"] = "{line} · {seconds} s",
+        ["TvCastCouldntStart"] = "Couldn't start on {name}",
+        ["TvCastStopped"] = "Casting stopped",
+        ["TvCastPlayHere"] = "Play here",
+        ["TvCastStop"] = "Stop casting",
+        ["TvCastMute"] = "Mute",
+        ["TvCastUnmute"] = "Unmute",
+        ["TvCastVolumeOnTv"] = "Set on the TV",
+        ["TvCastUpNextIn"] = "Up next · plays in {seconds} s",
         ["UpdatesTitle"] = "Updates",
         ["UpdatesChecking"] = "Checking for a newer version…",
         ["UpdatesUpToDate"] = "Up to date",

@@ -221,3 +221,12 @@ torrents-proxy-host-example = proxy.example
 # When the TV's code has run out. The pairing starts again with a new code.
 # @only windows
 tv-problem-no-code = That code has expired. Ask the TV for a new one.
+
+# Under a Chromecast TV in Play on TV: this PC sends the TV the episode while it plays.
+# @only windows
+tv-cast-through-pc = Plays through this PC
+
+# Line under the Chromecast group in Play on TV, until the app has served a TV once: Windows'
+# firewall asks then whether the app may reach the network.
+# @only windows
+tv-cast-firewall-ahead = Windows will ask to let { -app-name } reach your TV.

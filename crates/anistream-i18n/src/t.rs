@@ -1630,6 +1630,16 @@ pub fn controller_help_buttons() -> String {
     text("controller-help-buttons", &[])
 }
 
+/// Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+pub fn settings_note_cast_tvs_computer() -> String {
+    text("settings-note-cast-tvs-computer", &[])
+}
+
+/// Note under the Torrents while casting setting, shown while torrents are on.
+pub fn settings_note_torrents_while_casting_computer() -> String {
+    text("settings-note-torrents-while-casting-computer", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])
@@ -1838,6 +1848,21 @@ pub fn tv_track_choice(row: &str, track: &str) -> String {
 /// The name this computer goes by in lists of a person's devices, such as a plugin store's.
 pub fn shell_device_label() -> String {
     text("shell-device-label", &[])
+}
+
+/// Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+pub fn tv_cast_through_computer() -> String {
+    text("tv-cast-through-computer", &[])
+}
+
+/// The reason the system gives for keeping the computer from sleeping while it sends a TV with Chromecast built in the episode. Other apps and the desktop may show it.
+pub fn tv_cast_inhibit_reason() -> String {
+    text("tv-cast-inhibit-reason", &[])
+}
+
+/// The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+pub fn tv_network_group() -> String {
+    text("tv-network-group", &[])
 }
 
 /// Count of devices on a member's row in the members dialog, and after "Owner ·".
@@ -5058,16 +5083,6 @@ pub fn settings_label_comment_images() -> String {
 /// Settings row: whether Calendar shows only the shows on the person's list.
 pub fn settings_label_calendar_mine() -> String {
     text("settings-label-calendar-mine", &[])
-}
-
-/// Settings row: whether the TV picker lists TVs with Chromecast built in.
-pub fn settings_label_cast_tvs() -> String {
-    text("settings-label-cast-tvs", &[])
-}
-
-/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
-pub fn settings_label_torrents_while_casting() -> String {
-    text("settings-label-torrents-while-casting", &[])
 }
 
 /// Note under the titles row.
@@ -9770,6 +9785,16 @@ pub fn settings_label_trailers() -> String {
     text("settings-label-trailers", &[])
 }
 
+/// Settings row: whether the TV picker lists TVs with Chromecast built in.
+pub fn settings_label_cast_tvs() -> String {
+    text("settings-label-cast-tvs", &[])
+}
+
+/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+pub fn settings_label_torrents_while_casting() -> String {
+    text("settings-label-torrents-while-casting", &[])
+}
+
 /// Option: use the tracker's own choice. The tracker is a name.
 pub fn settings_title_tracker(tracker: &str) -> String {
     text("settings-title-tracker", &[("tracker", Arg::Text(tracker))])
@@ -12843,6 +12868,61 @@ pub fn tv_row_needs_update() -> String {
 /// Title of the remote's volume row.
 pub fn tv_volume() -> String {
     text("tv-volume", &[])
+}
+
+/// Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+pub fn tv_cast_group() -> String {
+    text("tv-cast-group", &[])
+}
+
+/// Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+pub fn tv_cast_none_found() -> String {
+    text("tv-cast-none-found", &[])
+}
+
+/// Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+pub fn tv_cast_counting(line: &str, seconds: i64) -> String {
+    text("tv-cast-counting", &[("line", Arg::Text(line)), ("seconds", Arg::Int(seconds))])
+}
+
+/// Status line of the casting card when the cast didn't start. The reason shows under the episode.
+pub fn tv_cast_couldnt_start(name: &str) -> String {
+    text("tv-cast-couldnt-start", &[("name", Arg::Text(name))])
+}
+
+/// Status line of the casting card after the TV stopped answering.
+pub fn tv_cast_stopped() -> String {
+    text("tv-cast-stopped", &[])
+}
+
+/// Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+pub fn tv_cast_play_here() -> String {
+    text("tv-cast-play-here", &[])
+}
+
+/// Button on the casting card: stop casting. The TV goes back to what it showed.
+pub fn tv_cast_stop() -> String {
+    text("tv-cast-stop", &[])
+}
+
+/// Button on the casting card's TV volume row: silence the TV.
+pub fn tv_cast_mute() -> String {
+    text("tv-cast-mute", &[])
+}
+
+/// The same button while the TV is silenced.
+pub fn tv_cast_unmute() -> String {
+    text("tv-cast-unmute", &[])
+}
+
+/// Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+pub fn tv_cast_volume_on_tv() -> String {
+    text("tv-cast-volume-on-tv", &[])
+}
+
+/// Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+pub fn tv_cast_up_next_in(seconds: i64) -> String {
+    text("tv-cast-up-next-in", &[("seconds", Arg::Int(seconds))])
 }
 
 /// Heading of the update row in settings and about.

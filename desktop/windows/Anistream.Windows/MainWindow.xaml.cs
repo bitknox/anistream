@@ -381,6 +381,8 @@ public sealed partial class MainWindow : Window
             RehearseParty(options.Show);
         if (options.Show?.StartsWith("tv-", StringComparison.Ordinal) == true)
             RehearseTv(options.Show);
+        if (options.Show?.StartsWith("cast-", StringComparison.Ordinal) == true)
+            RehearseCast(options.Show);
         // --show=devicecode: Trakt's sign-in code, for a screenshot.
         if (options.Show == "devicecode")
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
@@ -428,6 +430,9 @@ public sealed partial class MainWindow : Window
                     // Every title is named another way now: what has been shown is asked for again.
                     foreach (var command in ctx.Known.AskAgain())
                         ctx.Send(command);
+                    break;
+                // A cast's reason is on its card, and someone taking the TV has its own notice.
+                case Event.Toast t when TvWords.OnCastCard(t.V1.Msg):
                     break;
                 case Event.Toast t when !Lines.SettingSaved(t.V1):
                     ShowToast(t.V1);

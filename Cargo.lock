@@ -224,6 +224,7 @@ dependencies = [
 name = "anistream-ffi"
 version = "2.2.0"
 dependencies = [
+ "anistream-cast",
  "anistream-core",
  "anistream-engine",
  "anistream-meta",
