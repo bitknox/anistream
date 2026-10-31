@@ -19,3 +19,6 @@ apple/Packages/AnistreamStrings/Sources/** text eol=lf
 android/i18n/src/main/** text eol=lf
 desktop/windows/Anistream.App.Core/Strings.g.cs text eol=lf
 desktop/windows/Anistream.Windows/Strings/** text eol=lf
+
+# Flag images are binary: no line-ending conversion.
+*.png binary

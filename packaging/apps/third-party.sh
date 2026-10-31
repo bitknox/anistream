@@ -135,6 +135,8 @@ cp desktop/linux/scripts/libmpv.sh desktop/linux/scripts/appimage.sh desktop/lin
 # binary does.
 cp "$rust" "$stage/engine/THIRD-PARTY-rust.txt"
 cp assets/shaders/THIRD-PARTY.md assets/shaders/LICENSE-* "$stage/engine/"
+# The language picker's flags, which every app bundles (assets/THIRD-PARTY.md, flag-icons).
+cp assets/flags/LICENSE-flag-icons "$stage/engine/"
 
 title="Third-party software in the anistream apps, version $version"
 {

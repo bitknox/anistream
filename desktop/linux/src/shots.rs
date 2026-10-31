@@ -21,7 +21,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 74] = [
+pub const ALL: [&str; 75] = [
     "home",
     "welcome",
     "offline",
@@ -69,6 +69,7 @@ pub const ALL: [&str; 74] = [
     "join-link",
     "settings",
     "settings-general",
+    "settings-language",
     "settings-integrations",
     "settings-upscaling",
     "settings-accounts",
@@ -582,6 +583,14 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "settings-general" => {
             shell.settings_pane("general");
+            1.5
+        }
+        // A language chosen, so the closed row shows its flag beside the name.
+        "settings-language" => {
+            shell.settings_pane("general");
+            if let Some(row) = language_row(shell.ctx.window.upcast_ref()) {
+                row.set_selected(2);
+            }
             1.5
         }
         "settings-integrations" => {
@@ -1948,6 +1957,23 @@ fn tv_stage(_: &Rc<Shell>, _: &str) -> f64 {
 
 #[cfg(not(feature = "fixtures"))]
 fn tv_unstage(_: &Rc<Shell>, _: &str) {}
+
+/// Settings' Language row, on the page on screen.
+fn language_row(widget: &gtk::Widget) -> Option<adw::ComboRow> {
+    if let Some(row) = widget.downcast_ref::<adw::ComboRow>()
+        && row.title() == anistream_i18n::t::settings_language()
+    {
+        return Some(row.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(next) = child {
+        if let Some(found) = language_row(&next) {
+            return Some(found);
+        }
+        child = next.next_sibling();
+    }
+    None
+}
 
 /// The title page's More button, on the page on screen.
 fn more_button(window: &adw::ApplicationWindow) -> Option<gtk::MenuButton> {

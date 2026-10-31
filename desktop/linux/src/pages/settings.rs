@@ -5,6 +5,7 @@
 
 use std::{
     cell::{Cell, RefCell},
+    collections::HashMap,
     rc::Rc,
 };
 
@@ -805,6 +806,14 @@ impl Inner {
             .model(&gtk::StringList::new(&names))
             .selected(at as u32)
             .build();
+        // The flag of each name, beside it in the closed row and in the list. The terminal shows
+        // none. Following the system has no flag.
+        let flags: HashMap<String, &'static str> = languages
+            .iter()
+            .zip(names.iter().skip(1))
+            .filter_map(|(l, name)| Some(((*name).to_owned(), l.flag?)))
+            .collect();
+        line.set_factory(Some(&flagged_names(flags)));
         // The note under the row: that a draft may be wrong, and that a restart applies a change.
         let note = {
             let languages = languages.clone();
@@ -1486,6 +1495,41 @@ pub fn about(ctx: &Ctx) {
     );
     dialog.add_legal_section("libmpv", None, gtk::License::Lgpl21, None); // i18n-skip
     dialog.present(Some(&ctx.window));
+}
+
+/// List items for the language picker: a flag from `flags` (by the item's text) and the name. The
+/// row keeps its height, as the label sets it, and the flag has no role for the screen reader.
+fn flagged_names(flags: HashMap<String, &'static str>) -> gtk::SignalListItemFactory {
+    let factory = gtk::SignalListItemFactory::new();
+    factory.connect_setup(|_, item| {
+        let Some(item) = item.downcast_ref::<gtk::ListItem>() else { return };
+        let line = gtk::Box::builder().spacing(8).build();
+        line.append(&gtk::Label::builder().xalign(0.0).build());
+        item.set_child(Some(&line));
+    });
+    factory.connect_bind(move |_, item| {
+        let Some(item) = item.downcast_ref::<gtk::ListItem>() else { return };
+        let Some(line) = item.child().and_downcast::<gtk::Box>() else { return };
+        let Some(name) = item.item().and_downcast::<gtk::StringObject>().map(|o| o.string())
+        else {
+            return;
+        };
+        if let Some(label) = line.last_child().and_downcast::<gtk::Label>() {
+            label.set_label(&name);
+        }
+        // The flag, if the item has one, is the first child; a recycled item drops the old one.
+        if line.first_child() != line.last_child()
+            && let Some(old) = line.first_child()
+        {
+            line.remove(&old);
+        }
+        if let Some(flag) =
+            flags.get(name.as_str()).and_then(|code| crate::flags::picture(code))
+        {
+            line.prepend(&flag);
+        }
+    });
+    factory
 }
 
 #[cfg(test)]

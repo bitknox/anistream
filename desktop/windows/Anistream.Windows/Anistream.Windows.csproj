@@ -45,6 +45,7 @@
     <!-- Show titles: Zen Kaku Gothic New Bold, under the OFL (assets/mpv/licenses). -->
     <Content Include="../../../assets/mpv/fonts/ZenKakuGothicNew-Bold.ttf" Link="Assets/Fonts/ZenKakuGothicNew-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
     <!-- The notifications' icon: Windows shows a PNG there, not an .ico. -->
+    <Content Include="../../../assets/flags/png/*.png" Link="Assets/Flags/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../assets/icon/anistream.iconset/icon_128x128@2x.png" Link="Assets/anistream-256.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

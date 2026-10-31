@@ -287,10 +287,21 @@ pub enum Drafts {
     Ship,
 }
 
+/// The flags the apps bundle, as lower-case ISO 3166-1 codes (assets/flags/). A language names one
+/// of these with `flag`; a new flag needs its image added in the same change.
+pub const FLAGS: [&str; 17] = [
+    "gb", "se", "jp", "mx", "br", "fr", "de", "it", "pl", "ru", "tr", "id", "vn", "th", "kr",
+    "cn", "tw",
+];
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct LanguageConfig {
     /// The language's own name for itself, as the picker shows it.
     pub name: String,
+    /// ISO 3166-1 alpha-2 code, lower case, of the flag shown beside the name: one of
+    /// [`FLAGS`]. A language without one shows its name alone.
+    #[serde(default)]
+    pub flag: Option<String>,
     pub stage: Stage,
     #[serde(default)]
     pub drafts: Drafts,
@@ -358,6 +369,16 @@ impl Catalogue {
     pub fn validate(&self) -> Result<()> {
         let mut problems: Vec<String> = Vec::new();
         let source = self.source();
+        for (tag, cfg) in &self.config.language {
+            if let Some(flag) = &cfg.flag
+                && !FLAGS.contains(&flag.as_str())
+            {
+                problems.push(format!(
+                    "languages.toml: {tag} has flag \"{flag}\", which is not a bundled flag ({})",
+                    FLAGS.join(", ")
+                ));
+            }
+        }
         let mut seen = BTreeSet::new();
         for m in &source.messages {
             if !seen.insert(m.id.clone()) {

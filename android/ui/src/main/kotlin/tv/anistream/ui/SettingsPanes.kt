@@ -463,7 +463,8 @@ private fun LanguageRow(place: Place) {
         place = place,
         title = stringResource(R.string.settings_language),
         value = chosen?.let(::name) ?: follow,
-        choices = listOf(MenuChoice<Language?>(null, follow)) + AppLanguage.shipped.map { MenuChoice<Language?>(it, name(it)) },
+        valueFlag = chosen?.flagRes,
+        choices = listOf(MenuChoice<Language?>(null, follow)) + AppLanguage.shipped.map { MenuChoice<Language?>(it, name(it), flagRes = it.flagRes) },
         current = chosen,
         note = if (chosen?.draft == true) stringResource(R.string.language_draft_note) else null,
     ) { picked ->

@@ -14,9 +14,11 @@ use i18n_tool::{generate_all, stale, write};
 const LANGUAGES: &str = r#"source = "en"
 [language.en]
 name = "English"
+flag = "gb"
 stage = "released"
 [language.pl]
 name = "Polski"
+flag = "pl"
 stage = "beta"
 [language.da]
 name = "Dansk"
@@ -203,8 +205,10 @@ fn only_shipped_translations_reach_a_catalogue() {
     // Danish ships drafts, so they are there, and the language is labelled as a draft.
     assert!(apple.contains("Et afsnit tilbage"));
     let swift = file(&files, "L.swift");
-    assert!(swift.contains("Language(tag: \"da\", name: \"Dansk\", draft: true)"));
-    assert!(swift.contains("Language(tag: \"pl\", name: \"Polski\", draft: true)"));
+    assert!(swift.contains("Language(tag: \"da\", name: \"Dansk\", flag: nil, draft: true)"));
+    assert!(
+        swift.contains("Language(tag: \"pl\", name: \"Polski\", flag: \"pl\", draft: true)")
+    );
     // The same filter applies on every platform.
     for suffix in ["values-pl/strings.xml", "pl/Resources.resw", "ftl/pl.ftl"] {
         let text = file(&files, suffix);
@@ -436,4 +440,38 @@ fn script_and_region_tags_land_where_each_platform_wants_them() {
     let windows = file(&files, "Strings.g.cs");
     assert_eq!(windows.matches("case \"zh\":").count(), 1);
     assert!(windows.contains("case \"es\":") && windows.contains("case \"pt\":"));
+}
+
+#[test]
+fn a_flag_that_is_not_bundled_is_refused() {
+    let dir = fixture();
+    let path = dir.path().join("i18n/languages.toml");
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replace("flag = \"pl\"", "flag = \"xx\"")).unwrap();
+    let err = Catalogue::load(dir.path()).unwrap_err().to_string();
+    assert!(err.contains("flag \"xx\""), "{err}");
+}
+
+#[test]
+fn the_flag_reaches_every_platform() {
+    let dir = fixture();
+    let cat = Catalogue::load(dir.path()).unwrap();
+    let files = generate_all(&cat, Mode::Release).unwrap();
+    let all: String = files.values().map(String::as_str).collect::<Vec<_>>().join("\n");
+    assert!(all.contains("Language(\"pl\", \"Polski\", \"pl\", true)"), "android");
+    assert!(all.contains("(\"pl\", \"Polski\", \"pl\", true)"), "windows");
+    assert!(all.contains("Locale { tag: \"pl\", name: \"Polski\", flag: Some(\"pl\")"), "rust");
+    assert!(all.contains("Language(\"da\", \"Dansk\", null, true)"), "no flag");
+}
+
+#[test]
+fn every_bundled_flag_has_its_image() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/flags");
+    for code in i18n_tool::catalogue::FLAGS {
+        for path in [format!("svg/{code}.svg"), format!("png/{code}.png")] {
+            assert!(root.join(&path).is_file(), "assets/flags/{path} is missing");
+        }
+    }
+    let svgs = std::fs::read_dir(root.join("svg")).unwrap().count();
+    assert_eq!(svgs, i18n_tool::catalogue::FLAGS.len(), "an image without a flag code");
 }

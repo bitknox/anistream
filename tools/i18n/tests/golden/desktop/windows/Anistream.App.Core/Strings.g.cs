@@ -55,11 +55,11 @@ public static partial class T
     public static string TwoArgs(string who, string what) => Fill(Get("TwoArgs"), ("who", who), ("what", what));
 
     /// <summary>The languages this build has text for, source first. Draft ones carry the draft label.</summary>
-    public static readonly IReadOnlyList<(string Tag, string Name, bool Draft)> Languages = new (string, string, bool)[]
+    public static readonly IReadOnlyList<(string Tag, string Name, string? Flag, bool Draft)> Languages = new (string, string, string?, bool)[]
     {
-        ("en", "English", false),
-        ("da", "Dansk", true),
-        ("pl", "Polski", true),
+        ("en", "English", "gb", false),
+        ("da", "Dansk", null, true),
+        ("pl", "Polski", "pl", true),
     };
 
     static readonly Dictionary<string, string> English = new()

@@ -45,6 +45,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import tv.anistream.design.LanguageFlag
 import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 
@@ -70,6 +71,10 @@ fun TvListRow(
     dot: Color? = null,
     /** Lines the supporting text may wrap to. */
     supportingLines: Int = 1,
+    /** A flag before the headline (a language's), decoration only. */
+    flagRes: Int? = null,
+    /** A flag before the value. */
+    valueFlagRes: Int? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     Surface(
@@ -97,6 +102,10 @@ fun TvListRow(
                 Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(16.dp))
             }
+            if (flagRes != null) {
+                LanguageFlag(flagRes)
+                Spacer(Modifier.width(12.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (supporting != null) {
@@ -116,6 +125,10 @@ fun TvListRow(
             if (value != null) {
                 Spacer(Modifier.width(16.dp))
                 val quiet = if (focused || selected) LocalContentColor.current else ObiSilk.Haze
+                if (valueFlagRes != null) {
+                    LanguageFlag(valueFlagRes)
+                    Spacer(Modifier.width(8.dp))
+                }
                 Text(value, style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1)
             }
             if (switch != null) {
