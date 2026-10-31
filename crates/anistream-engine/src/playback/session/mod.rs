@@ -472,7 +472,7 @@ pub async fn play(
             FileOutcome::Handover(successor) => {
                 // The playback taking the window takes the seat too.
                 if let Some(seat) = run.seat.take() {
-                    seat.report(SeatReport::Ended { leave: false });
+                    seat.report(SeatReport::Ended { leave: false, finished: false });
                 }
                 if let Some(player) = player.take() {
                     let card = companion::Status::loading(context.handing_to(&successor), None);
@@ -548,7 +548,10 @@ pub async fn play(
                 // Stopping the player or closing its window leaves the party; an episode that
                 // ended, or failed, stays in it, for the next to play with the room.
                 if let Some(seat) = run.seat.take() {
-                    seat.report(SeatReport::Ended { leave: stopped || quit });
+                    seat.report(SeatReport::Ended {
+                        leave: stopped || quit,
+                        finished: complete && !stopped && !quit && !exited,
+                    });
                 }
                 let next = run.next.as_ref().filter(|_| rolls_on);
                 if let Some(player) = player.take() {

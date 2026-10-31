@@ -4,7 +4,7 @@
 //!
 //! The party itself is the engine's, through `Command::PartyJoin` and the `Party*` events.
 
-use anistream_model::party::PartyInvite;
+use anistream_model::party::{PartyInvite, PartyShare, PartyTarget};
 
 /// The link that invites someone to `invite`'s room, to play its episode there:
 /// `anistream://party?server=…&room=…&title=…&episode=…`.
@@ -17,6 +17,31 @@ pub fn party_invite_link(invite: PartyInvite) -> String {
 #[uniffi::export]
 pub fn parse_party_invite(link: String) -> Option<PartyInvite> {
     PartyInvite::parse(&link)
+}
+
+/// The https invite for a room, `https://anistream.tv/party#v=2&…`, which every app shares.
+#[uniffi::export]
+pub fn party_share_link(share: PartyShare) -> String {
+    share.https_link()
+}
+
+/// The `anistream://party#…` form of the same invite, for a device with the app.
+#[uniffi::export]
+pub fn party_share_app_link(share: PartyShare) -> String {
+    share.app_link()
+}
+
+/// What pasted text or an opened link names: an https invite, an `anistream://` link or a
+/// room code. `None` for anything else.
+#[uniffi::export]
+pub fn parse_party_target(text: String) -> Option<PartyTarget> {
+    PartyTarget::parse(&text)
+}
+
+/// A room code tidied as typed (case, spaces, dashes), or `None` when it is not one.
+#[uniffi::export]
+pub fn clean_party_code(text: String) -> Option<String> {
+    anistream_model::party::clean_party_code(&text)
 }
 
 #[cfg(all(feature = "party", feature = "testing"))]
@@ -97,6 +122,19 @@ mod fake {
 
         pub fn member_ready(&self, name: String, ready: bool) {
             self.member(&name, |member| member.ready(ready));
+        }
+
+        /// The member sets the room's playlist to `files`, current entry first.
+        pub fn member_sets_playlist(&self, name: String, files: Vec<String>) {
+            self.member(&name, |member| {
+                let refs: Vec<&str> = files.iter().map(String::as_str).collect();
+                member.set_playlist(&refs);
+            });
+        }
+
+        /// The member moves the room to playlist entry `index`.
+        pub fn member_sets_index(&self, name: String, index: u32) {
+            self.member(&name, |member| member.set_index(index as usize));
         }
 
         pub fn member_pauses(&self, name: String) {

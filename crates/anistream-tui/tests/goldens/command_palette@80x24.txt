@@ -14,8 +14,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   Go to Sources                                                            7
   Go to Accounts                                                           8
   Go to Settings                                                           9
+  Go to Together                                                           0
 
-   │
    │
    │
    │
@@ -85,8 +85,12 @@ r15 c02-15 fg=text-dim bg=ground
 r15 c16-74 fg=rule bg=ground
 r15 c75-75 fg=text bg=ground
 r15 c76-79 fg=rule bg=ground
-r16 c00-79 fg=rule bg=ground
-r17 c00-79 fg=rule
+r16 c00-01 fg=rule bg=ground
+r16 c02-15 fg=text-dim bg=ground
+r16 c16-74 fg=rule bg=ground
+r16 c75-75 fg=text bg=ground
+r16 c76-79 fg=rule bg=ground
+r17 c00-79 fg=rule bg=ground
 r18 c00-79 fg=rule
 r19 c00-79 fg=rule
 r20 c00-79 fg=rule

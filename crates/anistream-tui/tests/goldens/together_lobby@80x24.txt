@@ -1,0 +1,100 @@
+anistream                                                   torrent ○  plugins ●
+────────────────────────────────────────────────────────────────────────────────
+ ▸ │  Watch together
+ ▤ │  ────────────────────────────────────────────────────────────────────────
+ ▦ │  Natsukaze Relay
+ / │  Episode 9 · 3 in the room · 1 ready
+ ▥ │  kite-7qm4-xr9d
+ ↓ │
+ ◇ │  ○ Ada (you)                                               Not ready
+ ◎ │  ● Mika                                                    Ready
+ ≡ │  ○ Ren                                                     Not ready
+▌⇄ │
+   │  Play starts once you're ready
+   │  Plays from your sources
+   │
+   │  ▌ Join a party  [link or code]
+   │
+   │  Recent rooms
+   │  ────────────────────────────────────────────────────────────────────────
+   │    Natsukaze Relay
+   │    Episode 9 · with Mika, Ren · Today
+   │
+─────── ▌ Joined the watch party in room kite-7qm4-xr9d on party.example:8999. ─
+plugins · Subbed · 1080p       ↵ open   r ready   c copy link   x leave   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c60-70 fg=text-dim
+r00 c71-79 fg=state
+r01 c00-79 fg=rule
+r02 c01-01 fg=text-dim
+r02 c03-03 fg=rule
+r02 c06-19 fg=text-dim
+r03 c01-01 fg=text-dim
+r03 c03-03 fg=rule
+r03 c06-77 fg=rule
+r04 c01-01 fg=text-dim
+r04 c03-03 fg=rule
+r04 c06-20 fg=text mod=BOLD
+r05 c01-01 fg=text-dim
+r05 c03-03 fg=rule
+r05 c06-40 fg=text-dim
+r06 c01-01 fg=text-dim
+r06 c03-03 fg=rule
+r06 c06-19 fg=text
+r07 c01-01 fg=text-dim
+r07 c03-03 fg=rule
+r08 c01-01 fg=text-dim
+r08 c03-03 fg=rule
+r08 c06-06 fg=text-dim
+r08 c08-16 fg=text
+r08 c64-72 fg=text-dim
+r09 c01-01 fg=text-dim
+r09 c03-03 fg=rule
+r09 c06-06 fg=state
+r09 c08-11 fg=text
+r09 c64-68 fg=state
+r10 c01-01 fg=text-dim
+r10 c03-03 fg=rule
+r10 c06-06 fg=text-dim
+r10 c08-10 fg=text
+r10 c64-72 fg=text-dim
+r11 c00-00 fg=text-dim
+r11 c01-01 fg=text mod=BOLD
+r11 c03-03 fg=rule
+r12 c03-03 fg=rule
+r12 c06-34 fg=text
+r13 c03-03 fg=rule
+r13 c06-28 fg=text-dim
+r14 c03-03 fg=rule
+r15 c03-03 fg=rule
+r15 c06-06 fg=obi
+r15 c08-19 fg=text mod=BOLD
+r15 c22-35 fg=text-dim
+r16 c03-03 fg=rule
+r17 c03-03 fg=rule
+r17 c06-17 fg=text-dim
+r18 c03-03 fg=rule
+r18 c06-77 fg=rule
+r19 c03-03 fg=rule
+r19 c08-22 fg=text
+r20 c03-03 fg=rule
+r20 c08-41 fg=text-dim
+r21 c03-03 fg=rule
+r22 c00-06 fg=rule
+r22 c07-07 fg=text
+r22 c08-08 fg=state
+r22 c09-78 fg=text
+r22 c79-79 fg=rule
+r23 c00-23 fg=text-dim
+r23 c31-31 fg=text
+r23 c32-39 fg=text-dim
+r23 c40-40 fg=text
+r23 c41-49 fg=text-dim
+r23 c50-50 fg=text
+r23 c51-63 fg=text-dim
+r23 c64-64 fg=text
+r23 c65-73 fg=text-dim
+r23 c74-74 fg=text
+r23 c75-79 fg=text-dim

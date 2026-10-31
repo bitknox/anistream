@@ -346,6 +346,19 @@ mod tests {
             invite: None,
             motd: None,
             latency_ms: Some(42),
+            room_episode: None,
+            next_episode: None,
+            starter: None,
+            starter_present: false,
+            can_start_anyway: false,
+            code: None,
+            link: None,
+            playing: false,
+            starting_in: None,
+            sources: None,
+            guesses: Vec::new(),
+            looking: false,
+            moves_on: false,
         };
         assert_eq!(connection_line(&party), "Connected, encrypted · 42 ms");
         party.encrypted = false;

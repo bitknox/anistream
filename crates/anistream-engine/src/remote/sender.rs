@@ -25,7 +25,7 @@ use anistream_remote::{
     discovery::{Browser, Discovery, DiscoverySink, FoundTv, PairLink},
     identity::{Fingerprint, Identity},
     known::{KnownTv, KnownTvs},
-    state::{NowPlaying, RemoteState, Screen, SkipPart, TrackInfo},
+    state::{NowPlaying, PartyInfo, RemoteState, Screen, SkipPart, TrackInfo},
     wire::{PairFailure, Rejection},
 };
 use tokio::{sync::watch, task::JoinHandle, time::Instant};
@@ -662,6 +662,8 @@ pub struct RemoteCard {
     pub phase_line: Option<String>,
     pub screen: Screen,
     pub now: Option<NowCard>,
+    /// The watch party the TV is in, while it is in one.
+    pub party: Option<PartyInfo>,
     pub rev: u64,
     /// The session is over: the TV forgot this device, has played nothing for a while after
     /// playing something, or has been out of reach for minutes. An app holding the link in the
@@ -707,6 +709,7 @@ impl RemoteCard {
             phase_line: Some(format!("Connecting to {tv_name}…")),
             screen: Screen::Home,
             now: None,
+            party: None,
             rev: 0,
             over: false,
             reached: false,
@@ -757,6 +760,7 @@ impl RemoteCard {
             phase_line,
             screen: state.map(|s| s.screen.clone()).unwrap_or_default(),
             now: state.and_then(|s| s.now_playing.as_ref()).map(NowCard::read),
+            party: state.and_then(|s| s.party.as_deref().cloned()),
             rev: state.map_or(0, |s| s.rev),
             over: matches!(phase, LinkPhase::Unpaired | LinkPhase::KeyChanged),
             reached: matches!(reach, Reach::Connected | Reach::Lost),

@@ -12,7 +12,7 @@ anistream                                                                       
     Refresh this view              r    Remove, or not interested      x  Now playing
     Force a full resync            R    Search filters            ctrl+f    Play or pause              space
     Subbed or dubbed               t  Title                                 Back 5 seconds                 ←
-    Go to section                1–9    Episodes                       e    Forward 5 seconds              →
+    Go to section                1–0    Episodes                       e    Forward 5 seconds              →
     Search                         /    Sources                        s    Back 30 seconds                H
     Recent messages                !    Source for this title          P    Forward 30 seconds             L
   Movement                              Fix this match                 m    Next episode                   n

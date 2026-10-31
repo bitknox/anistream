@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │    ▀▀▀▀▀▀▀▀▀▄
  ◎ │    ▀ ▀▀   ▀▀
  ≡ │
-   │  Nothing to continue
+ ⇄ │  Nothing to continue
    │
    │  Titles you removed come back when you watch them. Press 3 for this
    │  season, or / to search.
@@ -92,6 +92,7 @@ r09 c10-11 fg=#232842
 r09 c15-16 fg=#232842
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c06-24 fg=text-dim
 r12 c03-03 fg=rule

@@ -9,7 +9,7 @@ anistream           torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal 
  ◇ │  ────────────────────────────────────────────────────────────────────────
 ▌◎ │
  ≡ │  Tracker         State             Queued    Token
-   │  ────────────────────────────────────────────────────────────────────────
+ ⇄ │  ────────────────────────────────────────────────────────────────────────
    │    AniList       ● Connected       2         OS keychain
    │    Kitsu         ○ Not connected   0         0600 file
    │  ▌ MyAnimeList   ✕ Sign in again   0         OS keychain
@@ -66,6 +66,7 @@ r10 c06-12 fg=text-dim
 r10 c22-26 fg=text-dim
 r10 c40-45 fg=text-dim
 r10 c50-54 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c06-77 fg=rule
 r12 c03-03 fg=rule

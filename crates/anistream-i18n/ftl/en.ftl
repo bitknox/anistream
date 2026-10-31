@@ -439,6 +439,9 @@ party-rejoined = Back in the watch party.
 # Message when the person left a watch party.
 party-left = Left the watch party.
 
+# Message when a watch party's server could not be reached, in the lobby or when looking in.
+party-server-unreachable = Couldn't reach { $server }. Check the server, or try again.
+
 # Toast after joining a plugin store with an invite that names this device's owner.
 store-joined = Joined { $store } as { $member }.
 
@@ -1899,6 +1902,9 @@ keys-action-jump-accounts = Go to Accounts
 keys-action-jump-settings = Go to Settings
 
 # Action label in the help overlay and the command palette.
+keys-action-jump-together = Go to Together
+
+# Action label in the help overlay and the command palette.
 keys-action-jump-section = Go to section
 
 # Action label in the help overlay and the command palette.
@@ -2380,6 +2386,15 @@ nav-rail-collapsed = Collapsed
 
 # Name of the rail's width setting, shown in a toast when it changes.
 nav-rail-hidden = Hidden
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-ready = Ready
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-copy-link = Copy link
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-leave-party = Leave
 
 # Shown in place of a screen when the terminal is too small to draw it.
 lists-terminal-too-small = Needs a larger terminal
@@ -3877,6 +3892,21 @@ status-reloading-sources = Reloading sources…
 
 # Toast when the { -source } pinned for a title can't be used and the others are tried instead.
 pin-unavailable = { $name } is pinned for this title but isn't available, so the other sources are used.
+
+# Name of the Together section in the terminal's rail, on the key 0.
+tui-together-section = Together
+
+# Prompt of the Join line in the Together section.
+tui-together-join-prompt = link or code
+
+# Hint line of the keys in the Together section.
+tui-together-keys = r ready · c copy link · s start now · x leave
+
+# Toast when what was typed in the Together section's Join line is neither a link nor a code.
+tui-together-not-a-link = That is not a party link or code.
+
+# Second line of a recent room nobody else was in. The time is already formatted, such as Tuesday.
+tui-together-recent-alone = Episode { $episode } · { $when }
 
 # Title of the about page.
 about-title = About
@@ -5484,6 +5514,9 @@ nav-expand = Expand navigation
 # Name of a shortcut or tooltip: the name, then the key that does it.
 tooltip-with-key = { $name } ({ $key })
 
+# Sidebar row, rail item and window title for the place that starts and joins watch parties.
+nav-watch-together = Watch together
+
 # Title of the welcome window.
 onboarding-welcome = Welcome
 
@@ -5745,6 +5778,302 @@ party-no-source-lists = No source lists episode { $episode }. Sources come from 
 
 # Button that plays the chosen source with the room.
 party-play-with = Play with the watch party
+
+# Heading of the place that starts and joins watch parties.
+together-title = Watch together
+
+# Line under the heading of the place for watch parties. States that nothing is shared but timing.
+together-line = Everyone plays the episode from their own sources. The server only keeps you in step.
+
+# Accessibility label of the people button in Home's toolbar that opens the place for watch parties.
+together-people-button = Watch together
+
+# Button that starts a watch party from the place. The one amber button there.
+together-start = Start a party
+
+# Line under Start a party.
+together-start-line = Pick something you're watching, then invite friends with a link or a code.
+
+# Heading of the field that joins a watch party.
+together-join = Join a party
+
+# Line under Join a party.
+together-join-line = Paste a friend's invite link, or type the code they read out.
+
+# Placeholder of the field that takes an invite link or a code.
+together-join-field = Link or code
+
+# Button that pastes the clipboard into the Join field.
+together-paste = Paste
+
+# Button that joins from the Join field.
+together-join-action = Join
+
+# Heading of the block on the place that shows the watch party you are in.
+together-in-party = In a party
+
+# Line of the In a party block. The episode is a number or label.
+together-in-party-line = Episode { $episode } · { $count } in the room · { $ready } ready
+
+# Button that opens the lobby of the watch party you are in.
+together-open-lobby = Open lobby
+
+# Button that opens the player of the watch party you are in.
+together-open-player = Open player
+
+# Heading of the list of the last ten watch parties on this device.
+together-recent = Recent rooms
+
+# Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.
+together-recent-row = Episode { $episode } · with { $names } · { $when }
+
+# Line shown when no recent rooms are kept yet.
+together-recent-empty = Rooms you join show here, the last ten.
+
+# Button on a recent room that goes straight to its lobby with the next episode.
+together-rejoin = Rejoin
+
+# Menu item that removes a recent room from the list.
+together-forget-room = Remove from recent rooms
+
+# Line that says who is in a recent room now, after looking in. The names are already joined.
+together-someone-here =
+    { $count ->
+        [one] { $names } is in the room
+       *[other] { $names } are in the room
+    }
+
+# Line that says a recent room has nobody in it now.
+together-nobody-here = Nobody here now
+
+# Heading of the small list of servers on the place.
+together-servers = Servers
+
+# Line under the suggested server. The operator is who runs it, such as the Syncplay project.
+together-server-suggested = Suggested · run by { $operator }
+
+# Line under a server that parties were held on.
+together-server-used =
+    { $count ->
+        [one] Used for 1 party
+       *[other] Used for { $count } parties
+    }
+
+# Button that adds a server to the list.
+together-add-server = Add a server
+
+# Hint on the place that a link or code can be pasted anywhere on the page.
+together-paste-shortcut-hint = Paste a link or code anywhere on this page.
+
+# Heading of the step that asks what to watch in a new watch party.
+party-pick-title = What are you watching?
+
+# Line under a title in the picker: which episode comes next.
+party-pick-next = Episode { $episode } next
+
+# Placeholder of the picker's search field.
+party-pick-search = Search titles
+
+# Heading of the step that asks for a server and a name the first time.
+party-first-server-title = Choose a server
+
+# Button that makes the room and opens the lobby.
+party-start-party = Start party
+
+# Line in the lobby when your own sources have the room's episode.
+party-lobby-sources-found = Plays from your sources
+
+# Line in the lobby when none of your sources has the room's episode.
+party-lobby-sources-missing = Not in your sources yet
+
+# Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.
+party-lobby-out-on = Out on { $day }
+
+# Line that says you stay in the room while you have no source for the episode.
+party-still-in-room = You're still in the room.
+
+# Line in the lobby that counts the room.
+party-lobby-count = In the room · { $ready } of { $count } ready
+
+# Line in the lobby of an invite: who invited.
+party-invited-by = { $name } invited you
+
+# Line shown while the app looks into a room, after a short wait.
+party-looking-in = Looking in
+
+# Note that opening a room shows you in it for a moment.
+party-looking-in-note = Opening a room shows you in it for a moment.
+
+# State of a member whose file is not open yet.
+party-member-joining = Joining
+
+# State of a member from the second episode on who is finding a source.
+party-member-finding = Finding a source
+
+# State of a member who is watching. The time is already formatted, such as 2:14.
+party-member-watching-from = Watching from { $time }
+
+# Label of the I'm ready button once you are ready.
+party-ready-on = Ready
+
+# Heading of the invite block in the lobby.
+party-invite = Invite
+
+# Label of the short code in the lobby.
+party-code = Code
+
+# Button that opens the system share sheet with the invite link.
+party-share = Share…
+
+# Text shared beside the invite link.
+party-share-text = Watch party · { $title } · Episode { $episode }
+
+# Notice after the invite link was copied.
+party-invite-copied = Invite link copied
+
+# Line in the lobby before everyone is ready.
+party-starts-line = Starts at 0:00 when everyone is ready
+
+# Button that starts the room without waiting for those who are not ready.
+party-start-anyway = Start anyway
+
+# Line during the three second count before play.
+party-starting = Starting in { $seconds }
+
+# Button in the lobby that changes the room's episode.
+party-change-episode = Change episode
+
+# Button that changes the server after it could not be reached.
+party-change-server = Change server
+
+# Label over the title and episode the room is watching.
+party-room-watching = The room is watching
+
+# Line in the lobby of a room with nothing open.
+party-room-nothing = Nothing is open in the room yet.
+
+# Second line under Nothing is open in the room yet.
+party-room-nothing-line = It starts when someone picks an episode.
+
+# Button that picks what the room watches.
+party-room-pick = Pick what to watch
+
+# Line in the lobby when the room is on a later episode than the invite.
+party-room-moved-on = The room has moved on to episode { $episode }.
+
+# Notice when someone changes the room's episode.
+party-room-changed = { $name } changed the episode to { $episode }
+
+# Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.
+party-room-plain-file = { $name } has { $file } open
+
+# Label under a title that was found from a plain file's name.
+party-room-matched = Matched from the file name
+
+# Button that rejects a title matched from a file name.
+party-room-not-this = Not this title
+
+# Heading over up to three guesses for a plain file's title.
+party-room-guesses = Which title is this?
+
+# Line when the room's title was found by its name because its id is unknown here.
+party-room-found-by-name = Found by its name.
+
+# Line when the room's title could not be found in your sources or on AniList.
+party-room-not-found = Couldn't find what the room is watching in your sources or on AniList.
+
+# Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.
+party-code-shape = A code is a word and eight letters and numbers, like { $example }.
+
+# Line in the lobby when nobody is in the room of a code.
+party-code-empty-room = Nobody is in { $code } yet. Check the code, or wait here.
+
+# Button that waits in an empty room.
+party-code-wait = Wait here
+
+# Error when a code is used on another server. The server is the suggested one.
+party-code-other-server = Codes work on { $server }. For another server, ask for the invite link.
+
+# Title line of the bar above the tabs while you are in a party.
+party-bar-title = { $title } · Episode { $episode }
+
+# Second line of the bar above the tabs.
+party-bar-line = { $count } in the room · { $ready } ready
+
+# Second line of the bar when nothing plays for you.
+party-bar-idle = In the room · nothing playing for you
+
+# Notice in the player when someone pauses.
+party-paused-by = Paused by { $name }
+
+# Notice in the player when someone plays.
+party-played-by = Played by { $name }
+
+# Notice in the player when someone moves the position. The time is already formatted.
+party-seeked-by = { $name } moved to { $time }
+
+# Line on the Up Next card in a party.
+party-next-line = Everyone moves on in { $seconds } s
+
+# Line on the starting screen while the room waits for a member.
+party-next-waiting = Waiting for { $name } · { $seconds } s
+
+# Notice when a member who was behind joins. The time is already formatted.
+party-next-joined-at = { $name } joined at { $time }
+
+# Line that replaces the autoplay switch in a party.
+party-next-off = The room moves on together at the end.
+
+# Line in the lobby after the last episode that is out.
+party-last-out = That was the last episode out.
+
+# Line after the last episode out, when the next one has a date. The day is already formatted.
+party-last-out-airs = Episode { $episode } is out on { $day }.
+
+# Button that picks a new title for the room.
+party-watch-something-else = Watch something else
+
+# Notice when a member joins.
+party-member-joined = { $name } joined
+
+# Notice when a member leaves.
+party-member-left = { $name } left
+
+# Notice when the member who started the party leaves.
+party-starter-left = { $name } left. The party carries on.
+
+# Notice after you leave.
+party-you-left = You left the watch party.
+
+# Line under the QR code on the TV.
+party-tv-scan = Scan to send the invite from your phone
+
+# Line over the code on the TV.
+party-tv-or-code = Or type the code
+
+# Line on the TV's page: joining a friend's party goes through a paired phone.
+party-tv-join-from-phone = To join a friend's party, open their invite on a paired phone and choose this TV.
+
+# Button that pairs a phone with the TV.
+party-tv-pair = Pair a phone
+
+# Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.
+party-join-on-device = Join on { $device }
+
+# Button on a phone's sheet that joins on the phone itself.
+party-join-on-this-phone = Join on this phone
+
+# Line on a phone when its paired TV is in the party.
+party-device-in-party = { $device } is in this party
+
+# Button on a phone that sends the invite to others.
+party-share-invite = Share invite
+
+# Button on the phone's remote screen that readies the TV.
+party-ready-on-device = Ready on { $device }
+
+# Button on the phone's remote screen that leaves the party on the TV.
+party-leave-on-device = Leave the watch party on { $device }
 
 # Label on the card for the episode that plays after this one.
 player-up-next = Up next

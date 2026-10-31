@@ -9,7 +9,7 @@ anistream                                                                       
 ▌ ◇  Sources                │
   ◎  Accounts               │  ▌ Link another device
   ≡  Settings               │    Invite someone
-                            │    Members
+  ⇄  Together               │    Members
                             │    Who can join                Only people you invite
                             │    Publish a plugin
                             │    Open the admin page
@@ -81,6 +81,8 @@ r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
 r10 c33-46 fg=text
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-39 fg=text
 r12 c28-28 fg=rule

@@ -9,7 +9,7 @@ anistream                                                                       
 ▌ ◇  Sources                │
   ◎  Accounts               │  Plugin stores
   ≡  Settings               │    Plugins shared by people you know. Join with an invite link.                  ↵ Open
-                            │
+  ⇄  Together               │
                             │  Metadata
                             │
                             │    anilist             Live

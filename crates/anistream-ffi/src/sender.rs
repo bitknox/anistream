@@ -229,6 +229,9 @@ pub struct FfiRemoteCard {
     pub phase_line: Option<String>,
     pub screen: FfiScreen,
     pub now: Option<FfiNowCard>,
+    /// The watch party the TV is in, while it is in one.
+    #[uniffi(default)]
+    pub party: Option<FfiTvParty>,
     /// Counts up with every state the TV sends.
     pub rev: u64,
     /// The session is over: the TV forgot this device, has played nothing for a while after
@@ -240,6 +243,20 @@ pub struct FfiRemoteCard {
     /// never there.
     #[uniffi(default)]
     pub reached: bool,
+}
+
+/// The watch party a TV is in, for the phone beside it.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiTvParty {
+    pub room: String,
+    /// The room's code, when it is one.
+    pub code: Option<String>,
+    /// The https invite the phone can share on.
+    pub link: Option<String>,
+    pub title: Option<String>,
+    pub episode: Option<String>,
+    pub ready: bool,
+    pub playing: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -334,6 +351,15 @@ impl From<&RemoteCard> for FfiRemoteCard {
             phase_line: card.phase_line.clone(),
             screen: screen(&card.screen),
             now: card.now.as_ref().map(FfiNowCard::from),
+            party: card.party.as_ref().map(|p| FfiTvParty {
+                room: p.room.clone(),
+                code: p.code.clone(),
+                link: p.link.clone(),
+                title: p.title.clone(),
+                episode: p.episode.clone(),
+                ready: p.ready,
+                playing: p.playing,
+            }),
             rev: card.rev,
             over: card.over,
             reached: card.reached,
@@ -399,6 +425,17 @@ pub enum FfiTvCommand {
     Open {
         id: AnilistId,
     },
+    /// Join a watch party on the TV, from the server and room an invite names.
+    PartyJoin {
+        server: String,
+        room: String,
+    },
+    PartyReady {
+        ready: bool,
+    },
+    /// Start the TV's room without those who are not ready.
+    PartyStart,
+    PartyLeave,
 }
 
 impl From<FfiTvCommand> for RemoteCommand {
@@ -423,6 +460,10 @@ impl From<FfiTvCommand> for RemoteCommand {
             },
             FfiTvCommand::Text { text, submit } => Self::Text { text, submit },
             FfiTvCommand::Open { id } => Self::Open { id },
+            FfiTvCommand::PartyJoin { server, room } => Self::PartyJoin { server, room },
+            FfiTvCommand::PartyReady { ready } => Self::PartyReady { ready },
+            FfiTvCommand::PartyStart => Self::PartyStart,
+            FfiTvCommand::PartyLeave => Self::PartyLeave,
         }
     }
 }

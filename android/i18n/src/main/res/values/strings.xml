@@ -297,6 +297,8 @@
     <string name="party_rejoined">Back in the watch party.</string>
     <!-- Message when the person left a watch party. -->
     <string name="party_left">Left the watch party.</string>
+    <!-- Message when a watch party's server could not be reached, in the lobby or when looking in. -->
+    <string name="party_server_unreachable">Couldn\'t reach %1$s. Check the server, or try again.</string>
     <!-- Toast after joining a plugin store with an invite that names this device's owner. -->
     <string name="store_joined">Joined %1$s as %2$s.</string>
     <!-- Toast after joining a plugin store with its open link, which keeps no name. -->
@@ -2454,6 +2456,8 @@
     <string name="nav_expand">Expand navigation</string>
     <!-- Name of a shortcut or tooltip: the name, then the key that does it. -->
     <string name="tooltip_with_key">%1$s (%2$s)</string>
+    <!-- Sidebar row, rail item and window title for the place that starts and joins watch parties. -->
+    <string name="nav_watch_together">Watch together</string>
     <!-- Title of the welcome window. -->
     <string name="onboarding_welcome">Welcome</string>
     <!-- Title of the first page. -->
@@ -2629,6 +2633,204 @@
     <string name="party_no_source_lists">No source lists episode %1$s. Sources come from plugins, which a plugin store adds.</string>
     <!-- Button that plays the chosen source with the room. -->
     <string name="party_play_with">Play with the watch party</string>
+    <!-- Heading of the place that starts and joins watch parties. -->
+    <string name="together_title">Watch together</string>
+    <!-- Line under the heading of the place for watch parties. States that nothing is shared but timing. -->
+    <string name="together_line">Everyone plays the episode from their own sources. The server only keeps you in step.</string>
+    <!-- Accessibility label of the people button in Home's toolbar that opens the place for watch parties. -->
+    <string name="together_people_button">Watch together</string>
+    <!-- Button that starts a watch party from the place. The one amber button there. -->
+    <string name="together_start">Start a party</string>
+    <!-- Line under Start a party. -->
+    <string name="together_start_line">Pick something you\'re watching, then invite friends with a link or a code.</string>
+    <!-- Heading of the field that joins a watch party. -->
+    <string name="together_join">Join a party</string>
+    <!-- Line under Join a party. -->
+    <string name="together_join_line">Paste a friend\'s invite link, or type the code they read out.</string>
+    <!-- Placeholder of the field that takes an invite link or a code. -->
+    <string name="together_join_field">Link or code</string>
+    <!-- Button that pastes the clipboard into the Join field. -->
+    <string name="together_paste">Paste</string>
+    <!-- Button that joins from the Join field. -->
+    <string name="together_join_action">Join</string>
+    <!-- Heading of the block on the place that shows the watch party you are in. -->
+    <string name="together_in_party">In a party</string>
+    <!-- Line of the In a party block. The episode is a number or label. -->
+    <string name="together_in_party_line">Episode %1$s · %2$d in the room · %3$d ready</string>
+    <!-- Button that opens the lobby of the watch party you are in. -->
+    <string name="together_open_lobby">Open lobby</string>
+    <!-- Button that opens the player of the watch party you are in. -->
+    <string name="together_open_player">Open player</string>
+    <!-- Heading of the list of the last ten watch parties on this device. -->
+    <string name="together_recent">Recent rooms</string>
+    <!-- Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday. -->
+    <string name="together_recent_row">Episode %1$s · with %2$s · %3$s</string>
+    <!-- Line shown when no recent rooms are kept yet. -->
+    <string name="together_recent_empty">Rooms you join show here, the last ten.</string>
+    <!-- Button on a recent room that goes straight to its lobby with the next episode. -->
+    <string name="together_rejoin">Rejoin</string>
+    <!-- Menu item that removes a recent room from the list. -->
+    <string name="together_forget_room">Remove from recent rooms</string>
+    <!-- Line that says who is in a recent room now, after looking in. The names are already joined. -->
+    <plurals name="together_someone_here">
+        <item quantity="one">%1$s is in the room</item>
+        <item quantity="other">%1$s are in the room</item>
+    </plurals>
+    <!-- Line that says a recent room has nobody in it now. -->
+    <string name="together_nobody_here">Nobody here now</string>
+    <!-- Heading of the small list of servers on the place. -->
+    <string name="together_servers">Servers</string>
+    <!-- Line under the suggested server. The operator is who runs it, such as the Syncplay project. -->
+    <string name="together_server_suggested">Suggested · run by %1$s</string>
+    <!-- Line under a server that parties were held on. -->
+    <plurals name="together_server_used">
+        <item quantity="one">Used for 1 party</item>
+        <item quantity="other">Used for %1$d parties</item>
+    </plurals>
+    <!-- Button that adds a server to the list. -->
+    <string name="together_add_server">Add a server</string>
+    <!-- Hint on the place that a link or code can be pasted anywhere on the page. -->
+    <string name="together_paste_shortcut_hint">Paste a link or code anywhere on this page.</string>
+    <!-- Heading of the step that asks what to watch in a new watch party. -->
+    <string name="party_pick_title">What are you watching?</string>
+    <!-- Line under a title in the picker: which episode comes next. -->
+    <string name="party_pick_next">Episode %1$s next</string>
+    <!-- Placeholder of the picker's search field. -->
+    <string name="party_pick_search">Search titles</string>
+    <!-- Heading of the step that asks for a server and a name the first time. -->
+    <string name="party_first_server_title">Choose a server</string>
+    <!-- Button that makes the room and opens the lobby. -->
+    <string name="party_start_party">Start party</string>
+    <!-- Line in the lobby when your own sources have the room's episode. -->
+    <string name="party_lobby_sources_found">Plays from your sources</string>
+    <!-- Line in the lobby when none of your sources has the room's episode. -->
+    <string name="party_lobby_sources_missing">Not in your sources yet</string>
+    <!-- Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday. -->
+    <string name="party_lobby_out_on">Out on %1$s</string>
+    <!-- Line that says you stay in the room while you have no source for the episode. -->
+    <string name="party_still_in_room">You\'re still in the room.</string>
+    <!-- Line in the lobby that counts the room. -->
+    <string name="party_lobby_count">In the room · %1$d of %2$d ready</string>
+    <!-- Line in the lobby of an invite: who invited. -->
+    <string name="party_invited_by">%1$s invited you</string>
+    <!-- Line shown while the app looks into a room, after a short wait. -->
+    <string name="party_looking_in">Looking in</string>
+    <!-- Note that opening a room shows you in it for a moment. -->
+    <string name="party_looking_in_note">Opening a room shows you in it for a moment.</string>
+    <!-- State of a member whose file is not open yet. -->
+    <string name="party_member_joining">Joining</string>
+    <!-- State of a member from the second episode on who is finding a source. -->
+    <string name="party_member_finding">Finding a source</string>
+    <!-- State of a member who is watching. The time is already formatted, such as 2:14. -->
+    <string name="party_member_watching_from">Watching from %1$s</string>
+    <!-- Label of the I'm ready button once you are ready. -->
+    <string name="party_ready_on">Ready</string>
+    <!-- Heading of the invite block in the lobby. -->
+    <string name="party_invite">Invite</string>
+    <!-- Label of the short code in the lobby. -->
+    <string name="party_code">Code</string>
+    <!-- Button that opens the system share sheet with the invite link. -->
+    <string name="party_share">Share…</string>
+    <!-- Text shared beside the invite link. -->
+    <string name="party_share_text">Watch party · %1$s · Episode %2$s</string>
+    <!-- Notice after the invite link was copied. -->
+    <string name="party_invite_copied">Invite link copied</string>
+    <!-- Line in the lobby before everyone is ready. -->
+    <string name="party_starts_line">Starts at 0:00 when everyone is ready</string>
+    <!-- Button that starts the room without waiting for those who are not ready. -->
+    <string name="party_start_anyway">Start anyway</string>
+    <!-- Line during the three second count before play. -->
+    <string name="party_starting">Starting in %1$d</string>
+    <!-- Button in the lobby that changes the room's episode. -->
+    <string name="party_change_episode">Change episode</string>
+    <!-- Button that changes the server after it could not be reached. -->
+    <string name="party_change_server">Change server</string>
+    <!-- Label over the title and episode the room is watching. -->
+    <string name="party_room_watching">The room is watching</string>
+    <!-- Line in the lobby of a room with nothing open. -->
+    <string name="party_room_nothing">Nothing is open in the room yet.</string>
+    <!-- Second line under Nothing is open in the room yet. -->
+    <string name="party_room_nothing_line">It starts when someone picks an episode.</string>
+    <!-- Button that picks what the room watches. -->
+    <string name="party_room_pick">Pick what to watch</string>
+    <!-- Line in the lobby when the room is on a later episode than the invite. -->
+    <string name="party_room_moved_on">The room has moved on to episode %1$s.</string>
+    <!-- Notice when someone changes the room's episode. -->
+    <string name="party_room_changed">%1$s changed the episode to %2$s</string>
+    <!-- Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv. -->
+    <string name="party_room_plain_file">%1$s has %2$s open</string>
+    <!-- Label under a title that was found from a plain file's name. -->
+    <string name="party_room_matched">Matched from the file name</string>
+    <!-- Button that rejects a title matched from a file name. -->
+    <string name="party_room_not_this">Not this title</string>
+    <!-- Heading over up to three guesses for a plain file's title. -->
+    <string name="party_room_guesses">Which title is this?</string>
+    <!-- Line when the room's title was found by its name because its id is unknown here. -->
+    <string name="party_room_found_by_name">Found by its name.</string>
+    <!-- Line when the room's title could not be found in your sources or on AniList. -->
+    <string name="party_room_not_found">Couldn\'t find what the room is watching in your sources or on AniList.</string>
+    <!-- Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d. -->
+    <string name="party_code_shape">A code is a word and eight letters and numbers, like %1$s.</string>
+    <!-- Line in the lobby when nobody is in the room of a code. -->
+    <string name="party_code_empty_room">Nobody is in %1$s yet. Check the code, or wait here.</string>
+    <!-- Button that waits in an empty room. -->
+    <string name="party_code_wait">Wait here</string>
+    <!-- Error when a code is used on another server. The server is the suggested one. -->
+    <string name="party_code_other_server">Codes work on %1$s. For another server, ask for the invite link.</string>
+    <!-- Title line of the bar above the tabs while you are in a party. -->
+    <string name="party_bar_title">%1$s · Episode %2$s</string>
+    <!-- Second line of the bar above the tabs. -->
+    <string name="party_bar_line">%1$d in the room · %2$d ready</string>
+    <!-- Second line of the bar when nothing plays for you. -->
+    <string name="party_bar_idle">In the room · nothing playing for you</string>
+    <!-- Notice in the player when someone pauses. -->
+    <string name="party_paused_by">Paused by %1$s</string>
+    <!-- Notice in the player when someone plays. -->
+    <string name="party_played_by">Played by %1$s</string>
+    <!-- Notice in the player when someone moves the position. The time is already formatted. -->
+    <string name="party_seeked_by">%1$s moved to %2$s</string>
+    <!-- Line on the Up Next card in a party. -->
+    <string name="party_next_line">Everyone moves on in %1$d s</string>
+    <!-- Line on the starting screen while the room waits for a member. -->
+    <string name="party_next_waiting">Waiting for %1$s · %2$d s</string>
+    <!-- Notice when a member who was behind joins. The time is already formatted. -->
+    <string name="party_next_joined_at">%1$s joined at %2$s</string>
+    <!-- Line that replaces the autoplay switch in a party. -->
+    <string name="party_next_off">The room moves on together at the end.</string>
+    <!-- Line in the lobby after the last episode that is out. -->
+    <string name="party_last_out">That was the last episode out.</string>
+    <!-- Line after the last episode out, when the next one has a date. The day is already formatted. -->
+    <string name="party_last_out_airs">Episode %1$s is out on %2$s.</string>
+    <!-- Button that picks a new title for the room. -->
+    <string name="party_watch_something_else">Watch something else</string>
+    <!-- Notice when a member joins. -->
+    <string name="party_member_joined">%1$s joined</string>
+    <!-- Notice when a member leaves. -->
+    <string name="party_member_left">%1$s left</string>
+    <!-- Notice when the member who started the party leaves. -->
+    <string name="party_starter_left">%1$s left. The party carries on.</string>
+    <!-- Notice after you leave. -->
+    <string name="party_you_left">You left the watch party.</string>
+    <!-- Line under the QR code on the TV. -->
+    <string name="party_tv_scan">Scan to send the invite from your phone</string>
+    <!-- Line over the code on the TV. -->
+    <string name="party_tv_or_code">Or type the code</string>
+    <!-- Line on the TV's page: joining a friend's party goes through a paired phone. -->
+    <string name="party_tv_join_from_phone">To join a friend\'s party, open their invite on a paired phone and choose this TV.</string>
+    <!-- Button that pairs a phone with the TV. -->
+    <string name="party_tv_pair">Pair a phone</string>
+    <!-- Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV. -->
+    <string name="party_join_on_device">Join on %1$s</string>
+    <!-- Button on a phone's sheet that joins on the phone itself. -->
+    <string name="party_join_on_this_phone">Join on this phone</string>
+    <!-- Line on a phone when its paired TV is in the party. -->
+    <string name="party_device_in_party">%1$s is in this party</string>
+    <!-- Button on a phone that sends the invite to others. -->
+    <string name="party_share_invite">Share invite</string>
+    <!-- Button on the phone's remote screen that readies the TV. -->
+    <string name="party_ready_on_device">Ready on %1$s</string>
+    <!-- Button on the phone's remote screen that leaves the party on the TV. -->
+    <string name="party_leave_on_device">Leave the watch party on %1$s</string>
     <!-- Label on the card for the episode that plays after this one. -->
     <string name="player_up_next">Up next</string>
     <!-- Label before the name of the work a show is based on. -->

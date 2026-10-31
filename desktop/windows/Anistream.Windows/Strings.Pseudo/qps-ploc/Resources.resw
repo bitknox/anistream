@@ -611,6 +611,10 @@
     <value>[Ļéƒţ ţĥé ŵàţçĥ þàŕţý.~~~~~~~]</value>
     <comment>Message when the person left a watch party.</comment>
   </data>
+  <data name="PartyServerUnreachable" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ŕéàçĥ {server}. Çĥéçķ ţĥé šéŕṽéŕ, öŕ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when a watch party's server could not be reached, in the lobby or when looking in.</comment>
+  </data>
   <data name="StoreJoined" xml:space="preserve">
     <value>[Ĵöîñéð {store} àš {member}.~~~~~~]</value>
     <comment>Toast after joining a plugin store with an invite that names this device's owner.</comment>
@@ -4035,6 +4039,10 @@
     <value>[{name} ({key})~~~]</value>
     <comment>Name of a shortcut or tooltip: the name, then the key that does it.</comment>
   </data>
+  <data name="NavWatchTogether" xml:space="preserve">
+    <value>[Ŵàţçĥ ţöĝéţĥéŕ~~~~~]</value>
+    <comment>Sidebar row, rail item and window title for the place that starts and joins watch parties.</comment>
+  </data>
   <data name="OnboardingWelcome" xml:space="preserve">
     <value>[Ŵéļçöɱé~~~]</value>
     <comment>Title of the welcome window.</comment>
@@ -4382,6 +4390,398 @@
   <data name="PartyPlayWith" xml:space="preserve">
     <value>[Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]</value>
     <comment>Button that plays the chosen source with the room.</comment>
+  </data>
+  <data name="TogetherTitle" xml:space="preserve">
+    <value>[Ŵàţçĥ ţöĝéţĥéŕ~~~~~]</value>
+    <comment>Heading of the place that starts and joins watch parties.</comment>
+  </data>
+  <data name="TogetherLine" xml:space="preserve">
+    <value>[Éṽéŕýöñé þļàýš ţĥé éþîšöðé ƒŕöɱ ţĥéîŕ öŵñ šöüŕçéš. Ţĥé šéŕṽéŕ öñļý ķééþš ýöü îñ šţéþ.~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the heading of the place for watch parties. States that nothing is shared but timing.</comment>
+  </data>
+  <data name="TogetherPeopleButton" xml:space="preserve">
+    <value>[Ŵàţçĥ ţöĝéţĥéŕ~~~~~]</value>
+    <comment>Accessibility label of the people button in Home's toolbar that opens the place for watch parties.</comment>
+  </data>
+  <data name="TogetherStart" xml:space="preserve">
+    <value>[Šţàŕţ à þàŕţý~~~~]</value>
+    <comment>Button that starts a watch party from the place. The one amber button there.</comment>
+  </data>
+  <data name="TogetherStartLine" xml:space="preserve">
+    <value>[Þîçķ šöɱéţĥîñĝ ýöü'ŕé ŵàţçĥîñĝ, ţĥéñ îñṽîţé ƒŕîéñðš ŵîţĥ à ļîñķ öŕ à çöðé.~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under Start a party.</comment>
+  </data>
+  <data name="TogetherJoin" xml:space="preserve">
+    <value>[Ĵöîñ à þàŕţý~~~~]</value>
+    <comment>Heading of the field that joins a watch party.</comment>
+  </data>
+  <data name="TogetherJoinLine" xml:space="preserve">
+    <value>[Þàšţé à ƒŕîéñð'š îñṽîţé ļîñķ, öŕ ţýþé ţĥé çöðé ţĥéý ŕéàð öüţ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under Join a party.</comment>
+  </data>
+  <data name="TogetherJoinField" xml:space="preserve">
+    <value>[Ļîñķ öŕ çöðé~~~~]</value>
+    <comment>Placeholder of the field that takes an invite link or a code.</comment>
+  </data>
+  <data name="TogetherPaste" xml:space="preserve">
+    <value>[Þàšţé~~]</value>
+    <comment>Button that pastes the clipboard into the Join field.</comment>
+  </data>
+  <data name="TogetherJoinAction" xml:space="preserve">
+    <value>[Ĵöîñ~~]</value>
+    <comment>Button that joins from the Join field.</comment>
+  </data>
+  <data name="TogetherInParty" xml:space="preserve">
+    <value>[Îñ à þàŕţý~~~]</value>
+    <comment>Heading of the block on the place that shows the watch party you are in.</comment>
+  </data>
+  <data name="TogetherInPartyLine" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · {count} îñ ţĥé ŕööɱ · {ready} ŕéàðý~~~~~~~~~~~~~]</value>
+    <comment>Line of the In a party block. The episode is a number or label.</comment>
+  </data>
+  <data name="TogetherOpenLobby" xml:space="preserve">
+    <value>[Öþéñ ļöƀƀý~~~]</value>
+    <comment>Button that opens the lobby of the watch party you are in.</comment>
+  </data>
+  <data name="TogetherOpenPlayer" xml:space="preserve">
+    <value>[Öþéñ þļàýéŕ~~~~]</value>
+    <comment>Button that opens the player of the watch party you are in.</comment>
+  </data>
+  <data name="TogetherRecent" xml:space="preserve">
+    <value>[Ŕéçéñţ ŕööɱš~~~~]</value>
+    <comment>Heading of the list of the last ten watch parties on this device.</comment>
+  </data>
+  <data name="TogetherRecentRow" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · ŵîţĥ {names} · {when}~~~~~~~~~]</value>
+    <comment>Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.</comment>
+  </data>
+  <data name="TogetherRecentEmpty" xml:space="preserve">
+    <value>[Ŕööɱš ýöü ĵöîñ šĥöŵ ĥéŕé, ţĥé ļàšţ ţéñ.~~~~~~~~~~~~]</value>
+    <comment>Line shown when no recent rooms are kept yet.</comment>
+  </data>
+  <data name="TogetherRejoin" xml:space="preserve">
+    <value>[Ŕéĵöîñ~~]</value>
+    <comment>Button on a recent room that goes straight to its lobby with the next episode.</comment>
+  </data>
+  <data name="TogetherForgetRoom" xml:space="preserve">
+    <value>[Ŕéɱöṽé ƒŕöɱ ŕéçéñţ ŕööɱš~~~~~~~~]</value>
+    <comment>Menu item that removes a recent room from the list.</comment>
+  </data>
+  <data name="TogetherSomeoneHere_one" xml:space="preserve">
+    <value>[{names} îš îñ ţĥé ŕööɱ~~~~~~]</value>
+    <comment>Line that says who is in a recent room now, after looking in. The names are already joined.</comment>
+  </data>
+  <data name="TogetherSomeoneHere_other" xml:space="preserve">
+    <value>[{names} àŕé îñ ţĥé ŕööɱ~~~~~~]</value>
+    <comment>Line that says who is in a recent room now, after looking in. The names are already joined.</comment>
+  </data>
+  <data name="TogetherNobodyHere" xml:space="preserve">
+    <value>[Ñöƀöðý ĥéŕé ñöŵ~~~~~]</value>
+    <comment>Line that says a recent room has nobody in it now.</comment>
+  </data>
+  <data name="TogetherServers" xml:space="preserve">
+    <value>[Šéŕṽéŕš~~~]</value>
+    <comment>Heading of the small list of servers on the place.</comment>
+  </data>
+  <data name="TogetherServerSuggested" xml:space="preserve">
+    <value>[Šüĝĝéšţéð · ŕüñ ƀý {operator}~~~~~~~]</value>
+    <comment>Line under the suggested server. The operator is who runs it, such as the Syncplay project.</comment>
+  </data>
+  <data name="TogetherServerUsed_one" xml:space="preserve">
+    <value>[Ûšéð ƒöŕ 1 þàŕţý~~~~~]</value>
+    <comment>Line under a server that parties were held on.</comment>
+  </data>
+  <data name="TogetherServerUsed_other" xml:space="preserve">
+    <value>[Ûšéð ƒöŕ {count} þàŕţîéš~~~~~~]</value>
+    <comment>Line under a server that parties were held on.</comment>
+  </data>
+  <data name="TogetherAddServer" xml:space="preserve">
+    <value>[Åðð à šéŕṽéŕ~~~~]</value>
+    <comment>Button that adds a server to the list.</comment>
+  </data>
+  <data name="TogetherPasteShortcutHint" xml:space="preserve">
+    <value>[Þàšţé à ļîñķ öŕ çöðé àñýŵĥéŕé öñ ţĥîš þàĝé.~~~~~~~~~~~~~]</value>
+    <comment>Hint on the place that a link or code can be pasted anywhere on the page.</comment>
+  </data>
+  <data name="PartyPickTitle" xml:space="preserve">
+    <value>[Ŵĥàţ àŕé ýöü ŵàţçĥîñĝ?~~~~~~~]</value>
+    <comment>Heading of the step that asks what to watch in a new watch party.</comment>
+  </data>
+  <data name="PartyPickNext" xml:space="preserve">
+    <value>[Éþîšöðé {episode} ñéẋţ~~~~~]</value>
+    <comment>Line under a title in the picker: which episode comes next.</comment>
+  </data>
+  <data name="PartyPickSearch" xml:space="preserve">
+    <value>[Šéàŕçĥ ţîţļéš~~~~]</value>
+    <comment>Placeholder of the picker's search field.</comment>
+  </data>
+  <data name="PartyFirstServerTitle" xml:space="preserve">
+    <value>[Çĥööšé à šéŕṽéŕ~~~~~]</value>
+    <comment>Heading of the step that asks for a server and a name the first time.</comment>
+  </data>
+  <data name="PartyStartParty" xml:space="preserve">
+    <value>[Šţàŕţ þàŕţý~~~~]</value>
+    <comment>Button that makes the room and opens the lobby.</comment>
+  </data>
+  <data name="PartyLobbySourcesFound" xml:space="preserve">
+    <value>[Þļàýš ƒŕöɱ ýöüŕ šöüŕçéš~~~~~~~]</value>
+    <comment>Line in the lobby when your own sources have the room's episode.</comment>
+  </data>
+  <data name="PartyLobbySourcesMissing" xml:space="preserve">
+    <value>[Ñöţ îñ ýöüŕ šöüŕçéš ýéţ~~~~~~~]</value>
+    <comment>Line in the lobby when none of your sources has the room's episode.</comment>
+  </data>
+  <data name="PartyLobbyOutOn" xml:space="preserve">
+    <value>[Öüţ öñ {day}~~~]</value>
+    <comment>Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.</comment>
+  </data>
+  <data name="PartyStillInRoom" xml:space="preserve">
+    <value>[Ýöü'ŕé šţîļļ îñ ţĥé ŕööɱ.~~~~~~~~]</value>
+    <comment>Line that says you stay in the room while you have no source for the episode.</comment>
+  </data>
+  <data name="PartyLobbyCount" xml:space="preserve">
+    <value>[Îñ ţĥé ŕööɱ · {ready} öƒ {count} ŕéàðý~~~~~~~~~]</value>
+    <comment>Line in the lobby that counts the room.</comment>
+  </data>
+  <data name="PartyInvitedBy" xml:space="preserve">
+    <value>[{name} îñṽîţéð ýöü~~~~~]</value>
+    <comment>Line in the lobby of an invite: who invited.</comment>
+  </data>
+  <data name="PartyLookingIn" xml:space="preserve">
+    <value>[Ļööķîñĝ îñ~~~]</value>
+    <comment>Line shown while the app looks into a room, after a short wait.</comment>
+  </data>
+  <data name="PartyLookingInNote" xml:space="preserve">
+    <value>[Öþéñîñĝ à ŕööɱ šĥöŵš ýöü îñ îţ ƒöŕ à ɱöɱéñţ.~~~~~~~~~~~~~~]</value>
+    <comment>Note that opening a room shows you in it for a moment.</comment>
+  </data>
+  <data name="PartyMemberJoining" xml:space="preserve">
+    <value>[Ĵöîñîñĝ~~~]</value>
+    <comment>State of a member whose file is not open yet.</comment>
+  </data>
+  <data name="PartyMemberFinding" xml:space="preserve">
+    <value>[Ƒîñðîñĝ à šöüŕçé~~~~~]</value>
+    <comment>State of a member from the second episode on who is finding a source.</comment>
+  </data>
+  <data name="PartyMemberWatchingFrom" xml:space="preserve">
+    <value>[Ŵàţçĥîñĝ ƒŕöɱ {time}~~~~~~]</value>
+    <comment>State of a member who is watching. The time is already formatted, such as 2:14.</comment>
+  </data>
+  <data name="PartyReadyOn" xml:space="preserve">
+    <value>[Ŕéàðý~~]</value>
+    <comment>Label of the I'm ready button once you are ready.</comment>
+  </data>
+  <data name="PartyInvite" xml:space="preserve">
+    <value>[Îñṽîţé~~]</value>
+    <comment>Heading of the invite block in the lobby.</comment>
+  </data>
+  <data name="PartyCode" xml:space="preserve">
+    <value>[Çöðé~~]</value>
+    <comment>Label of the short code in the lobby.</comment>
+  </data>
+  <data name="PartyShare" xml:space="preserve">
+    <value>[Šĥàŕé…~~]</value>
+    <comment>Button that opens the system share sheet with the invite link.</comment>
+  </data>
+  <data name="PartyShareText" xml:space="preserve">
+    <value>[Ŵàţçĥ þàŕţý · {title} · Éþîšöðé {episode}~~~~~~~~~~]</value>
+    <comment>Text shared beside the invite link.</comment>
+  </data>
+  <data name="PartyInviteCopied" xml:space="preserve">
+    <value>[Îñṽîţé ļîñķ çöþîéð~~~~~~]</value>
+    <comment>Notice after the invite link was copied.</comment>
+  </data>
+  <data name="PartyStartsLine" xml:space="preserve">
+    <value>[Šţàŕţš àţ 0:00 ŵĥéñ éṽéŕýöñé îš ŕéàðý~~~~~~~~~~~~]</value>
+    <comment>Line in the lobby before everyone is ready.</comment>
+  </data>
+  <data name="PartyStartAnyway" xml:space="preserve">
+    <value>[Šţàŕţ àñýŵàý~~~~]</value>
+    <comment>Button that starts the room without waiting for those who are not ready.</comment>
+  </data>
+  <data name="PartyStarting" xml:space="preserve">
+    <value>[Šţàŕţîñĝ îñ {seconds}~~~~~]</value>
+    <comment>Line during the three second count before play.</comment>
+  </data>
+  <data name="PartyChangeEpisode" xml:space="preserve">
+    <value>[Çĥàñĝé éþîšöðé~~~~~]</value>
+    <comment>Button in the lobby that changes the room's episode.</comment>
+  </data>
+  <data name="PartyChangeServer" xml:space="preserve">
+    <value>[Çĥàñĝé šéŕṽéŕ~~~~]</value>
+    <comment>Button that changes the server after it could not be reached.</comment>
+  </data>
+  <data name="PartyRoomWatching" xml:space="preserve">
+    <value>[Ţĥé ŕööɱ îš ŵàţçĥîñĝ~~~~~~]</value>
+    <comment>Label over the title and episode the room is watching.</comment>
+  </data>
+  <data name="PartyRoomNothing" xml:space="preserve">
+    <value>[Ñöţĥîñĝ îš öþéñ îñ ţĥé ŕööɱ ýéţ.~~~~~~~~~~]</value>
+    <comment>Line in the lobby of a room with nothing open.</comment>
+  </data>
+  <data name="PartyRoomNothingLine" xml:space="preserve">
+    <value>[Îţ šţàŕţš ŵĥéñ šöɱéöñé þîçķš àñ éþîšöðé.~~~~~~~~~~~~]</value>
+    <comment>Second line under Nothing is open in the room yet.</comment>
+  </data>
+  <data name="PartyRoomPick" xml:space="preserve">
+    <value>[Þîçķ ŵĥàţ ţö ŵàţçĥ~~~~~~]</value>
+    <comment>Button that picks what the room watches.</comment>
+  </data>
+  <data name="PartyRoomMovedOn" xml:space="preserve">
+    <value>[Ţĥé ŕööɱ ĥàš ɱöṽéð öñ ţö éþîšöðé {episode}.~~~~~~~~~~~~]</value>
+    <comment>Line in the lobby when the room is on a later episode than the invite.</comment>
+  </data>
+  <data name="PartyRoomChanged" xml:space="preserve">
+    <value>[{name} çĥàñĝéð ţĥé éþîšöðé ţö {episode}~~~~~~~~~]</value>
+    <comment>Notice when someone changes the room's episode.</comment>
+  </data>
+  <data name="PartyRoomPlainFile" xml:space="preserve">
+    <value>[{name} ĥàš {file} öþéñ~~~~~]</value>
+    <comment>Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.</comment>
+  </data>
+  <data name="PartyRoomMatched" xml:space="preserve">
+    <value>[Ṁàţçĥéð ƒŕöɱ ţĥé ƒîļé ñàɱé~~~~~~~~]</value>
+    <comment>Label under a title that was found from a plain file's name.</comment>
+  </data>
+  <data name="PartyRoomNotThis" xml:space="preserve">
+    <value>[Ñöţ ţĥîš ţîţļé~~~~~]</value>
+    <comment>Button that rejects a title matched from a file name.</comment>
+  </data>
+  <data name="PartyRoomGuesses" xml:space="preserve">
+    <value>[Ŵĥîçĥ ţîţļé îš ţĥîš?~~~~~~]</value>
+    <comment>Heading over up to three guesses for a plain file's title.</comment>
+  </data>
+  <data name="PartyRoomFoundByName" xml:space="preserve">
+    <value>[Ƒöüñð ƀý îţš ñàɱé.~~~~~~]</value>
+    <comment>Line when the room's title was found by its name because its id is unknown here.</comment>
+  </data>
+  <data name="PartyRoomNotFound" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ƒîñð ŵĥàţ ţĥé ŕööɱ îš ŵàţçĥîñĝ îñ ýöüŕ šöüŕçéš öŕ öñ ÅñîĻîšţ.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line when the room's title could not be found in your sources or on AniList.</comment>
+  </data>
+  <data name="PartyCodeShape" xml:space="preserve">
+    <value>[Å çöðé îš à ŵöŕð àñð éîĝĥţ ļéţţéŕš àñð ñüɱƀéŕš, ļîķé {example}.~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.</comment>
+  </data>
+  <data name="PartyCodeEmptyRoom" xml:space="preserve">
+    <value>[Ñöƀöðý îš îñ {code} ýéţ. Çĥéçķ ţĥé çöðé, öŕ ŵàîţ ĥéŕé.~~~~~~~~~~~~~~~~]</value>
+    <comment>Line in the lobby when nobody is in the room of a code.</comment>
+  </data>
+  <data name="PartyCodeWait" xml:space="preserve">
+    <value>[Ŵàîţ ĥéŕé~~~]</value>
+    <comment>Button that waits in an empty room.</comment>
+  </data>
+  <data name="PartyCodeOtherServer" xml:space="preserve">
+    <value>[Çöðéš ŵöŕķ öñ {server}. Ƒöŕ àñöţĥéŕ šéŕṽéŕ, àšķ ƒöŕ ţĥé îñṽîţé ļîñķ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error when a code is used on another server. The server is the suggested one.</comment>
+  </data>
+  <data name="PartyBarTitle" xml:space="preserve">
+    <value>[{title} · Éþîšöðé {episode}~~~~~~]</value>
+    <comment>Title line of the bar above the tabs while you are in a party.</comment>
+  </data>
+  <data name="PartyBarLine" xml:space="preserve">
+    <value>[{count} îñ ţĥé ŕööɱ · {ready} ŕéàðý~~~~~~~~~]</value>
+    <comment>Second line of the bar above the tabs.</comment>
+  </data>
+  <data name="PartyBarIdle" xml:space="preserve">
+    <value>[Îñ ţĥé ŕööɱ · ñöţĥîñĝ þļàýîñĝ ƒöŕ ýöü~~~~~~~~~~~~]</value>
+    <comment>Second line of the bar when nothing plays for you.</comment>
+  </data>
+  <data name="PartyPausedBy" xml:space="preserve">
+    <value>[Þàüšéð ƀý {name}~~~~]</value>
+    <comment>Notice in the player when someone pauses.</comment>
+  </data>
+  <data name="PartyPlayedBy" xml:space="preserve">
+    <value>[Þļàýéð ƀý {name}~~~~]</value>
+    <comment>Notice in the player when someone plays.</comment>
+  </data>
+  <data name="PartySeekedBy" xml:space="preserve">
+    <value>[{name} ɱöṽéð ţö {time}~~~~~]</value>
+    <comment>Notice in the player when someone moves the position. The time is already formatted.</comment>
+  </data>
+  <data name="PartyNextLine" xml:space="preserve">
+    <value>[Éṽéŕýöñé ɱöṽéš öñ îñ {seconds} š~~~~~~~~]</value>
+    <comment>Line on the Up Next card in a party.</comment>
+  </data>
+  <data name="PartyNextWaiting" xml:space="preserve">
+    <value>[Ŵàîţîñĝ ƒöŕ {name} · {seconds} š~~~~~~~]</value>
+    <comment>Line on the starting screen while the room waits for a member.</comment>
+  </data>
+  <data name="PartyNextJoinedAt" xml:space="preserve">
+    <value>[{name} ĵöîñéð àţ {time}~~~~~~]</value>
+    <comment>Notice when a member who was behind joins. The time is already formatted.</comment>
+  </data>
+  <data name="PartyNextOff" xml:space="preserve">
+    <value>[Ţĥé ŕööɱ ɱöṽéš öñ ţöĝéţĥéŕ àţ ţĥé éñð.~~~~~~~~~~~~]</value>
+    <comment>Line that replaces the autoplay switch in a party.</comment>
+  </data>
+  <data name="PartyLastOut" xml:space="preserve">
+    <value>[Ţĥàţ ŵàš ţĥé ļàšţ éþîšöðé öüţ.~~~~~~~~~]</value>
+    <comment>Line in the lobby after the last episode that is out.</comment>
+  </data>
+  <data name="PartyLastOutAirs" xml:space="preserve">
+    <value>[Éþîšöðé {episode} îš öüţ öñ {day}.~~~~~~~~]</value>
+    <comment>Line after the last episode out, when the next one has a date. The day is already formatted.</comment>
+  </data>
+  <data name="PartyWatchSomethingElse" xml:space="preserve">
+    <value>[Ŵàţçĥ šöɱéţĥîñĝ éļšé~~~~~~]</value>
+    <comment>Button that picks a new title for the room.</comment>
+  </data>
+  <data name="PartyMemberJoined" xml:space="preserve">
+    <value>[{name} ĵöîñéð~~~]</value>
+    <comment>Notice when a member joins.</comment>
+  </data>
+  <data name="PartyMemberLeft" xml:space="preserve">
+    <value>[{name} ļéƒţ~~~]</value>
+    <comment>Notice when a member leaves.</comment>
+  </data>
+  <data name="PartyStarterLeft" xml:space="preserve">
+    <value>[{name} ļéƒţ. Ţĥé þàŕţý çàŕŕîéš öñ.~~~~~~~~~~]</value>
+    <comment>Notice when the member who started the party leaves.</comment>
+  </data>
+  <data name="PartyYouLeft" xml:space="preserve">
+    <value>[Ýöü ļéƒţ ţĥé ŵàţçĥ þàŕţý.~~~~~~~~]</value>
+    <comment>Notice after you leave.</comment>
+  </data>
+  <data name="PartyTvScan" xml:space="preserve">
+    <value>[Šçàñ ţö šéñð ţĥé îñṽîţé ƒŕöɱ ýöüŕ þĥöñé~~~~~~~~~~~~]</value>
+    <comment>Line under the QR code on the TV.</comment>
+  </data>
+  <data name="PartyTvOrCode" xml:space="preserve">
+    <value>[Öŕ ţýþé ţĥé çöðé~~~~~]</value>
+    <comment>Line over the code on the TV.</comment>
+  </data>
+  <data name="PartyTvJoinFromPhone" xml:space="preserve">
+    <value>[Ţö ĵöîñ à ƒŕîéñð'š þàŕţý, öþéñ ţĥéîŕ îñṽîţé öñ à þàîŕéð þĥöñé àñð çĥööšé ţĥîš ŢṼ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line on the TV's page: joining a friend's party goes through a paired phone.</comment>
+  </data>
+  <data name="PartyTvPair" xml:space="preserve">
+    <value>[Þàîŕ à þĥöñé~~~~]</value>
+    <comment>Button that pairs a phone with the TV.</comment>
+  </data>
+  <data name="PartyJoinOnDevice" xml:space="preserve">
+    <value>[Ĵöîñ öñ {device}~~~~]</value>
+    <comment>Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.</comment>
+  </data>
+  <data name="PartyJoinOnThisPhone" xml:space="preserve">
+    <value>[Ĵöîñ öñ ţĥîš þĥöñé~~~~~~]</value>
+    <comment>Button on a phone's sheet that joins on the phone itself.</comment>
+  </data>
+  <data name="PartyDeviceInParty" xml:space="preserve">
+    <value>[{device} îš îñ ţĥîš þàŕţý~~~~~~]</value>
+    <comment>Line on a phone when its paired TV is in the party.</comment>
+  </data>
+  <data name="PartyShareInvite" xml:space="preserve">
+    <value>[Šĥàŕé îñṽîţé~~~~]</value>
+    <comment>Button on a phone that sends the invite to others.</comment>
+  </data>
+  <data name="PartyReadyOnDevice" xml:space="preserve">
+    <value>[Ŕéàðý öñ {device}~~~~]</value>
+    <comment>Button on the phone's remote screen that readies the TV.</comment>
+  </data>
+  <data name="PartyLeaveOnDevice" xml:space="preserve">
+    <value>[Ļéàṽé ţĥé ŵàţçĥ þàŕţý öñ {device}~~~~~~~~~]</value>
+    <comment>Button on the phone's remote screen that leaves the party on the TV.</comment>
   </data>
   <data name="PlayerUpNext" xml:space="preserve">
     <value>[Ûþ ñéẋţ~~~]</value>

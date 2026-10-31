@@ -1,0 +1,137 @@
+anistream                                                                                           torrent ○  plugins ●
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▸  Continue               │  Watch together                                   Copy invite link
+  ▤  Calendar               │  ──────────────────────────────────────────────   https://anistream.tv/party#s=party.ex…
+  ▦  Seasonal               │  Natsukaze Relay
+  /  Search                 │  Episode 9 · 3 in the room · 1 ready              Server
+  ▥  Library                │  kite-7qm4-xr9d                                   party.example:8999
+  ↓  Downloads              │                                                   Connected, encrypted · 42 ms
+  ◇  Sources                │  ○ Ada (you)                     Not ready
+  ◎  Accounts               │  ● Mika                          Ready            r ready · c copy link · s start now ·
+  ≡  Settings               │  ○ Ren                           Not ready        x leave
+▌ ⇄  Together               │
+                            │  Play starts once you're ready
+                            │  Plays from your sources
+                            │
+                            │  ▌ Join a party  [link or code]
+                            │
+                            │  Recent rooms
+                            │  ──────────────────────────────────────────────
+                            │    Natsukaze Relay
+                            │    Episode 9 · with Mika, Ren · Today
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+─────────────────────────────────────────────── ▌ Joined the watch party in room kite-7qm4-xr9d on party.example:8999. ─
+plugins · Subbed · 1080p                                               ↵ open   r ready   c copy link   x leave   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c100-110 fg=text-dim
+r00 c111-119 fg=state
+r01 c00-119 fg=rule
+r02 c02-02 fg=text-dim
+r02 c05-12 fg=text-dim
+r02 c28-28 fg=rule
+r02 c31-44 fg=text-dim
+r02 c80-95 fg=text-dim
+r03 c02-02 fg=text-dim
+r03 c05-12 fg=text-dim
+r03 c28-28 fg=rule
+r03 c31-76 fg=rule
+r03 c80-117 fg=text
+r04 c02-02 fg=text-dim
+r04 c05-12 fg=text-dim
+r04 c28-28 fg=rule
+r04 c31-45 fg=text mod=BOLD
+r05 c02-02 fg=text-dim
+r05 c05-10 fg=text-dim
+r05 c28-28 fg=rule
+r05 c31-65 fg=text-dim
+r05 c80-85 fg=text-dim
+r06 c02-02 fg=text-dim
+r06 c05-11 fg=text-dim
+r06 c28-28 fg=rule
+r06 c31-44 fg=text
+r06 c80-97 fg=text
+r07 c02-02 fg=text-dim
+r07 c05-13 fg=text-dim
+r07 c28-28 fg=rule
+r07 c80-107 fg=text-dim
+r08 c02-02 fg=text-dim
+r08 c05-11 fg=text-dim
+r08 c28-28 fg=rule
+r08 c31-31 fg=text-dim
+r08 c33-41 fg=text
+r08 c63-71 fg=text-dim
+r09 c02-02 fg=text-dim
+r09 c05-12 fg=text-dim
+r09 c28-28 fg=rule
+r09 c31-31 fg=state
+r09 c33-36 fg=text
+r09 c63-67 fg=state
+r09 c80-116 fg=text-dim
+r10 c02-02 fg=text-dim
+r10 c05-12 fg=text-dim
+r10 c28-28 fg=rule
+r10 c31-31 fg=text-dim
+r10 c33-35 fg=text
+r10 c63-71 fg=text-dim
+r10 c80-86 fg=text-dim
+r11 c00-00 fg=text-dim
+r11 c02-02 fg=text
+r11 c05-12 fg=text mod=BOLD
+r11 c28-28 fg=rule
+r12 c28-28 fg=rule
+r12 c31-59 fg=text
+r13 c28-28 fg=rule
+r13 c31-53 fg=text-dim
+r14 c28-28 fg=rule
+r15 c28-28 fg=rule
+r15 c31-31 fg=obi
+r15 c33-44 fg=text mod=BOLD
+r15 c47-60 fg=text-dim
+r16 c28-28 fg=rule
+r17 c28-28 fg=rule
+r17 c31-42 fg=text-dim
+r18 c28-28 fg=rule
+r18 c31-76 fg=rule
+r19 c28-28 fg=rule
+r19 c33-47 fg=text
+r20 c28-28 fg=rule
+r20 c33-66 fg=text-dim
+r21 c28-28 fg=rule
+r22 c28-28 fg=rule
+r23 c28-28 fg=rule
+r24 c28-28 fg=rule
+r25 c28-28 fg=rule
+r26 c28-28 fg=rule
+r27 c28-28 fg=rule
+r28 c28-28 fg=rule
+r29 c28-28 fg=rule
+r30 c28-28 fg=rule
+r31 c28-28 fg=rule
+r32 c00-46 fg=rule
+r32 c47-47 fg=text
+r32 c48-48 fg=state
+r32 c49-118 fg=text
+r32 c119-119 fg=rule
+r33 c00-23 fg=text-dim
+r33 c71-71 fg=text
+r33 c72-79 fg=text-dim
+r33 c80-80 fg=text
+r33 c81-89 fg=text-dim
+r33 c90-90 fg=text
+r33 c91-103 fg=text-dim
+r33 c104-104 fg=text
+r33 c105-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

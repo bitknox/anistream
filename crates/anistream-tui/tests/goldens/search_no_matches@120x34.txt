@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │    ▀▀▀▀▀▀▀   ▀▀
   ◎  Accounts               │    ▀▀▀▀▀▀▀▀▄
   ≡  Settings               │    ▀▀▀▀▀▀▀▀▀▄
-                            │    ▀ ▀▀   ▀▀
+  ⇄  Together               │    ▀ ▀▀   ▀▀
                             │
                             │  No matches
                             │
@@ -109,6 +109,8 @@ r10 c34-34 fg=#68729e bg=#68729e
 r10 c35-40 fg=#464e7c bg=#464e7c
 r10 c41-41 fg=#2e345c bg=#464e7c
 r10 c42-42 fg=#2e345c
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-33 fg=#8a6844
 r11 c35-36 fg=#232842

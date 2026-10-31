@@ -26,6 +26,8 @@ pub async fn store_command(command: Subcommand, paths: &Paths) -> Result<()> {
     let cache = paths.cache_dir.join("wasm");
     let outcome = match command {
         Subcommand::Store(command) => anistream_store_server::run(command, Some(&cache)).await,
+        // Read in `main`: it opens the terminal interface and never gets here.
+        Subcommand::Party { .. } => Ok(()),
         Subcommand::Plugin(PluginCommand::Stamp(args)) => {
             anistream_store_server::stamp(&args, Some(&cache)).await.map(|info| {
                 println!("stamped {} {}", info.id, info.version);

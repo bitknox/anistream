@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌◇ │  ▌ Kawasemi                    2.1.0         ⇅ Update from 2.0.3
  ◎ │    Hotaru                      0.3.0         ○ Not installed
  ≡ │
-   │    Link another device
+ ⇄ │    Link another device
    │    Invite someone
    │    Members
    │    Who can join                Only people you invite
@@ -71,6 +71,7 @@ r09 c50-50 fg=text-dim
 r09 c52-64 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-26 fg=text
 r12 c03-03 fg=rule

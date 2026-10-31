@@ -9,7 +9,7 @@ anistream                                                                       
  ◇ │
  ◎ │
  ≡ │
-   │
+ ⇄ │
    │
    │
    │
@@ -62,6 +62,7 @@ r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule

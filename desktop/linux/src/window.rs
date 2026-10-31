@@ -1677,6 +1677,7 @@ mod tests {
             rev: 0,
             over: false,
             reached: false,
+            party: None,
         };
         let said = |phase, playing, ended| link_standing(&card(phase), playing, ended);
         assert_eq!(

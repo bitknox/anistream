@@ -443,6 +443,25 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ALTER TABLE mapping_resolution ADD COLUMN title TEXT;
     "#,
     ),
+    (
+        "0016_party_room",
+        r#"
+    -- The last ten watch party rooms this device was in: where the room is, what it watched, the
+    -- last episode it reached and who was there, one per line. Only names and titles, never a
+    -- source or a stream.
+    CREATE TABLE party_room (
+        server    TEXT    NOT NULL,
+        room      TEXT    NOT NULL,
+        anilist_id INTEGER NOT NULL,
+        title     TEXT    NOT NULL,
+        episode   TEXT    NOT NULL,
+        names     TEXT    NOT NULL DEFAULT '',
+        cover_url TEXT,
+        last_at   INTEGER NOT NULL,
+        PRIMARY KEY (server, room)
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -562,6 +581,7 @@ mod tests {
             "episode_notice",
             "airing_time",
             "download_dismissed",
+            "party_room",
         ] {
             let found: bool = conn
                 .query_row(

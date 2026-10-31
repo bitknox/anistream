@@ -557,6 +557,10 @@ object Strings {
     fun partyLeft(context: Context): String =
         context.getString(R.string.party_left)
 
+    /** Message when a watch party's server could not be reached, in the lobby or when looking in. */
+    fun partyServerUnreachable(context: Context, server: String): String =
+        context.getString(R.string.party_server_unreachable, server)
+
     /** Toast after joining a plugin store with an invite that names this device's owner. */
     fun storeJoined(context: Context, store: String, member: String): String =
         context.getString(R.string.store_joined, store, member)
@@ -4661,6 +4665,10 @@ object Strings {
     fun tooltipWithKey(context: Context, name: String, key: String): String =
         context.getString(R.string.tooltip_with_key, name, key)
 
+    /** Sidebar row, rail item and window title for the place that starts and joins watch parties. */
+    fun navWatchTogether(context: Context): String =
+        context.getString(R.string.nav_watch_together)
+
     /** Title of the welcome window. */
     fun onboardingWelcome(context: Context): String =
         context.getString(R.string.onboarding_welcome)
@@ -5004,6 +5012,390 @@ object Strings {
     /** Button that plays the chosen source with the room. */
     fun partyPlayWith(context: Context): String =
         context.getString(R.string.party_play_with)
+
+    /** Heading of the place that starts and joins watch parties. */
+    fun togetherTitle(context: Context): String =
+        context.getString(R.string.together_title)
+
+    /** Line under the heading of the place for watch parties. States that nothing is shared but timing. */
+    fun togetherLine(context: Context): String =
+        context.getString(R.string.together_line)
+
+    /** Accessibility label of the people button in Home's toolbar that opens the place for watch parties. */
+    fun togetherPeopleButton(context: Context): String =
+        context.getString(R.string.together_people_button)
+
+    /** Button that starts a watch party from the place. The one amber button there. */
+    fun togetherStart(context: Context): String =
+        context.getString(R.string.together_start)
+
+    /** Line under Start a party. */
+    fun togetherStartLine(context: Context): String =
+        context.getString(R.string.together_start_line)
+
+    /** Heading of the field that joins a watch party. */
+    fun togetherJoin(context: Context): String =
+        context.getString(R.string.together_join)
+
+    /** Line under Join a party. */
+    fun togetherJoinLine(context: Context): String =
+        context.getString(R.string.together_join_line)
+
+    /** Placeholder of the field that takes an invite link or a code. */
+    fun togetherJoinField(context: Context): String =
+        context.getString(R.string.together_join_field)
+
+    /** Button that pastes the clipboard into the Join field. */
+    fun togetherPaste(context: Context): String =
+        context.getString(R.string.together_paste)
+
+    /** Button that joins from the Join field. */
+    fun togetherJoinAction(context: Context): String =
+        context.getString(R.string.together_join_action)
+
+    /** Heading of the block on the place that shows the watch party you are in. */
+    fun togetherInParty(context: Context): String =
+        context.getString(R.string.together_in_party)
+
+    /** Line of the In a party block. The episode is a number or label. */
+    fun togetherInPartyLine(context: Context, episode: String, count: Int, ready: Int): String =
+        context.getString(R.string.together_in_party_line, episode, count, ready)
+
+    /** Button that opens the lobby of the watch party you are in. */
+    fun togetherOpenLobby(context: Context): String =
+        context.getString(R.string.together_open_lobby)
+
+    /** Button that opens the player of the watch party you are in. */
+    fun togetherOpenPlayer(context: Context): String =
+        context.getString(R.string.together_open_player)
+
+    /** Heading of the list of the last ten watch parties on this device. */
+    fun togetherRecent(context: Context): String =
+        context.getString(R.string.together_recent)
+
+    /** Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday. */
+    fun togetherRecentRow(context: Context, episode: String, names: String, `when`: String): String =
+        context.getString(R.string.together_recent_row, episode, names, `when`)
+
+    /** Line shown when no recent rooms are kept yet. */
+    fun togetherRecentEmpty(context: Context): String =
+        context.getString(R.string.together_recent_empty)
+
+    /** Button on a recent room that goes straight to its lobby with the next episode. */
+    fun togetherRejoin(context: Context): String =
+        context.getString(R.string.together_rejoin)
+
+    /** Menu item that removes a recent room from the list. */
+    fun togetherForgetRoom(context: Context): String =
+        context.getString(R.string.together_forget_room)
+
+    /** Line that says who is in a recent room now, after looking in. The names are already joined. */
+    fun togetherSomeoneHere(context: Context, names: String, count: Int): String =
+        context.resources.getQuantityString(R.plurals.together_someone_here, count, names, count)
+
+    /** Line that says a recent room has nobody in it now. */
+    fun togetherNobodyHere(context: Context): String =
+        context.getString(R.string.together_nobody_here)
+
+    /** Heading of the small list of servers on the place. */
+    fun togetherServers(context: Context): String =
+        context.getString(R.string.together_servers)
+
+    /** Line under the suggested server. The operator is who runs it, such as the Syncplay project. */
+    fun togetherServerSuggested(context: Context, operator: String): String =
+        context.getString(R.string.together_server_suggested, operator)
+
+    /** Line under a server that parties were held on. */
+    fun togetherServerUsed(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.together_server_used, count, count)
+
+    /** Button that adds a server to the list. */
+    fun togetherAddServer(context: Context): String =
+        context.getString(R.string.together_add_server)
+
+    /** Hint on the place that a link or code can be pasted anywhere on the page. */
+    fun togetherPasteShortcutHint(context: Context): String =
+        context.getString(R.string.together_paste_shortcut_hint)
+
+    /** Heading of the step that asks what to watch in a new watch party. */
+    fun partyPickTitle(context: Context): String =
+        context.getString(R.string.party_pick_title)
+
+    /** Line under a title in the picker: which episode comes next. */
+    fun partyPickNext(context: Context, episode: String): String =
+        context.getString(R.string.party_pick_next, episode)
+
+    /** Placeholder of the picker's search field. */
+    fun partyPickSearch(context: Context): String =
+        context.getString(R.string.party_pick_search)
+
+    /** Heading of the step that asks for a server and a name the first time. */
+    fun partyFirstServerTitle(context: Context): String =
+        context.getString(R.string.party_first_server_title)
+
+    /** Button that makes the room and opens the lobby. */
+    fun partyStartParty(context: Context): String =
+        context.getString(R.string.party_start_party)
+
+    /** Line in the lobby when your own sources have the room's episode. */
+    fun partyLobbySourcesFound(context: Context): String =
+        context.getString(R.string.party_lobby_sources_found)
+
+    /** Line in the lobby when none of your sources has the room's episode. */
+    fun partyLobbySourcesMissing(context: Context): String =
+        context.getString(R.string.party_lobby_sources_missing)
+
+    /** Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday. */
+    fun partyLobbyOutOn(context: Context, day: String): String =
+        context.getString(R.string.party_lobby_out_on, day)
+
+    /** Line that says you stay in the room while you have no source for the episode. */
+    fun partyStillInRoom(context: Context): String =
+        context.getString(R.string.party_still_in_room)
+
+    /** Line in the lobby that counts the room. */
+    fun partyLobbyCount(context: Context, ready: Int, count: Int): String =
+        context.getString(R.string.party_lobby_count, ready, count)
+
+    /** Line in the lobby of an invite: who invited. */
+    fun partyInvitedBy(context: Context, name: String): String =
+        context.getString(R.string.party_invited_by, name)
+
+    /** Line shown while the app looks into a room, after a short wait. */
+    fun partyLookingIn(context: Context): String =
+        context.getString(R.string.party_looking_in)
+
+    /** Note that opening a room shows you in it for a moment. */
+    fun partyLookingInNote(context: Context): String =
+        context.getString(R.string.party_looking_in_note)
+
+    /** State of a member whose file is not open yet. */
+    fun partyMemberJoining(context: Context): String =
+        context.getString(R.string.party_member_joining)
+
+    /** State of a member from the second episode on who is finding a source. */
+    fun partyMemberFinding(context: Context): String =
+        context.getString(R.string.party_member_finding)
+
+    /** State of a member who is watching. The time is already formatted, such as 2:14. */
+    fun partyMemberWatchingFrom(context: Context, time: String): String =
+        context.getString(R.string.party_member_watching_from, time)
+
+    /** Label of the I'm ready button once you are ready. */
+    fun partyReadyOn(context: Context): String =
+        context.getString(R.string.party_ready_on)
+
+    /** Heading of the invite block in the lobby. */
+    fun partyInvite(context: Context): String =
+        context.getString(R.string.party_invite)
+
+    /** Label of the short code in the lobby. */
+    fun partyCode(context: Context): String =
+        context.getString(R.string.party_code)
+
+    /** Button that opens the system share sheet with the invite link. */
+    fun partyShare(context: Context): String =
+        context.getString(R.string.party_share)
+
+    /** Text shared beside the invite link. */
+    fun partyShareText(context: Context, title: String, episode: String): String =
+        context.getString(R.string.party_share_text, title, episode)
+
+    /** Notice after the invite link was copied. */
+    fun partyInviteCopied(context: Context): String =
+        context.getString(R.string.party_invite_copied)
+
+    /** Line in the lobby before everyone is ready. */
+    fun partyStartsLine(context: Context): String =
+        context.getString(R.string.party_starts_line)
+
+    /** Button that starts the room without waiting for those who are not ready. */
+    fun partyStartAnyway(context: Context): String =
+        context.getString(R.string.party_start_anyway)
+
+    /** Line during the three second count before play. */
+    fun partyStarting(context: Context, seconds: Int): String =
+        context.getString(R.string.party_starting, seconds)
+
+    /** Button in the lobby that changes the room's episode. */
+    fun partyChangeEpisode(context: Context): String =
+        context.getString(R.string.party_change_episode)
+
+    /** Button that changes the server after it could not be reached. */
+    fun partyChangeServer(context: Context): String =
+        context.getString(R.string.party_change_server)
+
+    /** Label over the title and episode the room is watching. */
+    fun partyRoomWatching(context: Context): String =
+        context.getString(R.string.party_room_watching)
+
+    /** Line in the lobby of a room with nothing open. */
+    fun partyRoomNothing(context: Context): String =
+        context.getString(R.string.party_room_nothing)
+
+    /** Second line under Nothing is open in the room yet. */
+    fun partyRoomNothingLine(context: Context): String =
+        context.getString(R.string.party_room_nothing_line)
+
+    /** Button that picks what the room watches. */
+    fun partyRoomPick(context: Context): String =
+        context.getString(R.string.party_room_pick)
+
+    /** Line in the lobby when the room is on a later episode than the invite. */
+    fun partyRoomMovedOn(context: Context, episode: String): String =
+        context.getString(R.string.party_room_moved_on, episode)
+
+    /** Notice when someone changes the room's episode. */
+    fun partyRoomChanged(context: Context, name: String, episode: String): String =
+        context.getString(R.string.party_room_changed, name, episode)
+
+    /** Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv. */
+    fun partyRoomPlainFile(context: Context, name: String, file: String): String =
+        context.getString(R.string.party_room_plain_file, name, file)
+
+    /** Label under a title that was found from a plain file's name. */
+    fun partyRoomMatched(context: Context): String =
+        context.getString(R.string.party_room_matched)
+
+    /** Button that rejects a title matched from a file name. */
+    fun partyRoomNotThis(context: Context): String =
+        context.getString(R.string.party_room_not_this)
+
+    /** Heading over up to three guesses for a plain file's title. */
+    fun partyRoomGuesses(context: Context): String =
+        context.getString(R.string.party_room_guesses)
+
+    /** Line when the room's title was found by its name because its id is unknown here. */
+    fun partyRoomFoundByName(context: Context): String =
+        context.getString(R.string.party_room_found_by_name)
+
+    /** Line when the room's title could not be found in your sources or on AniList. */
+    fun partyRoomNotFound(context: Context): String =
+        context.getString(R.string.party_room_not_found)
+
+    /** Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d. */
+    fun partyCodeShape(context: Context, example: String): String =
+        context.getString(R.string.party_code_shape, example)
+
+    /** Line in the lobby when nobody is in the room of a code. */
+    fun partyCodeEmptyRoom(context: Context, code: String): String =
+        context.getString(R.string.party_code_empty_room, code)
+
+    /** Button that waits in an empty room. */
+    fun partyCodeWait(context: Context): String =
+        context.getString(R.string.party_code_wait)
+
+    /** Error when a code is used on another server. The server is the suggested one. */
+    fun partyCodeOtherServer(context: Context, server: String): String =
+        context.getString(R.string.party_code_other_server, server)
+
+    /** Title line of the bar above the tabs while you are in a party. */
+    fun partyBarTitle(context: Context, title: String, episode: String): String =
+        context.getString(R.string.party_bar_title, title, episode)
+
+    /** Second line of the bar above the tabs. */
+    fun partyBarLine(context: Context, count: Int, ready: Int): String =
+        context.getString(R.string.party_bar_line, count, ready)
+
+    /** Second line of the bar when nothing plays for you. */
+    fun partyBarIdle(context: Context): String =
+        context.getString(R.string.party_bar_idle)
+
+    /** Notice in the player when someone pauses. */
+    fun partyPausedBy(context: Context, name: String): String =
+        context.getString(R.string.party_paused_by, name)
+
+    /** Notice in the player when someone plays. */
+    fun partyPlayedBy(context: Context, name: String): String =
+        context.getString(R.string.party_played_by, name)
+
+    /** Notice in the player when someone moves the position. The time is already formatted. */
+    fun partySeekedBy(context: Context, name: String, time: String): String =
+        context.getString(R.string.party_seeked_by, name, time)
+
+    /** Line on the Up Next card in a party. */
+    fun partyNextLine(context: Context, seconds: Int): String =
+        context.getString(R.string.party_next_line, seconds)
+
+    /** Line on the starting screen while the room waits for a member. */
+    fun partyNextWaiting(context: Context, name: String, seconds: Int): String =
+        context.getString(R.string.party_next_waiting, name, seconds)
+
+    /** Notice when a member who was behind joins. The time is already formatted. */
+    fun partyNextJoinedAt(context: Context, name: String, time: String): String =
+        context.getString(R.string.party_next_joined_at, name, time)
+
+    /** Line that replaces the autoplay switch in a party. */
+    fun partyNextOff(context: Context): String =
+        context.getString(R.string.party_next_off)
+
+    /** Line in the lobby after the last episode that is out. */
+    fun partyLastOut(context: Context): String =
+        context.getString(R.string.party_last_out)
+
+    /** Line after the last episode out, when the next one has a date. The day is already formatted. */
+    fun partyLastOutAirs(context: Context, episode: String, day: String): String =
+        context.getString(R.string.party_last_out_airs, episode, day)
+
+    /** Button that picks a new title for the room. */
+    fun partyWatchSomethingElse(context: Context): String =
+        context.getString(R.string.party_watch_something_else)
+
+    /** Notice when a member joins. */
+    fun partyMemberJoined(context: Context, name: String): String =
+        context.getString(R.string.party_member_joined, name)
+
+    /** Notice when a member leaves. */
+    fun partyMemberLeft(context: Context, name: String): String =
+        context.getString(R.string.party_member_left, name)
+
+    /** Notice when the member who started the party leaves. */
+    fun partyStarterLeft(context: Context, name: String): String =
+        context.getString(R.string.party_starter_left, name)
+
+    /** Notice after you leave. */
+    fun partyYouLeft(context: Context): String =
+        context.getString(R.string.party_you_left)
+
+    /** Line under the QR code on the TV. */
+    fun partyTvScan(context: Context): String =
+        context.getString(R.string.party_tv_scan)
+
+    /** Line over the code on the TV. */
+    fun partyTvOrCode(context: Context): String =
+        context.getString(R.string.party_tv_or_code)
+
+    /** Line on the TV's page: joining a friend's party goes through a paired phone. */
+    fun partyTvJoinFromPhone(context: Context): String =
+        context.getString(R.string.party_tv_join_from_phone)
+
+    /** Button that pairs a phone with the TV. */
+    fun partyTvPair(context: Context): String =
+        context.getString(R.string.party_tv_pair)
+
+    /** Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV. */
+    fun partyJoinOnDevice(context: Context, device: String): String =
+        context.getString(R.string.party_join_on_device, device)
+
+    /** Button on a phone's sheet that joins on the phone itself. */
+    fun partyJoinOnThisPhone(context: Context): String =
+        context.getString(R.string.party_join_on_this_phone)
+
+    /** Line on a phone when its paired TV is in the party. */
+    fun partyDeviceInParty(context: Context, device: String): String =
+        context.getString(R.string.party_device_in_party, device)
+
+    /** Button on a phone that sends the invite to others. */
+    fun partyShareInvite(context: Context): String =
+        context.getString(R.string.party_share_invite)
+
+    /** Button on the phone's remote screen that readies the TV. */
+    fun partyReadyOnDevice(context: Context, device: String): String =
+        context.getString(R.string.party_ready_on_device, device)
+
+    /** Button on the phone's remote screen that leaves the party on the TV. */
+    fun partyLeaveOnDevice(context: Context, device: String): String =
+        context.getString(R.string.party_leave_on_device, device)
 
     /** Label on the card for the episode that plays after this one. */
     fun playerUpNext(context: Context): String =

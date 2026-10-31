@@ -26,14 +26,16 @@ pub enum SeatCue {
 /// What a playback tells the party.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SeatReport {
-    /// This file plays now: the episode, the name the room sees for it, and its length once
-    /// known. Said again when the length becomes known.
+    /// This file plays now: the episode, its title (the party writes the name the room sees
+    /// from it and the id), and its length once known. Said again when the length becomes
+    /// known.
     Playing { id: AnilistId, episode: String, name: String, duration: Option<f64> },
     /// Where the player is.
     Sample { position: f64, paused: bool, speed: f64 },
     /// The playback ended. `leave` when the viewer stopped it or closed its window, which
     /// leaves the party; an episode that played to its end, or failed, stays in it.
-    Ended { leave: bool },
+    /// `finished` when it played to its end, which moves the room on to its next episode.
+    Ended { leave: bool, finished: bool },
 }
 
 /// What reaches the party from its seats.

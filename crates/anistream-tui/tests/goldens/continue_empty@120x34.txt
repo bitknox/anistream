@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │    ▀▀▀▀▀▀▀▀▀▄
   ◎  Accounts               │    ▀ ▀▀   ▀▀
   ≡  Settings               │
-                            │  Nothing watched yet
+  ⇄  Together               │  Nothing watched yet
                             │
                             │  Press 3 for this season, or / to search.
                             │
@@ -111,6 +111,8 @@ r09 c40-41 fg=#232842
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c31-49 fg=text-dim
 r12 c28-28 fg=rule

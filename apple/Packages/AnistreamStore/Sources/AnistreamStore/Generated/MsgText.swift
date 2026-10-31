@@ -130,6 +130,7 @@ extension Msg {
         case .partyServerLost: L.partyServerLost
         case .partyRejoined: L.partyRejoined
         case .partyLeft: L.partyLeft
+        case .partyServerUnreachable(let server): L.partyServerUnreachable(server: server)
         case .storeJoined(let store, let member): L.storeJoined(store: store, member: member)
         case .storeJoinedUnnamed(let store): L.storeJoinedUnnamed(store: store)
         case .storeLeft(let store): L.storeLeft(store: store)

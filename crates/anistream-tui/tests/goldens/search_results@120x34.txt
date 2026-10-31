@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │    Umibe no Kissaten              86%   ░░░░░░░░░░░░░░░
   ◎  Accounts               │    Mori no Kajiya                 85%   ░░░░░░░░░░░░░░░
   ≡  Settings               │    Tetsu no Hanazono              82%   ░░░░░░░░░░░░░░░
-                            │    Ame Furu Machi no Robotto      81%   ░░░░░░░░░░░░░░░
+  ⇄  Together               │    Ame Furu Machi no Robotto      81%   ░░░░░░░░░░░░░░░
                             │    Kumo no Ue no Gakkou           80%   ░░░░░░░░░░░░░░░
                             │    Fuyu no Shika to Tabi          78%   ░░░░░░░░░░░░░░░
                             │    Sakanaya no Musume             74%   ░░░░░░░░░░░░░░░
@@ -95,6 +95,8 @@ r10 c28-28 fg=rule
 r10 c33-49 fg=text-dim
 r10 c64-66 fg=text-dim
 r10 c70-84 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-57 fg=text-dim
 r11 c64-66 fg=text-dim

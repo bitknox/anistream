@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │    Kitsune Ekiben                 87%   ░░░░░░░░░░░░░░░░░
   ◎  Accounts               │    Umibe no Kissaten              86%   ░░░░░░░░░░░░░░░░░
   ≡  Settings               │    Mori no Kajiya                 85%   ░░░░░░░░░░░░░░░░░
-                            │    Ginga Yuubinkyoku              84%   ░░░░░░░░░░░░░░░░░
+  ⇄  Together               │    Ginga Yuubinkyoku              84%   ░░░░░░░░░░░░░░░░░
                             │    Komorebi Ryokan                83%   ░░░░░░░░░░░░░░░░░
                             │    Tetsu no Hanazono              82%   ░░░░░░░░░░░░░░░░░
                             │    Ame Furu Machi no Robotto      81%   ░░░░░░░░░░░░░░░░░
@@ -97,6 +97,8 @@ r10 c28-28 fg=rule
 r10 c33-46 fg=text-dim
 r10 c64-66 fg=text-dim
 r10 c70-86 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-49 fg=text-dim
 r11 c64-66 fg=text-dim

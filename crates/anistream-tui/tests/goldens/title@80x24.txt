@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │  Kaze no Tegami
  ◎ │  Letters on the Wind
  ≡ │
-   │  TV  ·  24 episodes  ·  Summer 2026  ·  79%  ·  Atelier Hotaru
+ ⇄ │  TV  ·  24 episodes  ·  Summer 2026  ·  79%  ·  Atelier Hotaru
    │  Airing  ·  Since 3 Jul 2026
    │
    │  Available on Hikari Stream
@@ -58,6 +58,7 @@ r09 c03-03 fg=rule
 r09 c06-24 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c06-66 fg=text-dim
 r12 c03-03 fg=rule

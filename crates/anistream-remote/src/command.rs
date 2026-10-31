@@ -15,6 +15,7 @@ pub use anistream_model::remote::{FrontIntent, RemoteKey};
 use anistream_model::{
     command::{Command, PlayerCommand},
     hosted::TrackKind,
+    party::PartyCommand,
 };
 use serde::{Deserialize, Serialize};
 
@@ -65,6 +66,15 @@ pub enum RemoteCommand {
     },
     /// Move the TV's focus, as its own remote would.
     Navigate { key: Key },
+    /// Join a friend's watch party on the TV: [`PartyCommand::Lobby`]. The phone read the invite
+    /// (its link or code) into a server and a room.
+    PartyJoin { server: String, room: String },
+    /// [`Command::PartyReady`]: say the TV is ready, or not.
+    PartyReady { ready: bool },
+    /// [`PartyCommand::StartAnyway`]: start the room without those who are not ready.
+    PartyStart,
+    /// [`Command::PartyLeave`].
+    PartyLeave,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -140,6 +150,17 @@ impl RemoteCommand {
             }),
             Self::Text { text, submit } => Routed::Front(FrontIntent::Text { text, submit }),
             Self::Navigate { key } => Routed::Front(FrontIntent::Navigate { key: key.into() }),
+            Self::PartyJoin { server, room } => {
+                Routed::Engine(Command::Party(PartyCommand::Lobby {
+                    server,
+                    room,
+                    name: None,
+                    pick: None,
+                }))
+            }
+            Self::PartyReady { ready } => Routed::Engine(Command::PartyReady { ready }),
+            Self::PartyStart => Routed::Engine(Command::Party(PartyCommand::StartAnyway)),
+            Self::PartyLeave => Routed::Engine(Command::PartyLeave),
         }
     }
 
@@ -154,6 +175,10 @@ impl RemoteCommand {
                 | Self::Navigate { .. }
                 | Self::Volume { .. }
                 | Self::Mute { .. }
+                | Self::PartyJoin { .. }
+                | Self::PartyReady { .. }
+                | Self::PartyStart
+                | Self::PartyLeave
         )
     }
 }
@@ -176,6 +201,29 @@ mod tests {
         assert!(
             matches!(routed, Routed::Engine(Command::Play { id, episode, from_start: false }) if id.get() == 7 && episode == "3")
         );
+    }
+
+    #[test]
+    fn party_commands_reach_the_engine_and_need_nothing_playing() {
+        let join = RemoteCommand::PartyJoin {
+            server: "party.example:8999".into(),
+            room: "kite-7qm4-xr9d".into(),
+        };
+        assert!(!join.needs_playback());
+        assert_eq!(
+            join.route(),
+            Routed::Engine(Command::Party(PartyCommand::Lobby {
+                server: "party.example:8999".into(),
+                room: "kite-7qm4-xr9d".into(),
+                name: None,
+                pick: None,
+            }))
+        );
+        assert_eq!(
+            RemoteCommand::PartyReady { ready: true }.route(),
+            Routed::Engine(Command::PartyReady { ready: true })
+        );
+        assert_eq!(RemoteCommand::PartyLeave.route(), Routed::Engine(Command::PartyLeave));
     }
 
     #[test]

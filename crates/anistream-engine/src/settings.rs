@@ -180,19 +180,29 @@ pub fn remember(
     if let Event::PartyJoined(view) = event {
         let syncplay = &mut engine.config.effective_mut().syncplay;
         let recent = syncplay.used(&view.server);
-        if recent == syncplay.recent_servers {
+        let moved = recent != syncplay.recent_servers;
+        // The first name given is kept, so the next party does not ask again.
+        let name = (syncplay.name.trim().is_empty() && !view.name.trim().is_empty())
+            .then(|| view.name.clone());
+        if !moved && name.is_none() {
             return;
         }
-        syncplay.recent_servers.clone_from(&recent);
         let tx = tx();
-        write_setting(
-            &["syncplay"],
-            "recent_servers",
-            V::Strings(recent),
-            engine,
-            services,
-            &tx,
-        );
+        if moved {
+            syncplay.recent_servers.clone_from(&recent);
+            write_setting(
+                &["syncplay"],
+                "recent_servers",
+                V::Strings(recent),
+                engine,
+                services,
+                &tx,
+            );
+        }
+        if let Some(name) = name {
+            engine.config.effective_mut().syncplay.name.clone_from(&name);
+            write_setting(&["syncplay"], "name", V::Str(name), engine, services, &tx);
+        }
         return;
     }
     let playback = &mut engine.config.effective_mut().playback;

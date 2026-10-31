@@ -572,6 +572,11 @@ public enum L {
     /// Message when the person left a watch party.
     public static var partyLeft: String { string("party-left", fallback: "Left the watch party.") }
 
+    /// Message when a watch party's server could not be reached, in the lobby or when looking in.
+    public static func partyServerUnreachable(server: String) -> String {
+        Self.format("party-server-unreachable", fallback: "Couldn't reach %1$@. Check the server, or try again.", server)
+    }
+
     /// Toast after joining a plugin store with an invite that names this device's owner.
     public static func storeJoined(store: String, member: String) -> String {
         Self.format("store-joined", fallback: "Joined %1$@ as %2$@.", store, member)
@@ -4733,6 +4738,9 @@ public enum L {
         Self.format("tooltip-with-key", fallback: "%1$@ (%2$@)", name, key)
     }
 
+    /// Sidebar row, rail item and window title for the place that starts and joins watch parties.
+    public static var navWatchTogether: String { string("nav-watch-together", fallback: "Watch together") }
+
     /// Title of the welcome window.
     public static var onboardingWelcome: String { string("onboarding-welcome", fallback: "Welcome") }
 
@@ -5034,6 +5042,362 @@ public enum L {
 
     /// Button that plays the chosen source with the room.
     public static var partyPlayWith: String { string("party-play-with", fallback: "Play with the watch party") }
+
+    /// Heading of the place that starts and joins watch parties.
+    public static var togetherTitle: String { string("together-title", fallback: "Watch together") }
+
+    /// Line under the heading of the place for watch parties. States that nothing is shared but timing.
+    public static var togetherLine: String { string("together-line", fallback: "Everyone plays the episode from their own sources. The server only keeps you in step.") }
+
+    /// Accessibility label of the people button in Home's toolbar that opens the place for watch parties.
+    public static var togetherPeopleButton: String { string("together-people-button", fallback: "Watch together") }
+
+    /// Button that starts a watch party from the place. The one amber button there.
+    public static var togetherStart: String { string("together-start", fallback: "Start a party") }
+
+    /// Line under Start a party.
+    public static var togetherStartLine: String { string("together-start-line", fallback: "Pick something you're watching, then invite friends with a link or a code.") }
+
+    /// Heading of the field that joins a watch party.
+    public static var togetherJoin: String { string("together-join", fallback: "Join a party") }
+
+    /// Line under Join a party.
+    public static var togetherJoinLine: String { string("together-join-line", fallback: "Paste a friend's invite link, or type the code they read out.") }
+
+    /// Placeholder of the field that takes an invite link or a code.
+    public static var togetherJoinField: String { string("together-join-field", fallback: "Link or code") }
+
+    /// Button that pastes the clipboard into the Join field.
+    public static var togetherPaste: String { string("together-paste", fallback: "Paste") }
+
+    /// Button that joins from the Join field.
+    public static var togetherJoinAction: String { string("together-join-action", fallback: "Join") }
+
+    /// Heading of the block on the place that shows the watch party you are in.
+    public static var togetherInParty: String { string("together-in-party", fallback: "In a party") }
+
+    /// Line of the In a party block. The episode is a number or label.
+    public static func togetherInPartyLine(episode: String, count: Int, ready: Int) -> String {
+        Self.format("together-in-party-line", fallback: "Episode %1$@ · %2$lld in the room · %3$lld ready", episode, count, ready)
+    }
+
+    /// Button that opens the lobby of the watch party you are in.
+    public static var togetherOpenLobby: String { string("together-open-lobby", fallback: "Open lobby") }
+
+    /// Button that opens the player of the watch party you are in.
+    public static var togetherOpenPlayer: String { string("together-open-player", fallback: "Open player") }
+
+    /// Heading of the list of the last ten watch parties on this device.
+    public static var togetherRecent: String { string("together-recent", fallback: "Recent rooms") }
+
+    /// Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.
+    public static func togetherRecentRow(episode: String, names: String, when: String) -> String {
+        Self.format("together-recent-row", fallback: "Episode %1$@ · with %2$@ · %3$@", episode, names, when)
+    }
+
+    /// Line shown when no recent rooms are kept yet.
+    public static var togetherRecentEmpty: String { string("together-recent-empty", fallback: "Rooms you join show here, the last ten.") }
+
+    /// Button on a recent room that goes straight to its lobby with the next episode.
+    public static var togetherRejoin: String { string("together-rejoin", fallback: "Rejoin") }
+
+    /// Menu item that removes a recent room from the list.
+    public static var togetherForgetRoom: String { string("together-forget-room", fallback: "Remove from recent rooms") }
+
+    /// Line that says who is in a recent room now, after looking in. The names are already joined.
+    public static func togetherSomeoneHere(names: String, count: Int) -> String {
+        Self.format("together-someone-here", fallback: "%1$@ are in the room", names, count)
+    }
+
+    /// Line that says a recent room has nobody in it now.
+    public static var togetherNobodyHere: String { string("together-nobody-here", fallback: "Nobody here now") }
+
+    /// Heading of the small list of servers on the place.
+    public static var togetherServers: String { string("together-servers", fallback: "Servers") }
+
+    /// Line under the suggested server. The operator is who runs it, such as the Syncplay project.
+    public static func togetherServerSuggested(`operator`: String) -> String {
+        Self.format("together-server-suggested", fallback: "Suggested · run by %1$@", `operator`)
+    }
+
+    /// Line under a server that parties were held on.
+    public static func togetherServerUsed(count: Int) -> String {
+        Self.format("together-server-used", fallback: "Used for %1$lld parties", count)
+    }
+
+    /// Button that adds a server to the list.
+    public static var togetherAddServer: String { string("together-add-server", fallback: "Add a server") }
+
+    /// Hint on the place that a link or code can be pasted anywhere on the page.
+    public static var togetherPasteShortcutHint: String { string("together-paste-shortcut-hint", fallback: "Paste a link or code anywhere on this page.") }
+
+    /// Heading of the step that asks what to watch in a new watch party.
+    public static var partyPickTitle: String { string("party-pick-title", fallback: "What are you watching?") }
+
+    /// Line under a title in the picker: which episode comes next.
+    public static func partyPickNext(episode: String) -> String {
+        Self.format("party-pick-next", fallback: "Episode %1$@ next", episode)
+    }
+
+    /// Placeholder of the picker's search field.
+    public static var partyPickSearch: String { string("party-pick-search", fallback: "Search titles") }
+
+    /// Heading of the step that asks for a server and a name the first time.
+    public static var partyFirstServerTitle: String { string("party-first-server-title", fallback: "Choose a server") }
+
+    /// Button that makes the room and opens the lobby.
+    public static var partyStartParty: String { string("party-start-party", fallback: "Start party") }
+
+    /// Line in the lobby when your own sources have the room's episode.
+    public static var partyLobbySourcesFound: String { string("party-lobby-sources-found", fallback: "Plays from your sources") }
+
+    /// Line in the lobby when none of your sources has the room's episode.
+    public static var partyLobbySourcesMissing: String { string("party-lobby-sources-missing", fallback: "Not in your sources yet") }
+
+    /// Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.
+    public static func partyLobbyOutOn(day: String) -> String {
+        Self.format("party-lobby-out-on", fallback: "Out on %1$@", day)
+    }
+
+    /// Line that says you stay in the room while you have no source for the episode.
+    public static var partyStillInRoom: String { string("party-still-in-room", fallback: "You're still in the room.") }
+
+    /// Line in the lobby that counts the room.
+    public static func partyLobbyCount(ready: Int, count: Int) -> String {
+        Self.format("party-lobby-count", fallback: "In the room · %1$lld of %2$lld ready", ready, count)
+    }
+
+    /// Line in the lobby of an invite: who invited.
+    public static func partyInvitedBy(name: String) -> String {
+        Self.format("party-invited-by", fallback: "%1$@ invited you", name)
+    }
+
+    /// Line shown while the app looks into a room, after a short wait.
+    public static var partyLookingIn: String { string("party-looking-in", fallback: "Looking in") }
+
+    /// Note that opening a room shows you in it for a moment.
+    public static var partyLookingInNote: String { string("party-looking-in-note", fallback: "Opening a room shows you in it for a moment.") }
+
+    /// State of a member whose file is not open yet.
+    public static var partyMemberJoining: String { string("party-member-joining", fallback: "Joining") }
+
+    /// State of a member from the second episode on who is finding a source.
+    public static var partyMemberFinding: String { string("party-member-finding", fallback: "Finding a source") }
+
+    /// State of a member who is watching. The time is already formatted, such as 2:14.
+    public static func partyMemberWatchingFrom(time: String) -> String {
+        Self.format("party-member-watching-from", fallback: "Watching from %1$@", time)
+    }
+
+    /// Label of the I'm ready button once you are ready.
+    public static var partyReadyOn: String { string("party-ready-on", fallback: "Ready") }
+
+    /// Heading of the invite block in the lobby.
+    public static var partyInvite: String { string("party-invite", fallback: "Invite") }
+
+    /// Label of the short code in the lobby.
+    public static var partyCode: String { string("party-code", fallback: "Code") }
+
+    /// Button that opens the system share sheet with the invite link.
+    public static var partyShare: String { string("party-share", fallback: "Share…") }
+
+    /// Text shared beside the invite link.
+    public static func partyShareText(title: String, episode: String) -> String {
+        Self.format("party-share-text", fallback: "Watch party · %1$@ · Episode %2$@", title, episode)
+    }
+
+    /// Notice after the invite link was copied.
+    public static var partyInviteCopied: String { string("party-invite-copied", fallback: "Invite link copied") }
+
+    /// Line in the lobby before everyone is ready.
+    public static var partyStartsLine: String { string("party-starts-line", fallback: "Starts at 0:00 when everyone is ready") }
+
+    /// Button that starts the room without waiting for those who are not ready.
+    public static var partyStartAnyway: String { string("party-start-anyway", fallback: "Start anyway") }
+
+    /// Line during the three second count before play.
+    public static func partyStarting(seconds: Int) -> String {
+        Self.format("party-starting", fallback: "Starting in %1$lld", seconds)
+    }
+
+    /// Button in the lobby that changes the room's episode.
+    public static var partyChangeEpisode: String { string("party-change-episode", fallback: "Change episode") }
+
+    /// Button that changes the server after it could not be reached.
+    public static var partyChangeServer: String { string("party-change-server", fallback: "Change server") }
+
+    /// Label over the title and episode the room is watching.
+    public static var partyRoomWatching: String { string("party-room-watching", fallback: "The room is watching") }
+
+    /// Line in the lobby of a room with nothing open.
+    public static var partyRoomNothing: String { string("party-room-nothing", fallback: "Nothing is open in the room yet.") }
+
+    /// Second line under Nothing is open in the room yet.
+    public static var partyRoomNothingLine: String { string("party-room-nothing-line", fallback: "It starts when someone picks an episode.") }
+
+    /// Button that picks what the room watches.
+    public static var partyRoomPick: String { string("party-room-pick", fallback: "Pick what to watch") }
+
+    /// Line in the lobby when the room is on a later episode than the invite.
+    public static func partyRoomMovedOn(episode: String) -> String {
+        Self.format("party-room-moved-on", fallback: "The room has moved on to episode %1$@.", episode)
+    }
+
+    /// Notice when someone changes the room's episode.
+    public static func partyRoomChanged(name: String, episode: String) -> String {
+        Self.format("party-room-changed", fallback: "%1$@ changed the episode to %2$@", name, episode)
+    }
+
+    /// Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.
+    public static func partyRoomPlainFile(name: String, file: String) -> String {
+        Self.format("party-room-plain-file", fallback: "%1$@ has %2$@ open", name, file)
+    }
+
+    /// Label under a title that was found from a plain file's name.
+    public static var partyRoomMatched: String { string("party-room-matched", fallback: "Matched from the file name") }
+
+    /// Button that rejects a title matched from a file name.
+    public static var partyRoomNotThis: String { string("party-room-not-this", fallback: "Not this title") }
+
+    /// Heading over up to three guesses for a plain file's title.
+    public static var partyRoomGuesses: String { string("party-room-guesses", fallback: "Which title is this?") }
+
+    /// Line when the room's title was found by its name because its id is unknown here.
+    public static var partyRoomFoundByName: String { string("party-room-found-by-name", fallback: "Found by its name.") }
+
+    /// Line when the room's title could not be found in your sources or on AniList.
+    public static var partyRoomNotFound: String { string("party-room-not-found", fallback: "Couldn't find what the room is watching in your sources or on AniList.") }
+
+    /// Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.
+    public static func partyCodeShape(example: String) -> String {
+        Self.format("party-code-shape", fallback: "A code is a word and eight letters and numbers, like %1$@.", example)
+    }
+
+    /// Line in the lobby when nobody is in the room of a code.
+    public static func partyCodeEmptyRoom(code: String) -> String {
+        Self.format("party-code-empty-room", fallback: "Nobody is in %1$@ yet. Check the code, or wait here.", code)
+    }
+
+    /// Button that waits in an empty room.
+    public static var partyCodeWait: String { string("party-code-wait", fallback: "Wait here") }
+
+    /// Error when a code is used on another server. The server is the suggested one.
+    public static func partyCodeOtherServer(server: String) -> String {
+        Self.format("party-code-other-server", fallback: "Codes work on %1$@. For another server, ask for the invite link.", server)
+    }
+
+    /// Title line of the bar above the tabs while you are in a party.
+    public static func partyBarTitle(title: String, episode: String) -> String {
+        Self.format("party-bar-title", fallback: "%1$@ · Episode %2$@", title, episode)
+    }
+
+    /// Second line of the bar above the tabs.
+    public static func partyBarLine(count: Int, ready: Int) -> String {
+        Self.format("party-bar-line", fallback: "%1$lld in the room · %2$lld ready", count, ready)
+    }
+
+    /// Second line of the bar when nothing plays for you.
+    public static var partyBarIdle: String { string("party-bar-idle", fallback: "In the room · nothing playing for you") }
+
+    /// Notice in the player when someone pauses.
+    public static func partyPausedBy(name: String) -> String {
+        Self.format("party-paused-by", fallback: "Paused by %1$@", name)
+    }
+
+    /// Notice in the player when someone plays.
+    public static func partyPlayedBy(name: String) -> String {
+        Self.format("party-played-by", fallback: "Played by %1$@", name)
+    }
+
+    /// Notice in the player when someone moves the position. The time is already formatted.
+    public static func partySeekedBy(name: String, time: String) -> String {
+        Self.format("party-seeked-by", fallback: "%1$@ moved to %2$@", name, time)
+    }
+
+    /// Line on the Up Next card in a party.
+    public static func partyNextLine(seconds: Int) -> String {
+        Self.format("party-next-line", fallback: "Everyone moves on in %1$lld s", seconds)
+    }
+
+    /// Line on the starting screen while the room waits for a member.
+    public static func partyNextWaiting(name: String, seconds: Int) -> String {
+        Self.format("party-next-waiting", fallback: "Waiting for %1$@ · %2$lld s", name, seconds)
+    }
+
+    /// Notice when a member who was behind joins. The time is already formatted.
+    public static func partyNextJoinedAt(name: String, time: String) -> String {
+        Self.format("party-next-joined-at", fallback: "%1$@ joined at %2$@", name, time)
+    }
+
+    /// Line that replaces the autoplay switch in a party.
+    public static var partyNextOff: String { string("party-next-off", fallback: "The room moves on together at the end.") }
+
+    /// Line in the lobby after the last episode that is out.
+    public static var partyLastOut: String { string("party-last-out", fallback: "That was the last episode out.") }
+
+    /// Line after the last episode out, when the next one has a date. The day is already formatted.
+    public static func partyLastOutAirs(episode: String, day: String) -> String {
+        Self.format("party-last-out-airs", fallback: "Episode %1$@ is out on %2$@.", episode, day)
+    }
+
+    /// Button that picks a new title for the room.
+    public static var partyWatchSomethingElse: String { string("party-watch-something-else", fallback: "Watch something else") }
+
+    /// Notice when a member joins.
+    public static func partyMemberJoined(name: String) -> String {
+        Self.format("party-member-joined", fallback: "%1$@ joined", name)
+    }
+
+    /// Notice when a member leaves.
+    public static func partyMemberLeft(name: String) -> String {
+        Self.format("party-member-left", fallback: "%1$@ left", name)
+    }
+
+    /// Notice when the member who started the party leaves.
+    public static func partyStarterLeft(name: String) -> String {
+        Self.format("party-starter-left", fallback: "%1$@ left. The party carries on.", name)
+    }
+
+    /// Notice after you leave.
+    public static var partyYouLeft: String { string("party-you-left", fallback: "You left the watch party.") }
+
+    /// Line under the QR code on the TV.
+    public static var partyTvScan: String { string("party-tv-scan", fallback: "Scan to send the invite from your phone") }
+
+    /// Line over the code on the TV.
+    public static var partyTvOrCode: String { string("party-tv-or-code", fallback: "Or type the code") }
+
+    /// Line on the TV's page: joining a friend's party goes through a paired phone.
+    public static var partyTvJoinFromPhone: String { string("party-tv-join-from-phone", fallback: "To join a friend's party, open their invite on a paired phone and choose this TV.") }
+
+    /// Button that pairs a phone with the TV.
+    public static var partyTvPair: String { string("party-tv-pair", fallback: "Pair a phone") }
+
+    /// Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.
+    public static func partyJoinOnDevice(device: String) -> String {
+        Self.format("party-join-on-device", fallback: "Join on %1$@", device)
+    }
+
+    /// Button on a phone's sheet that joins on the phone itself.
+    public static var partyJoinOnThisPhone: String { string("party-join-on-this-phone", fallback: "Join on this phone") }
+
+    /// Line on a phone when its paired TV is in the party.
+    public static func partyDeviceInParty(device: String) -> String {
+        Self.format("party-device-in-party", fallback: "%1$@ is in this party", device)
+    }
+
+    /// Button on a phone that sends the invite to others.
+    public static var partyShareInvite: String { string("party-share-invite", fallback: "Share invite") }
+
+    /// Button on the phone's remote screen that readies the TV.
+    public static func partyReadyOnDevice(device: String) -> String {
+        Self.format("party-ready-on-device", fallback: "Ready on %1$@", device)
+    }
+
+    /// Button on the phone's remote screen that leaves the party on the TV.
+    public static func partyLeaveOnDevice(device: String) -> String {
+        Self.format("party-leave-on-device", fallback: "Leave the watch party on %1$@", device)
+    }
 
     /// Label on the card for the episode that plays after this one.
     public static var playerUpNext: String { string("player-up-next", fallback: "Up next") }

@@ -40,11 +40,15 @@
 -tracker-pl = trackers
 -tracker-cap-pl = Trackers
 
-# Watching in sync with other people. Never "watch together".
+# Watching in sync with other people. "Watch together" is only the name of the place and the
+# action that start and join one; the thing itself is a watch party.
 -watch-party = watch party
 -watch-party-cap = Watch party
 -watch-party-pl = watch parties
 -watch-party-cap-pl = Watch parties
+
+# The name of the place that starts and joins watch parties.
+-watch-together-cap = Watch together
 
 # Where releases are looked up.
 -torrent-index = torrent index

@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
   ◎  Accounts               │    Tomorrow  ────────────────────────   ░░░░░░░░░░░░░░░░░
   ≡  Settings               │  ▌ Umibe no Kissa… E2   In 2 h 41 min   ░░░░░░░░░░░░░░░░░
-                            │                                         ░░░░░░░░░░░░░░░░░
+  ⇄  Together               │                                         ░░░░░░░░░░░░░░░░░
                             │    Wednesday · 21 Oct  ──────────────   ░░░░░░░░░░░░░░░░░
                             │    Mori no Kajiya  E7      In 1 d 4 h   ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
@@ -94,6 +94,8 @@ r10 c31-31 fg=obi
 r10 c33-47 fg=text mod=BOLD
 r10 c49-66 fg=text-dim
 r10 c70-86 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c70-86 fg=rule
 r12 c28-28 fg=rule

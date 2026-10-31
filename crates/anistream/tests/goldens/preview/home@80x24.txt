@@ -9,7 +9,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
  ◇ │
  ◎ │
  ≡ │
-   │
+ ⇄ │
    │
    │
    │

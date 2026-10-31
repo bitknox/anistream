@@ -105,6 +105,13 @@ pub enum FfiScene {
     /// [`Self::Watching`] with AniList failing everything but the queue's own titles and their
     /// broadcasts: Continue shows, the discovery shelves are left out and one notice says so.
     Failed,
+    /// [`Self::Watching`] with three watch party rooms kept, as Together shows them: Natsukaze
+    /// Relay's with two friends an hour ago, Stardust Wayfarer's with one a day ago, and
+    /// Cloudcutter Airship's alone a week ago. The party lobby states are reached by joining the
+    /// fake party server ([`FfiEngine::start_fake_party`]) and steering its members: Natsukaze
+    /// Relay's episode 9 has not aired (Out on a day), Stardust Wayfarer's episodes play, and
+    /// [`Self::Sourceless`] and [`Self::NotFound`] show the other two sources lines.
+    Together,
     /// Nothing watched and offline from the start: the fake AniList hangs up on every request
     /// and the engine is told the path is offline, whatever the host says, so Home has nothing
     /// saved to show. [`FfiEngine::testing_set_offline`] does the same to any other scene once
@@ -501,6 +508,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
             }
         }
         FfiScene::Watching
+        | FfiScene::Together
         | FfiScene::WatchingMedia { .. }
         | FfiScene::Sourceless
         | FfiScene::Unsure
@@ -514,7 +522,36 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
             seed::stopped_in(store, ONA, "2", 13.0 * 60.0 + 30.0, Translation::Dub, now - DAY);
             seed::watched(store, FINISHED, 6, now - 2 * HOUR);
             seed::stopped_at(store, FINISHED, "7", 10.0 * 60.0 + 6.0, now - HOUR);
+            if *scene == FfiScene::Together {
+                seed_rooms(store, now);
+            }
         }
+    }
+}
+
+/// The three rooms [`FfiScene::Together`] keeps.
+fn seed_rooms(store: &Store, now: i64) {
+    use anistream_store::PartyRoom;
+    const HOUR: i64 = 3_600;
+    let rooms = [
+        (AIRING_NO_MAL, "kite-7qm4-xr9d", "8", &["Mika", "Ren"][..], now - HOUR),
+        (FINISHED, "ember-2hv8-kd4p", "3", &["Mika"][..], now - 24 * HOUR),
+        (ONA, "ember-9wz3-tn6c", "1", &[][..], now - 7 * 24 * HOUR),
+    ];
+    for (id, room, episode, names, last_at) in rooms {
+        let media = fixtures::media(id);
+        store
+            .remember_party_room(&PartyRoom {
+                server: "syncplay.pl:8995".into(),
+                room: room.into(),
+                anilist_id: id,
+                title: media.title.display().to_owned(),
+                episode: episode.into(),
+                names: names.iter().map(|n| (*n).to_owned()).collect(),
+                cover_url: None,
+                last_at,
+            })
+            .expect("seeding a party room");
     }
 }
 

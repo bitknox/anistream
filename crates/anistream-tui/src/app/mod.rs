@@ -53,6 +53,7 @@ mod settings;
 mod stores;
 mod text;
 mod title;
+mod together;
 
 pub(crate) use self::lists::air_date;
 use self::title::TitleFrame;
@@ -288,6 +289,12 @@ pub struct App {
     pub manual_target: Option<AnilistId>,
     /// Which text-valued setting the editor is writing.
     pub edit_target: Option<SettingKey>,
+    /// The watch party this terminal is in, as the lobby last said.
+    pub party: Option<anistream_model::party::PartyView>,
+    /// Who is in it.
+    pub party_members: Vec<anistream_model::party::PartyMember>,
+    /// The last rooms, newest first.
+    pub party_recent: Vec<anistream_model::party::PartyRecentRoom>,
     /// Joined plugin stores.
     pub stores: Vec<StoreRow>,
     /// Whether the store list has arrived at least once, so "none joined" is not said early.
@@ -414,6 +421,9 @@ impl App {
             manual_target: None,
             edit_target: None,
             stores: Vec::new(),
+            party: None,
+            party_members: Vec::new(),
+            party_recent: Vec::new(),
             stores_loaded: false,
             members_for: None,
             store_members: Vec::new(),
@@ -507,17 +517,27 @@ impl App {
             // has, said as toasts. What the room says comes on the player, where the viewer is;
             // the members and the form are a native app's.
             Event::PartyJoined(view) => {
-                self.push_toast(info(t::party_joined(&view.room, &view.server)))
+                self.push_toast(info(t::party_joined(&view.room, &view.server)));
+                self.set_party(view);
             }
-            Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::alert(reason)),
+            Event::PartyState(view) => self.set_party(view),
+            Event::PartyMembers(members) => self.party_members = members,
+            Event::PartyRecent(rooms) => self.set_recent_rooms(rooms),
+            Event::PartyLeft { reason: Some(reason) } => {
+                self.end_party();
+                self.push_toast(Notice::alert(reason));
+            }
             Event::PartyNoSource { reason, .. } => {
                 self.push_toast(alert(t::party_no_source_still_in(&say(&reason))))
             }
-            Event::PartyLeft { reason: None }
-            | Event::PartyForm(_)
-            | Event::PartyState(_)
-            | Event::PartyMembers(_)
-            | Event::PartyMessage(_) => {}
+            Event::PartyLeft { reason: None } => self.end_party(),
+            // The lobby of a native app, the start the engine acts on, and a look into a room.
+            Event::PartyForm(_)
+            | Event::PartyMessage(_)
+            | Event::PartyStarted { .. }
+            | Event::PartyGlimpse(_)
+            | Event::PartyLookFailed { .. }
+            | Event::PartyLastOut { .. } => {}
             // A native app's network monitor, which the terminal has none of: it never says the
             // path, so the engine never says it changed.
             Event::Connectivity { .. } => {}

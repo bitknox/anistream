@@ -700,6 +700,10 @@ impl App {
             Section::Providers => Command::CheckProviders,
             Section::Downloads => Command::LoadDownloads,
             Section::Library => Command::LoadLibrary(self.library_segment),
+            Section::Together => {
+                self.content = ContentList::Empty;
+                return Some(Command::Party(anistream_model::party::PartyCommand::LoadRecent));
+            }
             // Sections with nothing to fetch yet render their own placeholder.
             _ => {
                 self.content = ContentList::Empty;

@@ -365,3 +365,7 @@ party-rejoined = Back in the { -watch-party }.
 
 # Message when the person left a watch party.
 party-left = Left the { -watch-party }.
+
+# Message when a watch party's server could not be reached, in the lobby or when looking in.
+# @arg server: text
+party-server-unreachable = Couldn't reach { $server }. Check the server, or try again.

@@ -233,6 +233,11 @@ enum Subcommand {
     /// Work with plugin files.
     #[command(subcommand)]
     Plugin(PluginCommand),
+    /// Join a watch party: an invite link, or a code, opens its lobby.
+    Party {
+        /// The invite link or the code a friend sent.
+        target: String,
+    },
 }
 
 #[tokio::main]
@@ -247,8 +252,17 @@ async fn main() -> Result<()> {
     let paths = Paths::resolve().context("resolving config paths")?;
     // A store server is a long-running service in someone's terminal or a unit file, so it logs
     // where they are looking rather than to the app's log file.
-    if let Some(command) = args.command {
-        return store_command(command, &paths).await;
+    let mut party = None;
+    match args.command {
+        Some(Subcommand::Party { target }) => {
+            // Read before anything starts, so a mistyped link is said at the prompt.
+            party = Some(
+                anistream_model::party::PartyTarget::parse(&target)
+                    .with_context(|| "that is not a watch party link or code")?,
+            );
+        }
+        Some(command) => return store_command(command, &paths).await,
+        None => {}
     }
     init_logging(&paths);
 
@@ -366,7 +380,7 @@ async fn main() -> Result<()> {
         .await;
     }
 
-    run(config, paths, http, store, !args.no_images, config_problem, set_aside).await
+    run(config, paths, http, store, !args.no_images, config_problem, set_aside, party).await
 }
 
 /// What the terminal's graphics support amounts to, in words.
