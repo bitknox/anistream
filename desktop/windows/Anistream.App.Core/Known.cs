@@ -62,6 +62,18 @@ public sealed class Known
     public ProviderRow[] OrderedProviders => SourceOrder.Sorted(Providers, Settings?.Sources.Order ?? []);
 
     /// <summary>Every joined plugin store.</summary>
+    /// <summary>The Licensed services page: the services chosen, the region, and the services AniList lists.</summary>
+    public LicensedView? Licensed { get; private set; }
+
+    /// <summary>What each title's page says about licensed services, as the engine last worked it out.</summary>
+    public Dictionary<uint, TitleAvailability> Availability { get; } = [];
+
+    /// <summary>The Jellyfin servers saved, with their libraries and how far matching has got.</summary>
+    public ServerRow[] Servers { get; private set; } = [];
+
+    /// <summary>The folders on this computer and the groups of files found in them.</summary>
+    public LocalView? Local { get; private set; }
+
     public StoreRow[] Stores { get; private set; } = [];
     public bool StoresLoaded { get; private set; }
 
@@ -236,6 +248,18 @@ public sealed class Known
                 break;
             case Event.SourcesChanged:
                 Rebuilding = true;
+                break;
+            case Event.Licensed l:
+                Licensed = l.V1;
+                break;
+            case Event.Availability a:
+                Availability[a.V1.Id] = a.V1;
+                break;
+            case Event.Server { V1: ServerEvent.Servers rows }:
+                Servers = rows.V1;
+                break;
+            case Event.Local { V1: LocalEvent.View localView }:
+                Local = localView.V1;
                 break;
             case Event.Stores st:
                 Stores = st.V1;

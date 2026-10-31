@@ -5698,6 +5698,18 @@ onboarding-join = [Ĵöîñ~~]
 # Hint inside the invite field on the welcome page.
 onboarding-invite-hint = [Îñṽîţé ļîñķ~~~~]
 
+# Heading of the page about where episodes come from.
+onboarding-where-title = [Ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ~~~~~~~~]
+
+# Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.
+onboarding-where-hosts = [Îţ þļàýš ŵĥàţ ýöü àļŕéàðý ĥàṽé: ƒîļéš öñ ţĥîš ðéṽîçé, ýöüŕ Ĵéļļýƒîñ šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading of the group that adds the viewer's own media.
+onboarding-own-heading = [Ĥàṽé ýöüŕ öŵñ ɱéðîà?~~~~~~]
+
+# Heading of the group that joins a store with an invite.
+onboarding-invite-heading = [Ĥàṽé àñ îñṽîţé ļîñķ?~~~~~~]
+
 # Button on the title page and in the player that opens the watch party form.
 party-open = [Ŵàţçĥ þàŕţý…~~~~]
 
@@ -6568,6 +6580,18 @@ servers-row-not-answering = [Ñöţ àñšŵéŕîñĝ · ļàšţ šééñ { $t
 # Line on a title page when its server does not answer.
 title-server-not-answering = [{ $server } îšñ'ţ àñšŵéŕîñĝ. Éþîšöðéš ýöü ðöŵñļöàðéð šţîļļ þļàý.~~~~~~~~~~~~~~~~~]
 
+# Kind of a Jellyfin library that holds shows, in a library's line.
+servers-kind-shows = [Šĥöŵš~~]
+
+# Kind of a Jellyfin library that holds movies, in a library's line.
+servers-kind-movies = [Ṁöṽîéš~~]
+
+# Kind of any other Jellyfin library, in a library's line.
+servers-kind-other = [Ṽîðéöš~~]
+
+# Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.
+servers-quick-connect = [Ǫüîçķ Çöññéçţ~~~~]
+
 # Settings group and row title for choosing a language.
 settings-language = [Ļàñĝüàĝé~~~]
 
@@ -7324,14 +7348,11 @@ sources-add-store = [Ĵöîñ à þļüĝîñ šţöŕé…~~~~~~]
 # Line under the empty state's title on a computer.
 sources-empty-body = [Šöüŕçéš àŕé ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ: ƒöļðéŕš öñ ţĥîš ðéṽîçé, ýöüŕ ɱéðîà šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".
-sources-empty-more = [Öŕ { $join }, öŕ { $demo }.~~~~~]
+# Line under the empty state's buttons. The link is "join a plugin store".
+sources-empty-more = [Öŕ { $join }.~~~]
 
 # Link in the empty state's last line.
 sources-empty-join-link = [ĵöîñ à þļüĝîñ šţöŕé~~~~~~]
-
-# Link in the empty state's last line.
-sources-empty-demo-link = [àðð ţĥé ðéɱö~~~~]
 
 # Primary button of the empty state on a computer.
 sources-add-folder-button = [Åðð à ƒöļðéŕ~~~~]

@@ -165,3 +165,15 @@ servers-row-not-answering = Not answering · last seen { $time }
 # Line on a title page when its server does not answer.
 # @arg server: text
 title-server-not-answering = { $server } isn't answering. Episodes you downloaded still play.
+
+# Kind of a Jellyfin library that holds shows, in a library's line.
+servers-kind-shows = Shows
+
+# Kind of a Jellyfin library that holds movies, in a library's line.
+servers-kind-movies = Movies
+
+# Kind of any other Jellyfin library, in a library's line.
+servers-kind-other = Videos
+
+# Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.
+servers-quick-connect = Quick Connect

@@ -57695,6 +57695,18 @@
         }
       }
     },
+    "onboarding-invite-heading" : {
+      "comment" : "Heading of the group that joins a store with an invite.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Have an invite link?"
+          }
+        }
+      }
+    },
     "onboarding-invite-hint" : {
       "comment" : "Hint inside the invite field on the welcome page.",
       "extractionState" : "manual",
@@ -57889,6 +57901,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inte nu"
+          }
+        }
+      }
+    },
+    "onboarding-own-heading" : {
+      "comment" : "Heading of the group that adds the viewer's own media.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Have your own media?"
           }
         }
       }
@@ -58351,6 +58375,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Välkommen till anistream"
+          }
+        }
+      }
+    },
+    "onboarding-where-hosts" : {
+      "comment" : "Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It plays what you already have: files on this device, your Jellyfin server, and plugins from stores you join."
+          }
+        }
+      }
+    },
+    "onboarding-where-title" : {
+      "comment" : "Heading of the page about where episodes come from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where episodes come from"
           }
         }
       }
@@ -83475,6 +83523,42 @@
         }
       }
     },
+    "servers-kind-movies" : {
+      "comment" : "Kind of a Jellyfin library that holds movies, in a library's line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Movies"
+          }
+        }
+      }
+    },
+    "servers-kind-other" : {
+      "comment" : "Kind of any other Jellyfin library, in a library's line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videos"
+          }
+        }
+      }
+    },
+    "servers-kind-shows" : {
+      "comment" : "Kind of a Jellyfin library that holds shows, in a library's line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows"
+          }
+        }
+      }
+    },
     "servers-libraries-body" : {
       "comment" : "Line under it.",
       "extractionState" : "manual",
@@ -83627,6 +83711,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Waiting for you to approve it"
+          }
+        }
+      }
+    },
+    "servers-quick-connect" : {
+      "comment" : "Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Connect"
           }
         }
       }
@@ -105619,18 +105715,6 @@
         }
       }
     },
-    "sources-empty-demo-link" : {
-      "comment" : "Link in the empty state's last line.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "add the demo"
-          }
-        }
-      }
-    },
     "sources-empty-detail" : {
       "comment" : "Line under it.",
       "extractionState" : "manual",
@@ -105710,13 +105794,13 @@
       }
     },
     "sources-empty-more" : {
-      "comment" : "Line under the empty state's buttons. The links are \"join a plugin store\" and \"add the demo\". Argument 1: join (Text). Argument 2: demo (Text).",
+      "comment" : "Line under the empty state's buttons. The link is \"join a plugin store\". Argument 1: join (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Or %1$@, or %2$@."
+            "value" : "Or %1$@."
           }
         }
       }

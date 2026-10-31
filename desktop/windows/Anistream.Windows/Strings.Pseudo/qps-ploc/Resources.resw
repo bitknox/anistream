@@ -4315,6 +4315,22 @@
     <value>[Îñṽîţé ļîñķ~~~~]</value>
     <comment>Hint inside the invite field on the welcome page.</comment>
   </data>
+  <data name="OnboardingWhereTitle" xml:space="preserve">
+    <value>[Ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ~~~~~~~~]</value>
+    <comment>Heading of the page about where episodes come from.</comment>
+  </data>
+  <data name="OnboardingWhereHosts" xml:space="preserve">
+    <value>[Îţ þļàýš ŵĥàţ ýöü àļŕéàðý ĥàṽé: ƒîļéš öñ ţĥîš ðéṽîçé, ýöüŕ Ĵéļļýƒîñ šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.</comment>
+  </data>
+  <data name="OnboardingOwnHeading" xml:space="preserve">
+    <value>[Ĥàṽé ýöüŕ öŵñ ɱéðîà?~~~~~~]</value>
+    <comment>Heading of the group that adds the viewer's own media.</comment>
+  </data>
+  <data name="OnboardingInviteHeading" xml:space="preserve">
+    <value>[Ĥàṽé àñ îñṽîţé ļîñķ?~~~~~~]</value>
+    <comment>Heading of the group that joins a store with an invite.</comment>
+  </data>
   <data name="PartyOpen" xml:space="preserve">
     <value>[Ŵàţçĥ þàŕţý…~~~~]</value>
     <comment>Button on the title page and in the player that opens the watch party form.</comment>
@@ -5475,6 +5491,22 @@
     <value>[{server} îšñ'ţ àñšŵéŕîñĝ. Éþîšöðéš ýöü ðöŵñļöàðéð šţîļļ þļàý.~~~~~~~~~~~~~~~~~]</value>
     <comment>Line on a title page when its server does not answer.</comment>
   </data>
+  <data name="ServersKindShows" xml:space="preserve">
+    <value>[Šĥöŵš~~]</value>
+    <comment>Kind of a Jellyfin library that holds shows, in a library's line.</comment>
+  </data>
+  <data name="ServersKindMovies" xml:space="preserve">
+    <value>[Ṁöṽîéš~~]</value>
+    <comment>Kind of a Jellyfin library that holds movies, in a library's line.</comment>
+  </data>
+  <data name="ServersKindOther" xml:space="preserve">
+    <value>[Ṽîðéöš~~]</value>
+    <comment>Kind of any other Jellyfin library, in a library's line.</comment>
+  </data>
+  <data name="ServersQuickConnect" xml:space="preserve">
+    <value>[Ǫüîçķ Çöññéçţ~~~~]</value>
+    <comment>Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.</comment>
+  </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>[Ļàñĝüàĝé~~~]</value>
     <comment>Settings group and row title for choosing a language.</comment>
@@ -6476,15 +6508,11 @@
     <comment>Line under the empty state's title on a computer.</comment>
   </data>
   <data name="SourcesEmptyMore" xml:space="preserve">
-    <value>[Öŕ {join}, öŕ {demo}.~~~~~]</value>
-    <comment>Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".</comment>
+    <value>[Öŕ {join}.~~~]</value>
+    <comment>Line under the empty state's buttons. The link is "join a plugin store".</comment>
   </data>
   <data name="SourcesEmptyJoinLink" xml:space="preserve">
     <value>[ĵöîñ à þļüĝîñ šţöŕé~~~~~~]</value>
-    <comment>Link in the empty state's last line.</comment>
-  </data>
-  <data name="SourcesEmptyDemoLink" xml:space="preserve">
-    <value>[àðð ţĥé ðéɱö~~~~]</value>
     <comment>Link in the empty state's last line.</comment>
   </data>
   <data name="SourcesAddFolderButton" xml:space="preserve">

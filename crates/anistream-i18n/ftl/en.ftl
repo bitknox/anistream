@@ -5698,6 +5698,18 @@ onboarding-join = Join
 # Hint inside the invite field on the welcome page.
 onboarding-invite-hint = Invite link
 
+# Heading of the page about where episodes come from.
+onboarding-where-title = Where episodes come from
+
+# Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.
+onboarding-where-hosts = It plays what you already have: files on this device, your Jellyfin server, and plugins from stores you join.
+
+# Heading of the group that adds the viewer's own media.
+onboarding-own-heading = Have your own media?
+
+# Heading of the group that joins a store with an invite.
+onboarding-invite-heading = Have an invite link?
+
 # Button on the title page and in the player that opens the watch party form.
 party-open = Watch party…
 
@@ -6568,6 +6580,18 @@ servers-row-not-answering = Not answering · last seen { $time }
 # Line on a title page when its server does not answer.
 title-server-not-answering = { $server } isn't answering. Episodes you downloaded still play.
 
+# Kind of a Jellyfin library that holds shows, in a library's line.
+servers-kind-shows = Shows
+
+# Kind of a Jellyfin library that holds movies, in a library's line.
+servers-kind-movies = Movies
+
+# Kind of any other Jellyfin library, in a library's line.
+servers-kind-other = Videos
+
+# Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.
+servers-quick-connect = Quick Connect
+
 # Settings group and row title for choosing a language.
 settings-language = Language
 
@@ -7324,14 +7348,11 @@ sources-add-store = Join a plugin store…
 # Line under the empty state's title on a computer.
 sources-empty-body = Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join.
 
-# Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".
-sources-empty-more = Or { $join }, or { $demo }.
+# Line under the empty state's buttons. The link is "join a plugin store".
+sources-empty-more = Or { $join }.
 
 # Link in the empty state's last line.
 sources-empty-join-link = join a plugin store
-
-# Link in the empty state's last line.
-sources-empty-demo-link = add the demo
 
 # Primary button of the empty state on a computer.
 sources-add-folder-button = Add a folder

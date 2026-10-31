@@ -2598,6 +2598,14 @@
     <string name="onboarding_join">Join</string>
     <!-- Hint inside the invite field on the welcome page. -->
     <string name="onboarding_invite_hint">Invite link</string>
+    <!-- Heading of the page about where episodes come from. -->
+    <string name="onboarding_where_title">Where episodes come from</string>
+    <!-- Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line. -->
+    <string name="onboarding_where_hosts">It plays what you already have: files on this device, your Jellyfin server, and plugins from stores you join.</string>
+    <!-- Heading of the group that adds the viewer's own media. -->
+    <string name="onboarding_own_heading">Have your own media?</string>
+    <!-- Heading of the group that joins a store with an invite. -->
+    <string name="onboarding_invite_heading">Have an invite link?</string>
     <!-- Button on the title page and in the player that opens the watch party form. -->
     <string name="party_open">Watch party…</string>
     <!-- Title of the form and the panel. -->
@@ -3179,6 +3187,14 @@
     <string name="servers_row_not_answering">Not answering · last seen %1$s</string>
     <!-- Line on a title page when its server does not answer. -->
     <string name="title_server_not_answering">%1$s isn\'t answering. Episodes you downloaded still play.</string>
+    <!-- Kind of a Jellyfin library that holds shows, in a library's line. -->
+    <string name="servers_kind_shows">Shows</string>
+    <!-- Kind of a Jellyfin library that holds movies, in a library's line. -->
+    <string name="servers_kind_movies">Movies</string>
+    <!-- Kind of any other Jellyfin library, in a library's line. -->
+    <string name="servers_kind_other">Videos</string>
+    <!-- Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens. -->
+    <string name="servers_quick_connect">Quick Connect</string>
     <!-- Settings group and row title for choosing a language. -->
     <string name="settings_language">Language</string>
     <!-- Settings row for the language of the app's own text. -->
@@ -3687,12 +3703,10 @@
     <string name="sources_add_store">Join a plugin store…</string>
     <!-- Line under the empty state's title on a computer. -->
     <string name="sources_empty_body">Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join.</string>
-    <!-- Line under the empty state's buttons. The links are "join a plugin store" and "add the demo". -->
-    <string name="sources_empty_more">Or %1$s, or %2$s.</string>
+    <!-- Line under the empty state's buttons. The link is "join a plugin store". -->
+    <string name="sources_empty_more">Or %1$s.</string>
     <!-- Link in the empty state's last line. -->
     <string name="sources_empty_join_link">join a plugin store</string>
-    <!-- Link in the empty state's last line. -->
-    <string name="sources_empty_demo_link">add the demo</string>
     <!-- Primary button of the empty state on a computer. -->
     <string name="sources_add_folder_button">Add a folder</string>
     <!-- Second button of the empty state. -->

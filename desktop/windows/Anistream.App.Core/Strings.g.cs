@@ -3126,6 +3126,18 @@ public static partial class T
     /// <summary>Hint inside the invite field on the welcome page.</summary>
     public static string OnboardingInviteHint => Get("OnboardingInviteHint");
 
+    /// <summary>Heading of the page about where episodes come from.</summary>
+    public static string OnboardingWhereTitle => Get("OnboardingWhereTitle");
+
+    /// <summary>Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.</summary>
+    public static string OnboardingWhereHosts => Get("OnboardingWhereHosts");
+
+    /// <summary>Heading of the group that adds the viewer's own media.</summary>
+    public static string OnboardingOwnHeading => Get("OnboardingOwnHeading");
+
+    /// <summary>Heading of the group that joins a store with an invite.</summary>
+    public static string OnboardingInviteHeading => Get("OnboardingInviteHeading");
+
     /// <summary>Button on the title page and in the player that opens the watch party form.</summary>
     public static string PartyOpen => Get("PartyOpen");
 
@@ -3987,6 +3999,18 @@ public static partial class T
     /// <summary>Line on a title page when its server does not answer.</summary>
     public static string TitleServerNotAnswering(string server) => Fill(Get("TitleServerNotAnswering"), ("server", server));
 
+    /// <summary>Kind of a Jellyfin library that holds shows, in a library's line.</summary>
+    public static string ServersKindShows => Get("ServersKindShows");
+
+    /// <summary>Kind of a Jellyfin library that holds movies, in a library's line.</summary>
+    public static string ServersKindMovies => Get("ServersKindMovies");
+
+    /// <summary>Kind of any other Jellyfin library, in a library's line.</summary>
+    public static string ServersKindOther => Get("ServersKindOther");
+
+    /// <summary>Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.</summary>
+    public static string ServersQuickConnect => Get("ServersQuickConnect");
+
     /// <summary>Settings group and row title for choosing a language.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
 
@@ -4719,14 +4743,11 @@ public static partial class T
     /// <summary>Line under the empty state's title on a computer.</summary>
     public static string SourcesEmptyBody => Get("SourcesEmptyBody");
 
-    /// <summary>Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".</summary>
-    public static string SourcesEmptyMore(string join, string demo) => Fill(Get("SourcesEmptyMore"), ("join", join), ("demo", demo));
+    /// <summary>Line under the empty state's buttons. The link is "join a plugin store".</summary>
+    public static string SourcesEmptyMore(string join) => Fill(Get("SourcesEmptyMore"), ("join", join));
 
     /// <summary>Link in the empty state's last line.</summary>
     public static string SourcesEmptyJoinLink => Get("SourcesEmptyJoinLink");
-
-    /// <summary>Link in the empty state's last line.</summary>
-    public static string SourcesEmptyDemoLink => Get("SourcesEmptyDemoLink");
 
     /// <summary>Primary button of the empty state on a computer.</summary>
     public static string SourcesAddFolderButton => Get("SourcesAddFolderButton");
@@ -7282,6 +7303,10 @@ public static partial class T
         ["OnboardingSourcesDetail"] = "Sources are plugins, shared through plugin stores by invite.",
         ["OnboardingJoin"] = "Join",
         ["OnboardingInviteHint"] = "Invite link",
+        ["OnboardingWhereTitle"] = "Where episodes come from",
+        ["OnboardingWhereHosts"] = "It plays what you already have: files on this device, your Jellyfin server, and plugins from stores you join.",
+        ["OnboardingOwnHeading"] = "Have your own media?",
+        ["OnboardingInviteHeading"] = "Have an invite link?",
         ["PartyOpen"] = "Watch party…",
         ["PartyTitle"] = "Watch party",
         ["PartyJoinTitle"] = "Join the watch party?",
@@ -7572,6 +7597,10 @@ public static partial class T
         ["ServersSignInAgain"] = "Sign in again",
         ["ServersRowNotAnswering"] = "Not answering · last seen {time}",
         ["TitleServerNotAnswering"] = "{server} isn't answering. Episodes you downloaded still play.",
+        ["ServersKindShows"] = "Shows",
+        ["ServersKindMovies"] = "Movies",
+        ["ServersKindOther"] = "Videos",
+        ["ServersQuickConnect"] = "Quick Connect",
         ["SettingsLanguage"] = "Language",
         ["SettingsLanguageApp"] = "App language",
         ["LanguageFollowSystem"] = "Follow system language",
@@ -7822,9 +7851,8 @@ public static partial class T
         ["SourcesAddServer"] = "Media server…",
         ["SourcesAddStore"] = "Join a plugin store…",
         ["SourcesEmptyBody"] = "Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join.",
-        ["SourcesEmptyMore"] = "Or {join}, or {demo}.",
+        ["SourcesEmptyMore"] = "Or {join}.",
         ["SourcesEmptyJoinLink"] = "join a plugin store",
-        ["SourcesEmptyDemoLink"] = "add the demo",
         ["SourcesAddFolderButton"] = "Add a folder",
         ["SourcesAddServerButton"] = "Add a media server",
         ["SourcesRemoved"] = "{name} removed",

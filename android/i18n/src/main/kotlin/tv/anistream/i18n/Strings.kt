@@ -4925,6 +4925,22 @@ object Strings {
     fun onboardingInviteHint(context: Context): String =
         context.getString(R.string.onboarding_invite_hint)
 
+    /** Heading of the page about where episodes come from. */
+    fun onboardingWhereTitle(context: Context): String =
+        context.getString(R.string.onboarding_where_title)
+
+    /** Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line. */
+    fun onboardingWhereHosts(context: Context): String =
+        context.getString(R.string.onboarding_where_hosts)
+
+    /** Heading of the group that adds the viewer's own media. */
+    fun onboardingOwnHeading(context: Context): String =
+        context.getString(R.string.onboarding_own_heading)
+
+    /** Heading of the group that joins a store with an invite. */
+    fun onboardingInviteHeading(context: Context): String =
+        context.getString(R.string.onboarding_invite_heading)
+
     /** Button on the title page and in the player that opens the watch party form. */
     fun partyOpen(context: Context): String =
         context.getString(R.string.party_open)
@@ -6069,6 +6085,22 @@ object Strings {
     fun titleServerNotAnswering(context: Context, server: String): String =
         context.getString(R.string.title_server_not_answering, server)
 
+    /** Kind of a Jellyfin library that holds shows, in a library's line. */
+    fun serversKindShows(context: Context): String =
+        context.getString(R.string.servers_kind_shows)
+
+    /** Kind of a Jellyfin library that holds movies, in a library's line. */
+    fun serversKindMovies(context: Context): String =
+        context.getString(R.string.servers_kind_movies)
+
+    /** Kind of any other Jellyfin library, in a library's line. */
+    fun serversKindOther(context: Context): String =
+        context.getString(R.string.servers_kind_other)
+
+    /** Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens. */
+    fun serversQuickConnect(context: Context): String =
+        context.getString(R.string.servers_quick_connect)
+
     /** Settings group and row title for choosing a language. */
     fun settingsLanguage(context: Context): String =
         context.getString(R.string.settings_language)
@@ -7049,17 +7081,13 @@ object Strings {
     fun sourcesEmptyBody(context: Context): String =
         context.getString(R.string.sources_empty_body)
 
-    /** Line under the empty state's buttons. The links are "join a plugin store" and "add the demo". */
-    fun sourcesEmptyMore(context: Context, join: String, demo: String): String =
-        context.getString(R.string.sources_empty_more, join, demo)
+    /** Line under the empty state's buttons. The link is "join a plugin store". */
+    fun sourcesEmptyMore(context: Context, join: String): String =
+        context.getString(R.string.sources_empty_more, join)
 
     /** Link in the empty state's last line. */
     fun sourcesEmptyJoinLink(context: Context): String =
         context.getString(R.string.sources_empty_join_link)
-
-    /** Link in the empty state's last line. */
-    fun sourcesEmptyDemoLink(context: Context): String =
-        context.getString(R.string.sources_empty_demo_link)
 
     /** Primary button of the empty state on a computer. */
     fun sourcesAddFolderButton(context: Context): String =

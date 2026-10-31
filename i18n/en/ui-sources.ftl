@@ -386,16 +386,12 @@ sources-add-store = Join a { -plugin-store }…
 # Line under the empty state's title on a computer.
 sources-empty-body = { -source-cap-pl } are where episodes come from: folders on this { -device }, your media server, and { -plugin-pl } from stores you join.
 
-# Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".
+# Line under the empty state's buttons. The link is "join a plugin store".
 # @arg join: text
-# @arg demo: text
-sources-empty-more = Or { $join }, or { $demo }.
+sources-empty-more = Or { $join }.
 
 # Link in the empty state's last line.
 sources-empty-join-link = join a { -plugin-store }
-
-# Link in the empty state's last line.
-sources-empty-demo-link = add the demo
 
 # Primary button of the empty state on a computer.
 # @max 24

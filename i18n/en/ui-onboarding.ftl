@@ -38,3 +38,15 @@ onboarding-join = Join
 
 # Hint inside the invite field on the welcome page.
 onboarding-invite-hint = Invite link
+
+# Heading of the page about where episodes come from.
+onboarding-where-title = Where episodes come from
+
+# Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.
+onboarding-where-hosts = It plays what you already have: files on this { -device }, your Jellyfin server, and { -plugin-pl } from stores you join.
+
+# Heading of the group that adds the viewer's own media.
+onboarding-own-heading = Have your own media?
+
+# Heading of the group that joins a store with an invite.
+onboarding-invite-heading = Have an invite link?

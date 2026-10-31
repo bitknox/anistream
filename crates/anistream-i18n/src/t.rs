@@ -9115,6 +9115,26 @@ pub fn onboarding_invite_hint() -> String {
     text("onboarding-invite-hint", &[])
 }
 
+/// Heading of the page about where episodes come from.
+pub fn onboarding_where_title() -> String {
+    text("onboarding-where-title", &[])
+}
+
+/// Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.
+pub fn onboarding_where_hosts() -> String {
+    text("onboarding-where-hosts", &[])
+}
+
+/// Heading of the group that adds the viewer's own media.
+pub fn onboarding_own_heading() -> String {
+    text("onboarding-own-heading", &[])
+}
+
+/// Heading of the group that joins a store with an invite.
+pub fn onboarding_invite_heading() -> String {
+    text("onboarding-invite-heading", &[])
+}
+
 /// Button on the title page and in the player that opens the watch party form.
 pub fn party_open() -> String {
     text("party-open", &[])
@@ -10545,6 +10565,26 @@ pub fn title_server_not_answering(server: &str) -> String {
     text("title-server-not-answering", &[("server", Arg::Text(server))])
 }
 
+/// Kind of a Jellyfin library that holds shows, in a library's line.
+pub fn servers_kind_shows() -> String {
+    text("servers-kind-shows", &[])
+}
+
+/// Kind of a Jellyfin library that holds movies, in a library's line.
+pub fn servers_kind_movies() -> String {
+    text("servers-kind-movies", &[])
+}
+
+/// Kind of any other Jellyfin library, in a library's line.
+pub fn servers_kind_other() -> String {
+    text("servers-kind-other", &[])
+}
+
+/// Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.
+pub fn servers_quick_connect() -> String {
+    text("servers-quick-connect", &[])
+}
+
 /// Settings group and row title for choosing a language.
 pub fn settings_language() -> String {
     text("settings-language", &[])
@@ -11765,19 +11805,14 @@ pub fn sources_empty_body() -> String {
     text("sources-empty-body", &[])
 }
 
-/// Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".
-pub fn sources_empty_more(join: &str, demo: &str) -> String {
-    text("sources-empty-more", &[("join", Arg::Text(join)), ("demo", Arg::Text(demo))])
+/// Line under the empty state's buttons. The link is "join a plugin store".
+pub fn sources_empty_more(join: &str) -> String {
+    text("sources-empty-more", &[("join", Arg::Text(join))])
 }
 
 /// Link in the empty state's last line.
 pub fn sources_empty_join_link() -> String {
     text("sources-empty-join-link", &[])
-}
-
-/// Link in the empty state's last line.
-pub fn sources_empty_demo_link() -> String {
-    text("sources-empty-demo-link", &[])
 }
 
 /// Primary button of the empty state on a computer.

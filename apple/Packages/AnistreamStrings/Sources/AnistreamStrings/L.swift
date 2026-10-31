@@ -4971,6 +4971,18 @@ public enum L {
     /// Hint inside the invite field on the welcome page.
     public static var onboardingInviteHint: String { string("onboarding-invite-hint", fallback: "Invite link") }
 
+    /// Heading of the page about where episodes come from.
+    public static var onboardingWhereTitle: String { string("onboarding-where-title", fallback: "Where episodes come from") }
+
+    /// Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.
+    public static var onboardingWhereHosts: String { string("onboarding-where-hosts", fallback: "It plays what you already have: files on this device, your Jellyfin server, and plugins from stores you join.") }
+
+    /// Heading of the group that adds the viewer's own media.
+    public static var onboardingOwnHeading: String { string("onboarding-own-heading", fallback: "Have your own media?") }
+
+    /// Heading of the group that joins a store with an invite.
+    public static var onboardingInviteHeading: String { string("onboarding-invite-heading", fallback: "Have an invite link?") }
+
     /// Button on the title page and in the player that opens the watch party form.
     public static var partyOpen: String { string("party-open", fallback: "Watch party…") }
 
@@ -5951,6 +5963,18 @@ public enum L {
         Self.format("title-server-not-answering", fallback: "%1$@ isn't answering. Episodes you downloaded still play.", server)
     }
 
+    /// Kind of a Jellyfin library that holds shows, in a library's line.
+    public static var serversKindShows: String { string("servers-kind-shows", fallback: "Shows") }
+
+    /// Kind of a Jellyfin library that holds movies, in a library's line.
+    public static var serversKindMovies: String { string("servers-kind-movies", fallback: "Movies") }
+
+    /// Kind of any other Jellyfin library, in a library's line.
+    public static var serversKindOther: String { string("servers-kind-other", fallback: "Videos") }
+
+    /// Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.
+    public static var serversQuickConnect: String { string("servers-quick-connect", fallback: "Quick Connect") }
+
     /// Settings group and row title for choosing a language.
     public static var settingsLanguage: String { string("settings-language", fallback: "Language") }
 
@@ -6759,16 +6783,13 @@ public enum L {
     /// Line under the empty state's title on a computer.
     public static var sourcesEmptyBody: String { string("sources-empty-body", fallback: "Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join.") }
 
-    /// Line under the empty state's buttons. The links are "join a plugin store" and "add the demo".
-    public static func sourcesEmptyMore(join: String, demo: String) -> String {
-        Self.format("sources-empty-more", fallback: "Or %1$@, or %2$@.", join, demo)
+    /// Line under the empty state's buttons. The link is "join a plugin store".
+    public static func sourcesEmptyMore(join: String) -> String {
+        Self.format("sources-empty-more", fallback: "Or %1$@.", join)
     }
 
     /// Link in the empty state's last line.
     public static var sourcesEmptyJoinLink: String { string("sources-empty-join-link", fallback: "join a plugin store") }
-
-    /// Link in the empty state's last line.
-    public static var sourcesEmptyDemoLink: String { string("sources-empty-demo-link", fallback: "add the demo") }
 
     /// Primary button of the empty state on a computer.
     public static var sourcesAddFolderButton: String { string("sources-add-folder-button", fallback: "Add a folder") }
