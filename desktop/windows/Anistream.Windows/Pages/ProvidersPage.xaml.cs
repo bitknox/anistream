@@ -155,7 +155,7 @@ public sealed partial class ProvidersPage : Page
         buttons.Children.Add(Ui.Label(T.SourcesAddServerButton, (_, _) => ctx.Window.ShowAddServer()));
         empty.Children.Add(buttons);
         var more = new StackPanel { Orientation = Orientation.Horizontal };
-        var join = new HyperlinkButton { Content = T.SourcesEmptyJoinLink, Padding = new Thickness(0) };
+        var join = new HyperlinkButton { Content = T.SourcesEmptyJoinLink, Padding = new Thickness(0), Margin = new Thickness(4, 0, 0, 0) };
         join.Click += (_, _) => ctx.Window.ShowJoinStore();
         // "Or { join }.": the link stands where the sentence puts it.
         var parts = T.SourcesEmptyMore("\u0001").Split('\u0001');

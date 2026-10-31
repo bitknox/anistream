@@ -84,6 +84,38 @@ sealed class Ctx
             leave();
     }
 
+#if ANISTREAM_TESTING
+    static readonly LibraryChoice[] ShowcaseLibraries =
+    [
+        new LibraryChoice("l1", "Shows", true, "shows"),
+        new LibraryChoice("l2", "Films", true, "movies"),
+        new LibraryChoice("l3", "Home videos", false, "other"),
+    ];
+
+    Event[]? LawfulServer(ServerCommand command)
+    {
+        const string address = "http://media.example:8096";
+        var show = Options.Show;
+        switch (command)
+        {
+            case ServerCommand.Discover:
+                return show == "lawful-server-none" ? [new Event.Server(new ServerEvent.DiscoveryDone())]
+                    : [new Event.Server(new ServerEvent.Found(new FoundServer("s1", "Hotaru media", address))), new Event.Server(new ServerEvent.DiscoveryDone())];
+            case ServerCommand.Check:
+                return show == "lawful-server-unreachable" ? [new Event.Server(new ServerEvent.Failed(ServerStep.Address, new ServerFailure.Unreachable(address)))]
+                    : [new Event.Server(new ServerEvent.Checked(new CheckedServer(Id: "s1", Name: "Hotaru media", Version: "10.10.3", Address: address, QuickConnect: true)))];
+            case ServerCommand.SignIn:
+                return show == "lawful-server-credentials" ? [new Event.Server(new ServerEvent.Failed(ServerStep.SignIn, new ServerFailure.Credentials()))]
+                    : [new Event.Server(new ServerEvent.SignedIn("s1")), new Event.Server(new ServerEvent.Libraries("s1", ShowcaseLibraries))];
+            case ServerCommand.StartQuickConnect:
+                return [new Event.Server(new ServerEvent.QuickConnectCode("482913"))];
+            case ServerCommand.LoadLibraries:
+                return [new Event.Server(new ServerEvent.Libraries("s1", ShowcaseLibraries))];
+        }
+        return null;
+    }
+#endif
+
     public ulong? Send(Command command)
     {
 #if ANISTREAM_TESTING
@@ -97,6 +129,17 @@ sealed class Ctx
                     Session.Known.Take(events[0]);
                     Heard(events);
                 });
+            return null;
+        }
+        // The media server flow's shots: the fixture engine reaches no server, so the steps are answered with an invented one.
+        if (Options.Show?.StartsWith("lawful-", StringComparison.Ordinal) == true && command is Command.Server server && LawfulServer(server.V1) is { } answer)
+        {
+            _ = Task.Delay(350).ContinueWith(_ => Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                foreach (var e in answer)
+                    Session.Known.Take(e);
+                Heard(answer);
+            }));
             return null;
         }
         // A discussion's shots: the fixture engine has no AniList forum, so the pane is answered with the invented thread.

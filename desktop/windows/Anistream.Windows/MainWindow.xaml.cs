@@ -383,6 +383,11 @@ public sealed partial class MainWindow : Window
             RehearseTv(options.Show);
         if (options.Show?.StartsWith("cast-", StringComparison.Ordinal) == true)
             RehearseCast(options.Show);
+        // --show=lawful-*: the add-a-server dialog (lawful-server-*), or the licensed services page (lawful-licensed).
+        if (options.Show?.StartsWith("lawful-server", StringComparison.Ordinal) == true)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () => { await Task.Delay(900); ShowAddServer(); });
+        if (options.Show == "lawful-licensed")
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () => { await Task.Delay(900); Push(typeof(Pages.LicensedPage), null); });
         // --show=devicecode: Trakt's sign-in code, for a screenshot.
         if (options.Show == "devicecode")
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
@@ -413,6 +418,10 @@ public sealed partial class MainWindow : Window
                 welcoming = null;
                 if (welcome.Invite is { } invite)
                     ShowJoinStore(invite);
+                else if (welcome.Then == "folder")
+                    AddFolder();
+                else if (welcome.Then == "server")
+                    ShowAddServer();
             });
     }
 

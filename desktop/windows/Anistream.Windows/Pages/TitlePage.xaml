@@ -97,6 +97,8 @@
                 </Button>
               </Grid>
               <TextBlock x:Name="WaitingLine" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />
+              <!-- Services that have the title: Also on, or Listed on with a way to choose yours. -->
+              <StackPanel x:Name="AvailLine" Orientation="Horizontal" Spacing="2" Margin="0,6,0,0" Visibility="Collapsed" />
             </StackPanel>
           </Grid>
 
