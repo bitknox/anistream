@@ -15244,20 +15244,6 @@
     "at": "2026-10-31",
     "back": "Always"
   },
-  "settings-trailers-label": {
-    "source": "fc46aa35ec47",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Play trailers"
-  },
-  "settings-trailers-note": {
-    "source": "a204dc4c0c90",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Trailers play muted from YouTube, which sees your IP address. They do not play with Data Saver or Battery Saver on, with animations removed or with TalkBack running."
-  },
   "settings-trailers-note-apple": {
     "source": "b21582da2a10",
     "state": "draft",
