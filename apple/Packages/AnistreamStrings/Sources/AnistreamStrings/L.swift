@@ -4136,6 +4136,9 @@ public enum L {
     /// Accessible name of the arrow that pages a shelf on.
     public static var homeNext: String { string("home-next", fallback: "Next") }
 
+    /// Line in the header capsule while Home is up to date with the signed-in tracker.
+    public static var homeSynced: String { string("home-synced", fallback: "AniList synced") }
+
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {
         Self.format("queue-episodes-left", fallback: "%1$lld episodes left in %2$@", count, title)

@@ -3347,6 +3347,10 @@
     <value>Next</value>
     <comment>Accessible name of the arrow that pages a shelf on.</comment>
   </data>
+  <data name="HomeSynced" xml:space="preserve">
+    <value>AniList synced</value>
+    <comment>Line in the header capsule while Home is up to date with the signed-in tracker.</comment>
+  </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>
     <comment>Continue row subtitle. The show's title is cut first when the row is short.</comment>

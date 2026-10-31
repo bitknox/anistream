@@ -93,10 +93,10 @@ pub const ALL: [&str; 75] = [
     "mini",
     "resumed",
     "close",
-    "up-next",
-    "up-next-picked",
-    "up-next-notice",
-    "continue-welcome",
+    "home-loading",
+    "home-arrows",
+    "home-notice",
+    "home-hidden",
 ];
 
 /// The watch party's shots, apart from the rest: each holds a party on the scene's own server,
@@ -238,37 +238,33 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
     let window = &shell.ctx.window;
     match shot {
         "home" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             1.0
         }
         "welcome" => {
             crate::pages::first_launch::open(&shell.ctx);
             1.5
         }
-        // Continue with its queue cut to two rows, so there is room for Up next for you; the
-        // shots after it keep that. A hidden title stays hidden, so these four come last.
-        "up-next" => {
-            hide_from_continue(shell, &[900_002, 900_006]);
-            shell.go(Dest::Continue);
-            3.5
+        // Home's own states. Each Home scene is its own run (`--scene`), so these are taken
+        // in the order a run staged them: the notice, then the Hidden titles it adds to.
+        "home-loading" => {
+            shell.go(Dest::Home);
+            0.1
         }
-        "up-next-picked" => {
-            shell.go(Dest::Continue);
-            pick_last_row(shell);
-            2.0
+        "home-arrows" => {
+            shell.go(Dest::Home);
+            show_arrows(shell);
+            1.0
         }
-        "up-next-notice" => {
-            shell.go(Dest::Continue);
-            if let Some((list, id)) = pick_last_row(shell) {
-                let _ = list.activate_action("up.dismiss", Some(&id.to_variant()));
-            }
-            2.0
+        "home-notice" => {
+            shell.go(Dest::Home);
+            dismiss_last_card(shell);
+            1.5
         }
-        "continue-welcome" => {
+        "home-hidden" => {
             shell.ctx.toasts.dismiss_all();
-            hide_from_continue(shell, &[900_001, 900_005]);
-            shell.go(Dest::Continue);
-            3.5
+            shell.settings_pane("hidden");
+            2.0
         }
         "offline" => {
             shell.ctx.hub.send(Command::NetworkPath {
@@ -371,7 +367,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             3.0
         }
         "title" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             let _ =
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             3.5
@@ -400,7 +396,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             6.0
         }
         "trailer-window" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             if let Some(entry) = shell.ctx.hub.entry(anistream_core::ids::AnilistId::new(TITLE))
             {
                 crate::trailer::play_window(&shell.ctx, &entry);
@@ -410,7 +406,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         #[cfg(feature = "fixtures")]
         "discussion" | "discussion-none" | "discussion-waiting" | "discussion-signed-out" => {
             use crate::showcase::Thread;
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             crate::showcase::set_thread(match shot {
                 "discussion" => Thread::Comments,
                 "discussion-none" => Thread::Nobody,
@@ -426,7 +422,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "title-watch-again" => {
             // Every episode watched: the main button offers episode 1 again.
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             let _ =
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             let hub = Rc::clone(&shell.ctx.hub);
@@ -446,7 +442,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         #[cfg(feature = "fixtures")]
         "title-more-about" => {
             // The dialog behind the page's More about this show button.
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             let _ =
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             let ctx = Rc::clone(&shell.ctx);
@@ -462,7 +458,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "title-discussion" => {
             // The episode that has a thread says so under its row.
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             let _ =
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             let hub = Rc::clone(&shell.ctx.hub);
@@ -476,7 +472,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             4.0
         }
         "show-settings" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             let _ =
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             let ctx = Rc::clone(&shell.ctx);
@@ -546,7 +542,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             1.5
         }
         "pad-continue" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             pad_press(
                 shell,
                 &[PadButton::DpadDown, PadButton::DpadDown, PadButton::DpadDown],
@@ -555,7 +551,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             3.0
         }
         "pad-title" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             if let Some(pad) = shell.pad() {
                 pad.shot_enter();
             }
@@ -573,12 +569,12 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             3.5
         }
         "pad-sidebar" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             pad_press(shell, &[PadButton::DpadDown, PadButton::DpadLeft], 1500);
             3.0
         }
         "pad-help" => {
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             if let Some(pad) = shell.pad() {
                 pad.shot_enter();
                 pad.shot_help();
@@ -1364,49 +1360,48 @@ fn wide_widgets(widget: &gtk::Widget, depth: usize, limit: i32) {
     }
 }
 
-/// Hide `ids` from Continue and load it again, so its queue is shorter.
-fn hide_from_continue(shell: &Rc<Shell>, ids: &[u32]) {
-    for id in ids {
-        shell
-            .ctx
-            .hub
-            .send(Command::HideFromContinue { id: anistream_core::ids::AnilistId::new(*id) });
+/// Every widget under `root`, parents first.
+fn descendants(root: &gtk::Widget) -> Vec<gtk::Widget> {
+    let mut all = vec![root.clone()];
+    let mut at = 0;
+    while at < all.len() {
+        let mut child = all[at].first_child();
+        while let Some(c) = child {
+            child = c.next_sibling();
+            all.push(c);
+        }
+        at += 1;
     }
-    shell.ctx.hub.send(Command::LoadContinue);
-    shell.ctx.hub.send(Command::LoadUpNext);
+    all
 }
 
-/// Select the last row of Continue's list, a suggestion once the group is there, and say its
-/// title's id.
-fn pick_last_row(shell: &Rc<Shell>) -> Option<(gtk::ListBox, u32)> {
-    fn find(widget: &gtk::Widget) -> Option<gtk::ListBox> {
-        if let Some(list) = widget.downcast_ref::<gtk::ListBox>()
-            && list.has_css_class("queue")
-        {
-            return Some(list.clone());
+/// Home's paging buttons as the pointer over a shelf leaves them: shown.
+fn show_arrows(shell: &Rc<Shell>) {
+    let Some(root) = shell.ctx.window.content() else { return };
+    for w in descendants(root.upcast_ref()) {
+        if w.has_css_class("home-arrow") {
+            w.set_visible(true);
+            w.set_opacity(1.0);
         }
-        let mut child = widget.first_child();
-        while let Some(c) = child {
-            if let Some(found) = find(&c) {
-                return Some(found);
-            }
-            child = c.next_sibling();
-        }
-        None
     }
-    let list = find(shell.ctx.window.content()?.upcast_ref())?;
-    let mut last = None;
-    let mut child = list.first_child();
-    while let Some(c) = child {
-        if let Some(row) = c.downcast_ref::<gtk::ListBoxRow>() {
-            last = Some(row.clone());
-        }
-        child = c.next_sibling();
+}
+
+/// Not interested on the last card Home shows, which sits in a suggestion shelf.
+fn dismiss_last_card(shell: &Rc<Shell>) {
+    let Some(root) = shell.ctx.window.content() else { return };
+    let last = descendants(root.upcast_ref())
+        .into_iter()
+        .filter(|w| w.has_css_class("home-card"))
+        .filter_map(|w| w.downcast::<gtk::Button>().ok())
+        .filter_map(|b| b.action_target_value().and_then(|v| v.get::<u32>()))
+        .last();
+    if let Some(id) = last {
+        let _ = WidgetExt::activate_action(
+            &shell.ctx.window,
+            "win.home-dismiss",
+            Some(&id.to_variant()),
+        );
     }
-    let row = last?;
-    list.select_row(Some(&row));
-    let id = row.child()?.widget_name().parse().ok()?;
-    Some((list, id))
 }
 
 /// The room the party shots hold their party in.
@@ -1439,7 +1434,7 @@ fn party_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
     let ctx = Rc::clone(&shell.ctx);
     let title = AnilistId::new(TITLE);
     let open_title = || {
-        shell.go(Dest::Continue);
+        shell.go(Dest::Home);
         let _ = WidgetExt::activate_action(
             &shell.ctx.window,
             "win.open-title",
@@ -1501,7 +1496,7 @@ fn party_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                 episode: episode.into(),
             }
             .link();
-            shell.go(Dest::Continue);
+            shell.go(Dest::Home);
             shell.open_link(&link);
             if shot == "party-unaired" {
                 glib::timeout_add_local_once(Duration::from_millis(2500), || {
@@ -1672,7 +1667,7 @@ fn party_unstage(shell: &Rc<Shell>, shot: &str) {
         let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
     }
     shell.player.hold_up_next.set(false);
-    shell.go(Dest::Continue);
+    shell.go(Dest::Home);
     let toasts = shell.ctx.toasts.clone();
     glib::timeout_add_local_once(Duration::from_millis(400), move || {
         PARTY_SERVER.with(|p| p.replace(None));
@@ -1783,7 +1778,7 @@ fn tv_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             }),
         );
     };
-    shell.go(Dest::Continue);
+    shell.go(Dest::Home);
     match shot {
         "tv-empty" => {
             scene.silence(true);
@@ -2028,7 +2023,7 @@ fn cast_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
     };
     // The board lists only Bedroom on the network; the Living room there is the Cast one.
     scene.switch_off(LIVING_ROOM);
-    shell.go(Dest::Continue);
+    shell.go(Dest::Home);
     match shot {
         "cast-picker" => {
             scene.cast(LIVING_ROOM, plays("fixed"));
@@ -2335,7 +2330,7 @@ fn source_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         // The next episode, or it and every one after, is listed by no source.
         hub.unsourced.set(Some((title, 4, if shot == "source-unsourced" { 4 } else { 99 })));
     }
-    shell.go(Dest::Continue);
+    shell.go(Dest::Home);
     let _ = WidgetExt::activate_action(
         &shell.ctx.window,
         "win.open-title",

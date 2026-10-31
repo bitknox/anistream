@@ -86,7 +86,7 @@ struct Pane {
     groups: &'static [(Group, &'static [SettingKey])],
 }
 
-const PANES: [Pane; 9] = [
+const PANES: [Pane; 10] = [
     Pane {
         name: "general",
         icon: "preferences-system-symbolic", // i18n-skip
@@ -143,6 +143,7 @@ const PANES: [Pane; 9] = [
         ],
     },
     Pane { name: "accounts", icon: "avatar-default-symbolic", groups: &[] }, // i18n-skip
+    Pane { name: "hidden", icon: "view-conceal-symbolic", groups: &[] },     // i18n-skip
     Pane {
         name: "integrations",
         icon: "application-x-addon-symbolic", // i18n-skip
@@ -209,6 +210,7 @@ pub fn pane_title(name: &str) -> String {
         "notifications" => t::settings_group_notifications(),
         "sources" => t::sources_title(),
         "accounts" => t::accounts_title(),
+        "hidden" => t::settings_hidden_titles(),
         "integrations" => t::settings_group_integrations(),
         "advanced" => t::settings_group_advanced(),
         "about" => t::about_title(),
@@ -445,6 +447,7 @@ impl Inner {
         let page = adw::PreferencesPage::new();
         match name {
             "accounts" => self.accounts(&page),
+            "hidden" => hidden_pane(&self.ctx, &page),
             "about" => {
                 about_pane(&page);
                 let group = adw::PreferencesGroup::builder().title(t::updates_title()).build();
@@ -1445,6 +1448,59 @@ impl Inner {
 }
 
 /// About as a pane: the version, the legal line and the notices. The About dialog is the same.
+/// Settings, Hidden titles: what was marked Not interested, each with Restore.
+fn hidden_pane(ctx: &Rc<Ctx>, page: &adw::PreferencesPage) {
+    let group = adw::PreferencesGroup::builder()
+        .title(t::settings_hidden_titles())
+        .description(t::settings_hidden_titles_body())
+        .build();
+    page.add(&group);
+    let shown: Rc<RefCell<Vec<adw::ActionRow>>> = Rc::default();
+    let fill = {
+        let (group, shown, hub) = (group.downgrade(), shown.clone(), ctx.hub.clone());
+        move |titles: &[anistream_model::home::HiddenTitle]| {
+            let Some(group) = group.upgrade() else { return };
+            for row in shown.take() {
+                group.remove(&row);
+            }
+            let mut rows = Vec::new();
+            if titles.is_empty() {
+                let row = adw::ActionRow::builder().title(t::settings_hidden_empty()).build();
+                row.add_css_class("property");
+                rows.push(row);
+            }
+            for hidden in titles {
+                let row = adw::ActionRow::builder()
+                    .title(glib::markup_escape_text(&hidden.entry.title))
+                    .build();
+                if hidden.until_airs {
+                    row.set_subtitle(&t::settings_hidden_until_airs());
+                }
+                row.add_prefix(&widgets::cover(&hub, &hidden.entry, 40, 60));
+                let restore = gtk::Button::with_label(&t::settings_restore());
+                restore.set_valign(gtk::Align::Center);
+                restore.add_css_class("flat");
+                let id = hidden.entry.id;
+                let hub = hub.clone();
+                restore.connect_clicked(move |_| hub.send(Command::RestoreUpNext { id }));
+                row.add_suffix(&restore);
+                rows.push(row);
+            }
+            for row in &rows {
+                group.add(row);
+            }
+            shown.replace(rows);
+        }
+    };
+    let id = ctx.hub.listen(move |event| {
+        if let Event::HiddenTitles(titles) = event {
+            fill(titles);
+        }
+    });
+    widgets::keep(&group, super::home_page::ForgetOnDrop(Rc::clone(&ctx.hub), id));
+    ctx.hub.send(Command::LoadHiddenTitles);
+}
+
 fn about_pane(page: &adw::PreferencesPage) {
     let group = adw::PreferencesGroup::new();
     let version = adw::ActionRow::builder()

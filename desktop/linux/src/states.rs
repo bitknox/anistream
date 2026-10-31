@@ -359,7 +359,7 @@ pub fn plain(title: &str, line: &str) -> adw::StatusPage {
 }
 
 /// A raised plate where art or a line of text will land.
-fn plate(width: i32, height: i32, class: &str) -> gtk::Box {
+pub fn plate(width: i32, height: i32, class: &str) -> gtk::Box {
     let plate = gtk::Box::new(gtk::Orientation::Vertical, 0);
     plate.add_css_class("plate");
     if !class.is_empty() {

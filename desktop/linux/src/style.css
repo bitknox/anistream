@@ -260,3 +260,26 @@ button.calendar-today {
 /* The hover preview is one surface: Raised, radius 12, the video flush at its top edge. */
 popover.trailer-preview > contents { padding: 0; border-radius: 12px; background-color: var(--raised); }
 
+
+/* Home: spotlight, shelves, cards. */
+.home-spot { padding: 4px 0; }
+.home-label { font-size: 14px; }
+.home-spot-title { font-size: 30px; line-height: 38px; font-weight: 700; }
+.home-facts { font-size: 13px; color: var(--haze); }
+.spotart { border-radius: 16px; }
+.home-main, .home-sec { min-height: 34px; border-radius: 8px; padding: 0 16px; font-size: 14px; }
+.home-sec { background: var(--raised); }
+.home-heading { font-size: 17px; font-weight: 700; }
+.home-all { font-size: 13px; color: var(--haze); }
+.home-card { padding: 0; border-radius: 12px; }
+.home-card:hover, .home-card:focus-visible { background: none; }
+.home-still { border-radius: 12px; }
+.home-card-title { font-size: 15px; font-weight: 600; }
+.home-poster-title { font-size: 14px; font-weight: 600; }
+.home-sub { font-size: 12px; }
+.home-new { min-width: 6px; min-height: 6px; border-radius: 999px; background: var(--silk); }
+progressbar.home-progress { min-height: 3px; }
+progressbar.home-progress trough { min-height: 3px; border-radius: 2px; background: var(--rule); }
+progressbar.home-progress progress { min-height: 3px; border-radius: 2px; background: var(--silk); }
+.home-arrow { min-width: 36px; min-height: 36px; }
+.home-capsule { padding: 0 8px; }

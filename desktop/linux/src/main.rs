@@ -4,6 +4,7 @@
 //!
 //!   anistream-desktop [--hwdec <mode>] [--ao <output>] [anistream://…]
 //!   anistream-desktop --fixtures [--data <dir>] [--media <file>] [--downloading] [--showcase]
+//!                     [--scene <home scene>]
 //!                     [--shots <dir> [--shot <a,b,...>] [--prefix <name>]] [--size <w>x<h>]
 
 mod catalog;
@@ -59,6 +60,8 @@ struct Args {
     downloading: bool,
     /// Plugin stores, their providers and episodes seeding, which the fixture engine has none of.
     showcase: bool,
+    /// The state the fixture scene's Home starts in, by name: see `fixtures::HomeScene`.
+    scene: Option<String>,
     shots: Option<PathBuf>,
     shot: Option<String>,
     prefix: String,
@@ -79,6 +82,7 @@ fn args() -> Args {
             "--media" => args.media = it.next(),
             "--downloading" => args.downloading = true,
             "--showcase" => args.showcase = true,
+            "--scene" => args.scene = it.next(),
             "--shots" => args.shots = it.next().map(PathBuf::from),
             "--shot" => args.shot = it.next(),
             "--prefix" => args.prefix = it.next().unwrap_or_default(),
@@ -323,7 +327,14 @@ fn start_fixtures(
     let root = args.data.clone().unwrap_or_else(|| {
         std::env::temp_dir().join(format!("anistream-scene-{}", std::process::id()))
     });
-    let scene = fixtures::Scene { media: args.media.clone(), downloading: args.downloading };
+    let home = match args.scene.as_deref() {
+        None => fixtures::HomeScene::default(),
+        Some(name) => {
+            fixtures::HomeScene::named(name).ok_or_else(|| format!("no scene named {name}"))?
+        } // i18n-skip
+    };
+    let scene =
+        fixtures::Scene { media: args.media.clone(), downloading: args.downloading, home };
     let paths = engine::paths_under(&root);
     fixtures::keep_runtime(runtime.handle().clone());
     let started = runtime.block_on(fixtures::start(&root, &scene, host))?;

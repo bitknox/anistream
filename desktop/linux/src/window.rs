@@ -354,7 +354,7 @@ impl Shell {
         let settings = pages::settings::build(&ctx);
         for dest in Dest::ALL {
             let root = match dest {
-                Dest::Continue => pages::continue_page::build(&ctx),
+                Dest::Home => pages::home_page::build(&ctx),
                 Dest::Calendar => pages::calendar::build(&ctx),
                 Dest::Downloads => pages::downloads::build(&ctx),
                 Dest::Seasonal => pages::seasonal::build(&ctx),
@@ -416,7 +416,7 @@ impl Shell {
             shell.watch_device();
         }
         shell.close_request();
-        shell.go(Dest::Continue);
+        shell.go(Dest::Home);
         shell
     }
 
@@ -1023,6 +1023,10 @@ impl Shell {
                 let Some(hub) = hub.upgrade() else { return };
                 let offline = !monitor.is_network_available()
                     || monitor.connectivity() == gio::NetworkConnectivity::Local;
+                #[cfg(feature = "fixtures")]
+                let offline = offline
+                    || crate::fixtures::OFFLINE_SCENE
+                        .load(std::sync::atomic::Ordering::Relaxed);
                 let constrained = monitor.is_network_metered();
                 if told.replace(Some((offline, constrained))) != Some((offline, constrained)) {
                     hub.send(Command::NetworkPath { cellular: false, constrained, offline });

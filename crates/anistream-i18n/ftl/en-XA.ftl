@@ -4965,6 +4965,9 @@ home-previous = [Þŕéṽîöüš~~~]
 # Accessible name of the arrow that pages a shelf on.
 home-next = [Ñéẋţ~~]
 
+# Line in the header capsule while Home is up to date with the signed-in tracker.
+home-synced = [ÅñîĻîšţ šýñçéð~~~~~]
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->

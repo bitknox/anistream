@@ -22,8 +22,9 @@ use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::{DownloadState, Store, WatchEvent};
 use anistream_testkit::{
-    FakeAniList,
+    Failure, FakeAniList, Operation,
     fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, ONA},
+    home_world::{HomeClock, HomeWorld},
     seed, sources,
 };
 use anistream_track::{
@@ -135,6 +136,76 @@ pub fn silent_server() -> Option<(std::net::TcpListener, String)> {
     Some((listener, address))
 }
 
+/// The environment variable that gives the scene Home's world: invented titles dated by the
+/// clock, enough of them airing this season to fill every shelf. The same one the phones'
+/// Fixtures builds read.
+pub const HOME_WORLD_VAR: &str = "ANISTREAM_FIXTURES_HOME_WORLD";
+
+/// How long a slow scene holds each of Home's discovery answers: past the four seconds after
+/// which Home's activity line shows, inside the five the client waits.
+/// Set by the offline scene, so the network path says offline as the device would.
+pub static OFFLINE_SCENE: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+const SLOW_ANSWER: std::time::Duration = std::time::Duration::from_millis(4_500);
+
+/// What Home and the app around it start from: the board's states, as the phones' Fixtures scenes
+/// name them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HomeScene {
+    /// Signed in, four titles under way: case 1, Continue at 4.
+    #[default]
+    Watching,
+    /// Signed out, nothing watched: case 3, Continue at 0.
+    Fresh,
+    /// Signed in, the one title finished: case 2, Continue at 0.
+    Suggested,
+    /// Signed out with one title under way: case 1, Continue at 1.
+    OneLeft,
+    /// Fifteen titles under way: twelve shown, View all and the count.
+    ContinueFull,
+    /// Signed in, nothing watched, and a source that has nothing: Add to Planning.
+    NotFound,
+    /// Watching with every discovery answer held past the activity line.
+    Slow,
+    /// Watching with every discovery request failing.
+    Failed,
+    /// Nothing watched and no network.
+    Offline,
+    /// Watching with no source installed.
+    Sourceless,
+}
+
+impl HomeScene {
+    pub fn named(name: &str) -> Option<Self> {
+        Some(match name {
+            "watching" => Self::Watching,
+            "fresh" => Self::Fresh,
+            "suggested" => Self::Suggested,
+            "one-left" => Self::OneLeft,
+            "continue-full" => Self::ContinueFull,
+            "not-found" => Self::NotFound,
+            "slow" => Self::Slow,
+            "failed" => Self::Failed,
+            "offline" => Self::Offline,
+            "sourceless" => Self::Sourceless,
+            _ => return None,
+        })
+    }
+
+    fn signed_in(self) -> bool {
+        !matches!(self, Self::Fresh | Self::OneLeft | Self::Offline)
+    }
+
+    /// The world's own history: finished and caught-up shows, none of them in Continue.
+    fn world_history(self) -> bool {
+        matches!(
+            self,
+            Self::Watching | Self::Suggested | Self::Slow | Self::Failed | Self::Sourceless
+        )
+    }
+}
+
 /// What the scene starts with beyond its history.
 #[derive(Debug, Clone, Default)]
 pub struct Scene {
@@ -142,16 +213,35 @@ pub struct Scene {
     pub media: Option<String>,
     /// An episode downloading, so closing the window asks first.
     pub downloading: bool,
+    /// The state Home starts in.
+    pub home: HomeScene,
+}
+
+/// Whether the environment asks for Home's world.
+fn world_asked() -> bool {
+    std::env::var(HOME_WORLD_VAR).is_ok_and(|v| v == "1")
 }
 
 /// Start the engine on the scene, its files under `root`.
 pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<Started, String> {
     let paths = paths_under(root);
-    write_config(&paths.config_file)?;
+    let signed_in = scene.home.signed_in();
+    if signed_in {
+        write_config(&paths.config_file)?;
+    }
     let (config, store, _) = open(&paths)?;
     let clock = Clock::default();
     let now = clock.now();
-    seed_history(&store, now);
+    let world = world_asked().then(|| HomeWorld::at(HomeClock::in_zone(now, &clock.zone())));
+    seed_scene(&store, scene.home, now);
+    if let Some(world) = world.as_ref().filter(|_| scene.home.world_history()) {
+        world.seed_history(&store, now);
+        let mut statuses = fixtures::library_statuses();
+        statuses.extend(world.library_statuses());
+        store
+            .replace_library_statuses("anilist", &statuses, now)
+            .map_err(|e| format!("seeding the list's statuses: {e}"))?;
+    }
     if scene.downloading && store.download_for(AIRING, "4").ok().flatten().is_none() {
         // A queue with a row in every state.
         seed::download(&store, FINISHED, "1", DownloadState::Done);
@@ -162,12 +252,45 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
         seed::download(&store, AIRING_NO_MAL, "2", DownloadState::Failed);
     }
     let tokens = TokenStore::with_backend(paths.data_dir.join("tokens"), Backend::File);
-    tokens.set("anilist", "fixture-anilist-token").map_err(|e| e.to_string())?;
+    if signed_in {
+        tokens.set("anilist", "fixture-anilist-token").map_err(|e| e.to_string())?;
+    }
 
     let server = FakeAniList::start().await;
     server.set_now(now);
     server.add_titles(fixtures::long_franchise());
     server.serve_art();
+    // Home's world: this season's titles, the rest in the browse, and their broadcasts.
+    if let Some(world) = &world {
+        let (season, rest): (Vec<_>, Vec<_>) = world
+            .titles
+            .iter()
+            .cloned()
+            .partition(|t| world.this_season.iter().any(|id| t["id"] == id.get()));
+        server.add_season(season);
+        server.add_catalogue(rest);
+        server.add_broadcasts(world.broadcasts.iter().copied());
+        if scene.home.world_history() {
+            server.add_entries(world.entries.iter().cloned());
+        }
+    }
+    match scene.home {
+        HomeScene::Slow => {
+            for operation in DISCOVERY {
+                server.answer_slowly(operation, SLOW_ANSWER);
+            }
+        }
+        HomeScene::Failed => {
+            for operation in DISCOVERY {
+                server.fail_operation(operation, Failure::Status(500));
+            }
+        }
+        HomeScene::Offline => {
+            OFFLINE_SCENE.store(true, std::sync::atomic::Ordering::Relaxed);
+            server.fail_always(Failure::Disconnect)
+        }
+        _ => {}
+    }
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
             .map_err(|e| e.to_string())?;
@@ -187,7 +310,16 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     options.saved = Some(config);
     options.hosted_player = true;
     options.background = Background::none();
-    let chain = registry(&server.art_base(), scene.media.as_deref());
+    let provided = world.as_ref().map(HomeWorld::provided).unwrap_or_default();
+    let chain = match scene.home {
+        HomeScene::Sourceless => ProviderRegistry::new(Vec::new()),
+        HomeScene::NotFound => ProviderRegistry::new(vec![
+            anistream_providers::MockProvider::new(sources::PROVIDER_ID)
+                .with_hits(Vec::new())
+                .arc(),
+        ]),
+        _ => registry(&server.art_base(), scene.media.as_deref(), &provided),
+    };
     // A setting that changes which sources exist rebuilds the chain from the config, and the
     // scene's own source would be gone for every shot after it: it goes back in place.
     let (kept, providers) = (chain.clone(), chain.all());
@@ -206,15 +338,34 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     Ok(Started { engine, events, keep: Some(Box::new(server)), rebuilt: Some(rebuilt) })
 }
 
+/// What Home asks AniList for beyond its queue's titles and their broadcasts: the season's
+/// lists, the genre shelf, recommendations and the season walk. The slow and failing scenes hold
+/// these up.
+const DISCOVERY: [Operation; 6] = [
+    Operation::Browse,
+    Operation::Search,
+    Operation::Seasonal,
+    Operation::Recommended,
+    Operation::Relations,
+    Operation::Schedule,
+];
+
 /// The fixture provider, its stills from the fake, every episode streaming `media` when given.
-fn registry(art: &str, media: Option<&str>) -> ProviderRegistry {
-    let mut provider = sources::with_long_franchise(sources::provider_with_art(art));
+/// `provided` is Home's world's titles with the episodes out of each, which it has too.
+fn registry(
+    art: &str,
+    media: Option<&str>,
+    provided: &[(anistream_meta::Media, u32)],
+) -> ProviderRegistry {
+    let mut provider =
+        sources::with_long_franchise_and(sources::provider_with_art(art), provided);
     if let Some(media) = media {
         let stream = Stream {
             provider_id: sources::PROVIDER_ID.into(),
             ..Stream::new(media, StreamKind::Mp4)
         };
-        for id in fixtures::ALL {
+        let world = provided.iter().map(|p| p.0.id);
+        for id in fixtures::ALL.into_iter().chain(world) {
             provider = provider.with_streams_for(sources::key(id), vec![stream.clone()]);
         }
     }
@@ -237,6 +388,31 @@ fn write_config(file: &Path) -> Result<(), String> {
             )
         })
         .map_err(|e| format!("{}: {e}", file.display()))
+}
+
+/// The history `scene` describes, the newest watch an hour before `now`.
+fn seed_scene(store: &Store, scene: HomeScene, now: i64) {
+    const HOUR: i64 = 3_600;
+    const DAY: i64 = 24 * HOUR;
+    match scene {
+        HomeScene::Fresh | HomeScene::NotFound | HomeScene::Offline => {}
+        HomeScene::Suggested => {
+            let all = fixtures::media(FINISHED).episodes.unwrap_or(1);
+            seed::watched(store, FINISHED, all, now - HOUR);
+        }
+        HomeScene::OneLeft => seed::watched(store, AIRING_NO_MAL, 7, now - DAY),
+        HomeScene::ContinueFull => {
+            let long = fixtures::long_franchise_media();
+            let shows = fixtures::ALL.into_iter().chain(long.iter().map(|m| m.id)).take(15);
+            // Oldest first, an hour apart, each stopped five minutes into episode 1.
+            for (n, id) in shows.collect::<Vec<_>>().into_iter().rev().enumerate() {
+                seed::stopped_at(store, id, "1", 5.0 * 60.0, now - (15 - n as i64) * HOUR);
+            }
+        }
+        HomeScene::Watching | HomeScene::Slow | HomeScene::Failed | HomeScene::Sourceless => {
+            seed_history(store, now)
+        }
+    }
 }
 
 /// The phones' Watching scene: four titles under way, the newest an hour before `now`.

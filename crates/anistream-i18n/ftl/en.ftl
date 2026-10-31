@@ -4965,6 +4965,9 @@ home-previous = Previous
 # Accessible name of the arrow that pages a shelf on.
 home-next = Next
 
+# Line in the header capsule while Home is up to date with the signed-in tracker.
+home-synced = AniList synced
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->

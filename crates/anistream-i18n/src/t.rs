@@ -7940,6 +7940,11 @@ pub fn home_next() -> String {
     text("home-next", &[])
 }
 
+/// Line in the header capsule while Home is up to date with the signed-in tracker.
+pub fn home_synced() -> String {
+    text("home-synced", &[])
+}
+
 /// Continue row subtitle. The show's title is cut first when the row is short.
 pub fn queue_episodes_left(count: i64, title: &str) -> String {
     text("queue-episodes-left", &[("count", Arg::Int(count)), ("title", Arg::Text(title))])

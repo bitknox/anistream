@@ -6,11 +6,19 @@ GTK 4 and libadwaita in Rust, no web views. Dark only for now.
 
 ## What is in it
 
-- The shell: an `AdwApplicationWindow` with the sidebar of the brief (Continue, Calendar,
+- The shell: an `AdwApplicationWindow` with the sidebar of the brief (Home, Calendar,
   Seasonal, Search, Library, Downloads; Providers and Plugin Stores under Sources; the account
   row and Settings at the foot). It collapses into an overlay below the wide size.
-- Continue: the queue (In progress, New this week) beside a preview of the selected title, and a
-  setup card while nothing is connected. Enter plays, Delete hides, Ctrl+Shift+M marks watched.
+- Home: a spotlight with its main action in amber, over shelves (Continue first) in a 990 px
+  column. Each shelf is a scrolled window with paging buttons that fade in while the pointer is
+  over it. The engine sends Home whole and again as each part lands; a slot is rebuilt only when
+  what it shows changed. Placeholders show after 600 ms, the activity line after 4 s, and Not
+  interested fades the card and offers Undo. The Fixtures app has Home scenes (`--scene`, with
+  `ANISTREAM_FIXTURES_HOME_WORLD=1`) for each state; `scripts/shots.sh` takes them.
+- Library, Watching: the queue (In progress, New this week) beside a preview of the selected
+  title, from the local list, so it works signed out. Enter plays, Delete hides, Ctrl+Shift+M
+  marks watched.
+- Settings, Hidden titles: what was marked Not interested, each with Restore.
 - Seasonal: the season in the header's centre, the format in a toggle group, a poster grid.
 - Search: typing anywhere starts it. The filters stand under the search bar from the start, so
   the titles can be browsed with nothing typed: genres wanted or left out, year, season, formats,
