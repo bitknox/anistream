@@ -1,0 +1,250 @@
+# The Linux desktop app (desktop/linux) as a Flatpak. The app id is the one the app, its desktop
+# entry and its icons already use. Build and try it with packaging/flatpak/build.sh.
+#
+# GNOME 49 has GTK 4.20 and libadwaita 1.8. The app asks for GTK 4.16 and libadwaita 1.7 (the
+# Debian 13 the AppImage is built on has 4.18 and 1.7), so any GNOME runtime from 48 on works.
+# The runtime also has WebKitGTK 6 and the GStreamer plugins that the trailers need, and the
+# graphics stack that the Flatpak hands the GPU's drivers to.
+app-id: tv.anistream.desktop
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  # libclang, which the TLS crate's bindings generator (bindgen) loads while it builds.
+  - org.freedesktop.Sdk.Extension.llvm21
+command: anistream-desktop
+
+finish-args:
+  # The window: Wayland where there is a compositor, X11 only where there is nothing else.
+  - --socket=wayland
+  - --socket=fallback-x11
+  # X11 shared memory, which the X11 fallback needs and Wayland does not.
+  - --share=ipc
+  # GPU rendering for the player (OpenGL through EGL) and VA-API video decoding. Not --device=all.
+  - --device=dri
+  # Game controllers. The app reads them through libmanette to drive the whole interface, and
+  # --device=input is the narrow form of the --device=all that used to be needed. Needs Flatpak 1.15.6.
+  - --device=input
+  # Playback and the volume controls.
+  - --socket=pulseaudio
+  # AniList and the trackers, the sources the plugins fetch from, the plugin stores, torrents,
+  # watch parties and Play on TV on the local network. Nothing works offline, so this stays.
+  - --share=network
+  # Media keys and the desktop's player controls: the app shows up on the session bus as an MPRIS
+  # player under this name.
+  - --own-name=org.mpris.MediaPlayer2.anistream
+  # Discord's rich presence (off until the viewer turns it on) talks to Discord's socket. These
+  # are the two places Discord puts it: Discord's own Flatpak, and a Discord outside the sandbox.
+  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+  - --filesystem=xdg-run/discord-ipc-0
+  # The show titles' typeface, which the app finds through this variable.
+  - --env=ANISTREAM_FONTS=/app/share/anistream/fonts
+  # No home or host filesystem access: episodes and covers live in the app's own data, and a file
+  # to play or an export goes through the file chooser portal. Links open, the screen stays awake
+  # while a video plays and the app can ask to keep running in the background through portals,
+  # none of which needs a permission here.
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.a'
+  - '*.la'
+
+modules:
+  # libmpv and the libraries it needs that the runtime lacks, from the same sources and with the
+  # same options as desktop/linux/scripts/libmpv.sh and Android's: an LGPL build of FFmpeg
+  # (no --enable-gpl, so no x264 or x265) and of mpv (-Dgpl=false). The FFmpeg and mpv versions
+  # and checksums must match android/scripts/mpv.sh; packaging/flatpak/check-pins.sh checks it.
+
+  - name: nv-codec-headers
+    only-arches: [x86_64]
+    no-autogen: true
+    make-install-args:
+      - PREFIX=/app
+    sources:
+      - type: git
+        url: https://github.com/FFmpeg/nv-codec-headers.git
+        tag: n13.1.15.0
+        commit: 0a6fba9a2820628b8103464f4c8753ee05838baa
+
+  - name: ffmpeg
+    config-opts:
+      - --enable-shared
+      - --disable-static
+      - --enable-pic
+      - --disable-autodetect
+      - --enable-pthreads
+      - --enable-iconv
+      - --enable-zlib
+      - --enable-gnutls
+      - --enable-libdav1d
+      - --enable-libxml2
+      - --enable-vaapi
+      - --enable-libdrm
+      - --disable-programs
+      - --disable-doc
+      - --disable-debug
+      - --disable-muxers
+      - --disable-encoders
+      - --disable-devices
+      - --enable-indev=lavfi
+      - --enable-encoder=png,mjpeg
+      - --enable-muxer=mov,matroska,mpegts
+    build-options:
+      arch:
+        x86_64:
+          config-opts:
+            - --enable-ffnvcodec
+            - --enable-nvdec
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+        sha256: 8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
+    cleanup:
+      - /share/ffmpeg
+
+  - name: libass
+    config-opts:
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://github.com/libass/libass/releases/download/0.17.5/libass-0.17.5.tar.xz
+        sha256: 2dca25c0e0c837ddf00b52011b3f82cac1e4ddd3ad018227806b0c2288864acc
+
+  - name: libplacebo
+    buildsystem: meson
+    config-opts:
+      - -Dvulkan=disabled
+      - -Dglslang=disabled
+      - -Dshaderc=disabled
+      - -Dlcms=disabled
+      - -Dd3d11=disabled
+      - -Ddemos=false
+      - -Dtests=false
+    sources:
+      # A git source, as the tarball leaves out the submodules the build needs.
+      - type: git
+        url: https://code.videolan.org/videolan/libplacebo.git
+        tag: v7.360.1
+        commit: cee9b076f2c63104ccfd497fa79c39a867293ec4
+
+  # mpv's scripting, which the player's options name (osc and ytdl are Lua).
+  - name: luajit
+    no-autogen: true
+    make-args:
+      - PREFIX=/app
+    make-install-args:
+      - PREFIX=/app
+    sources:
+      - type: git
+        url: https://github.com/LuaJIT/LuaJIT.git
+        branch: v2.1
+        commit: ea9eb7edb5eac4a9d175d74523db34fac0fa5180
+    cleanup:
+      - /bin
+      - /share/man
+
+  - name: mpv
+    buildsystem: meson
+    config-opts:
+      - -Dlibmpv=true
+      - -Dcplayer=false
+      - -Dgpl=false
+      - -Dtests=false
+      - -Dfuzzers=false
+      - -Dbuild-date=false
+      - -Dgl=enabled
+      - -Degl=enabled
+      - -Dplain-gl=enabled
+      - -Dwayland=enabled
+      - -Dx11=disabled
+      - -Dvaapi=enabled
+      - -Dvaapi-wayland=enabled
+      # Without libdisplay-info, which the runtime lacks, and which only mpv's own DRM output needs.
+      # The app draws through its window, and VA-API decoding goes through Wayland.
+      - -Dvaapi-drm=disabled
+      - -Ddrm=disabled
+      - -Dvulkan=disabled
+      - -Dshaderc=disabled
+      - -Dspirv-cross=disabled
+      - -Dpulse=enabled
+      - -Dalsa=enabled
+      - -Dpipewire=disabled
+      - -Djack=disabled
+      - -Dlibavdevice=enabled
+      - -Diconv=enabled
+      - -Dzlib=enabled
+      - -Dlua=luajit
+      - -Djavascript=disabled
+      - -Dcplugins=disabled
+      - -Duchardet=disabled
+      - -Dlcms2=disabled
+      - -Dlibarchive=disabled
+      - -Dlibbluray=disabled
+      - -Ddvdnav=disabled
+      - -Dcdda=disabled
+      - -Ddvbin=disabled
+      - -Dzimg=disabled
+      - -Djpeg=disabled
+      - -Drubberband=disabled
+      - -Dvapoursynth=disabled
+      - -Dsdl2-audio=disabled
+      - -Dsdl2-video=disabled
+      - -Dsdl2-gamepad=disabled
+      - -Dmanpage-build=disabled
+      - -Dhtml-build=disabled
+      - -Dpdf-build=disabled
+    build-options:
+      arch:
+        x86_64:
+          config-opts:
+            - -Dcuda-hwaccel=enabled
+            - -Dcuda-interop=enabled
+    sources:
+      - type: archive
+        url: https://github.com/mpv-player/mpv/archive/refs/tags/v0.41.0.tar.gz
+        sha256: ee21092a5ee427353392360929dc64645c54479aefdb5babc5cfbb5fad626209
+
+  # The app. The whole repository is the source, as the app's path dependencies are the engine's
+  # crates and its assets, and the settings preview embeds three of the website's pictures. A release build for Flathub would use the release's git tag instead
+  # (see packaging/flatpak/README.md).
+  - name: anistream
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm21/bin
+      env:
+        LIBCLANG_PATH: /usr/lib/sdk/llvm21/lib
+        CARGO_HOME: /run/build/anistream/cargo
+        CARGO_TARGET_DIR: /run/build/anistream/target
+      # Cargo fetches the crates from crates.io. A Flathub build has none of this: it fetches
+      # them as sources from a lock file by flatpak-cargo-generator.
+      build-args:
+        - --share=network
+    build-commands:
+      - >-
+        cargo rustc --manifest-path desktop/linux/Cargo.toml --release --locked
+        --bin anistream-desktop -- -C link-arg=-Wl,-rpath-link,/app/lib
+      - install -Dm755 /run/build/anistream/target/release/anistream-desktop /app/bin/anistream-desktop
+      - install -Dm644 desktop/linux/data/tv.anistream.desktop.desktop /app/share/applications/tv.anistream.desktop.desktop
+      - install -Dm644 desktop/linux/data/tv.anistream.desktop.metainfo.xml /app/share/metainfo/tv.anistream.desktop.metainfo.xml
+      - |
+        for size in 16 32 48 64 128 256 512; do
+          install -Dm644 assets/icon/${size}x${size}.png /app/share/icons/hicolor/${size}x${size}/apps/tv.anistream.desktop.png
+        done
+      - install -Dm644 -t /app/share/anistream/fonts assets/mpv/fonts/ZenKakuGothicNew-*.ttf
+      - install -Dm644 LICENSE /app/share/licenses/tv.anistream.desktop/LICENSE
+      - install -Dm644 -t /app/share/licenses/tv.anistream.desktop assets/mpv/licenses/*
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - android
+          - apple
+          - plugins
+          - deploy
+          - desktop/windows
+          - desktop/linux/target
+          - desktop/linux/.libmpv

@@ -358,9 +358,9 @@ in Settings > Integrations, finds TVs with Windows' own DNS-SD (a device watcher
 - Windows is dark only; the Account item and Continue show AniList state only, and AniList,
   MyAnimeList and Kitsu sign-in cannot finish in the release build yet.
 - Linux keeps tracker tokens in `0600` files under the data directory until the Secret portal is
-  wired in, though a comment in `pages/settings.rs` says the secret store. There is no Flatpak
-  manifest or AppStream metainfo yet, only `.desktop` files, one of them named
-  `tv.anistream.desktop.desktop`. Linux has no subtitle sync.
+  wired in, though a comment in `pages/settings.rs` says the secret store. The Flatpak manifest
+  and AppStream metainfo are in `packaging/flatpak`, not yet on Flathub. Linux has no subtitle
+  sync.
 - The terminal's Settings screen leaves out the rows the engine lists as the native apps' own
   (`SettingKey::NATIVE_ROWS`): the Up next countdown, spoiler protection, download quality, keep
   next episodes, downloads and torrents on mobile data, VPN on failure, episode notifications, mpv
