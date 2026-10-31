@@ -110,6 +110,10 @@ pub enum FfiScene {
     /// title does not play here and the main action is Watch on Lantern Stream, and the Licensed
     /// services page has one service ticked and the rest to choose.
     Licensed,
+    /// [`Self::Watching`] with one Jellyfin server saved, Mika's Jellyfin: two libraries, the
+    /// anime one read, three series and two of them matched. The Media servers page has its row,
+    /// and the server is a source in the chain.
+    Servers,
     /// Nothing watched and offline from the start: the fake AniList hangs up on every request
     /// and the engine is told the path is offline, whatever the host says, so Home has nothing
     /// saved to show. [`FfiEngine::testing_set_offline`] does the same to any other scene once
@@ -148,6 +152,7 @@ impl FfiScene {
         matches!(
             self,
             Self::Watching
+                | Self::Servers
                 | Self::WatchingMedia { .. }
                 | Self::Sourceless
                 | Self::Suggested
@@ -161,6 +166,7 @@ impl FfiScene {
         matches!(
             self,
             Self::Watching
+                | Self::Servers
                 | Self::WatchingMedia { .. }
                 | Self::Sourceless
                 | Self::Unsure
@@ -486,6 +492,9 @@ fn library_statuses(store: &Store, world: &HomeWorld, now: i64) {
 
 /// The history `scene` describes, the newest watch an hour before `now`.
 fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
+    if *scene == FfiScene::Servers {
+        anistream_engine::servers::seed_fixture(store);
+    }
     if *scene == FfiScene::Licensed {
         anistream_engine::licensed::set_services(vec!["Lantern Stream".into()], store);
     }
@@ -509,6 +518,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
             }
         }
         FfiScene::Watching
+        | FfiScene::Servers
         | FfiScene::WatchingMedia { .. }
         | FfiScene::Sourceless
         | FfiScene::Licensed
@@ -583,6 +593,16 @@ mod tests {
             &world().provided(),
         );
         assert!(none.is_empty());
+    }
+
+    #[test]
+    fn servers_has_one_saved_server_with_two_matches() {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let store = Store::open(dir.path().join("anistream.db")).expect("a database");
+        seed_scene(&store, &FfiScene::Servers, 1_800_000_000);
+        let saved = anistream_engine::servers::saved(&store);
+        assert_eq!(saved.len(), 1);
+        assert_eq!(saved[0].matches().len(), 2);
     }
 
     #[test]

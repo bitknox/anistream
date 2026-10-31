@@ -10,6 +10,8 @@ description = "A client for a Jellyfin server the user runs: sign-in, libraries,
 doctest = false
 
 [dependencies]
+anistream-core.workspace = true
+async-trait.workspace = true
 anistream-net.workspace = true
 reqwest.workspace = true
 serde.workspace = true
@@ -20,6 +22,7 @@ tracing.workspace = true
 url = "2"
 
 [dev-dependencies]
+anistream-testkit = { path = "../anistream-testkit" }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 
 [lints]

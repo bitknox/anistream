@@ -160,6 +160,8 @@ pub enum Event {
     Availability(crate::licensed::TitleAvailability),
     /// The viewer is back from a licensed service after long enough to have watched an episode.
     LicensedReturn(crate::licensed::LicensedReturn),
+    // Media servers; see `ServerEvent`.
+    Server(crate::servers::ServerEvent),
     /// The recent searches, newest first: at launch when asked, and after each change.
     RecentSearches(Vec<SearchQuery>),
     Detail(Box<Entry>),

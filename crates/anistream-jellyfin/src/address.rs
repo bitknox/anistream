@@ -33,10 +33,11 @@ impl Address {
         } else {
             let host = typed.split(['/', ':']).next().unwrap_or(typed);
             let scheme = if is_private_host(host) { "http" } else { "https" };
-            let port = (scheme == "http" && !typed.contains(':') ).then_some(DEFAULT_PORT);
+            let port = (scheme == "http" && !typed.contains(':')).then_some(DEFAULT_PORT);
             match port {
                 Some(port) => {
-                    let (host, path) = typed.split_once('/').map_or((typed, ""), |(h, p)| (h, p));
+                    let (host, path) =
+                        typed.split_once('/').map_or((typed, ""), |(h, p)| (h, p));
                     if path.is_empty() {
                         format!("{scheme}://{host}:{port}")
                     } else {
@@ -121,7 +122,10 @@ mod tests {
         let a = Address::parse(" 192.168.1.20 ").unwrap();
         assert_eq!(a.base(), "http://192.168.1.20:8096");
         assert_eq!(a.display(), "192.168.1.20:8096");
-        assert_eq!(Address::parse("192.168.1.20:8920").unwrap().base(), "http://192.168.1.20:8920");
+        assert_eq!(
+            Address::parse("192.168.1.20:8920").unwrap().base(),
+            "http://192.168.1.20:8920"
+        );
         assert_eq!(Address::parse("nas.local/jf").unwrap().base(), "http://nas.local:8096/jf");
     }
 
@@ -130,12 +134,18 @@ mod tests {
         let a = Address::parse("jellyfin.mika.example").unwrap();
         assert_eq!(a.base(), "https://jellyfin.mika.example");
         assert_eq!(a.host(), "jellyfin.mika.example");
-        assert_eq!(a.url("/System/Info/Public"), "https://jellyfin.mika.example/System/Info/Public");
+        assert_eq!(
+            a.url("/System/Info/Public"),
+            "https://jellyfin.mika.example/System/Info/Public"
+        );
     }
 
     #[test]
     fn plain_http_is_refused_off_the_local_network() {
-        assert_eq!(Address::parse("http://jellyfin.mika.example"), Err(JellyfinError::PlainHttp));
+        assert_eq!(
+            Address::parse("http://jellyfin.mika.example"),
+            Err(JellyfinError::PlainHttp)
+        );
         assert_eq!(Address::parse("http://8.8.8.8:8096"), Err(JellyfinError::PlainHttp));
         assert!(Address::parse("http://100.101.102.103:8096").is_ok(), "Tailscale is private");
         assert!(Address::parse("http://[fd00::5]:8096").is_ok());
@@ -151,6 +161,9 @@ mod tests {
 
     #[test]
     fn the_trailing_slash_goes() {
-        assert_eq!(Address::parse("https://media.mika.example/").unwrap().base(), "https://media.mika.example");
+        assert_eq!(
+            Address::parse("https://media.mika.example/").unwrap().base(),
+            "https://media.mika.example"
+        );
     }
 }

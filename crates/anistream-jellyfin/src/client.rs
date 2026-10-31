@@ -36,7 +36,9 @@ pub struct Jellyfin {
 impl std::fmt::Debug for Jellyfin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Never the token.
-        f.debug_struct("Jellyfin").field("address", &self.address.display()).finish_non_exhaustive()
+        f.debug_struct("Jellyfin")
+            .field("address", &self.address.display())
+            .finish_non_exhaustive()
     }
 }
 
@@ -109,7 +111,9 @@ impl Jellyfin {
         while let Some(e) = source {
             let text = e.to_string().to_lowercase();
             if text.contains("certificate") || text.contains("unknownissuer") {
-                return JellyfinError::UntrustedCertificate { host: self.address.host().to_owned() };
+                return JellyfinError::UntrustedCertificate {
+                    host: self.address.host().to_owned(),
+                };
             }
             source = e.source();
         }
@@ -130,8 +134,7 @@ impl Jellyfin {
             Err(JellyfinError::Status { .. }) => return Err(JellyfinError::NotJellyfin),
             other => other?,
         };
-        let info: ServerInfo =
-            response.json().await.map_err(|_| JellyfinError::NotJellyfin)?;
+        let info: ServerInfo = response.json().await.map_err(|_| JellyfinError::NotJellyfin)?;
         if info.id.is_empty() || info.version.is_empty() {
             return Err(JellyfinError::NotJellyfin);
         }
@@ -169,7 +172,9 @@ impl Jellyfin {
             .await
             .map_err(|e| self.transport(&e))?;
         match response.status() {
-            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Err(JellyfinError::QuickConnectOff),
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+                Err(JellyfinError::QuickConnectOff)
+            }
             status if status.is_success() => {
                 response.json().await.map_err(|e| JellyfinError::Decode(e.to_string()))
             }
@@ -180,7 +185,8 @@ impl Jellyfin {
     /// Whether the code has been approved on a signed-in device. A code that has run out is
     /// [`JellyfinError::QuickConnectExpired`].
     pub async fn quick_connect_approved(&self, secret: &str) -> Result<bool> {
-        let request = self.request(Method::GET, "/QuickConnect/Connect").query(&[("secret", secret)]);
+        let request =
+            self.request(Method::GET, "/QuickConnect/Connect").query(&[("secret", secret)]);
         let response = request.send().await.map_err(|e| self.transport(&e))?;
         match response.status() {
             StatusCode::NOT_FOUND | StatusCode::UNAUTHORIZED => {
@@ -279,7 +285,12 @@ impl Jellyfin {
     }
 
     /// Tell the server playback began.
-    pub async fn report_started(&self, item_id: &str, media_source_id: &str, position_secs: f64) -> Result<()> {
+    pub async fn report_started(
+        &self,
+        item_id: &str,
+        media_source_id: &str,
+        position_secs: f64,
+    ) -> Result<()> {
         self.report("/Sessions/Playing", item_id, media_source_id, position_secs, false).await
     }
 
@@ -291,12 +302,25 @@ impl Jellyfin {
         position_secs: f64,
         paused: bool,
     ) -> Result<()> {
-        self.report("/Sessions/Playing/Progress", item_id, media_source_id, position_secs, paused).await
+        self.report(
+            "/Sessions/Playing/Progress",
+            item_id,
+            media_source_id,
+            position_secs,
+            paused,
+        )
+        .await
     }
 
     /// Tell the server playback ended. The server marks the item played near its end.
-    pub async fn report_stopped(&self, item_id: &str, media_source_id: &str, position_secs: f64) -> Result<()> {
-        self.report("/Sessions/Playing/Stopped", item_id, media_source_id, position_secs, false).await
+    pub async fn report_stopped(
+        &self,
+        item_id: &str,
+        media_source_id: &str,
+        position_secs: f64,
+    ) -> Result<()> {
+        self.report("/Sessions/Playing/Stopped", item_id, media_source_id, position_secs, false)
+            .await
     }
 
     async fn report(

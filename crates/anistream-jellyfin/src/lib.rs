@@ -10,7 +10,9 @@ pub mod client;
 pub mod discovery;
 pub mod error;
 pub mod model;
+pub mod source;
 
 pub use address::{Address, is_private_host};
 pub use client::{ClientInfo, Jellyfin, MINIMUM_VERSION, version_supported};
 pub use error::{JellyfinError, Result};
+pub use source::{JellyfinSource, SeriesMatch, source_id};

@@ -48,6 +48,8 @@ pub struct Services {
     pub sync: tracking::Sync,
     /// The plugin stores joined.
     pub stores: plugin_stores::Stores,
+    /// The Jellyfin servers saved, and their sign-ins.
+    pub servers: crate::servers::Servers,
     /// The player window kept between episodes, claimed by whichever playback comes next.
     pub slot: crate::playback::slot::PlayerSlot,
     /// Whether the machine is on battery, which the upscaling chain goes by: the system's word
@@ -116,6 +118,7 @@ impl Services {
         // the trackers alike, so a token is read from the keychain once.
         let secrets = host.secrets().unwrap_or_else(|| crate::host::file_secrets(&paths));
         let tokens = TokenStore::over(secrets);
+        let servers = crate::servers::Servers::new(tokens.clone(), store.clone(), http.clone());
         let stores = plugin_stores::Stores::with_tokens(config, &paths, tokens.clone())
             .map_err(|e| e.english())?;
         // Trackers are built whether or not they hold a token: the Accounts overlay needs
@@ -133,6 +136,7 @@ impl Services {
             registry,
             sync,
             stores,
+            servers,
             slot: Default::default(),
             offline: Default::default(),
             power,

@@ -33,7 +33,9 @@ pub async fn discover(target: SocketAddr, window: Duration, mut found: impl FnMu
     let deadline = Instant::now() + window;
     let mut seen: Vec<String> = Vec::new();
     let mut buf = [0u8; 2048];
-    while let Ok(Ok((len, _))) = tokio::time::timeout_at(deadline, socket.recv_from(&mut buf)).await {
+    while let Ok(Ok((len, _))) =
+        tokio::time::timeout_at(deadline, socket.recv_from(&mut buf)).await
+    {
         let Ok(server) = serde_json::from_slice::<Found>(&buf[..len]) else { continue };
         if !seen.contains(&server.id) {
             seen.push(server.id.clone());

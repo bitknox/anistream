@@ -125,6 +125,8 @@ pub struct PlaySettings {
     /// Tracker ids to queue progress against when the episode completes.
     pub tracker_ids: Vec<String>,
     pub presence: anistream_core::config::PresenceConfig,
+    /// Tells a media server what is watched, when the stream is its own.
+    pub reports: crate::servers::Reports,
     /// Where the watch party is, when there is one: a playback takes a seat at it, at the start
     /// or the moment it opens, and plays with the room until it ends. See [`crate::playback::seat`].
     pub party: PartyHub,

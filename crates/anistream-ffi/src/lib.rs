@@ -114,6 +114,7 @@ mod tests {
             Bounds, BrowseRail, FacetTag, MediaFormat, OnList, SearchFacets, SearchQuery,
             SearchSort, TagGroup,
         },
+        servers::ServerCommand,
         settings::SettingKey,
         sources::{CurrentMatch, MatchCandidate, MatchQuestion},
         stores::{InvitePreview, InvitedStore, Secret},
@@ -183,6 +184,29 @@ mod tests {
                 episode: Some(4),
             }),
             Command::Licensed(LicensedCommand::Returned),
+            Command::Server(ServerCommand::Discover),
+            Command::Server(ServerCommand::Check { address: "jellyfin.mika.example".into() }),
+            Command::Server(ServerCommand::SignIn {
+                address: "jellyfin.mika.example".into(),
+                user: "mika".into(),
+                password: "lantern-tea".into(),
+            }),
+            Command::Server(ServerCommand::StartQuickConnect {
+                address: "192.168.1.20".into(),
+            }),
+            Command::Server(ServerCommand::CancelQuickConnect),
+            Command::Server(ServerCommand::LoadLibraries { server: "0f1e2d3c".into() }),
+            Command::Server(ServerCommand::SetLibraries {
+                server: "0f1e2d3c".into(),
+                libraries: vec!["lib-anime".into()],
+            }),
+            Command::Server(ServerCommand::Refresh { server: "0f1e2d3c".into() }),
+            Command::Server(ServerCommand::SetReport {
+                server: "0f1e2d3c".into(),
+                report: false,
+            }),
+            Command::Server(ServerCommand::Remove { server: "0f1e2d3c".into() }),
+            Command::Server(ServerCommand::Load),
             Command::LoadUpNext,
             Command::DismissUpNext { id: AnilistId::new(900_004) },
             Command::RestoreUpNext { id: AnilistId::new(900_004) },
@@ -992,6 +1016,57 @@ mod tests {
             }],
             choose_services: true,
         }));
+        {
+            use anistream_model::servers::{
+                CheckedServer, FoundServer, LibraryChoice, ServerEvent, ServerFailure,
+                ServerRow, ServerStep,
+            };
+            let library = LibraryChoice {
+                id: "lib-anime".into(),
+                name: "Anime Shows".into(),
+                kind: Some("tvshows".into()),
+                ticked: true,
+            };
+            for event in [
+                ServerEvent::Found(FoundServer {
+                    id: "0f1e2d3c".into(),
+                    name: "Mika's Jellyfin".into(),
+                    address: "http://192.168.1.20:8096".into(),
+                }),
+                ServerEvent::DiscoveryDone,
+                ServerEvent::Checked(CheckedServer {
+                    id: "0f1e2d3c".into(),
+                    name: "Mika's Jellyfin".into(),
+                    version: "10.9.11".into(),
+                    address: "http://192.168.1.20:8096".into(),
+                    quick_connect: true,
+                }),
+                ServerEvent::Failed {
+                    step: ServerStep::Address,
+                    failure: ServerFailure::TooOld { version: "10.7.7".into() },
+                },
+                ServerEvent::QuickConnectCode { code: "482913".into() },
+                ServerEvent::SignedIn { server: "0f1e2d3c".into() },
+                ServerEvent::Libraries {
+                    server: "0f1e2d3c".into(),
+                    libraries: vec![library.clone()],
+                },
+                ServerEvent::Servers(vec![ServerRow {
+                    id: "0f1e2d3c".into(),
+                    name: "Mika's Jellyfin".into(),
+                    address: "http://192.168.1.20:8096".into(),
+                    version: "10.9.11".into(),
+                    user: "mika".into(),
+                    libraries: vec![library],
+                    series: 3,
+                    matched: 2,
+                    report: true,
+                    signed_out: false,
+                }]),
+            ] {
+                crosses_intact(Event::Server(event));
+            }
+        }
         crosses_intact(Event::LicensedReturn(LicensedReturn {
             id: AnilistId::new(900_001),
             episode: 4,

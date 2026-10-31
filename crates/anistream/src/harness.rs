@@ -789,6 +789,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::Licensed(_) => "Licensed",
         Event::Availability(_) => "Availability",
         Event::LicensedReturn(_) => "LicensedReturn",
+        Event::Server(_) => "Server",
         Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
         Event::CalendarBackfill { .. } => "CalendarBackfill",
@@ -920,6 +921,7 @@ fn copy(update: &Event) -> Event {
         Event::Licensed(view) => Event::Licensed(view.clone()),
         Event::Availability(availability) => Event::Availability(availability.clone()),
         Event::LicensedReturn(back) => Event::LicensedReturn(back.clone()),
+        Event::Server(event) => Event::Server(event.clone()),
         Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
         Event::CalendarWindow {
             anchor,

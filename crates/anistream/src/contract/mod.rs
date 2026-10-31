@@ -24,6 +24,7 @@ mod licensed;
 mod lists;
 mod preview;
 mod progress;
+mod servers;
 mod settings;
 mod stores;
 mod title;

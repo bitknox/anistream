@@ -363,6 +363,10 @@ pub(crate) fn dispatch(
 
         // The licensed services: kept in the database, with no job.
         Command::Licensed(command) => licensed_command(command, services, tx),
+        Command::Server(command) => {
+            let order = engine.config.effective().providers.order.clone();
+            crate::servers::command(command, services, order, tx)
+        }
 
         // An episode's discussion: off the loop, with no job, each answered with the
         // discussion whole. See `discussion`.

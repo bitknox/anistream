@@ -41,6 +41,7 @@ cast = ["remote", "dep:anistream-cast"]
 
 [dependencies]
 anistream-core.workspace = true
+anistream-jellyfin.workspace = true
 anistream-meta.workspace = true
 anistream-model.workspace = true
 anistream-net.workspace = true

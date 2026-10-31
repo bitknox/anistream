@@ -53,6 +53,7 @@ pub mod hosted;
 pub mod input;
 pub mod jobs;
 pub mod licensed;
+pub mod servers;
 #[rustfmt::skip]
 mod msg;
 pub mod msg_text;

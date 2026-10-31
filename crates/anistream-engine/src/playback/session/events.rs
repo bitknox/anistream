@@ -80,6 +80,8 @@ impl Run<'_> {
         // session that is not happening. `None` covers both "turned off" and "Discord is not
         // running", which need no distinction.
         let mut rpc = Rpc::start(&settings.presence, context).await;
+        // Told to a media server, when this stream is one's.
+        let mut report = settings.reports.open(stream);
 
         // What the UI is currently showing, so a repaint is only asked for when it would differ.
         let mut shown_second = f64::NAN;
@@ -629,6 +631,9 @@ impl Run<'_> {
                         // Rides the same whole-second throttle, and the presence paces itself
                         // beyond it: Discord rate-limits updates, and a bar that is still right
                         // needs none.
+                        if let Some(report) = report.as_mut() {
+                            report.observe(*position, tracker.is_paused());
+                        }
                         rpc.observe(Playhead {
                             position: *position,
                             duration: *duration,
@@ -769,6 +774,9 @@ impl Run<'_> {
         self.seat = seat;
         // Cleared before anything else, so quitting never leaves a stale "watching" up.
         rpc.finish().await;
+        if let Some(report) = report {
+            report.finish(tracker.position());
+        }
         let _ = link.overlay(Overlay::SkipCleared).await;
         outcome
     }
