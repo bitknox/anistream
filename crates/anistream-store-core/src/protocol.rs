@@ -31,6 +31,9 @@ pub struct StoreInfo {
     /// /v1/setup` can claim it. Left out otherwise.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub claimable: bool,
+    /// How to reach whoever runs the store, as its operator gave it. Left out until they do.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -105,12 +108,40 @@ pub struct OpenSetting {
     pub open: bool,
 }
 
+/// `PUT /v1/contact`: how people reach whoever runs the store.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContactSetting {
+    pub contact: String,
+}
+
+/// The longest contact a store keeps, in characters.
+pub const MAX_CONTACT_CHARS: usize = 200;
+
+/// Tidy a contact an operator typed, or say what is wrong with it. An email address or a link
+/// both fit: the store keeps the text and shows it as it is, so it has to be one plain line.
+pub fn clean_contact(text: &str) -> Result<String, &'static str> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Err("give an email address or a link where people can reach you");
+    }
+    if text.chars().count() > MAX_CONTACT_CHARS {
+        return Err("that contact is too long");
+    }
+    if text.chars().any(char::is_control) {
+        return Err("a contact is one plain line");
+    }
+    Ok(text.to_owned())
+}
+
 /// `GET /v1/open`, and the answer to every change of it: who can join, the link anyone can join
 /// with while it is open, and the devices that joined that way.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct OpenState {
     /// Whether anyone with the link can join. Otherwise only people the owners invite can.
     pub open: bool,
+    /// The contact for the store, which an open link needs before it can be turned on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact: Option<String>,
     /// `{base}/join/{code}?open#{key}`, while the store is open.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
@@ -343,6 +374,10 @@ pub struct Index {
     /// by a store from before it was.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub open: bool,
+    /// How to reach whoever runs the store, shown on its page. Like `owners`, it describes the
+    /// store as it is now and moves no `sequence`. Left out until the operator gives one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact: Option<String>,
 }
 
 impl Index {
@@ -392,6 +427,10 @@ pub struct PublishRequest {
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimRequest {
     pub code: String,
+    /// How people reach whoever runs the store: an email address or a link. Required, and shown
+    /// on the store's page.
+    #[serde(default)]
+    pub contact: String,
 }
 
 impl std::fmt::Debug for ClaimRequest {
@@ -504,6 +543,7 @@ mod tests {
             plugins: Vec::new(),
             owners: Vec::new(),
             open: false,
+            contact: None,
         };
         let closed = serde_json::to_string(&index).unwrap();
         assert!(!closed.contains("open"), "{closed}");

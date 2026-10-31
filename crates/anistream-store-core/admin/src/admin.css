@@ -379,6 +379,11 @@ code {
 	color: var(--ani-dim);
 }
 
+.field > small {
+	font-size: 13px;
+	color: var(--ani-dim);
+}
+
 input:not([type]),
 input[type="text"] {
 	width: 100%;

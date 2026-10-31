@@ -83,6 +83,7 @@ async fn a_store_from_before_versions_is_brought_up_to_date_and_keeps_everything
     let new = NewInvite::member("Sam", Role::Member, Some("m1"), NOW + 60);
     let (_, invite) = store.create_invite(new, BASE, NOW).await.unwrap();
     store.redeem(&invite.code, "laptop", NOW).await.unwrap();
+    store.set_contact("owner@store.example").await.unwrap();
     store.set_open(true).await.unwrap();
     assert_eq!(store.members().await.unwrap().len(), 2);
 }
@@ -148,6 +149,32 @@ async fn later_migrations_run_in_order_once_each() {
 }
 
 #[tokio::test]
+async fn a_store_that_was_open_before_the_contact_rule_is_closed_by_migrating() {
+    let dir = tempfile::tempdir().unwrap();
+    let db: Arc<dyn Database> = Arc::new(SqliteDb::in_memory().unwrap());
+    let store = open_on(db.clone(), dir.path()).await.unwrap();
+    store.set_contact("owner@store.example").await.unwrap();
+    store.set_open(true).await.unwrap();
+    let code = store.open_code().await.unwrap().expect("open");
+    store.fresh_owner_invite(BASE, NOW).await.unwrap();
+
+    // The database as version 1 left it: open, and no record of the migration that closes it.
+    db.batch(&[sql!("DELETE FROM migrations WHERE version = 2")]).await.unwrap();
+    db.batch(&[sql!(
+        "INSERT INTO meta (key, value) VALUES ('open_code', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        code.as_str()
+    )])
+    .await
+    .unwrap();
+    let store = open_on(db.clone(), dir.path()).await.unwrap();
+    assert_eq!(store.open_code().await.unwrap(), None, "open joining is off after migrating");
+    assert_eq!(schema::version(db.as_ref()).await.unwrap(), VERSION);
+    // The contact stays, so the owner can turn it on again.
+    store.set_open(true).await.unwrap();
+}
+
+#[tokio::test]
 async fn a_failed_migration_keeps_nothing_of_itself() {
     let db: Arc<dyn Database> = Arc::new(SqliteDb::in_memory().unwrap());
     let mut migrations = MIGRATIONS.to_vec();
@@ -157,8 +184,9 @@ async fn a_failed_migration_keeps_nothing_of_itself() {
     ]);
 
     let error = schema::migrate_with(db.as_ref(), &migrations, "test").await.unwrap_err();
-    assert!(error.to_string().contains("schema version 2"), "{error}");
-    assert_eq!(schema::version(db.as_ref()).await.unwrap(), 1);
+    let failing = MIGRATIONS.len() + 1;
+    assert!(error.to_string().contains(&format!("schema version {failing}")), "{error}");
+    assert_eq!(schema::version(db.as_ref()).await.unwrap(), VERSION);
     let tables = count(
         db.as_ref(),
         "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'half_done'",

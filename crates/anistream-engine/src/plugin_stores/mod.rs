@@ -959,6 +959,7 @@ mod tests {
                 plugins: vec![entry("new", "1.0.0"), entry("old", "2.0.0")],
                 owners: vec!["Alex".into(), "Sam".into()],
                 open: true,
+                contact: None,
             }),
             checked_at: Some(1_760_000_000),
             revoked: false,

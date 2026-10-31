@@ -61,8 +61,10 @@ export function Nav({
 
 export function Footer({
 	note = 'This page talks only to this store, and to GitHub when you check for updates.',
+	contact,
 }: {
 	note?: string;
+	contact?: string;
 }) {
 	return (
 		<footer className="footer">
@@ -71,7 +73,10 @@ export function Footer({
 				<p>Nagare 流 is anistream's mascot, an original character.</p>
 			</div>
 			<div className="footer-legal">
-				<p>anistream hosts no content.</p>
+				<p>
+					This store is run by its operator, not by anistream. It holds plugins, not episodes.
+					{contact && ` Contact: ${contact}.`}
+				</p>
 				<p className="footer-note">{note}</p>
 			</div>
 			<a className="footer-link" href="./fonts/OFL.txt">

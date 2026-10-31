@@ -256,6 +256,7 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
             .await
             .unwrap();
     let invite = store.fresh_owner_invite(&base, server::now()).await.unwrap().unwrap();
+    store.set_contact("owner@store.example").await.unwrap();
     let server = Arc::new(Server::new(store, Some(base), None, None, false));
     tokio::spawn(server::serve(listener, server, None, std::future::pending()));
 

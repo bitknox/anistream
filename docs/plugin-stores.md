@@ -307,6 +307,7 @@ A used, cancelled and unknown invite all get the same answer, so a guess learns 
 | `GET`    | `/v1/members`                | owner  | Members and pending invites               |
 | `GET`    | `/v1/open`                   | owner  | Who can join, the open link, its devices  |
 | `PUT`    | `/v1/open`                   | owner  | Change who can join                       |
+| `PUT`    | `/v1/contact`                | owner  | Set the store's contact                   |
 | `DELETE` | `/v1/open/devices`           | owner  | Remove every device that joined openly    |
 | `DELETE` | `/v1/members/{id}`           | owner  | Remove a member and all their devices     |
 | `DELETE` | `/v1/invites/{id}`           | owner  | Cancel a pending invite                   |
@@ -353,10 +354,18 @@ recorded step at a time, and refuses a database whose schema is newer than it kn
 page compares `version` and `build` with GitHub's newest release, from the browser, when the owner
 asks it to.
 
-`POST /v1/setup` takes `{ "code": "…" }` and answers with an owner invite,
+`POST /v1/setup` takes `{ "code": "…", "contact": "…" }`, where `contact` is an email address or a
+link that people can use to reach whoever runs the store, and answers with an owner invite,
 `{ "link": "https://plugins.example/join/…#…", "expires_at": 1793000000 }`. A wrong code is `403`
 and counts toward the same limit as a failed invite. A store deployed without a setup code answers
-`404`, and one that already has an owner answers `409`.
+`404`, and one that already has an owner answers `409`. A claim without a contact is `400` and leaves the
+store unclaimed. The contact appears as `contact` in `GET /v1/store`, in the signed list and on the
+store's page.
+
+Open joining is off in every new store, and was switched off in every store by the migration that
+added the contact. `PUT /v1/open` with `{ "open": true }` answers `409` with the code
+`contact_needed` until the store has a contact. `PUT /v1/contact` takes `{ "contact": "…" }`, one
+plain line of up to 200 characters, and answers like `GET /v1/open`.
 
 `POST /v1/redeem` takes the code and a label for the device, and answers with the token:
 
