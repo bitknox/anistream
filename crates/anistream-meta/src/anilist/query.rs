@@ -43,7 +43,7 @@ pub const MEDIA_FIELDS: &str = r"
 /// asked for beside the title, in [`by_id`]: this connection takes no sort, so its first page of
 /// aired episodes is a long runner's oldest fifty rather than its newest.
 pub const MEDIA_DETAIL_FIELDS: &str = r"
-    externalLinks { site url type language isDisabled }
+    externalLinks { site url type language isDisabled notes }
     streamingEpisodes { title url site thumbnail }
     tags { name rank isMediaSpoiler isGeneralSpoiler category }
     upcoming: airingSchedule(notYetAired: true, perPage: 50) { nodes { episode airingAt } }
@@ -711,7 +711,8 @@ mod tests {
             signed_in.contains("score(format: POINT_100)"),
             "a score on one scale whatever each person's list uses"
         );
-        assert!(!signed_in.contains("notes"), "no free text from other people");
+        // The title's own external links carry a notes field, so check the people's part alone.
+        assert!(!FOLLOWING.contains("notes"), "no free text from other people");
     }
 
     #[test]

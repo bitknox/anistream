@@ -27,6 +27,53 @@ pub fn msg_english(msg: anistream_model::Msg) -> String {
     msg.english()
 }
 
+/// The Your sources page as sections, from the provider rows: see
+/// [`anistream_model::sources::source_groups`].
+#[uniffi::export]
+pub fn source_groups(
+    rows: Vec<anistream_model::sources::ProviderRow>,
+) -> Vec<anistream_model::sources::SourceGroup> {
+    anistream_model::sources::source_groups(&rows)
+}
+
+/// The order a new install tries its sources in: the first-party kinds first.
+#[uniffi::export]
+pub fn default_source_order() -> Vec<String> {
+    anistream_model::sources::default_source_order()
+}
+
+/// `providers.order` with source `id` moved one place up (`step` below zero) or down, for the
+/// Move up and Move down actions. `None` when it is already at that end. Write the result with
+/// `Command::SetSetting` for `SourceOrder`.
+#[uniffi::export]
+pub fn move_source(
+    order: Vec<String>,
+    rows: Vec<anistream_model::sources::ProviderRow>,
+    id: String,
+    step: i32,
+) -> Option<Vec<String>> {
+    anistream_model::sources::order_with_source_moved(&order, &rows, &id, step as isize)
+}
+
+/// `providers.order` with source `id` dropped at place `index` among the rows on screen, for a
+/// drag. `None` when the source has no row. Write the result with `Command::SetSetting` for
+/// `SourceOrder`.
+#[uniffi::export]
+pub fn place_source(
+    order: Vec<String>,
+    rows: Vec<anistream_model::sources::ProviderRow>,
+    id: String,
+    index: u32,
+) -> Option<Vec<String>> {
+    anistream_model::sources::order_with_source_placed(&order, &rows, &id, index as usize)
+}
+
+/// Whether the Your sources page has nothing to list, which is when it shows its empty state.
+#[uniffi::export]
+pub fn has_no_sources(rows: Vec<anistream_model::sources::ProviderRow>) -> bool {
+    anistream_model::sources::has_no_sources(&rows)
+}
+
 /// A wait in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `now`.
 #[uniffi::export]
 pub fn countdown(seconds: i64) -> String {

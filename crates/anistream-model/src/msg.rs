@@ -113,6 +113,10 @@ pub enum Msg {
     HomeBecause { title: String },
     /// Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
     HomeMoreGenre { genre: String },
+    /// Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.
+    LicensedReturn { episode: i64, service: String },
+    /// Notice after Mark as watched on the return notice. It holds Undo.
+    LicensedMarked { episode: i64 },
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     NoticeReason { reason: Cause },
     /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
@@ -556,6 +560,8 @@ impl Msg {
             Self::HomeThisSeason => "home-this-season",
             Self::HomeBecause { .. } => "home-because",
             Self::HomeMoreGenre { .. } => "home-more-genre",
+            Self::LicensedReturn { .. } => "licensed-return",
+            Self::LicensedMarked { .. } => "licensed-marked",
             Self::NoticeReason { .. } => "notice-reason",
             Self::NoticeNotAired { .. } => "notice-not-aired",
             Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
@@ -806,6 +812,8 @@ impl Msg {
             Self::HomeThisSeason => Vec::new(),
             Self::HomeBecause { title } => vec![("title", Value::Text(title.clone()))],
             Self::HomeMoreGenre { genre } => vec![("genre", Value::Text(genre.clone()))],
+            Self::LicensedReturn { episode, service } => vec![("episode", Value::Int(*episode)), ("service", Value::Text(service.clone()))],
+            Self::LicensedMarked { episode } => vec![("episode", Value::Int(*episode))],
             Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
             Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
             Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],

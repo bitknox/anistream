@@ -153,6 +153,15 @@ pub enum Event {
     HiddenTitles(Vec<HiddenTitle>),
     /// What the filters choose from.
     Facets(SearchFacets),
+    /// The Licensed services page, in answer to the commands that read or change it.
+    Licensed(crate::licensed::LicensedView),
+    /// What a title page says about licensed services, in answer to
+    /// [`LicensedCommand::LoadAvailability`](crate::command::LicensedCommand::LoadAvailability).
+    Availability(crate::licensed::TitleAvailability),
+    /// The viewer is back from a licensed service after long enough to have watched an episode.
+    LicensedReturn(crate::licensed::LicensedReturn),
+    // Media servers; see `ServerEvent`.
+    Server(crate::servers::ServerEvent),
     /// The recent searches, newest first: at launch when asked, and after each change.
     RecentSearches(Vec<SearchQuery>),
     Detail(Box<Entry>),

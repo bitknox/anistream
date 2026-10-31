@@ -100,7 +100,7 @@ mod tests {
             Aired, AiringStatus, ContentFor, ContentList, Entry, ResumePoint, Season,
             TitleAired,
         },
-        command::{Command, PlayerCommand},
+        command::{Command, LicensedCommand, PlayerCommand},
         event::Event,
         hosted::{
             MenuChoice, MenuChoices, MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp,
@@ -114,6 +114,7 @@ mod tests {
             Bounds, BrowseRail, FacetTag, MediaFormat, OnList, SearchFacets, SearchQuery,
             SearchSort, TagGroup,
         },
+        servers::ServerCommand,
         settings::SettingKey,
         sources::{CurrentMatch, MatchCandidate, MatchQuestion},
         stores::{InvitePreview, InvitedStore, Secret},
@@ -166,6 +167,46 @@ mod tests {
             Command::SearchMore { query: SearchQuery::sorted(SearchSort::Score), page: 3 },
             Command::RememberSearch(SearchQuery::season(Season::Fall, 2026)),
             Command::LoadBrowse,
+            Command::Licensed(LicensedCommand::Load { system_region: Some("DK".into()) }),
+            Command::Licensed(LicensedCommand::SetServices {
+                services: vec!["Hikari Stream".into()],
+            }),
+            Command::Licensed(LicensedCommand::SetRegion { region: None }),
+            Command::Licensed(LicensedCommand::SetShowOthers { show: false }),
+            Command::Licensed(LicensedCommand::LoadAvailability {
+                id: AnilistId::new(900_001),
+                plays_here: true,
+            }),
+            Command::Licensed(LicensedCommand::Open {
+                id: AnilistId::new(900_001),
+                service: "Hikari Stream".into(),
+                url: "https://hikari.example/t/1".into(),
+                episode: Some(4),
+            }),
+            Command::Licensed(LicensedCommand::Returned),
+            Command::Server(ServerCommand::Discover),
+            Command::Server(ServerCommand::Check { address: "jellyfin.mika.example".into() }),
+            Command::Server(ServerCommand::SignIn {
+                address: "jellyfin.mika.example".into(),
+                user: "mika".into(),
+                password: "lantern-tea".into(),
+            }),
+            Command::Server(ServerCommand::StartQuickConnect {
+                address: "192.168.1.20".into(),
+            }),
+            Command::Server(ServerCommand::CancelQuickConnect),
+            Command::Server(ServerCommand::LoadLibraries { server: "0f1e2d3c".into() }),
+            Command::Server(ServerCommand::SetLibraries {
+                server: "0f1e2d3c".into(),
+                libraries: vec!["lib-anime".into()],
+            }),
+            Command::Server(ServerCommand::Refresh { server: "0f1e2d3c".into() }),
+            Command::Server(ServerCommand::SetReport {
+                server: "0f1e2d3c".into(),
+                report: false,
+            }),
+            Command::Server(ServerCommand::Remove { server: "0f1e2d3c".into() }),
+            Command::Server(ServerCommand::Load),
             Command::LoadUpNext,
             Command::DismissUpNext { id: AnilistId::new(900_004) },
             Command::RestoreUpNext { id: AnilistId::new(900_004) },
@@ -938,6 +979,104 @@ mod tests {
             playable: Playable::NotFound,
         });
         crosses_intact(Event::HiddenTitles(vec![HiddenTitle { entry, until_airs: true }]));
+    }
+
+    #[test]
+    fn the_licensed_services_cross_the_boundary_intact() {
+        use anistream_model::licensed::{
+            AvailabilityCase, EpisodeLink, LicensedReturn, LicensedSettings, LicensedView,
+            ServiceLink, TitleAvailability,
+        };
+        let link = ServiceLink {
+            service: "Hikari Stream".into(),
+            url: "https://hikari.example/t/1".into(),
+            notes: Some("JP".into()),
+        };
+        crosses_intact(Event::Licensed(LicensedView {
+            settings: LicensedSettings {
+                services: vec!["Hikari Stream".into()],
+                region: Some("DK".into()),
+                show_others: false,
+            },
+            region: Some("DK".into()),
+            available: vec!["Hikari Stream".into(), "Tsuki TV".into()],
+            regions: vec!["DK".into(), "JP".into()],
+        }));
+        crosses_intact(Event::Availability(TitleAvailability {
+            id: AnilistId::new(900_001),
+            case: AvailabilityCase::OnService,
+            main: Some(link.clone()),
+            also_on: vec![link.clone()],
+            yours: vec![link],
+            others: vec!["Tsuki TV".into()],
+            episodes: vec![EpisodeLink {
+                episode: 4,
+                service: "Hikari Stream".into(),
+                url: "https://hikari.example/t/1/4".into(),
+            }],
+            choose_services: true,
+        }));
+        {
+            use anistream_model::servers::{
+                CheckedServer, FoundServer, LibraryChoice, ServerEvent, ServerFailure,
+                ServerRow, ServerStep,
+            };
+            let library = LibraryChoice {
+                id: "lib-anime".into(),
+                name: "Anime Shows".into(),
+                kind: Some("tvshows".into()),
+                ticked: true,
+            };
+            for event in [
+                ServerEvent::Found(FoundServer {
+                    id: "0f1e2d3c".into(),
+                    name: "Mika's Jellyfin".into(),
+                    address: "http://192.168.1.20:8096".into(),
+                }),
+                ServerEvent::DiscoveryDone,
+                ServerEvent::Checked(CheckedServer {
+                    id: "0f1e2d3c".into(),
+                    name: "Mika's Jellyfin".into(),
+                    version: "10.9.11".into(),
+                    address: "http://192.168.1.20:8096".into(),
+                    quick_connect: true,
+                }),
+                ServerEvent::Failed {
+                    step: ServerStep::Address,
+                    failure: ServerFailure::TooOld { version: "10.7.7".into() },
+                },
+                ServerEvent::QuickConnectCode { code: "482913".into() },
+                ServerEvent::SignedIn { server: "0f1e2d3c".into() },
+                ServerEvent::Libraries {
+                    server: "0f1e2d3c".into(),
+                    libraries: vec![library.clone()],
+                },
+                ServerEvent::Servers(vec![ServerRow {
+                    id: "0f1e2d3c".into(),
+                    name: "Mika's Jellyfin".into(),
+                    address: "http://192.168.1.20:8096".into(),
+                    version: "10.9.11".into(),
+                    user: "mika".into(),
+                    libraries: vec![library],
+                    series: 3,
+                    matched: 2,
+                    report: true,
+                    signed_out: false,
+                }]),
+            ] {
+                crosses_intact(Event::Server(event));
+            }
+        }
+        crosses_intact(Event::LicensedReturn(LicensedReturn {
+            id: AnilistId::new(900_001),
+            episode: 4,
+            service: "Hikari Stream".into(),
+            prompt: anistream_model::Msg::LicensedReturn {
+                episode: 4,
+                service: "Hikari Stream".into(),
+            },
+            done: anistream_model::Msg::LicensedMarked { episode: 4 },
+        }));
     }
 
     #[test]

@@ -110,6 +110,7 @@ pub mod engine;
 pub mod error;
 pub mod host;
 pub mod jobs;
+pub mod licensed;
 pub mod logged;
 pub mod new_episodes;
 pub mod options;
@@ -122,6 +123,7 @@ pub mod plugin_stores;
 pub mod protection;
 #[cfg(feature = "remote")]
 pub mod remote;
+pub mod servers;
 pub mod services;
 pub mod settings;
 pub mod show_settings;
