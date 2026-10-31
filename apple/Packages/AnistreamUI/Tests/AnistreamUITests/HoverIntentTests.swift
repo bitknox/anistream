@@ -3,6 +3,7 @@
 import AnistreamKit
 @testable import AnistreamUI
 import CoreGraphics
+import Foundation
 import Testing
 
 struct HoverIntentTests {
@@ -46,6 +47,24 @@ struct HoverIntentTests {
             events += intent.step(at: time, layout: layout).map { (time, $0) }
         }
         return events
+    }
+
+    /// Move from `a` and come to rest at `b` over `seconds`, slowing all the way (ease-out), a
+    /// sample every 10 ms: a hand landing on a button.
+    func land(_ intent: inout HoverIntent, from a: CGPoint, to b: CGPoint, start: Double, seconds: Double) -> [(Double, HoverIntent.Event)] {
+        var events: [(Double, HoverIntent.Event)] = []
+        let steps = Int(seconds / 0.01)
+        for step in 0...steps {
+            let t = 1 - pow(1 - Double(step) / Double(steps), 3)
+            let time = start + Double(step) * 0.01
+            intent.move(CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t), at: time)
+            events += intent.step(at: time, layout: layout).map { (time, $0) }
+        }
+        return events
+    }
+
+    func handedOff(_ events: [(Double, HoverIntent.Event)]) -> Bool {
+        events.contains { if case .handOff = $0.1 { true } else { false } }
     }
 
     @Test func theCardSitsOnItsCoverInsideTheArea() {
@@ -150,6 +169,66 @@ struct HoverIntentTests {
             #expect(events.isEmpty, "\(point)")
             #expect(copy.open?.id == layout.covers[3].id)
         }
+    }
+
+    @Test func slowingOntoTheSoundToggleKeepsTheCard() throws {
+        var intent = HoverIntent()
+        _ = rest(&intent, at: centre(3), from: 0, to: 0.5)
+        let frame = try #require(intent.open?.frame)
+        let flank = try #require(layout.flanks(of: layout.covers[3].id, frame: frame).first { $0.id == layout.covers[4].id })
+        // The toggle as drawn: 28 pt, 12 pt in from the band's trailing edge and foot.
+        let toggle = CGRect(x: frame.maxX - 40, y: frame.minY + HoverCardSize.band - 40, width: 28, height: 28)
+        #expect(flank.rect.intersects(toggle), "the toggle sits in the right flank")
+        // Into the flank, slowing all the way, and to rest on the toggle or just short of it: on
+        // it, 14 pt before its leading edge, 14 pt above it, and off its corner.
+        let stops = [
+            CGPoint(x: toggle.midX, y: toggle.midY),
+            CGPoint(x: toggle.minX - 14, y: toggle.midY),
+            CGPoint(x: toggle.midX, y: toggle.minY - 14),
+            CGPoint(x: toggle.minX - 10, y: toggle.minY - 10),
+        ]
+        for stop in stops {
+            var copy = intent
+            #expect(flank.rect.contains(stop))
+            var events = land(&copy, from: centre(3), to: stop, start: 0.5, seconds: 0.5)
+            events += rest(&copy, at: stop, from: 1.01, to: 2.5)
+            #expect(!handedOff(events), "\(stop)")
+            #expect(copy.open?.id == layout.covers[3].id, "\(stop)")
+        }
+    }
+
+    @Test func aDeliberateMovePastTheToggleStillHandsOff() throws {
+        var intent = HoverIntent()
+        _ = rest(&intent, at: centre(3), from: 0, to: 0.5)
+        let frame = try #require(intent.open?.frame)
+        let flank = try #require(layout.flanks(of: layout.covers[3].id, frame: frame).first { $0.id == layout.covers[4].id })
+        let toggle = HoverCardSize.toggleZone(in: frame)
+        // Across the toggle without stopping, then up into the flank and a rest there.
+        let over = CGPoint(x: toggle.midX, y: toggle.midY)
+        let into = CGPoint(x: flank.rect.midX, y: frame.minY + 60)
+        var events = glide(&intent, from: centre(3), to: over, start: 0.5, seconds: 0.15)
+        events += glide(&intent, from: over, to: into, start: 0.66, seconds: 0.15)
+        #expect(!handedOff(events), "nothing while it moves")
+        events += rest(&intent, at: into, from: 0.82, to: 1.3)
+        let handed = try #require(events.first { if case .handOff = $0.1 { true } else { false } })
+        #expect(handed.0 < 1.1)
+        #expect(intent.open?.id == layout.covers[4].id)
+    }
+
+    @Test func aCuedCoverThePointerLeavesLetsItsTrailerGo() throws {
+        var intent = HoverIntent()
+        var events = rest(&intent, at: centre(2), from: 0, to: 0.3)
+        #expect(events.map(\.1) == [.cue(layout.covers[2].id)])
+        // On to the next cover before the card opens: the first cue goes as the pointer leaves.
+        events = glide(&intent, from: centre(2), to: centre(3), start: 0.31, seconds: 0.1)
+        events += rest(&intent, at: centre(3), from: 0.42, to: 1.0)
+        #expect(events.map(\.1).first == .uncue(layout.covers[2].id))
+        #expect(events.contains { $0.1 == .cue(layout.covers[3].id) })
+        #expect(intent.open?.id == layout.covers[3].id)
+        // A scroll before a card opens lets a cue go too.
+        var scrolled = HoverIntent()
+        _ = rest(&scrolled, at: centre(5), from: 0, to: 0.3)
+        #expect(scrolled.dismiss() == [.uncue(layout.covers[5].id)])
     }
 
     @Test func aScrollClosesItAndNothingOpensUntilThePointerMoves() throws {

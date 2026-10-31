@@ -111,6 +111,9 @@ final class TrailerVisit {
     private(set) var failure: Int?
     /// Whether captions are showing: only with the sound on, in a preview.
     private(set) var captions = false
+    /// Whether it loads ahead of being seen, as a cued hover card's does: silent, whatever the
+    /// sound preference, until `unhold`.
+    private(set) var held = false
 
     @ObservationIgnored private var stage = Stage.waiting
     @ObservationIgnored private var timer: Task<Void, Never>?
@@ -133,16 +136,18 @@ final class TrailerVisit {
 
     /// Start loading: the preview has settled and trailers may play. Once per visit. `make` builds
     /// the web view and hands it the visit's signal.
-    func begin(_ make: (@escaping @MainActor (TrailerSignal) -> Void) -> any TrailerSurface) {
+    /// With `held`, it stays silent until `unhold`.
+    func begin(held: Bool = false, _ make: (@escaping @MainActor (TrailerSignal) -> Void) -> any TrailerSurface) {
         guard stage == .waiting else { return }
         stage = .loading
         begun = .now
         muted = !sound.on
         captions = false
+        self.held = held
         let surface = make { [weak self] signal in self?.signal(signal) }
         self.surface = surface
         // The page starts muted, as autoplay needs; with the sound on it comes up as it plays.
-        if !muted { surface.control(.unmute) }
+        if !muted, !held { surface.control(.unmute) }
         timer = Task { [weak self, loadTimeout] in
             try? await Task.sleep(for: loadTimeout)
             guard !Task.isCancelled, let self, self.stage == .loading else { return }
@@ -179,11 +184,18 @@ final class TrailerVisit {
         }
     }
 
+    /// It is being seen now: the sound comes up if the person left it on.
+    func unhold() {
+        guard held else { return }
+        held = false
+        if !muted { surface?.control(.unmute) }
+    }
+
     /// Sound on or off, for this trailer and the ones after it.
     func toggleSound() {
         muted.toggle()
         sound.on = !muted
-        surface?.control(muted ? .mute : .unmute)
+        if !held { surface?.control(muted ? .mute : .unmute) }
     }
 
     /// The preview closed, a sheet or the player opened over it, or the app went to the background:
