@@ -103,15 +103,18 @@ struct CommentRow: View {
         .lineLimit(folded ? 10 : nil)
         .padding(.top, 4)
         if DiscussionText.isLong(comment) {
-            Button(draft.unfolded.contains(comment.id) ? L.shellLess : L.actionMore) {
+            Button {
                 withAnimation(reduceMotion ? nil : .standard) {
                     if draft.unfolded.contains(comment.id) { draft.unfolded.remove(comment.id) } else { draft.unfolded.insert(comment.id) }
                 }
+            } label: {
+                Text(draft.unfolded.contains(comment.id) ? L.shellLess : L.actionMore)
+                    .frame(minHeight: 28)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .font(.plat(mac: 11, touch: 13, weight: .semibold))
             .foregroundStyle(.haze)
-            .frame(minHeight: 28)
         }
     }
 

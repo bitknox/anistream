@@ -332,6 +332,7 @@ struct PhoneCard: View {
                 .foregroundStyle(.haze)
             }
             .frame(width: 208, alignment: .leading)
+            .contentShape(.rect)
             // A card's caption is no larger than a grid's.
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
@@ -520,6 +521,7 @@ struct PhoneLibrary: View {
                                         .frame(height: 40)
                                         .background(selected ? Palette.selection : .clear, in: .capsule)
                                         .overlay(Capsule().strokeBorder(selected ? .clear : Palette.faintRule))
+                                        .contentShape(.capsule)
                                     }
                                     .buttonStyle(.plain)
                                     .pointerHover()

@@ -552,13 +552,16 @@ struct MoreAboutSheet: View {
                     }
                 }
                 if !spoilers.isEmpty {
-                    Button(SpoilerWords.reveal(spoilers.count, shown: spoilersShown)) {
+                    Button {
                         withAnimation(.standard) { spoilersShown.toggle() }
+                    } label: {
+                        Text(SpoilerWords.reveal(spoilers.count, shown: spoilersShown))
+                            .frame(minHeight: phone ? 44 : nil)
+                            .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
                     .font(phone ? .ui(17, weight: .semibold) : .mac(13, weight: .semibold))
                     .foregroundStyle(.silk)
-                    .frame(minHeight: phone ? 44 : nil)
                     .accessibilityValue(spoilersShown ? L.stateExpanded : L.stateCollapsed)
                 }
             }

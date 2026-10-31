@@ -160,13 +160,15 @@ struct DiscussionPanel: View {
                     .monospacedDigit()
                 Spacer(minLength: 8)
                 if let view, let url = URL(string: view.url) {
-                    Button(L.titleOpenAnilist) { openURL(url) }
-                        .buttonStyle(.plain)
-                        .font(.plat(mac: 13, touch: 15, weight: .semibold))
-                        .foregroundStyle(.silk)
-                        .frame(minHeight: touch ? 44 : 28)
-                        .contentShape(.rect)
-                        .pointerHover()
+                    Button { openURL(url) } label: {
+                        Text(L.titleOpenAnilist)
+                            .frame(minHeight: touch ? 44 : 28)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.plat(mac: 13, touch: 15, weight: .semibold))
+                    .foregroundStyle(.silk)
+                    .pointerHover()
                 }
             }
             .padding(.horizontal, touch ? 16 : 20)
