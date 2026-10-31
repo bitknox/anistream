@@ -110,5 +110,19 @@ extension AppStore {
         send(.loadContinue)
         send(.loadDetail(id))
     }
+
+    /// The launch argument that takes the fake AniList away once the first Home has loaded,
+    /// `-AnistreamGoOffline 1`: Home's offline line over what it kept, for a shot of it.
+    public static let goOfflineArgument = "-AnistreamGoOffline"
+
+    /// Go offline when `arguments` ask, once settled, and ask Home again. Whether it did.
+    public func applyGoOfflineArgument(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        guard let index = arguments.firstIndex(of: Self.goOfflineArgument), arguments.indices.contains(index + 1),
+              arguments[index + 1] == "1"
+        else { return false }
+        setFakeOffline(true)
+        loadHome(force: true)
+        return true
+    }
 }
 #endif

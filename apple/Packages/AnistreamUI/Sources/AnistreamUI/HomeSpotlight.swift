@@ -11,27 +11,28 @@ import SwiftUI
 struct HomeSpotlightView: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @Environment(\.homeWide) private var wide
+    @Environment(\.homeLayout) private var layout
     let spot: Spotlight
     let contentWidth: CGFloat
 
     var body: some View {
         let entry = store.titles[spot.entry.id] ?? spot.entry
-        let art = wide ? contentWidth * HomeMetrics.artShare : contentWidth
         let facts = HomeFacts(playable: store.discovery.playable(entry.id, sent: spot.playable), action: spot.action)
+        let beside = HomeSpotlightView.beside(layout, contentWidth: contentWidth)
         Group {
-            if wide {
-                HStack(alignment: .center, spacing: 32) {
-                    artView(entry, width: art)
-                    text(entry, facts: facts)
+            if beside {
+                // The text first and the art on the right, the text centred on the art.
+                HStack(alignment: .center, spacing: layout.spotGap) {
+                    text(entry, facts: facts, beside: true)
                         // Exactly what the art leaves, even where the words need a hair more:
                         // the row never comes out wider than Home, which sizes the art by it.
                         .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                    artView(entry, width: contentWidth * layout.artShare)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 16) {
-                    artView(entry, width: art)
-                    text(entry, facts: facts)
+                VStack(alignment: .leading, spacing: layout.spotGap) {
+                    artView(entry, width: contentWidth)
+                    text(entry, facts: facts, beside: false)
                 }
             }
         }
@@ -40,6 +41,12 @@ struct HomeSpotlightView: View {
             store.probe(entry.id)
             if !store.titles.detailed.contains(entry.id) { store.loadDetail(entry.id) }
         }
+    }
+
+    /// Whether the text sits beside the art: on a desktop, while what the art leaves is wide
+    /// enough to read. A narrow window stacks it, as a phone does.
+    static func beside(_ layout: HomeLayout, contentWidth: CGFloat) -> Bool {
+        layout.wide && contentWidth * (1 - layout.artShare) - layout.spotGap >= HomeLayout.textMinimum
     }
 
     // MARK: Art
@@ -70,77 +77,138 @@ struct HomeSpotlightView: View {
 
     // MARK: Text and actions
 
-    private func text(_ entry: Entry, facts: HomeFacts) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    /// The label, the title and its other title, the facts, the synopsis, how far in or what is
+    /// out, then the actions; a miss from the sources check under them.
+    private func text(_ entry: Entry, facts: HomeFacts, beside: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
             Text(spot.label.text)
-                .font(.ui(wide ? 13 : 15, weight: .medium))
+                .font(.ui(layout.spotLabel, weight: .medium))
                 .foregroundStyle(.haze)
                 .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.showTitle)
-                    .font(.showTitle(size: wide ? 34 : 28, relativeTo: .largeTitle))
-                    .foregroundStyle(.silk)
-                    .lineLimit(3)
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility3)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let line = lineText(facts: facts) {
-                    HStack(spacing: 6) {
-                        if spot.case == .continuing, facts.playable != .notFound, spot.resume == nil {
-                            Circle().fill(.water).frame(width: 6, height: 6).accessibilityHidden(true)
-                        }
-                        Text(line)
-                    }
-                    .font(.ui(wide ? 15 : 17))
+                .padding(.bottom, 8)
+            Text(entry.showTitle)
+                .font(.showTitle(size: layout.spotTitle.size, relativeTo: .largeTitle))
+                .fixedLineHeight(layout.spotTitle.line, relativeTo: .largeTitle)
+                .foregroundStyle(.silk)
+                .lineLimit(2)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+                .fixedSize(horizontal: false, vertical: true)
+            if let other = entry.otherTitles.first {
+                Text(other)
+                    .font(.ui(layout.spotOther.size))
+                    .fixedLineHeight(layout.spotOther.line, relativeTo: .footnote)
                     .foregroundStyle(.haze)
-                }
+                    .lineLimit(1)
+                    .padding(.top, 4)
             }
-            HomeSynopsis(entry: entry, lines: wide ? 3 : 2)
-            actions(entry, facts: facts)
-                .padding(.top, 4)
+            if !entry.hoverFacts.isEmpty {
+                Text(entry.hoverFacts.uppercased())
+                    .font(.ui(11, weight: .medium))
+                    .tracking(0.88)
+                    .fixedLineHeight(16, relativeTo: .caption2)
+                    .foregroundStyle(.haze)
+                    .lineLimit(1)
+                    .padding(.top, 10)
+            }
+            HomeSynopsis(entry: entry, lines: layout.synopsisLines)
+                .padding(.top, 12)
+            progress(facts: facts)
+                .padding(.top, 16)
+            actions(entry, facts: facts, beside: beside)
+                .padding(.top, 18)
+            if facts.playable == .notFound {
+                Text(L.homeNotFound)
+                    .font(.ui(layout.secondary))
+                    .foregroundStyle(.haze)
+                    .padding(.top, 12)
+            }
         }
-        .frame(maxWidth: wide ? 440 : .infinity, alignment: .leading)
+        .frame(maxWidth: beside ? layout.textWidth : .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
     }
 
-    private func lineText(facts: HomeFacts) -> String? {
-        if facts.playable == .notFound { return L.homeNotFound }
-        if let line = spot.line { return line.text }
-        return HomeWords.starts(spot.starts)
+    /// Under the synopsis: the track and the time left for a resume, "Episode 5 is out" in silk
+    /// with the dot for a new episode, or when a title starts.
+    @ViewBuilder
+    private func progress(facts: HomeFacts) -> some View {
+        let line = spot.line?.text
+        if spot.case == .continuing, let line {
+            HStack(spacing: 10) {
+                if let fraction = spot.resume?.fraction {
+                    Meter(fraction: fraction, height: 4, spoken: line, silk: true)
+                        .frame(width: layout.track)
+                    Text(line).foregroundStyle(.haze)
+                } else {
+                    Circle().fill(.water).frame(width: 6, height: 6).accessibilityHidden(true)
+                    Text(line).foregroundStyle(.silk)
+                }
+            }
+            .font(.ui(layout.secondary))
+            .lineLimit(1)
+        } else if let line = line ?? HomeWords.starts(spot.starts) {
+            Text(line)
+                .font(.ui(layout.secondary))
+                .foregroundStyle(.haze)
+                .lineLimit(1)
+        }
     }
 
     @ViewBuilder
-    private func actions(_ entry: Entry, facts: HomeFacts) -> some View {
+    private func actions(_ entry: Entry, facts: HomeFacts, beside: Bool) -> some View {
         let main = HomeMain(action: facts.action, episode: spot.episode)
-        let row = HStack(spacing: 10) {
-            if let main {
-                HomeMainButton(main: main, entry: entry, wide: wide, stretch: !wide)
-                    .layoutPriority(1)
+        if layout.wide {
+            // One row while it fits; else the main action over the others, never a squeezed
+            // "D..." beside it.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    if let main { HomeMainButton(main: main, entry: entry) }
+                    secondary(entry, stretch: false)
+                    moreMenu(entry)
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    if let main { HomeMainButton(main: main, entry: entry) }
+                    HStack(spacing: 10) {
+                        secondary(entry, stretch: false)
+                        moreMenu(entry)
+                    }
+                }
             }
-            if wide { secondary(entry) }
-            moreMenu(entry)
-        }
-        if wide {
-            row
         } else {
-            VStack(alignment: .leading, spacing: 10) {
-                row
-                HStack(spacing: 10) { secondary(entry) }
+            // The phone: the main action across, then Details and More in one row.
+            VStack(spacing: 12) {
+                if let main { HomeMainButton(main: main, entry: entry, stretch: true) }
+                HStack(spacing: 12) {
+                    secondary(entry, stretch: true)
+                    moreMenu(entry)
+                }
             }
         }
     }
 
     @ViewBuilder
-    private func secondary(_ entry: Entry) -> some View {
-        Button(L.homeDetails) { navigator.openTitle(entry.id) }
-            .buttonStyle(SecondaryCapsuleStyle(height: wide ? 34 : 44, fontSize: wide ? 13 : 17))
+    private func secondary(_ entry: Entry, stretch: Bool) -> some View {
+        let size = layout.secondaryButton
+        Button {
+            navigator.openTitle(entry.id)
+        } label: {
+            Text(L.homeDetails).lineLimit(1).frame(maxWidth: stretch ? .infinity : nil)
+        }
+        .buttonStyle(SecondaryCapsuleStyle(height: size.height, fontSize: size.font))
+        .fixedSize(horizontal: !stretch, vertical: false)
         if entry.trailerUrl != nil {
-            Button(L.titleTrailer) { navigator.playTrailer(entry, store: store) }
-                .buttonStyle(SecondaryCapsuleStyle(height: wide ? 34 : 44, fontSize: wide ? 13 : 17))
+            Button {
+                navigator.playTrailer(entry, store: store)
+            } label: {
+                Text(L.titleTrailer).lineLimit(1).frame(maxWidth: stretch ? .infinity : nil)
+            }
+            .buttonStyle(SecondaryCapsuleStyle(height: size.height, fontSize: size.font))
+            .fixedSize(horizontal: !stretch, vertical: false)
         }
     }
 
     private func moreMenu(_ entry: Entry) -> some View {
-        Menu {
+        let side = layout.secondaryButton.height
+        return Menu {
             if spot.case == .continuing {
                 if spot.action == .resume || spot.action == .play {
                     Button(L.homeMarkWatched(episode: Int(spot.episode))) {
@@ -154,9 +222,9 @@ struct HomeSpotlightView: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.ui(wide ? 13 : 17, weight: .semibold))
+                .font(.ui(layout.secondaryButton.font, weight: .semibold))
                 .foregroundStyle(.silk)
-                .frame(width: wide ? 34 : 44, height: wide ? 34 : 44)
+                .frame(width: side, height: side)
                 .background(Palette.raised, in: .circle)
                 .contentShape(.circle)
         }
@@ -207,9 +275,9 @@ struct HomeMain {
 struct HomeMainButton: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.homeLayout) private var layout
     let main: HomeMain
     let entry: Entry
-    let wide: Bool
     var stretch = false
     @State private var adding = false
 
@@ -229,7 +297,7 @@ struct HomeMainButton: View {
                 if adding {
                     ProgressView().controlSize(.small).tint(Palette.ground)
                 } else {
-                    Image(systemName: main.symbol).font(.ui(wide ? 11 : 14))
+                    Image(systemName: main.symbol).font(.ui(layout.button.font < 15 ? 11 : 14))
                 }
                 Text(adding ? L.homeAdding : main.title)
                     .lineLimit(1)
@@ -237,7 +305,7 @@ struct HomeMainButton: View {
             }
             .frame(maxWidth: stretch ? .infinity : nil)
         }
-        .buttonStyle(PrimaryCapsuleStyle(height: wide ? 34 : 48, fontSize: wide ? 13 : 17))
+        .buttonStyle(PrimaryCapsuleStyle(height: layout.button.height, fontSize: layout.button.font))
         .disabled(adding)
         .pointerHover()
     }
@@ -247,15 +315,19 @@ struct HomeMainButton: View {
 /// title for the visit.
 struct HomeSynopsis: View {
     @Environment(Navigator.self) private var navigator
+    @Environment(\.homeLayout) private var layout
     let entry: Entry
     let lines: Int
 
     var body: some View {
-        let shown = entry.shownSynopsis
+        // One run of text: a paragraph break inside the few lines shown would spend a line on
+        // nothing.
+        let shown = entry.shownSynopsis.replacing(/\s*\n+\s*/, with: " ")
         VStack(alignment: .leading, spacing: 6) {
             if !shown.isEmpty {
                 Text(shown)
-                    .font(.ui(15))
+                    .font(.ui(layout.synopsis.size))
+                    .fixedLineHeight(layout.synopsis.line, relativeTo: .subheadline)
                     .foregroundStyle(.haze)
                     .lineLimit(lines)
                     .fixedSize(horizontal: false, vertical: true)

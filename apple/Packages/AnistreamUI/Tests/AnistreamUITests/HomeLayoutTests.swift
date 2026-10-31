@@ -65,5 +65,18 @@ struct HomeLayoutTests {
         let fitted = NSHostingController(rootView: row).sizeThatFits(in: CGSize(width: width, height: 2_000))
         #expect(fitted.width <= width + 0.01)
     }
+
+    /// The board's columns keep the text beside the art; a narrow window stacks it, as a phone does.
+    @Test func theSpotlightStacksOnlyWhereTheTextWouldBeTooNarrow() {
+        #expect(HomeSpotlightView.beside(HomeLayout(surface: .mac), contentWidth: 992))
+        #expect(HomeSpotlightView.beside(HomeLayout(surface: .padWide), contentWidth: 1_116))
+        #expect(HomeSpotlightView.beside(HomeLayout(surface: .padUpright), contentWidth: 772))
+        #expect(!HomeSpotlightView.beside(HomeLayout(surface: .mac), contentWidth: 760))
+        #expect(!HomeSpotlightView.beside(HomeLayout(surface: .phone), contentWidth: 1_000))
+        // The board's art widths: 560, 620 and 392 of those columns.
+        #expect(abs(992 * HomeLayout(surface: .mac).artShare - 560) < 1)
+        #expect(abs(1_116 * HomeLayout(surface: .padWide).artShare - 620) < 1)
+        #expect(abs(772 * HomeLayout(surface: .padUpright).artShare - 392) < 1)
+    }
 }
 #endif

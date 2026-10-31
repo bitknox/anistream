@@ -28,6 +28,12 @@ public enum MotionDemo: String, CaseIterable, Sendable {
     /// The Mac's hover card: a pointer path rests on a cover, hands the card to the next cover
     /// and leaves it (the hover card board's Motion studies).
     case hover
+    /// Home: the spotlight's episode marked watched, the spotlight moving on (Home board,
+    /// prototype 2).
+    case homeWatched
+    /// Home: Not interested on the first poster that is not Continue's or the week's (Home
+    /// board, prototype 6).
+    case homeHide
 
     /// The one the launch arguments name.
     public static func from(arguments: [String] = ProcessInfo.processInfo.arguments) -> MotionDemo? {
@@ -78,6 +84,14 @@ public enum MotionDemo: String, CaseIterable, Sendable {
             #if os(macOS)
             HoverCardScript.requested = true
             #endif
+        case .homeWatched:
+            guard let spot = store.discovery.view?.spotlight else { return }
+            store.send(.setWatched(id: spot.entry.id, episodes: [String(spot.episode)], watched: true))
+            navigator.watchedByHand += 1
+        case .homeHide:
+            let shelves = store.discovery.view?.sections.filter { $0.kind != .continue && $0.kind != .thisWeek } ?? []
+            guard let item = shelves.first?.items.first else { return }
+            store.notInterested(item.entry, title: item.entry.showTitle, unaired: item.starts != nil)
         }
     }
 }

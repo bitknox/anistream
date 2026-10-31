@@ -418,15 +418,4 @@ extension AppStore {
         return HoverCardSize.height(synopsis: synopsis, action: action, reason: reason)
     }
 }
-
-extension Entry {
-    /// The card's facts line: "TV · 24 episodes · Autumn 2026", set in caps on the card.
-    var hoverFacts: String {
-        var parts: [String] = adult ? ["18+"] : []
-        if let format { parts.append(TitleWords.format(format)) }
-        if let episodes, episodes > 0, format != "MOVIE" { parts.append(L.episodesCount(count: Int(episodes))) }
-        if let seasonWords { parts.append(seasonWords) }
-        return parts.joined(separator: " · ")
-    }
-}
 #endif

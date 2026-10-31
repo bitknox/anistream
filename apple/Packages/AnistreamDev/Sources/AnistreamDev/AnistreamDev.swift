@@ -119,7 +119,8 @@ final class Delegate: NSObject, NSApplicationDelegate {
             window.setContentSize(NSSize(width: options.width, height: options.height))
         }
         _ = player
-        let settled = await store.settle()
+        var settled = await store.settle()
+        if store.applyGoOfflineArgument() { settled = await store.settle() }
         store.applyShowcase()
         // A launch sheet whose button the showcase puts up (sheet=proxy) opens only once it is
         // there: wait for the sheet to be taken, and for it to slide in.

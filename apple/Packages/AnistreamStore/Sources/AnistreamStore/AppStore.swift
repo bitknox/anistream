@@ -241,6 +241,12 @@ public final class AppStore {
         client?.engine.testingTroubleArt(failFirst: UInt32(max(0, failFirst)), delayMs: UInt32(max(0, ms)))
     }
 
+    /// Take the fake AniList away, or bring it back, and tell the engine the path is offline or
+    /// online (the testing engine's `testingSetOffline`). The Fixtures app only.
+    public func setFakeOffline(_ offline: Bool) {
+        client?.engine.testingSetOffline(offline: offline)
+    }
+
     /// A Syncplay server on the loopback interface beside the engine, with members a screenshot
     /// run plays (`startFakeParty`). The Fixtures app only.
     public func startFakeParty() -> FfiFakeParty? {

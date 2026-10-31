@@ -10,7 +10,7 @@ import SwiftUI
 struct HomeSectionView: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @Environment(\.homeWide) private var wide
+    @Environment(\.homeLayout) private var layout
     let section: HomeSection
     let items: [HomeItem]
     let season: SeasonYear?
@@ -20,7 +20,7 @@ struct HomeSectionView: View {
             header
             switch section.kind {
             case .continue:
-                HomeShelf(spacing: 12) {
+                HomeShelf(spacing: layout.cardGap) {
                     ForEach(items, id: \.entry.id) { item in
                         HomeContinueCard(item: item).transition(.opacity)
                     }
@@ -28,7 +28,7 @@ struct HomeSectionView: View {
             case .thisWeek:
                 HomeWeek(items: items)
             default:
-                HomeShelf(spacing: 12) {
+                HomeShelf(spacing: layout.cardGap) {
                     ForEach(items, id: \.entry.id) { item in
                         HomePosterCard(item: item, kind: section.kind).transition(.opacity)
                     }
@@ -40,16 +40,21 @@ struct HomeSectionView: View {
 
     // MARK: Heading
 
+    /// The heading, its count or season beside it in haze, and its link at the end in silk.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(headingText)
-                .font(.ui(20, weight: .semibold))
+            Text(section.title.text)
+                .font(.ui(layout.heading.size, weight: layout.heading.weight))
+                .fixedLineHeight(layout.heading.line, relativeTo: .title3)
                 .foregroundStyle(.silk)
                 .accessibilityAddTraits(.isHeader)
-            if section.kind == .continue, section.total > UInt32(items.count), section.total > 12 {
-                Text(L.homeContinueCount(count: Int(section.total)))
-                    .font(.ui(15))
+                .accessibilityLabel(Text(headingText))
+            if let beside {
+                Text(beside)
+                    .font(.ui(layout.secondary))
                     .foregroundStyle(.haze)
+                    .lineLimit(1)
+                    .accessibilityHidden(true)
             }
             Spacer(minLength: 8)
             if section.kind == .thisWeek || section.kind == .airingToday {
@@ -60,12 +65,20 @@ struct HomeSectionView: View {
         }
     }
 
-    /// The engine's heading, with the season beside This season.
+    /// The words beside the heading: the season beside This season, the count of a long Continue.
+    private var beside: String? {
+        if section.kind == .thisSeason, let season {
+            return L.seasonWithYear(season: TitleWords.season(season.season), year: String(season.year))
+        }
+        if section.kind == .continue, section.total > UInt32(items.count), section.total > 12 {
+            return L.homeContinueCount(count: Int(section.total))
+        }
+        return nil
+    }
+
+    /// The heading as VoiceOver says it, with the words beside it.
     private var headingText: String {
-        let title = section.title.text
-        guard section.kind == .thisSeason, let season else { return title }
-        let words = L.seasonWithYear(season: TitleWords.season(season.season), year: String(season.year))
-        return "\(title) · \(words)"
+        [section.title.text, beside].compactMap { $0 }.joined(separator: ", ")
     }
 
     private func linkTitle(_ target: HomeLink) -> String {
@@ -90,11 +103,16 @@ struct HomeSectionView: View {
 
     private func link(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.ui(wide ? 13 : 15, weight: .medium))
-                .foregroundStyle(.haze)
-                .frame(minHeight: wide ? 24 : 44)
-                .contentShape(.rect)
+            HStack(spacing: 4) {
+                Text(title)
+                Image(systemName: "chevron.right")
+                    .font(.ui(layout.secondary - 2, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .font(.ui(layout.secondary, weight: .semibold))
+            .foregroundStyle(.silk)
+            .frame(minHeight: layout.surface == .mac ? 24 : 44)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .pointerHover()
@@ -167,7 +185,8 @@ struct HomeShelf<Content: View>: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .padding(forward ? .trailing : .leading, 8)
+            // Centred on the column's edge, half in the margin.
+            .offset(x: forward ? 18 : -18)
             .opacity(hovering && available ? 1 : 0)
             .allowsHitTesting(hovering && available)
             .accessibilityLabel(forward ? L.homeNext : L.homePrevious)
@@ -188,12 +207,12 @@ struct HomeShelf<Content: View>: View {
 struct HomeContinueCard: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @Environment(\.homeWide) private var wide
+    @Environment(\.homeLayout) private var layout
     let item: HomeItem
 
     var body: some View {
         let entry = store.titles[item.entry.id] ?? item.entry
-        let size = HomeMetrics.card(wide: wide)
+        let size = layout.card
         let art = store.heroArt(entry)
         Button {
             navigator.openTitle(entry.id)
@@ -206,7 +225,7 @@ struct HomeContinueCard: View {
                     } else {
                         HeroArtView(art: art, entry: entry)
                             .frame(width: size.width, height: size.height)
-                            .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                            .clipShape(.rect(cornerRadius: layout.cardRadius))
                     }
                 }
                 .matchedTransitionSourceIfAvailable(id: entry.id)
@@ -220,16 +239,18 @@ struct HomeContinueCard: View {
                 }
                 .padding(.top, 6)
                 Text(entry.showTitle)
-                    .font(.showTitle(size: wide ? 15 : 17, relativeTo: .body))
+                    .font(.showTitle(size: layout.cardTitle.size, relativeTo: .body))
+                    .fixedLineHeight(layout.cardTitle.line)
                     .foregroundStyle(.silk)
                     .lineLimit(1)
-                    .padding(.top, 6)
+                    .padding(.top, 8)
                 HStack(spacing: 6) {
                     if item.new { Circle().fill(.water).frame(width: 6, height: 6).accessibilityHidden(true) }
                     Text(HomeCardLine.text(item, store: store))
                         .lineLimit(1)
                 }
-                .font(.ui(wide ? 13 : 15))
+                .font(.ui(layout.cardLine.size))
+                .fixedLineHeight(layout.cardLine.line, relativeTo: .footnote)
                 .foregroundStyle(.haze)
             }
             .frame(width: size.width, alignment: .leading)
@@ -253,13 +274,13 @@ struct HomeContinueCard: View {
 struct HomePosterCard: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @Environment(\.homeWide) private var wide
+    @Environment(\.homeLayout) private var layout
     let item: HomeItem
     let kind: SectionKind
 
     var body: some View {
         let entry = store.titles[item.entry.id] ?? item.entry
-        let size = HomeMetrics.poster(wide: wide)
+        let size = layout.poster
         Button {
             navigator.openTitle(entry.id)
         } label: {
@@ -271,7 +292,8 @@ struct HomePosterCard: View {
                     .hoverCardSource(entry)
                     #endif
                 Text(entry.showTitle)
-                    .font(.showTitle(size: wide ? 15 : 17, relativeTo: .body))
+                    .font(.showTitle(size: layout.posterTitle.size, relativeTo: .body))
+                    .fixedLineHeight(layout.posterTitle.line)
                     .foregroundStyle(.silk)
                     .lineLimit(1)
                     .padding(.top, 8)
@@ -279,7 +301,8 @@ struct HomePosterCard: View {
                     if item.new { Circle().fill(.water).frame(width: 6, height: 6).accessibilityHidden(true) }
                     Text(HomeCardLine.text(item, store: store)).lineLimit(1)
                 }
-                .font(.ui(wide ? 13 : 15))
+                .font(.ui(layout.posterLine.size))
+                .fixedLineHeight(layout.posterLine.line, relativeTo: .footnote)
                 .foregroundStyle(.haze)
                 .padding(.top, 2)
             }
@@ -365,25 +388,34 @@ struct HomeCardMenu: View {
 
 // MARK: - This week
 
-/// The next seven days from today: seven columns on a desktop, the next three days as a list on a
-/// phone.
+/// The next days from today under a faint rule: seven columns on a Mac and an iPad across, four on
+/// an iPad upright, and on a phone a strip of all seven that scrolls sideways.
 struct HomeWeek: View {
-    @Environment(\.homeWide) private var wide
+    @Environment(\.homeLayout) private var layout
     let items: [HomeItem]
 
     var body: some View {
         let days = Dictionary(grouping: items, by: { Int($0.day ?? 0) })
-        if wide {
-            HStack(alignment: .top, spacing: 12) {
-                ForEach(0..<7, id: \.self) { day in
-                    HomeDayColumn(day: day, items: days[day] ?? [])
+        VStack(alignment: .leading, spacing: 12) {
+            Rectangle().fill(Palette.faintRule).frame(height: 1).accessibilityHidden(true)
+            if layout.wide {
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(0..<layout.weekColumns, id: \.self) { day in
+                        HomeDayColumn(day: day, items: days[day] ?? [])
+                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
+                    }
                 }
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 18) {
-                ForEach(0..<3, id: \.self) { day in
-                    HomeDayList(day: day, items: days[day] ?? [])
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(alignment: .top, spacing: 16) {
+                        ForEach(0..<7, id: \.self) { day in
+                            HomeDayColumn(day: day, items: days[day] ?? [])
+                                .frame(width: 150, alignment: .topLeading)
+                        }
+                    }
                 }
+                .scrollIndicators(.never)
+                .scrollClipDisabled()
             }
         }
     }
@@ -397,6 +429,7 @@ struct HomeWeek: View {
     }
 }
 
+/// A day: its name, up to three broadcasts and how many more, or Nothing airing.
 private struct HomeDayColumn: View {
     @Environment(Navigator.self) private var navigator
     let day: Int
@@ -404,13 +437,17 @@ private struct HomeDayColumn: View {
     private let shown = 3
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(HomeWeek.label(day))
-                .font(.ui(13, weight: .semibold))
+                .font(.ui(12, weight: .semibold))
+                .fixedLineHeight(16, relativeTo: .caption)
                 .foregroundStyle(day == 0 ? .silk : .haze)
                 .accessibilityAddTraits(.isHeader)
             if items.isEmpty {
-                Text(L.homeNothingAiring).font(.ui(13)).foregroundStyle(.haze)
+                Text(L.homeNothingAiring)
+                    .font(.ui(12))
+                    .fixedLineHeight(16, relativeTo: .caption)
+                    .foregroundStyle(.haze)
             } else {
                 ForEach(items.prefix(shown), id: \.entry.id) { item in
                     HomeWeekCell(item: item)
@@ -418,65 +455,57 @@ private struct HomeDayColumn: View {
                 if items.count > shown {
                     Button(L.homeDayMore(count: items.count - shown)) { navigator.open(.calendar) }
                         .buttonStyle(.plain)
-                        .font(.ui(13))
-                        .foregroundStyle(.haze)
+                        .font(.ui(12, weight: .medium))
+                        .underline()
+                        .foregroundStyle(.silk)
                         .pointerHover()
                 }
             }
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(day == 0 ? Palette.raised : .clear, in: .rect(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(day == 0 ? .clear : Palette.faintRule))
     }
 }
 
-private struct HomeDayList: View {
-    let day: Int
-    let items: [HomeItem]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(HomeWeek.label(day))
-                .font(.ui(15, weight: .semibold))
-                .foregroundStyle(day == 0 ? .silk : .haze)
-                .accessibilityAddTraits(.isHeader)
-            if items.isEmpty {
-                Text(L.homeNothingAiring).font(.ui(15)).foregroundStyle(.haze)
-            } else {
-                ForEach(items, id: \.entry.id) { item in HomeWeekCell(item: item) }
-            }
-        }
-    }
-}
-
-/// One broadcast of the week: its cover, the title and when it airs.
+/// One broadcast: its cover, then when it airs (or that it is out), the title and the episode.
 private struct HomeWeekCell: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.homeLayout) private var layout
     let item: HomeItem
 
     var body: some View {
         let entry = store.titles[item.entry.id] ?? item.entry
+        let cover = layout.weekCover
         Button {
             navigator.openTitle(entry.id)
         } label: {
-            HStack(spacing: 10) {
-                ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 120)
-                    .frame(width: 32, height: 48)
-                    .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: 32)))
-                VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .top, spacing: 8) {
+                ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 140)
+                    .frame(width: cover, height: cover * 1.5)
+                    .clipShape(.rect(cornerRadius: 4))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        if item.new { Circle().fill(.water).frame(width: 6, height: 6).accessibilityHidden(true) }
+                        Text(HomeCardLine.text(item, store: store))
+                            .lineLimit(1)
+                    }
+                    .font(.ui(12, weight: .semibold))
+                    .monospacedDigit()
+                    .fixedLineHeight(16, relativeTo: .caption)
+                    .foregroundStyle(.silk)
                     Text(entry.showTitle)
                         .font(.showTitle(size: 13, relativeTo: .footnote))
+                        .fixedLineHeight(17, relativeTo: .footnote)
                         .foregroundStyle(.silk)
                         .lineLimit(2)
-                    Text(HomeCardLine.text(item, store: store))
-                        .font(.ui(12))
-                        .monospacedDigit()
-                        .foregroundStyle(.haze)
-                        .lineLimit(1)
+                    if let episode = item.episode {
+                        Text(L.episodeNumber(number: Int(episode)))
+                            .font(.ui(12))
+                            .fixedLineHeight(16, relativeTo: .caption)
+                            .foregroundStyle(.haze)
+                            .lineLimit(1)
+                    }
                 }
-                Spacer(minLength: 0)
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             }
             .contentShape(.rect)
         }

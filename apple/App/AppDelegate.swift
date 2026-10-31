@@ -181,6 +181,9 @@ final class AppDelegate: NSObject {
         // What apple/scripts/shots.sh waits for before it takes a screenshot, flushed because
         // the Simulator writes the app's output to a file, which would hold it back.
         var ready = await store.settle()
+        #if FIXTURES
+        if store.applyGoOfflineArgument() { ready = await store.settle() }
+        #endif
         store.applyShowcase()
         #if FIXTURES
         // A launch sheet whose row the showcase puts up (sheet=proxy) opens only once it is

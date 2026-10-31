@@ -499,8 +499,9 @@ struct PhoneLibrary: View {
                     }
                     .padding(.horizontal, 16)
                 }
-            } else if sizeClass == .regular, navigator.librarySegment == .watching {
-                // Watching is the queue with the selected title beside it.
+            } else if navigator.librarySegment == .watching {
+                // Watching is the queue, as Home's View all promises: the selected title beside
+                // it where it fits, and on a phone the list alone, a row opening its title.
                 VStack(alignment: .leading, spacing: 12) {
                     DownloadsRow().padding(.top, 8).padding(.horizontal, 16)
                     chips

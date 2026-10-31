@@ -23,7 +23,8 @@
 # episodes marked watched as the shot starts (900006:8 is caught up), and
 # fold=open, the title page's watched episodes opened, world=1, Home's invented season of ten
 # drawn titles (with the scenes suggested, oneleft, continuefull, notfound, slow, failed and offline,
-# which stage Home's states):
+# which stage Home's states), and offline=1, the fake AniList gone once the first Home has loaded,
+# for Home's offline line over what it kept:
 #
 #   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
 #   apple/scripts/shots.sh mac watching:settings+pane=sources+showcase=sources
@@ -43,7 +44,8 @@
 # - iphone, ipad: the Anistream Fixtures app, built for the Simulator and run on a device of its own
 #   ("anistream iPhone", "anistream iPad", made on first use, or the one ANISTREAM_SIMULATOR names),
 #   with a clean status bar at 9:41 and the dark appearance. The iPad runs its apps full screen, not
-#   in windows. The app prints ANISTREAM_READY once settled; the shot is taken then.
+#   in windows. The app prints ANISTREAM_READY once settled; the shot is taken then, and a launch
+#   that never says so stops the run with its console kept beside the shots.
 #
 # The Simulator is shot in portrait. --landscape turns the device first (devicectl's orientation
 # command), and the files are named <device>-landscape-<shot>.png.
@@ -119,6 +121,7 @@ arguments() {
       day=*) printf '%s\n' -AnistreamDay "${screen#day=}" ;;
       mine=*) printf '%s\n' -AnistreamCalendarMine "${screen#mine=}" ;;
       world=*) printf '%s\n' -AnistreamHomeWorld "${screen#world=}" ;;
+      offline=*) printf '%s\n' -AnistreamGoOffline "${screen#offline=}" ;;
       *) printf '%s\n' -AnistreamSection "$screen" ;;
     esac
   done
@@ -237,13 +240,27 @@ for shot in "${shots[@]}"; do
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
   # Attached to the app's console, which ends when the app is terminated: the app's output
   # reaches a file this way, where --stdout leaves it empty.
-  xcrun simctl launch --console-pty "$udid" tv.anistream.fixtures "${args[@]}" >"$log" 2>&1 &
+  # --terminate-running-process: a launch that finds the app still running, as it is while the
+  # last one is still going away, only brings that process forward, with its own arguments and
+  # no console here. The shot would then be of the wrong scene.
+  xcrun simctl launch --console-pty --terminate-running-process "$udid" tv.anistream.fixtures \
+    "${args[@]}" >"$log" 2>&1 &
   ready=0
   for _ in $(seq 1 120); do
     if grep -q ANISTREAM_READY "$log"; then ready=1; break; fi
     sleep 0.5
   done
-  (( ready )) || echo "shots.sh: the app did not say it was ready; taking the shot anyway" >&2
+  if (( ! ready )); then
+    # No shot of a screen that never said it was ready: the console is kept to say why.
+    kept="$out/$prefix-$(name "$shot").log"
+    cp "$log" "$kept"
+    echo "shots.sh: the app did not say it was ready for $shot; its console is in $kept" >&2
+    tail -n 20 "$kept" >&2
+    xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
+    wait
+    rm -f "$log"
+    exit 1
+  fi
   # The art's and the preview's fade-ins, and ANISTREAM_SHOT_WAIT seconds more for a trailer.
   sleep "$(echo "0.5 + ${ANISTREAM_SHOT_WAIT:-0}" | bc)"
   xcrun simctl io "$udid" screenshot --type=png "$out/$prefix-$(name "$shot").png" >/dev/null
