@@ -64,14 +64,19 @@ pub use player::{
 pub use remote::{FfiAdvert, FfiPairedPhone, FfiScreen, FfiTvRemote, FfiTxtPair};
 #[cfg(feature = "testing")]
 pub use scenes::FfiScene;
-#[cfg(all(feature = "remote", feature = "testing"))]
-pub use sender::FfiFakeTv;
+#[cfg(feature = "remote")]
+pub use sender::{
+    FfiCastBrowser, FfiCastCard, FfiCastRouteHint, FfiCastRow, FfiCastSession, FfiCastSink,
+    FfiVolumeControl,
+};
 #[cfg(feature = "remote")]
 pub use sender::{
     FfiDiscoverySink, FfiLinkPhase, FfiNowCard, FfiPairedTv, FfiRemoteCard, FfiSkipCard,
     FfiTvBrowser, FfiTvCommand, FfiTvError, FfiTvLink, FfiTvPairing, FfiTvProblem, FfiTvRow,
     FfiTvRowKind, FfiTvSender, FfiTvTrack, FfiTvTrackKind, tv_playhead,
 };
+#[cfg(all(feature = "remote", feature = "testing"))]
+pub use sender::{FfiFakeCast, FfiFakeCastOptions, FfiFakeTv};
 pub use start::{FfiBackground, FfiDirs, FfiError, FfiPlatform, FfiStart, SecretsMode};
 
 /// Each command and event, written as the bindings write it and read back: what a front end sends
@@ -165,6 +170,9 @@ mod tests {
             Command::DismissUpNext { id: AnilistId::new(900_004) },
             Command::RestoreUpNext { id: AnilistId::new(900_004) },
             Command::LoadSearchFacets,
+            Command::LoadHome { refresh: true },
+            Command::ProbeTitle { id: AnilistId::new(900_004) },
+            Command::LoadHiddenTitles,
         ];
         for command in commands {
             assert_eq!(crossed(command.clone()), command);
@@ -192,6 +200,7 @@ mod tests {
             trakt_client_id: Some("a-trakt-client".into()),
             trakt_client_secret: Some("a-trakt-secret".into()),
             secrets: Some(SecretsMode::FollowConfig),
+            language: Some("da".into()),
         };
         assert_eq!(crossed(start.clone()), start);
         assert_eq!(crossed(FfiStart::default()), FfiStart::default());
@@ -851,6 +860,84 @@ mod tests {
             id: AnilistId::new(900_002),
             aired: Aired { episode: 4, ago: 3_600 },
         }]));
+    }
+
+    #[test]
+    fn home_crosses_with_its_spotlight_sections_and_hidden_titles() {
+        use anistream_model::{
+            Msg,
+            home::{
+                HiddenTitle, HomeAction, HomeEnd, HomeItem, HomeLink, HomePart, HomeSection,
+                HomeView, Playable, SectionKind, Spotlight, SpotlightCase,
+            },
+            up_next::UpNextReason,
+        };
+        let mut entry = Entry::new(AnilistId::new(900_002), "Kaze no Tegami");
+        entry.progress = Some(TitleProgress { done: 3, next: 4 });
+        let resume = Some(ResumePoint { position: 754.5, fraction: Some(0.52) });
+        let starts =
+            Some(anistream_model::catalog::FuzzyDate { year: 2027, month: Some(1), day: None });
+        let item = HomeItem {
+            entry: entry.clone(),
+            action: HomeAction::Resume,
+            line: Some(Msg::HomeEpisodeOutToday { episode: 4 }),
+            episode: Some(4),
+            resume,
+            progress: Some(0.52),
+            new: true,
+            airs_at: Some(1_800_000_000),
+            day: Some(2),
+            reason: Some(UpNextReason::NewSeason),
+            starts,
+            playable: Playable::NotFound,
+            because: Some("Stardust Wayfarer".into()),
+        };
+        crosses_intact(Event::Home(Box::new(HomeView {
+            spotlight: Some(Spotlight {
+                case: SpotlightCase::Suggested,
+                label: Msg::HomeSpotlightNewSeason { title: "Stardust Wayfarer".into() },
+                entry: entry.clone(),
+                episode: 1,
+                action: HomeAction::AddToPlanning,
+                reason: Some(UpNextReason::NewSeason),
+                resume,
+                starts,
+                playable: Playable::Found,
+                line: Some(Msg::HomeTimeLeft { episode: 3, minutes: 12 }),
+                because: Some("Stardust Wayfarer".into()),
+            }),
+            sections: vec![
+                HomeSection {
+                    kind: SectionKind::Continue,
+                    title: Msg::HomeContinue,
+                    items: vec![item.clone()],
+                    total: 14,
+                    view_all: Some(HomeLink::Watching),
+                },
+                HomeSection {
+                    kind: SectionKind::MoreGenre,
+                    title: Msg::HomeMoreGenre { genre: "Mecha".into() },
+                    items: vec![item],
+                    total: 1,
+                    view_all: Some(HomeLink::Browse { query: every_filter() }),
+                },
+            ],
+            pending: vec![HomePart::Week, HomePart::Season],
+            end: Some(HomeEnd::NoSources),
+            offline: true,
+            offline_since: Some(1_799_990_000),
+            failed: true,
+            season: Some(anistream_model::present::SeasonYear {
+                season: anistream_model::catalog::Season::Fall,
+                year: 2026,
+            }),
+        })));
+        crosses_intact(Event::Home(Box::default()));
+        crosses_intact(Event::TitlePlayable {
+            id: AnilistId::new(900_002),
+            playable: Playable::NotFound,
+        });
+        crosses_intact(Event::HiddenTitles(vec![HiddenTitle { entry, until_airs: true }]));
     }
 
     #[test]

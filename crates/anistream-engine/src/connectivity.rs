@@ -82,6 +82,7 @@ fn refreshes(command: &Command) -> bool {
             | Command::Search { .. }
             | Command::LoadBrowse
             | Command::LoadUpNext
+            | Command::LoadHome { .. }
             | Command::LoadSearchFacets
             | Command::LoadDetail(_)
             | Command::LoadEpisodes(_)

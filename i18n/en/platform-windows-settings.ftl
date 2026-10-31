@@ -225,3 +225,11 @@ torrents-choice-spoken = { $label }. { $detail }
 # @only windows
 # @max 240
 settings-note-trailers-windows = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.
+
+# Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+# @only windows
+settings-note-cast-tvs-pc = They appear under Chromecast in Play on TV. This PC sends them the episode.
+
+# Note under the Torrents while casting setting, shown while torrents are on.
+# @only windows
+settings-note-torrents-while-casting-pc = Lets a TV with Chromecast built in play torrents. This PC sends the episode for as long as it plays.

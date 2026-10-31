@@ -1,0 +1,11 @@
+onboarding-welcome = Добро пожаловать
+onboarding-welcome-to = Добро пожаловать в { -app-name }
+onboarding-tagline = Ведите список аниме и смотрите его через { -source-pl }, которые вы выбираете.
+onboarding-continue = { -continue-cap }
+onboarding-skip = Пропустить
+onboarding-skip-for-now = Пропустить пока
+onboarding-not-now = Не сейчас
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl }: это { -plugin-pl }, которыми делятся через { -plugin-store-pl } по приглашению.
+onboarding-join = Подключиться
+onboarding-invite-hint = Ссылка-приглашение

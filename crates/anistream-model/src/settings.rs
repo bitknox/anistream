@@ -117,6 +117,13 @@ pub enum SettingKey {
     /// Whether Calendar shows only the shows on the person's list rather than everything
     /// airing. Off by default, so Calendar opens on All, and remembered from the last pick.
     CalendarMine,
+    /// Whether the TV picker lists TVs with Chromecast built in, and looks for them. On by
+    /// default; under Play on TV.
+    CastTvs,
+    /// Whether a cast plays from torrents, which this device serves for the whole episode. Off
+    /// on phones and tablets and on elsewhere, until chosen; under Sources, shown while
+    /// torrents are on. Off, a torrent is passed over for a cast and the next source tried.
+    TorrentsWhileCasting,
     /// Whether a cover the pointer rests on grows into a card with the title's details and its
     /// trailer, where trailers may play: the Mac's grids, and the desktop apps' later. On by
     /// default. With it off, a cover opens its title on a click and shows nothing on hover.
@@ -167,7 +174,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 16] = [
+    pub const NATIVE_ROWS: [Self; 18] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -183,6 +190,8 @@ impl SettingKey {
         Self::ControllerInput,
         Self::SwapFaceButtons,
         Self::CalendarMine,
+        Self::CastTvs,
+        Self::TorrentsWhileCasting,
         Self::HoverCards,
     ];
 
@@ -201,6 +210,8 @@ impl SettingKey {
             Self::ControllerInput => (&["controller"], "enabled"),
             Self::SwapFaceButtons => (&["controller"], "swap_face"),
             Self::CalendarMine => (&["meta"], "calendar_mine"),
+            Self::CastTvs => (&["cast"], "show_tvs"),
+            Self::TorrentsWhileCasting => (&["providers", "torrent"], "while_casting"),
             Self::HoverCards => (&["theme"], "hover_cards"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
@@ -329,6 +340,10 @@ impl SettingKey {
             Self::ControllerInput => to.controller.enabled = from.controller.enabled,
             Self::SwapFaceButtons => to.controller.swap_face = from.controller.swap_face,
             Self::CalendarMine => to.meta.calendar_mine = from.meta.calendar_mine,
+            Self::CastTvs => to.cast.show_tvs = from.cast.show_tvs,
+            Self::TorrentsWhileCasting => {
+                to.providers.torrent.while_casting = from.providers.torrent.while_casting;
+            }
             Self::HoverCards => to.theme.hover_cards = from.theme.hover_cards,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
@@ -394,6 +409,7 @@ impl SettingKey {
             | Self::UploadLimit
             | Self::SourceOrder
             | Self::TorrentsOnCellular
+            | Self::TorrentsWhileCasting
             | Self::VpnOnFailure => "sources",
             Self::Presence
             | Self::PresenceTitle
@@ -404,7 +420,8 @@ impl SettingKey {
             | Self::SyncplayRoom
             | Self::UpdateCheck
             | Self::EpisodeDiscussions
-            | Self::CommentImages => "integrations",
+            | Self::CommentImages
+            | Self::CastTvs => "integrations",
             Self::EpisodeNotifications => "notifications",
             Self::MpvOptions => "advanced",
         }
@@ -465,11 +482,19 @@ impl SettingKey {
             Self::ControllerInput => "use a controller",
             Self::SwapFaceButtons => "swap a and b",
             Self::CalendarMine => "calendar shows only my list",
+            Self::CastTvs => "show tvs with chromecast built in",
+            Self::TorrentsWhileCasting => "torrents while casting",
             Self::HoverCards => "expand covers on hover",
             Self::EpisodeNotifications => "new episode notifications",
             Self::MpvOptions => "mpv options",
         }
     }
+}
+
+/// Whether a cast plays from torrents. The engine fills the setting in at launch from the
+/// device it runs on; unset here is a computer's default, on.
+pub fn while_casting(config: &Config) -> bool {
+    config.providers.torrent.while_casting.unwrap_or(true)
 }
 
 /// Whether writing this setting changes which sources exist, and so needs the chain rebuilt.
@@ -777,6 +802,8 @@ pub fn step(
         SettingKey::ControllerInput => V::Bool(!effective.controller.enabled),
         SettingKey::SwapFaceButtons => V::Bool(!effective.controller.swap_face),
         SettingKey::CalendarMine => V::Bool(!effective.meta.calendar_mine),
+        SettingKey::CastTvs => V::Bool(!effective.cast.show_tvs),
+        SettingKey::TorrentsWhileCasting => V::Bool(!while_casting(effective)),
         SettingKey::HoverCards => V::Bool(!effective.theme.hover_cards),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
@@ -936,6 +963,10 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::ControllerInput, V::Bool(on)) => config.controller.enabled = *on,
         (SettingKey::SwapFaceButtons, V::Bool(on)) => config.controller.swap_face = *on,
         (SettingKey::CalendarMine, V::Bool(on)) => config.meta.calendar_mine = *on,
+        (SettingKey::CastTvs, V::Bool(on)) => config.cast.show_tvs = *on,
+        (SettingKey::TorrentsWhileCasting, V::Bool(on)) => {
+            config.providers.torrent.while_casting = Some(*on);
+        }
         (SettingKey::HoverCards, V::Bool(on)) => config.theme.hover_cards = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
@@ -1074,6 +1105,8 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::ControllerInput => on_off(effective.controller.enabled),
         SettingKey::SwapFaceButtons => on_off(effective.controller.swap_face),
         SettingKey::CalendarMine => on_off(effective.meta.calendar_mine),
+        SettingKey::CastTvs => on_off(effective.cast.show_tvs),
+        SettingKey::TorrentsWhileCasting => on_off(while_casting(effective)),
         SettingKey::HoverCards => on_off(effective.theme.hover_cards),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
@@ -1147,6 +1180,8 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::ControllerInput => c.controller.enabled,
         S::SwapFaceButtons => c.controller.swap_face,
         S::CalendarMine => c.meta.calendar_mine,
+        S::CastTvs => c.cast.show_tvs,
+        S::TorrentsWhileCasting => while_casting(c),
         S::HoverCards => c.theme.hover_cards,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
@@ -1414,6 +1449,8 @@ mod tests {
                 (SettingKey::ControllerInput, "on"),
                 (SettingKey::SwapFaceButtons, "off"),
                 (SettingKey::CalendarMine, "off"),
+                (SettingKey::CastTvs, "on"),
+                (SettingKey::TorrentsWhileCasting, "on"),
                 (SettingKey::HoverCards, "on"),
             ]
         );

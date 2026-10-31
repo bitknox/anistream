@@ -31,21 +31,21 @@ title-rating-2 = ひどい
 title-rating-1 = 最悪
 title-season = シーズン { $number }
 title-relation-prequel = 前作
-title-relation-parent = 原作
+title-relation-parent = 元作品
 title-relation-sequel = 続編
 title-source-automatic = 自動（最適な{ -source }）
-title-source-failing = 失敗中
+title-source-failing = エラー
 title-release-first = { -source }が最上位に挙げる{ -release }
 title-release-seeders = { $count ->
    *[other] シーダー { $count }
  }
 title-available-on = 配信先: { $services }
 title-up-next = { -up-next-cap }: 第{ $next }話
-title-progress-aired = 放送済み{ $aired }話中{ $done }話
+title-progress-aired = 放送済み{ $aired }話のうち{ $done }話を視聴
 title-progress-watched = { $done }話視聴済み
 episodes-heading = エピソード
 episodes-column-title = タイトル
-episodes-column-run = 時間
+episodes-column-run = 再生時間
 episodes-column-watched = 視聴
 episodes-done = 完了
 episodes-airs-in = あと{ $span }

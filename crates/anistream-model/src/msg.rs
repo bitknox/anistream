@@ -15,28 +15,36 @@ pub enum Msg {
     CastEpisode { episode: String },
     /// What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
     CastEpisodeTitled { episode: String, title: String },
-    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-    NoticeCastVideoCodec { codec: String },
-    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-    NoticeCastAudioCodec { codec: String },
-    /// The stream comes in a kind of file the TV can't read.
-    NoticeCastContainer,
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+    NoticeCastVideoCodec { name: String, codec: String },
+    /// The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+    NoticeCastAudioCodec { name: String, codec: String },
+    /// The stream comes in a kind of file the TV can't read. The name is the TV's own.
+    NoticeCastContainer { name: String },
     /// The episode opens in another app, which this device can't cast.
     NoticeCastDeepLink,
-    /// The TV accepted the stream but never started reading it.
-    NoticeCastNeverFetches,
-    /// The TV tried every way of playing the stream and played none of them.
-    NoticeCastRefused,
-    /// Someone started something else on the TV, which ends the cast.
-    NoticeCastTakenOver,
-    /// This device isn't on the TV's network, or reaches it through a VPN.
-    NoticeCastNotSameNetwork,
-    /// The TV stopped answering mid-cast.
-    NoticeCastLost,
+    /// The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+    NoticeCastNeverFetches { name: String },
+    /// The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+    NoticeCastRefused { name: String },
+    /// Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+    NoticeCastTakenOver { name: String },
+    /// This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+    NoticeCastNotSameNetwork { name: String },
+    /// The TV stopped answering mid-cast. The name is the TV's own.
+    NoticeCastLost { name: String },
     /// The TV picked to cast to has left the network.
     NoticeCastNoDevice,
     /// This build of the app has no casting.
     NoticeCastUnavailable,
+    /// The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+    CastPhaseStarting { name: String },
+    /// The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+    CastPhaseStartingFor { name: String, seconds: i64 },
+    /// The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+    CastPhaseWaiting { name: String, seconds: i64 },
+    /// The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+    CastPhasePreparing { seconds: i64 },
     /// A comment's age, beside its author, when it was written under a minute ago.
     DiscussionAgeNow,
     /// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
@@ -55,6 +63,56 @@ pub enum Msg {
     NoticeCommentDeleteFailed,
     /// Toast when the viewer tried to like or post in a discussion without signing in to AniList.
     NoticeDiscussionSignIn,
+    /// Line over the spotlight's title when it is a show the person is part way through.
+    HomeSpotlightContinuing,
+    /// Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.
+    HomeSpotlightNewSeason { title: String },
+    /// Line over the spotlight's title when it is on the person's Planning list.
+    HomeSpotlightPlanning,
+    /// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+    HomeSpotlightBecause { title: String },
+    /// Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
+    HomeSpotlightRecommended,
+    /// Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
+    HomeSpotlightPopular,
+    /// Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+    HomeTimeLeft { episode: i64, minutes: i64 },
+    /// Line under the spotlight's title for a show part way through with its next episode waiting.
+    HomeEpisodeOut { episode: i64 },
+    /// Line under a { -continue-cap } card whose next episode came out today.
+    HomeEpisodeOutToday { episode: i64 },
+    /// Line under a poster on This season: the newest episode out.
+    HomeEpisodeOutShort { episode: i64 },
+    /// Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+    HomeOutAgo { ago: Span },
+    /// Short reason under a poster: a new season of a show the person finished.
+    HomeReasonNewSeason,
+    /// Short reason under a poster: the title is on the person's Planning list.
+    HomeReasonPlanning,
+    /// Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+    HomeReasonRecommended,
+    /// Heading over the shows the person is part way through.
+    HomeContinue,
+    /// Heading over next season's titles in the two weeks before it starts.
+    HomeStartingWinter,
+    /// Heading over next season's titles in the two weeks before it starts.
+    HomeStartingSpring,
+    /// Heading over next season's titles in the two weeks before it starts.
+    HomeStartingSummer,
+    /// Heading over next season's titles in the two weeks before it starts.
+    HomeStartingAutumn,
+    /// Heading over this week's episodes of the shows the person follows.
+    HomeThisWeek,
+    /// Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
+    HomeAiringToday,
+    /// Heading over the suggestions made from what the person watched and their lists.
+    HomeUpNext,
+    /// Heading over this season's most popular titles.
+    HomeThisSeason,
+    /// Heading over recommendations from one show the person finished and rated well. The title is that show.
+    HomeBecause { title: String },
+    /// Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
+    HomeMoreGenre { genre: String },
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     NoticeReason { reason: Cause },
     /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
@@ -451,15 +509,19 @@ impl Msg {
             Self::CastEpisodeTitled { .. } => "cast-episode-titled",
             Self::NoticeCastVideoCodec { .. } => "notice-cast-video-codec",
             Self::NoticeCastAudioCodec { .. } => "notice-cast-audio-codec",
-            Self::NoticeCastContainer => "notice-cast-container",
+            Self::NoticeCastContainer { .. } => "notice-cast-container",
             Self::NoticeCastDeepLink => "notice-cast-deep-link",
-            Self::NoticeCastNeverFetches => "notice-cast-never-fetches",
-            Self::NoticeCastRefused => "notice-cast-refused",
-            Self::NoticeCastTakenOver => "notice-cast-taken-over",
-            Self::NoticeCastNotSameNetwork => "notice-cast-not-same-network",
-            Self::NoticeCastLost => "notice-cast-lost",
+            Self::NoticeCastNeverFetches { .. } => "notice-cast-never-fetches",
+            Self::NoticeCastRefused { .. } => "notice-cast-refused",
+            Self::NoticeCastTakenOver { .. } => "notice-cast-taken-over",
+            Self::NoticeCastNotSameNetwork { .. } => "notice-cast-not-same-network",
+            Self::NoticeCastLost { .. } => "notice-cast-lost",
             Self::NoticeCastNoDevice => "notice-cast-no-device",
             Self::NoticeCastUnavailable => "notice-cast-unavailable",
+            Self::CastPhaseStarting { .. } => "cast-phase-starting",
+            Self::CastPhaseStartingFor { .. } => "cast-phase-starting-for",
+            Self::CastPhaseWaiting { .. } => "cast-phase-waiting",
+            Self::CastPhasePreparing { .. } => "cast-phase-preparing",
             Self::DiscussionAgeNow => "discussion-age-now",
             Self::DiscussionAgeMinutes { .. } => "discussion-age-minutes",
             Self::DiscussionAgeHours { .. } => "discussion-age-hours",
@@ -469,6 +531,31 @@ impl Msg {
             Self::NoticeCommentLikeFailed => "notice-comment-like-failed",
             Self::NoticeCommentDeleteFailed => "notice-comment-delete-failed",
             Self::NoticeDiscussionSignIn => "notice-discussion-sign-in",
+            Self::HomeSpotlightContinuing => "home-spotlight-continuing",
+            Self::HomeSpotlightNewSeason { .. } => "home-spotlight-new-season",
+            Self::HomeSpotlightPlanning => "home-spotlight-planning",
+            Self::HomeSpotlightBecause { .. } => "home-spotlight-because",
+            Self::HomeSpotlightRecommended => "home-spotlight-recommended",
+            Self::HomeSpotlightPopular => "home-spotlight-popular",
+            Self::HomeTimeLeft { .. } => "home-time-left",
+            Self::HomeEpisodeOut { .. } => "home-episode-out",
+            Self::HomeEpisodeOutToday { .. } => "home-episode-out-today",
+            Self::HomeEpisodeOutShort { .. } => "home-episode-out-short",
+            Self::HomeOutAgo { .. } => "home-out-ago",
+            Self::HomeReasonNewSeason => "home-reason-new-season",
+            Self::HomeReasonPlanning => "home-reason-planning",
+            Self::HomeReasonRecommended => "home-reason-recommended",
+            Self::HomeContinue => "home-continue",
+            Self::HomeStartingWinter => "home-starting-winter",
+            Self::HomeStartingSpring => "home-starting-spring",
+            Self::HomeStartingSummer => "home-starting-summer",
+            Self::HomeStartingAutumn => "home-starting-autumn",
+            Self::HomeThisWeek => "home-this-week",
+            Self::HomeAiringToday => "home-airing-today",
+            Self::HomeUpNext => "home-up-next",
+            Self::HomeThisSeason => "home-this-season",
+            Self::HomeBecause { .. } => "home-because",
+            Self::HomeMoreGenre { .. } => "home-more-genre",
             Self::NoticeReason { .. } => "notice-reason",
             Self::NoticeNotAired { .. } => "notice-not-aired",
             Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
@@ -670,17 +757,21 @@ impl Msg {
         match self {
             Self::CastEpisode { episode } => vec![("episode", Value::Text(episode.clone()))],
             Self::CastEpisodeTitled { episode, title } => vec![("episode", Value::Text(episode.clone())), ("title", Value::Text(title.clone()))],
-            Self::NoticeCastVideoCodec { codec } => vec![("codec", Value::Text(codec.clone()))],
-            Self::NoticeCastAudioCodec { codec } => vec![("codec", Value::Text(codec.clone()))],
-            Self::NoticeCastContainer => Vec::new(),
+            Self::NoticeCastVideoCodec { name, codec } => vec![("name", Value::Text(name.clone())), ("codec", Value::Text(codec.clone()))],
+            Self::NoticeCastAudioCodec { name, codec } => vec![("name", Value::Text(name.clone())), ("codec", Value::Text(codec.clone()))],
+            Self::NoticeCastContainer { name } => vec![("name", Value::Text(name.clone()))],
             Self::NoticeCastDeepLink => Vec::new(),
-            Self::NoticeCastNeverFetches => Vec::new(),
-            Self::NoticeCastRefused => Vec::new(),
-            Self::NoticeCastTakenOver => Vec::new(),
-            Self::NoticeCastNotSameNetwork => Vec::new(),
-            Self::NoticeCastLost => Vec::new(),
+            Self::NoticeCastNeverFetches { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastRefused { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastTakenOver { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastNotSameNetwork { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastLost { name } => vec![("name", Value::Text(name.clone()))],
             Self::NoticeCastNoDevice => Vec::new(),
             Self::NoticeCastUnavailable => Vec::new(),
+            Self::CastPhaseStarting { name } => vec![("name", Value::Text(name.clone()))],
+            Self::CastPhaseStartingFor { name, seconds } => vec![("name", Value::Text(name.clone())), ("seconds", Value::Int(*seconds))],
+            Self::CastPhaseWaiting { name, seconds } => vec![("name", Value::Text(name.clone())), ("seconds", Value::Int(*seconds))],
+            Self::CastPhasePreparing { seconds } => vec![("seconds", Value::Int(*seconds))],
             Self::DiscussionAgeNow => Vec::new(),
             Self::DiscussionAgeMinutes { minutes } => vec![("minutes", Value::Int(*minutes))],
             Self::DiscussionAgeHours { hours } => vec![("hours", Value::Int(*hours))],
@@ -690,6 +781,31 @@ impl Msg {
             Self::NoticeCommentLikeFailed => Vec::new(),
             Self::NoticeCommentDeleteFailed => Vec::new(),
             Self::NoticeDiscussionSignIn => Vec::new(),
+            Self::HomeSpotlightContinuing => Vec::new(),
+            Self::HomeSpotlightNewSeason { title } => vec![("title", Value::Text(title.clone()))],
+            Self::HomeSpotlightPlanning => Vec::new(),
+            Self::HomeSpotlightBecause { title } => vec![("title", Value::Text(title.clone()))],
+            Self::HomeSpotlightRecommended => Vec::new(),
+            Self::HomeSpotlightPopular => Vec::new(),
+            Self::HomeTimeLeft { episode, minutes } => vec![("episode", Value::Int(*episode)), ("minutes", Value::Int(*minutes))],
+            Self::HomeEpisodeOut { episode } => vec![("episode", Value::Int(*episode))],
+            Self::HomeEpisodeOutToday { episode } => vec![("episode", Value::Int(*episode))],
+            Self::HomeEpisodeOutShort { episode } => vec![("episode", Value::Int(*episode))],
+            Self::HomeOutAgo { ago } => vec![("ago", Value::Span(*ago))],
+            Self::HomeReasonNewSeason => Vec::new(),
+            Self::HomeReasonPlanning => Vec::new(),
+            Self::HomeReasonRecommended => Vec::new(),
+            Self::HomeContinue => Vec::new(),
+            Self::HomeStartingWinter => Vec::new(),
+            Self::HomeStartingSpring => Vec::new(),
+            Self::HomeStartingSummer => Vec::new(),
+            Self::HomeStartingAutumn => Vec::new(),
+            Self::HomeThisWeek => Vec::new(),
+            Self::HomeAiringToday => Vec::new(),
+            Self::HomeUpNext => Vec::new(),
+            Self::HomeThisSeason => Vec::new(),
+            Self::HomeBecause { title } => vec![("title", Value::Text(title.clone()))],
+            Self::HomeMoreGenre { genre } => vec![("genre", Value::Text(genre.clone()))],
             Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
             Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
             Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],

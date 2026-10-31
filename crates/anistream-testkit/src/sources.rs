@@ -14,6 +14,7 @@ use anistream_core::{
     media::{Episode, SearchHit},
     stream::{Stream, StreamKind},
 };
+use anistream_meta::Media;
 use anistream_providers::{MockProvider, ProviderRegistry};
 
 use crate::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, MOVIE, ONA, SEQUEL};
@@ -176,20 +177,37 @@ pub fn provider_with_art(art: &str) -> MockProvider {
 /// a hit for each of its titles, named as the fixtures' are, and bare episodes, so its pages have
 /// episode tables where a scene's fake AniList has the franchise.
 pub fn with_long_franchise(provider: MockProvider) -> MockProvider {
-    let titles = fixtures::long_franchise_media();
+    with_long_franchise_and(provider, &[])
+}
+
+/// [`with_long_franchise`], with `titles` beside it too, each with as many bare episodes as the
+/// number beside it, as [`crate::home_world::HomeWorld::provided`] lists them: a source that
+/// has what is out of an airing title and all of a finished one. Every episode streams [`clip`].
+pub fn with_long_franchise_and(
+    provider: MockProvider,
+    titles: &[(Media, u32)],
+) -> MockProvider {
+    let titles: Vec<(Media, u32)> = fixtures::long_franchise_media()
+        .into_iter()
+        .map(|media| {
+            let episodes = media.episodes.unwrap_or(1);
+            (media, episodes)
+        })
+        .chain(titles.iter().cloned())
+        .collect();
     let mut every = hits();
-    every.extend(titles.iter().map(|media| SearchHit {
+    every.extend(titles.iter().map(|(media, episodes)| SearchHit {
         key: key(media.id),
         title: media.title.romaji.clone().unwrap_or_default(),
         synonyms: media.title.english.iter().cloned().collect(),
-        episode_count: media.episodes,
+        episode_count: Some(*episodes),
         year: media.season_year,
         format: media.format,
     }));
     let mut provider = provider.with_hits(every);
-    for media in &titles {
+    for (media, count) in &titles {
         let runtime = Duration::from_secs(u64::from(media.duration.unwrap_or(24)) * 60);
-        let episodes = (1..=media.episodes.unwrap_or(1))
+        let episodes = (1..=*count)
             .map(|n| Episode { duration: Some(runtime), ..Episode::new(n) })
             .collect();
         provider = provider
@@ -274,6 +292,36 @@ mod tests {
             };
             assert_eq!(matched, key(media.id), "{}", media.id);
             assert_eq!(Some(value.len() as u32), media.episodes, "{}", media.id);
+        }
+    }
+
+    #[tokio::test]
+    async fn home_worlds_titles_beside_them_match_each_its_own_entry() {
+        let store = crate::store();
+        let clock = crate::home_world::HomeClock {
+            now: 1_793_456_400,
+            midnight: 1_793_404_800,
+            today: (2026, 10, 31),
+        };
+        let provided = crate::home_world::HomeWorld::at(clock).provided();
+        let registry =
+            ProviderRegistry::new(vec![with_long_franchise_and(provider(), &provided).arc()]);
+        for (media, out) in provided.iter().filter(|(_, out)| *out > 0) {
+            let answer = first_answer(
+                &store,
+                &registry,
+                media.id,
+                &media.match_target(),
+                Translation::Sub,
+                clock.now,
+                |source, key| async move { source.episodes(&key, Translation::Sub, 0).await },
+            )
+            .await;
+            let Answer::Answered { key: matched, value, .. } = answer else {
+                panic!("{} was not answered: {}", media.id, answer.explain());
+            };
+            assert_eq!(matched, key(media.id), "{}", media.id);
+            assert_eq!(value.len() as u32, *out, "{}", media.id);
         }
     }
 

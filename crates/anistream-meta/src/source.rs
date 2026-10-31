@@ -709,6 +709,16 @@ impl Meta {
         self.weathered(self.anilist.recommended_from(ids)).await
     }
 
+    /// What people who liked `id` rated highest, each a whole title. AniList only, as
+    /// [`Self::recommended_from`] is.
+    pub async fn recommended_titles(&self, id: AnilistId, each: u32) -> Result<Vec<Media>> {
+        let found = self.weathered(self.anilist.recommended_titles(id, each)).await?;
+        for media in &found {
+            self.remember(media);
+        }
+        Ok(found)
+    }
+
     /// One page of a search for `term` with `filter`, or a browse when `term` is empty.
     /// Tenrai applies what MAL can express; the rest is named in [`Found::unapplied`], not
     /// faked.

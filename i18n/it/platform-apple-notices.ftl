@@ -1,0 +1,10 @@
+notice-out = L'episodio { $episode } è uscito.
+notice-out-dubbed = L'episodio { $episode } è uscito, { -dubbed }.
+notice-out-behind = L'episodio { $episode } è uscito. Il { -up-next } per te è l'episodio { $next }.
+notice-out-dubbed-behind = L'episodio { $episode } è uscito, { -dubbed }. Il { -up-next } per te è l'episodio { $next }.
+notice-hidden-preview = Nuovo episodio
+notice-summary = Altri %u nuovi episodi
+notice-dismiss = Chiudi
+accounts-code-expired-detail = Questo codice è scaduto. Richiedine uno nuovo per accedere a { $tracker }.
+list-refresh-failed = Impossibile aggiornare. Vengono mostrati i dati caricati.
+sign-in-failed = Impossibile accedere a { $tracker }. Riprova.

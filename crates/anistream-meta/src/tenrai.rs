@@ -245,6 +245,7 @@ impl Tenrai {
                 .map(|y| y as u16),
             // MAL scores are 0–10; ours render out of 100, like AniList's averageScore.
             average_score: datum["score"].as_f64().map(|s| (s * 10.0).round() as u32),
+            popularity: datum["members"].as_u64().map(|n| n.min(u64::from(u32::MAX)) as u32),
             genres: datum["genres"]
                 .as_array()
                 .into_iter()

@@ -35,6 +35,6 @@ calendar-linux-about = { $time }ごろ
 calendar-linux-dubbed = { -dubbed }
 library-linux-order = 並べ替え
 library-linux-list-count = { $list }（{ $count }）
-title-linux-play-on-tv-help = { -app-name }でテレビのこのエピソードを再生
+title-linux-play-on-tv-help = { -app-name }が動作するテレビで、このエピソードを再生
 title-linux-episode-watched = エピソード{ $episode }、視聴済み
 calendar-linux-day-empty = 放送なし

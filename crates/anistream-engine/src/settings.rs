@@ -64,6 +64,11 @@ pub fn set_setting(
         return;
     }
     write_setting(table, file_key, value, engine, services, tx);
+    // The TV picker's Chromecast group comes and goes with its row.
+    #[cfg(feature = "cast")]
+    if key == SettingKey::CastTvs {
+        services.casts.set_show_tvs(engine.config.effective().cast.show_tvs);
+    }
     // What the file now holds, put in effect: titles are named the new way from here.
     if key == SettingKey::Titles {
         let choice = engine.config.effective().meta.title_language;

@@ -12,7 +12,8 @@
 # genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
 # pane>, notice=alert (a failure toast), sheet=<torrent|proxy|join|kitsu|update|show|about|filters|messages|discussion-<episode>>,
 # tv=<paired|picker|code|expired|remote|lost|refused|empty|bar|away>, Play on TV with the Fixtures app's
-# fake TVs (FixtureTVs.swift says what each shows), day=<days after today>, the calendar opened on
+# fake TVs (FixtureTVs.swift says what each shows), cast=<scene>, casting to the made-up TVs with
+# Chromecast built in (FixtureCasts.swift lists the scenes), day=<days after today>, the calendar opened on
 # that day, for one with broadcasts, mine=1 the calendar on My list,
 # party=<form|joining|refused|invite|panel|ready|sync|chat|lost|left|nosource|choose|unaired|quit>, a
 # watch party on the testing engine's fake Syncplay server (PartyScene; the player's on the playing
@@ -108,6 +109,7 @@ arguments() {
       notice=*) printf '%s\n' -AnistreamNotice "${screen#notice=}" ;;
       sheet=*) printf '%s\n' -AnistreamSheet "${screen#sheet=}" ;;
       tv=*) printf '%s\n' -AnistreamTV "${screen#tv=}" ;;
+      cast=*) printf '%s\n' -AnistreamCast "${screen#cast=}" ;;
       party=*) printf '%s\n' -AnistreamParty "${screen#party=}" ;;
       showcase=*) printf '%s\n' -AnistreamShowcase "${screen#showcase=}" ;;
       watched=*) printf '%s\n' -AnistreamWatched "${screen#watched=}" ;;

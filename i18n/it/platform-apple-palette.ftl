@@ -1,0 +1,12 @@
+palette-placeholder = Titoli e comandi
+palette-titles = Titoli
+palette-commands = Comandi
+palette-recent = Recenti
+palette-search-for = Invio cerca “{ $query }”
+palette-hint-open = Apri
+palette-resume-episode = Riprendi E{ $episode }
+palette-progress-kept = I progressi vengono conservati
+palette-show-settings-detail = Audio, sottotitoli, salto automatico, { -source }
+welcome-airing-today-label = In onda oggi, apri il calendario
+welcome-broadcast = { $episode } · { $clock }
+messages-empty = Nessun messaggio

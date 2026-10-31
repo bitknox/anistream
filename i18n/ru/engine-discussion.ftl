@@ -1,0 +1,9 @@
+discussion-age-now = сейчас
+discussion-age-minutes = { $minutes } мин
+discussion-age-hours = { $hours } ч
+discussion-age-days = { $days } д
+discussion-age-weeks = { $weeks } нед
+discussion-age-years = { $years } г
+notice-comment-like-failed = Не удалось поставить лайк. Попробуйте ещё раз.
+notice-comment-delete-failed = Не удалось удалить комментарий. Он остался на месте. Попробуйте ещё раз.
+notice-discussion-sign-in = Войдите в AniList, чтобы ставить лайки и отвечать.

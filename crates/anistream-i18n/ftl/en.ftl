@@ -6,38 +6,50 @@ cast-episode = Episode { $episode }
 # What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
 cast-episode-titled = Episode { $episode } · { $title }
 
-# The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-notice-cast-video-codec = The TV can't play this video ({ $codec }). Try another source.
+# The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+notice-cast-video-codec = { $name } can't play this video ({ $codec }). Try another source.
 
-# The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-notice-cast-audio-codec = The TV can't play this audio ({ $codec }), and this device can't convert it. Try another source.
+# The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+notice-cast-audio-codec = { $name } can't play this audio ({ $codec }), and this device can't convert it. Try another source.
 
-# The stream comes in a kind of file the TV can't read.
-notice-cast-container = The TV can't play this kind of file. Try another source.
+# The stream comes in a kind of file the TV can't read. The name is the TV's own.
+notice-cast-container = { $name } can't play this kind of file. Try another source.
 
 # The episode opens in another app, which this device can't cast.
 notice-cast-deep-link = This episode opens in another app, so it can't be cast.
 
-# The TV accepted the stream but never started reading it.
-notice-cast-never-fetches = The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.
+# The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+notice-cast-never-fetches = { $name } didn't start reading the stream. A VPN or a firewall on this device may be in the way.
 
-# The TV tried every way of playing the stream and played none of them.
-notice-cast-refused = The TV couldn't play this stream. Try another source.
+# The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+notice-cast-refused = { $name } couldn't play this stream. Try another source.
 
-# Someone started something else on the TV, which ends the cast.
-notice-cast-taken-over = Another device started something on the TV, so casting stopped.
+# Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+notice-cast-taken-over = Another device started something on { $name }, so casting stopped.
 
-# This device isn't on the TV's network, or reaches it through a VPN.
-notice-cast-not-same-network = This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.
+# This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+notice-cast-not-same-network = This device isn't on the network { $name } is on, or reaches it through a VPN. Casting needs both on the same network.
 
-# The TV stopped answering mid-cast.
-notice-cast-lost = Lost the TV, so casting stopped.
+# The TV stopped answering mid-cast. The name is the TV's own.
+notice-cast-lost = Lost { $name }, so casting stopped.
 
 # The TV picked to cast to has left the network.
 notice-cast-no-device = That TV is no longer on the network.
 
 # This build of the app has no casting.
 notice-cast-unavailable = This version of anistream can't cast to TVs.
+
+# The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+cast-phase-starting = Starting on { $name }
+
+# The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+cast-phase-starting-for = Starting on { $name } · { $seconds } s
+
+# The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+cast-phase-waiting = Waiting for { $name } · { $seconds } s
+
+# The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+cast-phase-preparing = Preparing the stream · { $seconds } s
 
 # A comment's age, beside its author, when it was written under a minute ago.
 discussion-age-now = now
@@ -65,6 +77,81 @@ notice-comment-delete-failed = Couldn't delete the comment. Try again.
 
 # Toast when the viewer tried to like or post in a discussion without signing in to AniList.
 notice-discussion-sign-in = Sign in with AniList to like and reply.
+
+# Line over the spotlight's title when it is a show the person is part way through.
+home-spotlight-continuing = Continue watching
+
+# Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.
+home-spotlight-new-season = New season · You finished { $title }
+
+# Line over the spotlight's title when it is on the person's Planning list.
+home-spotlight-planning = On your Planning list
+
+# Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+home-spotlight-because = Because you finished { $title }
+
+# Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
+home-spotlight-recommended = Recommended for you
+
+# Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
+home-spotlight-popular = Popular this season
+
+# Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+home-time-left = Episode { $episode } · { $minutes } min left
+
+# Line under the spotlight's title for a show part way through with its next episode waiting.
+home-episode-out = Episode { $episode } is out
+
+# Line under a { -continue-cap } card whose next episode came out today.
+home-episode-out-today = Episode { $episode } · out today
+
+# Line under a poster on This season: the newest episode out.
+home-episode-out-short = Episode { $episode } out
+
+# Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+home-out-ago = Out { $ago } ago
+
+# Short reason under a poster: a new season of a show the person finished.
+home-reason-new-season = New season
+
+# Short reason under a poster: the title is on the person's Planning list.
+home-reason-planning = On your Planning list
+
+# Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+home-reason-recommended = Recommended for you
+
+# Heading over the shows the person is part way through.
+home-continue = Continue
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-winter = Starting in Winter
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-spring = Starting in Spring
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-summer = Starting in Summer
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-autumn = Starting in Autumn
+
+# Heading over this week's episodes of the shows the person follows.
+home-this-week = This week
+
+# Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
+home-airing-today = Airing today
+
+# Heading over the suggestions made from what the person watched and their lists.
+home-up-next = Up next for you
+
+# Heading over this season's most popular titles.
+home-this-season = This season
+
+# Heading over recommendations from one show the person finished and rated well. The title is that show.
+home-because = Because you finished { $title }
+
+# Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
+home-more-genre = More { $genre }
 
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = { $reason }
@@ -1035,6 +1122,12 @@ controller-help-title = Controller
 # Accessible name of the list of controller buttons in the help window.
 controller-help-buttons = Controller buttons
 
+# Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+settings-note-cast-tvs-computer = They appear under Chromecast in Play on TV. This computer sends them the episode.
+
+# Note under the Torrents while casting setting, shown while torrents are on.
+settings-note-torrents-while-casting-computer = Lets a TV with Chromecast built in play torrents. This computer sends the episode for as long as it plays.
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = Open plugin stores
 
@@ -1172,6 +1265,15 @@ tv-track-choice = { $row }, { $track }
 
 # The name this computer goes by in lists of a person's devices, such as a plugin store's.
 shell-device-label = Linux computer
+
+# Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+tv-cast-through-computer = Plays through this computer
+
+# The reason the system gives for keeping the computer from sleeping while it sends a TV with Chromecast built in the episode. Other apps and the desktop may show it.
+tv-cast-inhibit-reason = Sending an episode to a TV
+
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+tv-network-group = On this network
 
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
@@ -3908,6 +4010,57 @@ calendar-show-all = Show all airing
 # What a screen reader says for the line that marks the time now. The time is already worded.
 calendar-now-spoken = Now, { $time }
 
+# Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+cast-chromecast = Chromecast
+
+# Line added to the picker's empty state, under what to check.
+cast-none-found-extra = TVs with Chromecast built in show here too.
+
+# The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+cast-local-network = Allow anistream to find devices on your local network
+
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+cast-tvs-label = Show TVs with Chromecast built in
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+cast-torrents-label = Torrents while casting
+
+# Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+cast-tvs-note-mac = They appear under Chromecast in Play on TV. This Mac sends them the episode.
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+cast-tvs-note-iphone = They appear under Chromecast in Play on TV. This iPhone sends them the episode.
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+cast-tvs-note-ipad = They appear under Chromecast in Play on TV. This iPad sends them the episode.
+
+# Note under the Settings row that lets a cast play torrents, on a Mac.
+cast-torrents-note-mac = Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.
+
+# Note under the Settings row that lets a cast play torrents, on an iPhone.
+cast-torrents-note-iphone = Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.
+
+# Note under the Settings row that lets a cast play torrents, on an iPad.
+cast-torrents-note-ipad = Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.
+
+# Line on the casting card while the next episode counts down. The seconds are whole.
+cast-up-next-plays-in = Up next · plays in { $seconds } s
+
+# The card's line when a cast never started. The name is the TV's.
+cast-couldnt-start = Couldn't start on { $name }
+
+# The card's line when a cast that played has stopped.
+cast-stopped = Casting stopped
+
+# Button that stops the cast and plays the episode on this device, where the TV was.
+cast-play-here = Play here
+
+# Button that stops the cast. The TV goes back to its own screen.
+cast-stop = Stop casting
+
+# Line under TV volume on the card, for a TV whose volume only its own remote sets.
+cast-volume-fixed = Set on the TV
+
 # Button that runs a failed action again.
 action-try-again = Try again
 
@@ -4696,6 +4849,121 @@ episode-download-done = Downloaded
 
 # Line under that button after a failure.
 episode-download-failed = Couldn't download episode { $episode }. Try again.
+
+# Name of the Home section in the sidebar, the tab bar and the window title.
+home-title = Home
+
+# Main action for an episode part way through.
+home-resume-episode = Resume episode { $episode }
+
+# Main action for an episode not started.
+home-play-episode = Play episode { $episode }
+
+# Shown in place of Add to Planning while it saves, after a moment.
+home-adding = Adding
+
+# Second action that opens the title's page.
+home-details = Details
+
+# Accessible name of the button that opens more actions.
+home-more = More
+
+# Action in the spotlight's More menu for a show part way through.
+home-mark-watched = Mark episode { $episode } as watched
+
+# Notice after the action above. It has an Undo button.
+home-marked-watched = Episode { $episode } marked as watched
+
+# Action on a { -continue-cap } card and in the spotlight's More menu.
+home-remove-continue = Remove from Continue
+
+# Count beside the { -continue-cap } heading when there are more than twelve shows.
+home-continue-count =
+    { $count ->
+        [one] 1 show
+       *[other] { $count } shows
+    }
+
+# Link beside a heading that opens the full list.
+home-view-all = View all
+
+# Link beside This week and Airing today that opens the calendar.
+home-full-calendar = Full calendar
+
+# The first day of This week.
+home-today = Today
+
+# A day of This week with nothing on it.
+home-nothing-airing = Nothing airing
+
+# A day of This week with more titles than fit.
+home-day-more = { $count } more
+
+# Link beside This season and Starting in that opens Seasonal.
+home-seasonal = Seasonal
+
+# Link beside a genre shelf that opens Search with that genre.
+home-search = Search
+
+# The closing line at the end of Home. Seasonal and Calendar are links.
+home-end = That's everything for now. Seasonal and Calendar have the full lists.
+
+# The closing line at the end of Home when no { -tracker } is signed in.
+home-end-signed-out = Sign in to AniList to bring in your list and Planning.
+
+# Button in the closing line when no { -tracker } is signed in.
+home-sign-in = Sign in to AniList
+
+# The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.
+home-end-no-sources = Add a source to play from Home. Plugin stores has some to choose from.
+
+# Line on a title that no installed { -source } has. The main action becomes Add to Planning.
+home-not-found = Not found in your sources
+
+# Notice when part of Home could not be loaded. It has a Try again button.
+home-failed = Couldn't load suggestions
+
+# Button in the notice above.
+home-try-again = Try again
+
+# Activity line while Home's suggestions take longer than a few seconds.
+home-loading = Loading suggestions
+
+# Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.
+home-offline = Offline. Showing Home from { $time }.
+
+# Heading when Home is offline and has nothing saved.
+home-offline-empty-title = You're offline
+
+# Text under the heading above.
+home-offline-empty-body = Home needs a connection the first time it opens. Downloads still play.
+
+# Button under the text above.
+home-open-downloads = Open Downloads
+
+# Settings row and page that lists the titles hidden with Not interested.
+settings-hidden-titles = Hidden titles
+
+# Text under the list of hidden titles.
+settings-hidden-titles-body = Titles you marked Not interested. They stay out of Home and Up next for you until you restore them.
+
+# Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".
+settings-hidden-on = Hidden { $date }
+
+# Line under a hidden title that comes back by itself once it starts airing.
+settings-hidden-until-airs = Comes back when it airs
+
+# Button beside a hidden title that brings it back to Home.
+settings-restore = Restore
+
+# Settings, Hidden titles, when nothing is hidden.
+settings-hidden-empty = Nothing hidden. Titles you mark Not interested appear here.
+
+# Accessible name of the arrow that pages a shelf back.
+home-previous = Previous
+
+# Accessible name of the arrow that pages a shelf on.
+home-next = Next
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
@@ -6060,6 +6328,12 @@ settings-value-trailers-wifi-only = Wi-Fi only
 
 # Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Play trailers
+
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = Show TVs with Chromecast built in
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = Torrents while casting
 
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = { $tracker }'s choice
@@ -7949,6 +8223,39 @@ tv-row-needs-update = Needs the same anistream version as this device
 
 # Title of the remote's volume row.
 tv-volume = TV volume
+
+# Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+tv-cast-group = Chromecast
+
+# Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+tv-cast-none-found = TVs with Chromecast built in show here too.
+
+# Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+tv-cast-counting = { $line } · { $seconds } s
+
+# Status line of the casting card when the cast didn't start. The reason shows under the episode.
+tv-cast-couldnt-start = Couldn't start on { $name }
+
+# Status line of the casting card after the TV stopped answering.
+tv-cast-stopped = Casting stopped
+
+# Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+tv-cast-play-here = Play here
+
+# Button on the casting card: stop casting. The TV goes back to what it showed.
+tv-cast-stop = Stop casting
+
+# Button on the casting card's TV volume row: silence the TV.
+tv-cast-mute = Mute
+
+# The same button while the TV is silenced.
+tv-cast-unmute = Unmute
+
+# Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+tv-cast-volume-on-tv = Set on the TV
+
+# Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+tv-cast-up-next-in = Up next · plays in { $seconds } s
 
 # Heading of the update row in settings and about.
 updates-title = Updates

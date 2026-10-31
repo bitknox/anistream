@@ -1,0 +1,12 @@
+player-episode-line-titled = { $line } · { $title }
+player-episode-fraction = Odcinek { $number }
+player-starting-fraction = Uruchamianie odcinka { $number }
+player-failed-fraction = Nie udało się odtworzyć odcinka { $number }
+player-speed-value = { $speed }×
+player-timeline-playing = Odtwarzanie, { $position } z { $duration }
+player-timeline-paused = Wstrzymano, { $position } z { $duration }
+player-track-added = { $name } · dodano
+player-load-subtitles-commit = Wczytaj napisy
+player-load-audio-commit = Wczytaj dźwięk
+player-mini-tip = Zawsze na wierzchu. Naciśnij { $key }, aby wrócić.
+player-stats-row = { $label }: { $value }

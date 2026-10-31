@@ -111,6 +111,11 @@ impl FfiEngine {
     /// Only puts the command on a channel, so any thread may call this, the main thread among
     /// them. `None` too once the engine has stopped.
     pub fn send(&self, command: Command) -> Option<JobId> {
+        #[cfg(feature = "testing")]
+        let command = match self.kept::<crate::testing::Testing>() {
+            Some(testing) => testing.pin(command),
+            None => command,
+        };
         #[cfg(feature = "remote")]
         if let Command::PlayerReport { report, .. } = &command {
             self.remote.report(report);
@@ -292,7 +297,9 @@ impl Opened {
         // What a store joined with an invite calls this device: the kind of device it is.
         if let Some(platform) = start.platform {
             platform.device_label().clone_into(&mut options.device_label);
+            options.handheld = platform.handheld();
         }
+        options.language.clone_from(&start.language);
         // Nothing changes the config for one session here, as the terminal's flags can, so the
         // file's is the one in effect.
         options.saved = Some(config);

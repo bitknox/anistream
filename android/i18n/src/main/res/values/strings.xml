@@ -6,28 +6,36 @@
     <string name="cast_episode">Episode %1$s</string>
     <!-- What the TV's loading screen and its own controls show under the show's name, with the episode's own title. -->
     <string name="cast_episode_titled">Episode %1$s · %2$s</string>
-    <!-- The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. -->
-    <string name="notice_cast_video_codec">The TV can\'t play this video (%1$s). Try another source.</string>
-    <!-- The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. -->
-    <string name="notice_cast_audio_codec">The TV can\'t play this audio (%1$s), and this device can\'t convert it. Try another source.</string>
-    <!-- The stream comes in a kind of file the TV can't read. -->
-    <string name="notice_cast_container">The TV can\'t play this kind of file. Try another source.</string>
+    <!-- The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10. -->
+    <string name="notice_cast_video_codec">%1$s can\'t play this video (%2$s). Try another source.</string>
+    <!-- The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS. -->
+    <string name="notice_cast_audio_codec">%1$s can\'t play this audio (%2$s), and this device can\'t convert it. Try another source.</string>
+    <!-- The stream comes in a kind of file the TV can't read. The name is the TV's own. -->
+    <string name="notice_cast_container">%1$s can\'t play this kind of file. Try another source.</string>
     <!-- The episode opens in another app, which this device can't cast. -->
     <string name="notice_cast_deep_link">This episode opens in another app, so it can\'t be cast.</string>
-    <!-- The TV accepted the stream but never started reading it. -->
-    <string name="notice_cast_never_fetches">The TV didn\'t start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.</string>
-    <!-- The TV tried every way of playing the stream and played none of them. -->
-    <string name="notice_cast_refused">The TV couldn\'t play this stream. Try another source.</string>
-    <!-- Someone started something else on the TV, which ends the cast. -->
-    <string name="notice_cast_taken_over">Another device started something on the TV, so casting stopped.</string>
-    <!-- This device isn't on the TV's network, or reaches it through a VPN. -->
-    <string name="notice_cast_not_same_network">This device isn\'t on the TV\'s network, or reaches it through a VPN. Casting needs both on the same network.</string>
-    <!-- The TV stopped answering mid-cast. -->
-    <string name="notice_cast_lost">Lost the TV, so casting stopped.</string>
+    <!-- The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own. -->
+    <string name="notice_cast_never_fetches">%1$s didn\'t start reading the stream. A VPN or a firewall on this device may be in the way.</string>
+    <!-- The TV tried every way of playing the stream and played none of them. The name is the TV's own. -->
+    <string name="notice_cast_refused">%1$s couldn\'t play this stream. Try another source.</string>
+    <!-- Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own. -->
+    <string name="notice_cast_taken_over">Another device started something on %1$s, so casting stopped.</string>
+    <!-- This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own. -->
+    <string name="notice_cast_not_same_network">This device isn\'t on the network %1$s is on, or reaches it through a VPN. Casting needs both on the same network.</string>
+    <!-- The TV stopped answering mid-cast. The name is the TV's own. -->
+    <string name="notice_cast_lost">Lost %1$s, so casting stopped.</string>
     <!-- The TV picked to cast to has left the network. -->
     <string name="notice_cast_no_device">That TV is no longer on the network.</string>
     <!-- This build of the app has no casting. -->
     <string name="notice_cast_unavailable">This version of anistream can\'t cast to TVs.</string>
+    <!-- The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room. -->
+    <string name="cast_phase_starting">Starting on %1$s</string>
+    <!-- The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap. -->
+    <string name="cast_phase_starting_for">Starting on %1$s · %2$d s</string>
+    <!-- The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start. -->
+    <string name="cast_phase_waiting">Waiting for %1$s · %2$d s</string>
+    <!-- The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start. -->
+    <string name="cast_phase_preparing">Preparing the stream · %1$d s</string>
     <!-- A comment's age, beside its author, when it was written under a minute ago. -->
     <string name="discussion_age_now">now</string>
     <!-- A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it. -->
@@ -46,6 +54,56 @@
     <string name="notice_comment_delete_failed">Couldn\'t delete the comment. Try again.</string>
     <!-- Toast when the viewer tried to like or post in a discussion without signing in to AniList. -->
     <string name="notice_discussion_sign_in">Sign in with AniList to like and reply.</string>
+    <!-- Line over the spotlight's title when it is a show the person is part way through. -->
+    <string name="home_spotlight_continuing">Continue watching</string>
+    <!-- Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished. -->
+    <string name="home_spotlight_new_season">New season · You finished %1$s</string>
+    <!-- Line over the spotlight's title when it is on the person's Planning list. -->
+    <string name="home_spotlight_planning">On your Planning list</string>
+    <!-- Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates. -->
+    <string name="home_spotlight_because">Because you finished %1$s</string>
+    <!-- Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known. -->
+    <string name="home_spotlight_recommended">Recommended for you</string>
+    <!-- Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started. -->
+    <string name="home_spotlight_popular">Popular this season</string>
+    <!-- Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it. -->
+    <string name="home_time_left">Episode %1$d · %2$d min left</string>
+    <!-- Line under the spotlight's title for a show part way through with its next episode waiting. -->
+    <string name="home_episode_out">Episode %1$d is out</string>
+    <!-- Line under a { -continue-cap } card whose next episode came out today. -->
+    <string name="home_episode_out_today">Episode %1$d · out today</string>
+    <!-- Line under a poster on This season: the newest episode out. -->
+    <string name="home_episode_out_short">Episode %1$d out</string>
+    <!-- Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m. -->
+    <string name="home_out_ago">Out %1$s ago</string>
+    <!-- Short reason under a poster: a new season of a show the person finished. -->
+    <string name="home_reason_new_season">New season</string>
+    <!-- Short reason under a poster: the title is on the person's Planning list. -->
+    <string name="home_reason_planning">On your Planning list</string>
+    <!-- Short reason under a poster: recommended from what the person watched. The hover card gives the full reason. -->
+    <string name="home_reason_recommended">Recommended for you</string>
+    <!-- Heading over the shows the person is part way through. -->
+    <string name="home_continue">Continue</string>
+    <!-- Heading over next season's titles in the two weeks before it starts. -->
+    <string name="home_starting_winter">Starting in Winter</string>
+    <!-- Heading over next season's titles in the two weeks before it starts. -->
+    <string name="home_starting_spring">Starting in Spring</string>
+    <!-- Heading over next season's titles in the two weeks before it starts. -->
+    <string name="home_starting_summer">Starting in Summer</string>
+    <!-- Heading over next season's titles in the two weeks before it starts. -->
+    <string name="home_starting_autumn">Starting in Autumn</string>
+    <!-- Heading over this week's episodes of the shows the person follows. -->
+    <string name="home_this_week">This week</string>
+    <!-- Heading over what airs today, for someone with nothing watched and no { -tracker } signed in. -->
+    <string name="home_airing_today">Airing today</string>
+    <!-- Heading over the suggestions made from what the person watched and their lists. -->
+    <string name="home_up_next">Up next for you</string>
+    <!-- Heading over this season's most popular titles. -->
+    <string name="home_this_season">This season</string>
+    <!-- Heading over recommendations from one show the person finished and rated well. The title is that show. -->
+    <string name="home_because">Because you finished %1$s</string>
+    <!-- Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha". -->
+    <string name="home_more_genre">More %1$s</string>
     <!-- A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. -->
     <string name="notice_reason">%1$s</string>
     <!-- Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. -->
@@ -551,6 +609,52 @@
     </plurals>
     <!-- Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. -->
     <string name="player_more_discussion_pauses">Pauses the video</string>
+    <!-- Play on TV sheet: the heading over the TVs with Chromecast built in. -->
+    <string name="cast_sheet_group">Chromecast</string>
+    <!-- Play on TV sheet: the line under a Chromecast row when the stream goes out through this phone. -->
+    <string name="cast_sheet_through_phone">Plays through this phone</string>
+    <!-- Play on TV sheet: the line under a Chromecast row when the stream goes out through this tablet. -->
+    <string name="cast_sheet_through_tablet">Plays through this tablet</string>
+    <!-- Play on TV sheet: the line under "No TVs found" after the check line. -->
+    <string name="cast_sheet_chromecast_too">TVs with Chromecast built in show here too.</string>
+    <!-- Play on TV sheet: in place of the rows when the local network permission was turned down. Open settings follows it. -->
+    <string name="cast_sheet_local_network">Allow anistream to find devices on your local network</string>
+    <!-- Casting card: over the next episode while the count runs to playing it by itself. -->
+    <string name="cast_card_up_next_in">Up next · plays in %1$d s</string>
+    <!-- Casting card: over the next episode when auto-next is off and the card waits for Play now. -->
+    <string name="cast_card_up_next">Up next</string>
+    <!-- Casting card: cancels the count, so the next episode does not play by itself. -->
+    <string name="cast_card_up_next_cancel">Cancel</string>
+    <!-- Casting card: plays the next episode on the TV at once. -->
+    <string name="cast_card_up_next_play">Play now</string>
+    <!-- Casting card: the note after the TV skipped an opening by itself, with Undo beside it. -->
+    <string name="cast_card_skipped_opening">Skipped opening</string>
+    <!-- Casting card: the note after the TV skipped an ending by itself, with Undo beside it. -->
+    <string name="cast_card_skipped_ending">Skipped ending</string>
+    <!-- Casting card: takes back an automatic skip. -->
+    <string name="cast_card_undo">Undo</string>
+    <!-- Casting card: the line under the title when nothing played. -->
+    <string name="cast_card_failed">Couldn\'t start on %1$s</string>
+    <!-- Casting card: the line under the title when the TV dropped off mid-cast. -->
+    <string name="cast_card_stopped">Casting stopped</string>
+    <!-- Casting card: what the TV volume row says when the TV's own volume is in charge. -->
+    <string name="cast_card_volume_fixed">Set on the TV</string>
+    <!-- Casting card: the button that mutes the TV. -->
+    <string name="cast_card_mute">Mute</string>
+    <!-- Casting card: the button that brings the TV's sound back. -->
+    <string name="cast_card_unmute">Unmute</string>
+    <!-- Casting card: stops the TV and plays on in the player here, from where the TV was. -->
+    <string name="cast_card_play_here">Play here</string>
+    <!-- Casting card and its notification: stops casting, and the app on the TV closes. -->
+    <string name="cast_card_stop">Stop casting</string>
+    <!-- Settings, Play on TV: whether the TV picker lists TVs with Chromecast built in. -->
+    <string name="cast_settings_tvs">Show TVs with Chromecast built in</string>
+    <!-- Settings, Play on TV: under the row above. -->
+    <string name="cast_settings_tvs_note">They appear under Chromecast in Play on TV. This device sends them the episode.</string>
+    <!-- Settings, Sources: whether a cast to a TV plays from torrents, which this device serves meanwhile. -->
+    <string name="cast_settings_torrents">Torrents while casting</string>
+    <!-- Settings, Sources: under the row above. -->
+    <string name="cast_settings_torrents_note">Lets a TV with Chromecast built in play torrents. This device sends the episode for as long as it plays.</string>
     <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
     <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
     <!-- TV, Continue hero: the action when no source can play yet. -->
@@ -1364,6 +1468,40 @@
     <string name="calendar_show_all">Show all airing</string>
     <!-- What a screen reader says for the line that marks the time now. The time is already worded. -->
     <string name="calendar_now_spoken">Now, %1$s</string>
+    <!-- Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name. -->
+    <string name="cast_chromecast">Chromecast</string>
+    <!-- Line added to the picker's empty state, under what to check. -->
+    <string name="cast_none_found_extra">TVs with Chromecast built in show here too.</string>
+    <!-- The picker's one row while the app may not look on the local network, with a button that opens the system's settings. -->
+    <string name="cast_local_network">Allow anistream to find devices on your local network</string>
+    <!-- Settings row: whether the TV picker lists TVs with Chromecast built in. -->
+    <string name="cast_tvs_label">Show TVs with Chromecast built in</string>
+    <!-- Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. -->
+    <string name="cast_torrents_label">Torrents while casting</string>
+    <!-- Note under the Settings row that shows TVs with Chromecast built in, on a Mac. -->
+    <string name="cast_tvs_note_mac">They appear under Chromecast in Play on TV. This Mac sends them the episode.</string>
+    <!-- Note under the Settings row that shows TVs with Chromecast built in, on an iPhone. -->
+    <string name="cast_tvs_note_iphone">They appear under Chromecast in Play on TV. This iPhone sends them the episode.</string>
+    <!-- Note under the Settings row that shows TVs with Chromecast built in, on an iPad. -->
+    <string name="cast_tvs_note_ipad">They appear under Chromecast in Play on TV. This iPad sends them the episode.</string>
+    <!-- Note under the Settings row that lets a cast play torrents, on a Mac. -->
+    <string name="cast_torrents_note_mac">Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.</string>
+    <!-- Note under the Settings row that lets a cast play torrents, on an iPhone. -->
+    <string name="cast_torrents_note_iphone">Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.</string>
+    <!-- Note under the Settings row that lets a cast play torrents, on an iPad. -->
+    <string name="cast_torrents_note_ipad">Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.</string>
+    <!-- Line on the casting card while the next episode counts down. The seconds are whole. -->
+    <string name="cast_up_next_plays_in">Up next · plays in %1$d s</string>
+    <!-- The card's line when a cast never started. The name is the TV's. -->
+    <string name="cast_couldnt_start">Couldn\'t start on %1$s</string>
+    <!-- The card's line when a cast that played has stopped. -->
+    <string name="cast_stopped">Casting stopped</string>
+    <!-- Button that stops the cast and plays the episode on this device, where the TV was. -->
+    <string name="cast_play_here">Play here</string>
+    <!-- Button that stops the cast. The TV goes back to its own screen. -->
+    <string name="cast_stop">Stop casting</string>
+    <!-- Line under TV volume on the card, for a TV whose volume only its own remote sets. -->
+    <string name="cast_volume_fixed">Set on the TV</string>
     <!-- Button that runs a failed action again. -->
     <string name="action_try_again">Try again</string>
     <!-- Button that closes a dialog without doing what it offered. -->
@@ -1892,6 +2030,83 @@
     <string name="episode_download_done">Downloaded</string>
     <!-- Line under that button after a failure. -->
     <string name="episode_download_failed">Couldn\'t download episode %1$d. Try again.</string>
+    <!-- Name of the Home section in the sidebar, the tab bar and the window title. -->
+    <string name="home_title">Home</string>
+    <!-- Main action for an episode part way through. -->
+    <string name="home_resume_episode">Resume episode %1$d</string>
+    <!-- Main action for an episode not started. -->
+    <string name="home_play_episode">Play episode %1$d</string>
+    <!-- Shown in place of Add to Planning while it saves, after a moment. -->
+    <string name="home_adding">Adding</string>
+    <!-- Second action that opens the title's page. -->
+    <string name="home_details">Details</string>
+    <!-- Accessible name of the button that opens more actions. -->
+    <string name="home_more">More</string>
+    <!-- Action in the spotlight's More menu for a show part way through. -->
+    <string name="home_mark_watched">Mark episode %1$d as watched</string>
+    <!-- Notice after the action above. It has an Undo button. -->
+    <string name="home_marked_watched">Episode %1$d marked as watched</string>
+    <!-- Action on a { -continue-cap } card and in the spotlight's More menu. -->
+    <string name="home_remove_continue">Remove from Continue</string>
+    <!-- Count beside the { -continue-cap } heading when there are more than twelve shows. -->
+    <plurals name="home_continue_count">
+        <item quantity="one">1 show</item>
+        <item quantity="other">%1$d shows</item>
+    </plurals>
+    <!-- Link beside a heading that opens the full list. -->
+    <string name="home_view_all">View all</string>
+    <!-- Link beside This week and Airing today that opens the calendar. -->
+    <string name="home_full_calendar">Full calendar</string>
+    <!-- The first day of This week. -->
+    <string name="home_today">Today</string>
+    <!-- A day of This week with nothing on it. -->
+    <string name="home_nothing_airing">Nothing airing</string>
+    <!-- A day of This week with more titles than fit. -->
+    <string name="home_day_more">%1$d more</string>
+    <!-- Link beside This season and Starting in that opens Seasonal. -->
+    <string name="home_seasonal">Seasonal</string>
+    <!-- Link beside a genre shelf that opens Search with that genre. -->
+    <string name="home_search">Search</string>
+    <!-- The closing line at the end of Home. Seasonal and Calendar are links. -->
+    <string name="home_end">That\'s everything for now. Seasonal and Calendar have the full lists.</string>
+    <!-- The closing line at the end of Home when no { -tracker } is signed in. -->
+    <string name="home_end_signed_out">Sign in to AniList to bring in your list and Planning.</string>
+    <!-- Button in the closing line when no { -tracker } is signed in. -->
+    <string name="home_sign_in">Sign in to AniList</string>
+    <!-- The closing line at the end of Home when no { -source } is installed. Plugin stores is a link. -->
+    <string name="home_end_no_sources">Add a source to play from Home. Plugin stores has some to choose from.</string>
+    <!-- Line on a title that no installed { -source } has. The main action becomes Add to Planning. -->
+    <string name="home_not_found">Not found in your sources</string>
+    <!-- Notice when part of Home could not be loaded. It has a Try again button. -->
+    <string name="home_failed">Couldn\'t load suggestions</string>
+    <!-- Button in the notice above. -->
+    <string name="home_try_again">Try again</string>
+    <!-- Activity line while Home's suggestions take longer than a few seconds. -->
+    <string name="home_loading">Loading suggestions</string>
+    <!-- Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20. -->
+    <string name="home_offline">Offline. Showing Home from %1$s.</string>
+    <!-- Heading when Home is offline and has nothing saved. -->
+    <string name="home_offline_empty_title">You\'re offline</string>
+    <!-- Text under the heading above. -->
+    <string name="home_offline_empty_body">Home needs a connection the first time it opens. Downloads still play.</string>
+    <!-- Button under the text above. -->
+    <string name="home_open_downloads">Open Downloads</string>
+    <!-- Settings row and page that lists the titles hidden with Not interested. -->
+    <string name="settings_hidden_titles">Hidden titles</string>
+    <!-- Text under the list of hidden titles. -->
+    <string name="settings_hidden_titles_body">Titles you marked Not interested. They stay out of Home and Up next for you until you restore them.</string>
+    <!-- Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October". -->
+    <string name="settings_hidden_on">Hidden %1$s</string>
+    <!-- Line under a hidden title that comes back by itself once it starts airing. -->
+    <string name="settings_hidden_until_airs">Comes back when it airs</string>
+    <!-- Button beside a hidden title that brings it back to Home. -->
+    <string name="settings_restore">Restore</string>
+    <!-- Settings, Hidden titles, when nothing is hidden. -->
+    <string name="settings_hidden_empty">Nothing hidden. Titles you mark Not interested appear here.</string>
+    <!-- Accessible name of the arrow that pages a shelf back. -->
+    <string name="home_previous">Previous</string>
+    <!-- Accessible name of the arrow that pages a shelf on. -->
+    <string name="home_next">Next</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>
@@ -2803,6 +3018,10 @@
     <string name="settings_value_trailers_wifi_only">Wi-Fi only</string>
     <!-- Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps. -->
     <string name="settings_label_trailers">Play trailers</string>
+    <!-- Settings row: whether the TV picker lists TVs with Chromecast built in. -->
+    <string name="settings_label_cast_tvs">Show TVs with Chromecast built in</string>
+    <!-- Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. -->
+    <string name="settings_label_torrents_while_casting">Torrents while casting</string>
     <!-- Option: use the tracker's own choice. The tracker is a name. -->
     <string name="settings_title_tracker">%1$s\'s choice</string>
     <!-- Option: English titles. -->
@@ -4068,6 +4287,28 @@
     <string name="tv_row_needs_update">Needs the same anistream version as this device</string>
     <!-- Title of the remote's volume row. -->
     <string name="tv_volume">TV volume</string>
+    <!-- Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is. -->
+    <string name="tv_cast_group">Chromecast</string>
+    <!-- Line under the empty state of Play on TV when no TV was found: casting looks for these too. -->
+    <string name="tv_cast_none_found">TVs with Chromecast built in show here too.</string>
+    <!-- Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked. -->
+    <string name="tv_cast_counting">%1$s · %2$d s</string>
+    <!-- Status line of the casting card when the cast didn't start. The reason shows under the episode. -->
+    <string name="tv_cast_couldnt_start">Couldn\'t start on %1$s</string>
+    <!-- Status line of the casting card after the TV stopped answering. -->
+    <string name="tv_cast_stopped">Casting stopped</string>
+    <!-- Button on the casting card: stop casting and play the episode on this device, from where the TV was. -->
+    <string name="tv_cast_play_here">Play here</string>
+    <!-- Button on the casting card: stop casting. The TV goes back to what it showed. -->
+    <string name="tv_cast_stop">Stop casting</string>
+    <!-- Button on the casting card's TV volume row: silence the TV. -->
+    <string name="tv_cast_mute">Mute</string>
+    <!-- The same button while the TV is silenced. -->
+    <string name="tv_cast_unmute">Unmute</string>
+    <!-- Under the TV volume row on the casting card, for a TV whose volume is set with its own remote. -->
+    <string name="tv_cast_volume_on_tv">Set on the TV</string>
+    <!-- Line over the next episode on the casting card while its count runs. At 0 the TV plays it. -->
+    <string name="tv_cast_up_next_in">Up next · plays in %1$d s</string>
     <!-- Heading of the update row in settings and about. -->
     <string name="updates_title">Updates</string>
     <!-- Line while the app checks. -->

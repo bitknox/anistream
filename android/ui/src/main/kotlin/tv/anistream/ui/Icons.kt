@@ -228,6 +228,7 @@ internal object Icons {
     val SkipNext = stroked("SkipNext", "M6 6.5 V17.5 L14 12 Z", "M17.5 6 V18")
 
     /** The TV's volume, down and up: a speaker with one wave or two. */
+    val SoundOff = stroked("SoundOff", "M4 9.5 H7.5 L12 6 V18 L7.5 14.5 H4 Z", "M15.5 9.5 L20 14.5 M20 9.5 L15.5 14.5")
     val VolumeDown = stroked("VolumeDown", "M4 9.5 H7 L11 6 V18 L7 14.5 H4 Z", "M14.5 9.5 C15.5 10.8 15.5 13.2 14.5 14.5")
     val VolumeUp = stroked(
         "VolumeUp",

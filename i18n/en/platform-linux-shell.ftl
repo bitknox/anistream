@@ -214,3 +214,18 @@ tv-track-choice = { $row }, { $track }
 # @only linux
 # @max 24
 shell-device-label = Linux computer
+
+# Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+# @only linux
+tv-cast-through-computer = Plays through this computer
+
+# The reason the system gives for keeping the computer from sleeping while it sends a TV with Chromecast built in the episode. Other apps and the desktop may show it.
+# @only linux
+# @max 40
+tv-cast-inhibit-reason = Sending an episode to a TV
+
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are
+# listed below them.
+# @only linux
+# @max 24
+tv-network-group = On this network

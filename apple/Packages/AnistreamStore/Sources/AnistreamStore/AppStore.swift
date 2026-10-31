@@ -280,9 +280,20 @@ public final class AppStore {
             AppLog.error("tv", "no Play on TV: \(error)")
             return
         }
+        attachCast()
         #if FIXTURES
         if testing, let fakes = TVRemoteModel.fixtures(engine) {
-            tv.attach(sender, browser: fakes)
+            let casts = TVRemoteModel.fixtureCasts()
+            tv.attach(sender, browser: fakes, castBrowser: casts)
+            if let scene = CastScene.named() {
+                Task {
+                    // The fixture title's name, once its page has loaded, for the sheet's line.
+                    let id: AnilistId = 900_001
+                    for _ in 0..<60 where titles[id] == nil { try? await Task.sleep(for: .milliseconds(50)) }
+                    let play = TVPlayRequest(id: id, title: titles[id]?.title ?? "", episode: "3", from: 312)
+                    await tv.stage(scene, casts: casts, play: play)
+                }
+            }
             if let scene = TVScene.named() {
                 // The finished fixture title, its third episode, five minutes in.
                 let play = TVPlayRequest(id: 900_001, title: "", episode: "3", from: 312)
@@ -291,7 +302,25 @@ public final class AppStore {
             return
         }
         #endif
-        tv.attach(sender, browser: BonjourTVBrowser())
+        let cast = tv.cast
+        let access: @Sendable (Bool) -> Void = { denied in
+            Task { @MainActor in cast.localNetwork(denied: denied) }
+        }
+        tv.attach(sender, browser: BonjourTVBrowser(access: access), castBrowser: BonjourCastBrowser(access: access))
+    }
+
+    /// What a cast hands back to the app: the notice that someone else took the TV, and Play
+    /// here, from where the TV was.
+    private func attachCast() {
+        tv.cast.say = { [weak self] notice in self?.notices.post(notice) }
+        tv.cast.playLocally = { [weak self] id, episode, position in
+            guard let self else { return }
+            if let position, position > 0 {
+                self.play(id, episode: episode, at: position)
+            } else {
+                self.send(.play(id: id, episode: episode))
+            }
+        }
     }
 
     /// Play on TV from a title page or an episode row: the episode, from where it was left when
@@ -697,6 +726,17 @@ public final class AppStore {
         return false
     }
 
+    /// The events that open and run the player here.
+    static func playsHere(_ event: Event) -> Bool {
+        switch event {
+        case .playbackStaged, .playbackEnded, .playerOps, .playerUi, .playbackKept, .playerTimeline, .playerBuffered,
+            .playerStats:
+            true
+        default:
+            false
+        }
+    }
+
     public func apply(_ event: Event) {
         if !held.isEmpty, let kind = event.showcaseKind, held.contains(kind) { return }
         notifications.observe(event)
@@ -704,6 +744,11 @@ public final class AppStore {
         if case .downloads(let rows) = event { continued.update(rows) }
         if wantsWeek, NotificationsModel.reschedules(after: event) { refreshNotices() }
         if case .upcomingNotices(let week) = event { airingActivity.weekChanged(week, titles: titles, artwork: artwork) }
+        if tv.cast.active, Self.playsHere(event) {
+            // A cast plays through the engine as any play does, on the TV: the player here stays shut.
+            AppLog.info("store", "casting: \(String(String(describing: event).prefix { $0 != "(" }))")
+            return
+        }
         switch event {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)

@@ -44,40 +44,40 @@
     <comment>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</comment>
   </data>
   <data name="NoticeCastVideoCodec" xml:space="preserve">
-    <value>The TV can't play this video ({codec}). Try another source.</value>
-    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</comment>
+    <value>{name} can't play this video ({codec}). Try another source.</value>
+    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.</comment>
   </data>
   <data name="NoticeCastAudioCodec" xml:space="preserve">
-    <value>The TV can't play this audio ({codec}), and this device can't convert it. Try another source.</value>
-    <comment>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</comment>
+    <value>{name} can't play this audio ({codec}), and this device can't convert it. Try another source.</value>
+    <comment>The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.</comment>
   </data>
   <data name="NoticeCastContainer" xml:space="preserve">
-    <value>The TV can't play this kind of file. Try another source.</value>
-    <comment>The stream comes in a kind of file the TV can't read.</comment>
+    <value>{name} can't play this kind of file. Try another source.</value>
+    <comment>The stream comes in a kind of file the TV can't read. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastDeepLink" xml:space="preserve">
     <value>This episode opens in another app, so it can't be cast.</value>
     <comment>The episode opens in another app, which this device can't cast.</comment>
   </data>
   <data name="NoticeCastNeverFetches" xml:space="preserve">
-    <value>The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.</value>
-    <comment>The TV accepted the stream but never started reading it.</comment>
+    <value>{name} didn't start reading the stream. A VPN or a firewall on this device may be in the way.</value>
+    <comment>The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastRefused" xml:space="preserve">
-    <value>The TV couldn't play this stream. Try another source.</value>
-    <comment>The TV tried every way of playing the stream and played none of them.</comment>
+    <value>{name} couldn't play this stream. Try another source.</value>
+    <comment>The TV tried every way of playing the stream and played none of them. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastTakenOver" xml:space="preserve">
-    <value>Another device started something on the TV, so casting stopped.</value>
-    <comment>Someone started something else on the TV, which ends the cast.</comment>
+    <value>Another device started something on {name}, so casting stopped.</value>
+    <comment>Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastNotSameNetwork" xml:space="preserve">
-    <value>This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.</value>
-    <comment>This device isn't on the TV's network, or reaches it through a VPN.</comment>
+    <value>This device isn't on the network {name} is on, or reaches it through a VPN. Casting needs both on the same network.</value>
+    <comment>This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastLost" xml:space="preserve">
-    <value>Lost the TV, so casting stopped.</value>
-    <comment>The TV stopped answering mid-cast.</comment>
+    <value>Lost {name}, so casting stopped.</value>
+    <comment>The TV stopped answering mid-cast. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastNoDevice" xml:space="preserve">
     <value>That TV is no longer on the network.</value>
@@ -86,6 +86,22 @@
   <data name="NoticeCastUnavailable" xml:space="preserve">
     <value>This version of anistream can't cast to TVs.</value>
     <comment>This build of the app has no casting.</comment>
+  </data>
+  <data name="CastPhaseStarting" xml:space="preserve">
+    <value>Starting on {name}</value>
+    <comment>The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.</comment>
+  </data>
+  <data name="CastPhaseStartingFor" xml:space="preserve">
+    <value>Starting on {name} · {seconds} s</value>
+    <comment>The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.</comment>
+  </data>
+  <data name="CastPhaseWaiting" xml:space="preserve">
+    <value>Waiting for {name} · {seconds} s</value>
+    <comment>The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.</comment>
+  </data>
+  <data name="CastPhasePreparing" xml:space="preserve">
+    <value>Preparing the stream · {seconds} s</value>
+    <comment>The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.</comment>
   </data>
   <data name="DiscussionAgeNow" xml:space="preserve">
     <value>now</value>
@@ -122,6 +138,106 @@
   <data name="NoticeDiscussionSignIn" xml:space="preserve">
     <value>Sign in with AniList to like and reply.</value>
     <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
+  </data>
+  <data name="HomeSpotlightContinuing" xml:space="preserve">
+    <value>Continue watching</value>
+    <comment>Line over the spotlight's title when it is a show the person is part way through.</comment>
+  </data>
+  <data name="HomeSpotlightNewSeason" xml:space="preserve">
+    <value>New season · You finished {title}</value>
+    <comment>Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.</comment>
+  </data>
+  <data name="HomeSpotlightPlanning" xml:space="preserve">
+    <value>On your Planning list</value>
+    <comment>Line over the spotlight's title when it is on the person's Planning list.</comment>
+  </data>
+  <data name="HomeSpotlightBecause" xml:space="preserve">
+    <value>Because you finished {title}</value>
+    <comment>Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.</comment>
+  </data>
+  <data name="HomeSpotlightRecommended" xml:space="preserve">
+    <value>Recommended for you</value>
+    <comment>Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.</comment>
+  </data>
+  <data name="HomeSpotlightPopular" xml:space="preserve">
+    <value>Popular this season</value>
+    <comment>Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.</comment>
+  </data>
+  <data name="HomeTimeLeft" xml:space="preserve">
+    <value>Episode {episode} · {minutes} min left</value>
+    <comment>Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.</comment>
+  </data>
+  <data name="HomeEpisodeOut" xml:space="preserve">
+    <value>Episode {episode} is out</value>
+    <comment>Line under the spotlight's title for a show part way through with its next episode waiting.</comment>
+  </data>
+  <data name="HomeEpisodeOutToday" xml:space="preserve">
+    <value>Episode {episode} · out today</value>
+    <comment>Line under a { -continue-cap } card whose next episode came out today.</comment>
+  </data>
+  <data name="HomeEpisodeOutShort" xml:space="preserve">
+    <value>Episode {episode} out</value>
+    <comment>Line under a poster on This season: the newest episode out.</comment>
+  </data>
+  <data name="HomeOutAgo" xml:space="preserve">
+    <value>Out {ago} ago</value>
+    <comment>Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.</comment>
+  </data>
+  <data name="HomeReasonNewSeason" xml:space="preserve">
+    <value>New season</value>
+    <comment>Short reason under a poster: a new season of a show the person finished.</comment>
+  </data>
+  <data name="HomeReasonPlanning" xml:space="preserve">
+    <value>On your Planning list</value>
+    <comment>Short reason under a poster: the title is on the person's Planning list.</comment>
+  </data>
+  <data name="HomeReasonRecommended" xml:space="preserve">
+    <value>Recommended for you</value>
+    <comment>Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.</comment>
+  </data>
+  <data name="HomeContinue" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Heading over the shows the person is part way through.</comment>
+  </data>
+  <data name="HomeStartingWinter" xml:space="preserve">
+    <value>Starting in Winter</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingSpring" xml:space="preserve">
+    <value>Starting in Spring</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingSummer" xml:space="preserve">
+    <value>Starting in Summer</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingAutumn" xml:space="preserve">
+    <value>Starting in Autumn</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeThisWeek" xml:space="preserve">
+    <value>This week</value>
+    <comment>Heading over this week's episodes of the shows the person follows.</comment>
+  </data>
+  <data name="HomeAiringToday" xml:space="preserve">
+    <value>Airing today</value>
+    <comment>Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.</comment>
+  </data>
+  <data name="HomeUpNext" xml:space="preserve">
+    <value>Up next for you</value>
+    <comment>Heading over the suggestions made from what the person watched and their lists.</comment>
+  </data>
+  <data name="HomeThisSeason" xml:space="preserve">
+    <value>This season</value>
+    <comment>Heading over this season's most popular titles.</comment>
+  </data>
+  <data name="HomeBecause" xml:space="preserve">
+    <value>Because you finished {title}</value>
+    <comment>Heading over recommendations from one show the person finished and rated well. The title is that show.</comment>
+  </data>
+  <data name="HomeMoreGenre" xml:space="preserve">
+    <value>More {genre}</value>
+    <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
   </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
@@ -1419,6 +1535,14 @@
     <value>Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.</value>
     <comment>Note under the Play trailers setting: what the trailers are and when they do not play.</comment>
   </data>
+  <data name="SettingsNoteCastTvsPc" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This PC sends them the episode.</value>
+    <comment>Note under the Show TVs with Chromecast built in setting, in the Play on TV group.</comment>
+  </data>
+  <data name="SettingsNoteTorrentsWhileCastingPc" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This PC sends the episode for as long as it plays.</value>
+    <comment>Note under the Torrents while casting setting, shown while torrents are on.</comment>
+  </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>anistream is still downloading</value>
     <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
@@ -1763,6 +1887,14 @@
     <value>That code has expired. Ask the TV for a new one.</value>
     <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
   </data>
+  <data name="TvCastThroughPc" xml:space="preserve">
+    <value>Plays through this PC</value>
+    <comment>Under a Chromecast TV in Play on TV: this PC sends the TV the episode while it plays.</comment>
+  </data>
+  <data name="TvCastFirewallAhead" xml:space="preserve">
+    <value>Windows will ask to let anistream reach your TV.</value>
+    <comment>Line under the Chromecast group in Play on TV, until the app has served a TV once: Windows' firewall asks then whether the app may reach the network.</comment>
+  </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>One seeder</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
@@ -1954,6 +2086,74 @@
   <data name="CalendarNowSpoken" xml:space="preserve">
     <value>Now, {time}</value>
     <comment>What a screen reader says for the line that marks the time now. The time is already worded.</comment>
+  </data>
+  <data name="CastChromecast" xml:space="preserve">
+    <value>Chromecast</value>
+    <comment>Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.</comment>
+  </data>
+  <data name="CastNoneFoundExtra" xml:space="preserve">
+    <value>TVs with Chromecast built in show here too.</value>
+    <comment>Line added to the picker's empty state, under what to check.</comment>
+  </data>
+  <data name="CastLocalNetwork" xml:space="preserve">
+    <value>Allow anistream to find devices on your local network</value>
+    <comment>The picker's one row while the app may not look on the local network, with a button that opens the system's settings.</comment>
+  </data>
+  <data name="CastTvsLabel" xml:space="preserve">
+    <value>Show TVs with Chromecast built in</value>
+    <comment>Settings row: whether the TV picker lists TVs with Chromecast built in.</comment>
+  </data>
+  <data name="CastTorrentsLabel" xml:space="preserve">
+    <value>Torrents while casting</value>
+    <comment>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</comment>
+  </data>
+  <data name="CastTvsNoteMac" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This Mac sends them the episode.</value>
+    <comment>Note under the Settings row that shows TVs with Chromecast built in, on a Mac.</comment>
+  </data>
+  <data name="CastTvsNoteIphone" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This iPhone sends them the episode.</value>
+    <comment>Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.</comment>
+  </data>
+  <data name="CastTvsNoteIpad" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This iPad sends them the episode.</value>
+    <comment>Note under the Settings row that shows TVs with Chromecast built in, on an iPad.</comment>
+  </data>
+  <data name="CastTorrentsNoteMac" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.</value>
+    <comment>Note under the Settings row that lets a cast play torrents, on a Mac.</comment>
+  </data>
+  <data name="CastTorrentsNoteIphone" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.</value>
+    <comment>Note under the Settings row that lets a cast play torrents, on an iPhone.</comment>
+  </data>
+  <data name="CastTorrentsNoteIpad" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.</value>
+    <comment>Note under the Settings row that lets a cast play torrents, on an iPad.</comment>
+  </data>
+  <data name="CastUpNextPlaysIn" xml:space="preserve">
+    <value>Up next · plays in {seconds} s</value>
+    <comment>Line on the casting card while the next episode counts down. The seconds are whole.</comment>
+  </data>
+  <data name="CastCouldntStart" xml:space="preserve">
+    <value>Couldn't start on {name}</value>
+    <comment>The card's line when a cast never started. The name is the TV's.</comment>
+  </data>
+  <data name="CastStopped" xml:space="preserve">
+    <value>Casting stopped</value>
+    <comment>The card's line when a cast that played has stopped.</comment>
+  </data>
+  <data name="CastPlayHere" xml:space="preserve">
+    <value>Play here</value>
+    <comment>Button that stops the cast and plays the episode on this device, where the TV was.</comment>
+  </data>
+  <data name="CastStop" xml:space="preserve">
+    <value>Stop casting</value>
+    <comment>Button that stops the cast. The TV goes back to its own screen.</comment>
+  </data>
+  <data name="CastVolumeFixed" xml:space="preserve">
+    <value>Set on the TV</value>
+    <comment>Line under TV volume on the card, for a TV whose volume only its own remote sets.</comment>
   </data>
   <data name="ActionTryAgain" xml:space="preserve">
     <value>Try again</value>
@@ -2994,6 +3194,158 @@
   <data name="EpisodeDownloadFailed" xml:space="preserve">
     <value>Couldn't download episode {episode}. Try again.</value>
     <comment>Line under that button after a failure.</comment>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>Home</value>
+    <comment>Name of the Home section in the sidebar, the tab bar and the window title.</comment>
+  </data>
+  <data name="HomeResumeEpisode" xml:space="preserve">
+    <value>Resume episode {episode}</value>
+    <comment>Main action for an episode part way through.</comment>
+  </data>
+  <data name="HomePlayEpisode" xml:space="preserve">
+    <value>Play episode {episode}</value>
+    <comment>Main action for an episode not started.</comment>
+  </data>
+  <data name="HomeAdding" xml:space="preserve">
+    <value>Adding</value>
+    <comment>Shown in place of Add to Planning while it saves, after a moment.</comment>
+  </data>
+  <data name="HomeDetails" xml:space="preserve">
+    <value>Details</value>
+    <comment>Second action that opens the title's page.</comment>
+  </data>
+  <data name="HomeMore" xml:space="preserve">
+    <value>More</value>
+    <comment>Accessible name of the button that opens more actions.</comment>
+  </data>
+  <data name="HomeMarkWatched" xml:space="preserve">
+    <value>Mark episode {episode} as watched</value>
+    <comment>Action in the spotlight's More menu for a show part way through.</comment>
+  </data>
+  <data name="HomeMarkedWatched" xml:space="preserve">
+    <value>Episode {episode} marked as watched</value>
+    <comment>Notice after the action above. It has an Undo button.</comment>
+  </data>
+  <data name="HomeRemoveContinue" xml:space="preserve">
+    <value>Remove from Continue</value>
+    <comment>Action on a { -continue-cap } card and in the spotlight's More menu.</comment>
+  </data>
+  <data name="HomeContinueCount_one" xml:space="preserve">
+    <value>1 show</value>
+    <comment>Count beside the { -continue-cap } heading when there are more than twelve shows.</comment>
+  </data>
+  <data name="HomeContinueCount_other" xml:space="preserve">
+    <value>{count} shows</value>
+    <comment>Count beside the { -continue-cap } heading when there are more than twelve shows.</comment>
+  </data>
+  <data name="HomeViewAll" xml:space="preserve">
+    <value>View all</value>
+    <comment>Link beside a heading that opens the full list.</comment>
+  </data>
+  <data name="HomeFullCalendar" xml:space="preserve">
+    <value>Full calendar</value>
+    <comment>Link beside This week and Airing today that opens the calendar.</comment>
+  </data>
+  <data name="HomeToday" xml:space="preserve">
+    <value>Today</value>
+    <comment>The first day of This week.</comment>
+  </data>
+  <data name="HomeNothingAiring" xml:space="preserve">
+    <value>Nothing airing</value>
+    <comment>A day of This week with nothing on it.</comment>
+  </data>
+  <data name="HomeDayMore" xml:space="preserve">
+    <value>{count} more</value>
+    <comment>A day of This week with more titles than fit.</comment>
+  </data>
+  <data name="HomeSeasonal" xml:space="preserve">
+    <value>Seasonal</value>
+    <comment>Link beside This season and Starting in that opens Seasonal.</comment>
+  </data>
+  <data name="HomeSearch" xml:space="preserve">
+    <value>Search</value>
+    <comment>Link beside a genre shelf that opens Search with that genre.</comment>
+  </data>
+  <data name="HomeEnd" xml:space="preserve">
+    <value>That's everything for now. Seasonal and Calendar have the full lists.</value>
+    <comment>The closing line at the end of Home. Seasonal and Calendar are links.</comment>
+  </data>
+  <data name="HomeEndSignedOut" xml:space="preserve">
+    <value>Sign in to AniList to bring in your list and Planning.</value>
+    <comment>The closing line at the end of Home when no { -tracker } is signed in.</comment>
+  </data>
+  <data name="HomeSignIn" xml:space="preserve">
+    <value>Sign in to AniList</value>
+    <comment>Button in the closing line when no { -tracker } is signed in.</comment>
+  </data>
+  <data name="HomeEndNoSources" xml:space="preserve">
+    <value>Add a source to play from Home. Plugin stores has some to choose from.</value>
+    <comment>The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.</comment>
+  </data>
+  <data name="HomeNotFound" xml:space="preserve">
+    <value>Not found in your sources</value>
+    <comment>Line on a title that no installed { -source } has. The main action becomes Add to Planning.</comment>
+  </data>
+  <data name="HomeFailed" xml:space="preserve">
+    <value>Couldn't load suggestions</value>
+    <comment>Notice when part of Home could not be loaded. It has a Try again button.</comment>
+  </data>
+  <data name="HomeTryAgain" xml:space="preserve">
+    <value>Try again</value>
+    <comment>Button in the notice above.</comment>
+  </data>
+  <data name="HomeLoading" xml:space="preserve">
+    <value>Loading suggestions</value>
+    <comment>Activity line while Home's suggestions take longer than a few seconds.</comment>
+  </data>
+  <data name="HomeOffline" xml:space="preserve">
+    <value>Offline. Showing Home from {time}.</value>
+    <comment>Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.</comment>
+  </data>
+  <data name="HomeOfflineEmptyTitle" xml:space="preserve">
+    <value>You're offline</value>
+    <comment>Heading when Home is offline and has nothing saved.</comment>
+  </data>
+  <data name="HomeOfflineEmptyBody" xml:space="preserve">
+    <value>Home needs a connection the first time it opens. Downloads still play.</value>
+    <comment>Text under the heading above.</comment>
+  </data>
+  <data name="HomeOpenDownloads" xml:space="preserve">
+    <value>Open Downloads</value>
+    <comment>Button under the text above.</comment>
+  </data>
+  <data name="SettingsHiddenTitles" xml:space="preserve">
+    <value>Hidden titles</value>
+    <comment>Settings row and page that lists the titles hidden with Not interested.</comment>
+  </data>
+  <data name="SettingsHiddenTitlesBody" xml:space="preserve">
+    <value>Titles you marked Not interested. They stay out of Home and Up next for you until you restore them.</value>
+    <comment>Text under the list of hidden titles.</comment>
+  </data>
+  <data name="SettingsHiddenOn" xml:space="preserve">
+    <value>Hidden {date}</value>
+    <comment>Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".</comment>
+  </data>
+  <data name="SettingsHiddenUntilAirs" xml:space="preserve">
+    <value>Comes back when it airs</value>
+    <comment>Line under a hidden title that comes back by itself once it starts airing.</comment>
+  </data>
+  <data name="SettingsRestore" xml:space="preserve">
+    <value>Restore</value>
+    <comment>Button beside a hidden title that brings it back to Home.</comment>
+  </data>
+  <data name="SettingsHiddenEmpty" xml:space="preserve">
+    <value>Nothing hidden. Titles you mark Not interested appear here.</value>
+    <comment>Settings, Hidden titles, when nothing is hidden.</comment>
+  </data>
+  <data name="HomePrevious" xml:space="preserve">
+    <value>Previous</value>
+    <comment>Accessible name of the arrow that pages a shelf back.</comment>
+  </data>
+  <data name="HomeNext" xml:space="preserve">
+    <value>Next</value>
+    <comment>Accessible name of the arrow that pages a shelf on.</comment>
   </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>
@@ -4806,6 +5158,14 @@
   <data name="SettingsLabelTrailers" xml:space="preserve">
     <value>Play trailers</value>
     <comment>Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.</comment>
+  </data>
+  <data name="SettingsLabelCastTvs" xml:space="preserve">
+    <value>Show TVs with Chromecast built in</value>
+    <comment>Settings row: whether the TV picker lists TVs with Chromecast built in.</comment>
+  </data>
+  <data name="SettingsLabelTorrentsWhileCasting" xml:space="preserve">
+    <value>Torrents while casting</value>
+    <comment>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</comment>
   </data>
   <data name="SettingsTitleTracker" xml:space="preserve">
     <value>{tracker}'s choice</value>
@@ -7310,6 +7670,50 @@
   <data name="TvVolume" xml:space="preserve">
     <value>TV volume</value>
     <comment>Title of the remote's volume row.</comment>
+  </data>
+  <data name="TvCastGroup" xml:space="preserve">
+    <value>Chromecast</value>
+    <comment>Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.</comment>
+  </data>
+  <data name="TvCastNoneFound" xml:space="preserve">
+    <value>TVs with Chromecast built in show here too.</value>
+    <comment>Line under the empty state of Play on TV when no TV was found: casting looks for these too.</comment>
+  </data>
+  <data name="TvCastCounting" xml:space="preserve">
+    <value>{line} · {seconds} s</value>
+    <comment>Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.</comment>
+  </data>
+  <data name="TvCastCouldntStart" xml:space="preserve">
+    <value>Couldn't start on {name}</value>
+    <comment>Status line of the casting card when the cast didn't start. The reason shows under the episode.</comment>
+  </data>
+  <data name="TvCastStopped" xml:space="preserve">
+    <value>Casting stopped</value>
+    <comment>Status line of the casting card after the TV stopped answering.</comment>
+  </data>
+  <data name="TvCastPlayHere" xml:space="preserve">
+    <value>Play here</value>
+    <comment>Button on the casting card: stop casting and play the episode on this device, from where the TV was.</comment>
+  </data>
+  <data name="TvCastStop" xml:space="preserve">
+    <value>Stop casting</value>
+    <comment>Button on the casting card: stop casting. The TV goes back to what it showed.</comment>
+  </data>
+  <data name="TvCastMute" xml:space="preserve">
+    <value>Mute</value>
+    <comment>Button on the casting card's TV volume row: silence the TV.</comment>
+  </data>
+  <data name="TvCastUnmute" xml:space="preserve">
+    <value>Unmute</value>
+    <comment>The same button while the TV is silenced.</comment>
+  </data>
+  <data name="TvCastVolumeOnTv" xml:space="preserve">
+    <value>Set on the TV</value>
+    <comment>Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.</comment>
+  </data>
+  <data name="TvCastUpNextIn" xml:space="preserve">
+    <value>Up next · plays in {seconds} s</value>
+    <comment>Line over the next episode on the casting card while its count runs. At 0 the TV plays it.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>Updates</value>

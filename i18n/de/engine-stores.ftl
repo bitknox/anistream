@@ -1,0 +1,73 @@
+store-joined = Du bist { $store } als { $member } beigetreten.
+store-joined-unnamed = Du bist { $store } ohne Namen beigetreten.
+store-left = Du hast { $store } verlassen. Die { -plugin-pl } bleiben installiert.
+plugin-removed = { $plugin } entfernt.
+store-member-removed = Entfernt. Ihre { -device-pl } funktionieren mit diesem { -plugin-store } nicht mehr.
+store-invite-cancelled = Einladung abgebrochen. Der Link funktioniert nicht mehr.
+store-open-join-on = Jede Person mit dem Link des { -plugin-store }s kann jetzt beitreten. Kopiere ihn von der Mitgliederseite.
+store-open-join-off = Ab jetzt können nur eingeladene Personen beitreten.
+store-open-join-off-devices = { $devices ->
+    [one] Ab jetzt können nur eingeladene Personen beitreten. Das { -device }, das über den Link beigetreten ist, funktioniert weiter, bis du es entfernst.
+   *[other] Ab jetzt können nur eingeladene Personen beitreten. Die { $devices } { -device-pl }, die über den Link beigetreten sind, funktionieren weiter, bis du sie entfernst.
+ }
+store-device-removed = Dieses { -device } funktioniert nicht mehr mit diesem { -plugin-store }.
+store-devices-removed = Alle { -device-pl } entfernt, die über den Link beigetreten sind.
+plugin-published = { $plugin } { $version } veröffentlicht.
+plugin-unpublished = { $plugin } wird nicht mehr angeboten.
+store-admin-opened = Die Admin-Seite wurde im Browser geöffnet. Der Link funktioniert einmal und 10 Minuten lang.
+store-admin-open-failed = Der Browser ließ sich nicht öffnen ({ $reason }). Auf dem Rechner des { -plugin-store }s führe „{ -app-name } store admin“ aus, um einen Link auszugeben.
+plugin-installed-unused = { $plugin } { $version } installiert, aber { -plugin-pl } sind in der Reihenfolge der { -source-pl } ausgeschaltet, deshalb wird es nicht verwendet.
+plugin-installed-name-clash = { $plugin } installiert, aber { $id } ist der Name einer eingebauten { -source }, deshalb wurde es nicht geladen.
+plugin-installed = { $plugin } { $version } installiert.
+plugin-installed-not-loaded = { $plugin } ist installiert, konnte aber nicht geladen werden. { $reason }
+plugin-updates-ready = { $count ->
+    [one] { -plugin-cap }-Update bereit: { $names }.
+   *[other] { -plugin-cap }-Updates bereit: { $names }.
+ }
+plugins-load-failed = { -plugin-cap-pl } konnten nicht geladen werden. { $reason }
+store-token-missing = Für { $store } ist auf diesem { -device } kein Token gespeichert. Tritt mit einer neuen Einladung erneut bei.
+store-not-joined = Du bist diesem { -plugin-store } nicht mehr beigetreten.
+store-key-damaged = Der Schlüssel dieses { -plugin-store }s auf diesem { -device } ist beschädigt. Verlasse den { -plugin-store } und tritt mit einer neuen Einladung erneut bei.
+store-device-refused = { $store } akzeptiert dieses { -device } nicht mehr. Tritt mit einer neuen Einladung erneut bei.
+store-unreachable = { $store } konnte nicht erreicht werden. { $reason }
+store-moved = Du bist { $store } unter { $current } beigetreten, aber der Link zeigt auf { $target }. Wenn der { -plugin-store } umgezogen ist, verlasse ihn zuerst und tritt erneut bei.
+store-join-would-unname = Du bist { $store } als { $member } beigetreten. Mit diesem Link würdest du ohne deinen Namen erneut beitreten. Deshalb wurde nichts geändert.
+store-not-the-invited = { $url } ist nicht der { -plugin-store }, den die Einladung nennt ({ $reason }). Du bist nicht beigetreten.
+store-token-not-kept = Das Token für diesen { -plugin-store } konnte nicht gespeichert werden. { $reason }
+store-invite-unusable = Diese Einladung wurde schon benutzt, abgebrochen oder ist abgelaufen. Frag nach einer neuen.
+store-open-link-unusable = Dieser Link lässt niemanden mehr beitreten. Frag den Besitzer des { -plugin-store }s nach einem neuen Link oder einer Einladung.
+plugin-reserved-name = { $plugin } ist der Name einer eingebauten { -source }, deshalb kann es kein { -plugin } sein.
+store-plugin-withdrawn = { $store } bietet { $plugin } nicht mehr an.
+store-plugin-changed = { $store } hat { $plugin } geändert, seit es angezeigt wurde. Schau es dir vor der Installation noch einmal an.
+plugin-from-other-store = { $plugin } ist über { $store } installiert, und dieser hält es aktuell.
+plugin-duplicate-file = { $path } erklärt bereits { $plugin }. Entferne zuerst diese Datei, sonst laufen zwei Kopien.
+plugin-install-failed = { $plugin } konnte nicht installiert werden. { $reason }
+plugin-publish-failed = { $plugin } konnte nicht veröffentlicht werden. { $reason }
+plugin-missing-locally = { $plugin } ist nicht mehr im { -plugin }-Ordner.
+store-invite-needs-link = Dieses { -device } ist mit seinem Link bei { $store } beigetreten. Füge auf dem anderen { -device } denselben Link ein.
+store-link-malformed = Der { -plugin-store } hat einen Link geschickt, der sich nicht lesen lässt. Frag den Besitzer, den { -plugin-store } zu prüfen. { $reason }
+store-link-wrong-key = Der { -plugin-store } hat einen Link mit einem anderen Schlüssel erstellt. Prüfe die Adresse, mit der er gestartet wurde.
+store-admin-missing = { $store } hat keine Admin-Seite. Der Server ist vielleicht älter.
+store-admin-link-foreign = { $store } hat einen Admin-Link für eine andere Adresse geschickt.
+store-open-join-unsupported = Der Server von { $store } ist älter und kann niemanden per Link beitreten lassen. Aktualisiere ihn zuerst.
+source-switched-off = { $name } ist ausgeschaltet. Bei der Suche nach Episoden wird es übersprungen.
+source-switched-on = { $name } ist eingeschaltet.
+plugin-not-loaded = { $id } ist nicht geladen. Prüfe, ob es unter den { -source-cap-pl } installiert ist.
+release-pinned = { $name } wird für diesen Titel verwendet.
+notice-choice-not-saved = Diese Auswahl konnte nicht gespeichert werden. { $reason }
+torrent-check-failed-running = Die Verbindungsprüfung ist fehlgeschlagen. Torrents laufen weiter.
+torrent-vpn-waiting = Torrents starten, sobald der VPN-Wächter freigibt. { $reason }
+torrent-vpn-unverified = Torrents starten, sobald der VPN-Wächter freigibt. Die Verbindung wurde noch nicht geprüft.
+torrent-no-index = Torrents brauchen einen { -torrent-index }. { -app-name } liefert keinen mit, füge deshalb in den Einstellungen deine eigene Adresse hinzu.
+torrent-interface-closed = { -app-name } wurde geschlossen, bevor die Torrents starteten.
+torrent-session-failed = Die Torrent-Sitzung konnte nicht gestartet werden. { $reason }
+torrent-no-kill-switch = Auf diesem { -device } stoppt nichts den Torrent-Verkehr, wenn das VPN ausfällt. Führe „{ -app-name } --doctor“ aus, um das einzurichten.
+torrent-not-checked = Die Verbindung konnte nicht geprüft werden. { $reason }
+sources-reloaded-torrents-pending = { -source-cap-pl } neu geladen. Torrents starten, sobald der VPN-Wächter freigibt.
+sources-reloaded-torrents-off = Torrents sind aus. Die Sitzung wurde beendet.
+job-anilist-limit = Wartet auf das Anfragelimit von AniList
+notice-anilist-limit = Wartet { $wait } wegen des Anfragelimits von AniList.
+notice-anilist-unreachable = AniList antwortet nicht. Vorerst werden Daten von einem anderen Dienst angezeigt.
+notice-metadata-cached = Kein Metadaten-Dienst hat geantwortet. Gezeigt wird, was zuletzt zwischengespeichert wurde.
+notice-anilist-back = AniList ist wieder da.
+notice-party-not-built = { -watch-party-cap-pl } sind in dieser App nicht eingebaut.

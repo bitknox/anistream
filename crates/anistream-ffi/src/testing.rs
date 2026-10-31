@@ -9,10 +9,10 @@ use anistream_engine::{
     plugin_stores, tracking,
 };
 use anistream_meta::Meta;
-use anistream_model::Msg;
+use anistream_model::{Msg, command::Command};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
-use anistream_testkit::FakeAniList;
+use anistream_testkit::{FakeAniList, anilist::Failure};
 use anistream_track::{
     AniListTracker,
     secret::{Backend, TokenStore},
@@ -89,6 +89,22 @@ impl FfiEngine {
             .unwrap_or_default()
     }
 
+    /// Take the scene offline, or bring it back: offline, the fake AniList hangs up on every
+    /// request and the engine is told the path is offline, whatever the host's own monitor says
+    /// after. For Home's offline line over what it last loaded, and its offline state with
+    /// nothing saved. Back online, the fake answers again and the engine is told so. Does
+    /// nothing on an engine that is not on the fake. Only in a build with the `testing` feature.
+    pub fn testing_set_offline(&self, offline: bool) {
+        let Some(kept) = self.kept::<Testing>() else { return };
+        kept.offline.store(offline, std::sync::atomic::Ordering::Relaxed);
+        if offline {
+            kept.server.fail_always(Failure::Disconnect);
+        } else {
+            kept.server.heal();
+        }
+        self.send(Command::NetworkPath { cellular: false, constrained: false, offline });
+    }
+
     /// Serve the fixtures' art badly from now on, as a busy CDN would: every second image is
     /// answered `503` its first `fail_first` times, and every image waits `delay_ms` before it
     /// is answered. For a test or the dev harness that art on screen still arrives. Does nothing
@@ -107,11 +123,31 @@ pub(crate) struct Testing {
     pub(crate) clock: Clock,
     /// The engine's one client, which resolves no name, once [`options`] has made it.
     pub(crate) http: std::sync::OnceLock<HttpClient>,
+    /// Whether the scene is offline: see [`FfiEngine::testing_set_offline`].
+    pub(crate) offline: std::sync::atomic::AtomicBool,
 }
 
 impl Testing {
     pub(crate) fn new(server: FakeAniList, clock: Clock) -> Self {
-        Self { server, clock, http: std::sync::OnceLock::new() }
+        Self {
+            server,
+            clock,
+            http: std::sync::OnceLock::new(),
+            offline: std::sync::atomic::AtomicBool::new(false),
+        }
+    }
+
+    /// `command` as the scene has it: while it is offline, every network path the host reports
+    /// is an offline one, so the device's own connection cannot bring it back.
+    pub(crate) fn pin(&self, command: Command) -> Command {
+        match command {
+            Command::NetworkPath { cellular, constrained, .. }
+                if self.offline.load(std::sync::atomic::Ordering::Relaxed) =>
+            {
+                Command::NetworkPath { cellular, constrained, offline: true }
+            }
+            command => command,
+        }
     }
 }
 

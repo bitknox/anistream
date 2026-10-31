@@ -10,6 +10,7 @@ use crate::{
     discussion::DiscussionView,
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
+    home::{HiddenTitle, HomeView, Playable},
     hosted::{PlayerOp, PlayerStats, PlayerUi},
     jobs::JobId,
     notice::Notice,
@@ -139,6 +140,17 @@ pub enum Event {
     /// leaves. Empty when there are none, which also takes the group away. Sent from what was
     /// kept, and again if AniList's answer changes it.
     UpNext(Vec<UpNextItem>),
+    /// Home, whole, in answer to [`Command::LoadHome`](crate::command::Command::LoadHome) and
+    /// whenever what it shows changes. Each replaces the one before; the spotlight crossfades
+    /// when [`HomeView::spotlight_moved`] says it moved.
+    Home(Box<HomeView>),
+    /// What the sources check found for title `id`.
+    TitlePlayable {
+        id: AnilistId,
+        playable: Playable,
+    },
+    /// The titles hidden with Not interested, most recent first.
+    HiddenTitles(Vec<HiddenTitle>),
     /// What the filters choose from.
     Facets(SearchFacets),
     /// The recent searches, newest first: at launch when asked, and after each change.

@@ -5,7 +5,8 @@
 //! gardener's flower, a running track at summer's end. These are those drawings rendered to PNG,
 //! a 460 × 690 poster and a 1600 × 900 wide one each, and the second season's drawn in another
 //! tone. The opt-in catalogue's eight titles ([`crate::fixtures::catalogue`]) are drawn the same
-//! way, a lighthouse, a koi pond, paper lanterns and so on. The SVG each PNG was rendered from is
+//! way, a lighthouse, a koi pond, paper lanterns and so on, and Home's world's 36 as the Home
+//! design board draws them. The SVG each PNG was rendered from is
 //! under `fixtures/art/src/`. [`FakeAniList::serve_art`](crate::FakeAniList::serve_art) serves them at the paths the
 //! fixtures' own image URLs name.
 
@@ -45,7 +46,54 @@ const CATALOGUE_ART: [Art; 8] = [
     art!("rowing"),
 ];
 
+/// Home's world's drawings ([`crate::home_world`]), in its ids' order from 950001: the board's
+/// fireworks, kites and washing lines in its palettes, and the drawings above turned and
+/// recoloured, each title its own.
+const WORLD_ART: [Art; 36] = [
+    art!("hanabi"),
+    art!("hotaru"),
+    art!("kamome"),
+    art!("sora"),
+    art!("niji"),
+    art!("akari"),
+    art!("minato"),
+    art!("shiro"),
+    art!("kaze"),
+    art!("tsubame"),
+    art!("ginga"),
+    art!("kishi-2"),
+    art!("shokudo-2"),
+    art!("kujira"),
+    art!("kasa"),
+    art!("mori"),
+    art!("koto"),
+    art!("kishi"),
+    art!("shokudo"),
+    art!("ryokan"),
+    art!("garasu"),
+    art!("tegami"),
+    art!("densha"),
+    art!("kumo"),
+    art!("hoshi"),
+    art!("fune"),
+    art!("yume"),
+    art!("neko"),
+    art!("mizu"),
+    art!("haru"),
+    art!("yoru"),
+    art!("ame"),
+    art!("kissa"),
+    art!("kame"),
+    art!("nami"),
+    art!("tanpopo"),
+];
+
 fn of(id: u32) -> Option<&'static Art> {
+    if let Some(n) = id.checked_sub(crate::home_world::FIRST)
+        && let Some(art) = WORLD_ART.get(n as usize)
+    {
+        return Some(art);
+    }
     let id = anistream_core::ids::AnilistId::new(id);
     Some(match id {
         FINISHED => &STARDUST,
@@ -93,6 +141,17 @@ mod tests {
                 assert!(png(&path).is_some_and(|bytes| bytes.starts_with(PNG)), "{path}");
             }
         }
+        for id in crate::home_world::ids() {
+            for kind in ["cover", "banner"] {
+                let path = format!("{kind}/{id}.jpg");
+                assert!(png(&path).is_some_and(|bytes| bytes.starts_with(PNG)), "{path}");
+            }
+        }
+        let covers: std::collections::HashSet<&[u8]> = crate::home_world::ids()
+            .iter()
+            .filter_map(|id| png(&format!("cover/{id}.jpg")))
+            .collect();
+        assert_eq!(covers.len(), 36, "each of the world's titles is drawn its own way");
         assert_ne!(png("cover/900001.jpg"), png("cover/900004.jpg"), "the sequel is its own");
         assert_ne!(
             png("cover/900001.jpg"),
@@ -104,6 +163,7 @@ mod tests {
     #[test]
     fn a_path_the_fixtures_do_not_name_has_none() {
         assert!(png("cover/900999.jpg").is_none());
+        assert!(png("cover/950037.jpg").is_none());
         assert!(png("avatar/900001.jpg").is_none());
         assert!(png("cover").is_none());
     }

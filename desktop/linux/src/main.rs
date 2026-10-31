@@ -150,13 +150,20 @@ fn main() -> glib::ExitCode {
     let cache_dir = paths.cache_dir.clone();
     let engine::Started { engine, mut events, keep, rebuilt } = started;
     let engine = Arc::new(engine);
+    // What casting to a TV with Chromecast built in reads of the engine: its hub, which hears the
+    // events below, and where the card's commands go.
+    let casting = (engine.casts(), engine.remote_sender());
     save_on_panic(Arc::downgrade(&engine), runtime.handle().clone());
 
     // The engine's events, in batches, onto the main loop.
     let (events_tx, events_rx) = async_channel::unbounded::<Vec<Event>>();
+    let casts = engine.casts();
     runtime.spawn(async move {
         loop {
             let batch = events.next_events().await;
+            for event in &batch {
+                casts.observe(event);
+            }
             // Said once the rebuild is done, so what is put back stays.
             if let Some(rebuilt) = &rebuilt
                 && batch.iter().any(|event| matches!(event, Event::SourcesChanged))
@@ -181,6 +188,7 @@ fn main() -> glib::ExitCode {
         data: paths.data_dir.clone(),
         paths,
         runtime: runtime.handle().clone(),
+        casting: tv::cast::Casting { hub: casting.0, engine: casting.1 },
     };
     let pending = Rc::new(RefCell::new(Some((events_rx, host_rx))));
     let shell_slot: Rc<RefCell<Option<Rc<Shell>>>> = Rc::default();
@@ -258,6 +266,17 @@ struct Files {
     /// Where the engine's config file is: the window reads and writes the language there.
     paths: Paths,
     runtime: tokio::runtime::Handle,
+    /// What Play on TV casts through.
+    casting: tv::cast::Casting,
+}
+
+impl Files {
+    fn casting(&self) -> tv::cast::Casting {
+        tv::cast::Casting {
+            hub: Arc::clone(&self.casting.hub),
+            engine: self.casting.engine.clone(),
+        }
+    }
 }
 
 /// The engine started, and the directories and config file it runs on.
@@ -325,10 +344,10 @@ fn start_fixtures(
 fn play_on_tv(args: &Args, files: &Files) -> Rc<tv::Tv> {
     #[cfg(feature = "fixtures")]
     if args.fixtures {
-        return tv::fixture::tv(files.runtime.clone(), &files.data);
+        return tv::fixture::tv(files.runtime.clone(), &files.data, Some(files.casting()));
     }
     let _ = args;
-    tv::Tv::new(files.runtime.clone(), &files.data)
+    tv::Tv::new(files.runtime.clone(), &files.data, Some(files.casting()))
 }
 
 fn build(

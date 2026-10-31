@@ -9,7 +9,7 @@ activity-sources = { -source-pl }を確認しています
 activity-downloads = ダウンロードを読み込んでいます
 activity-browse = 作品を読み込んでいます
 size-per-second = { $size }/秒
-time-now = 今すぐ
+time-now = 現在
 time-just-now = たった今
 spoken-hours = { $count ->
    *[other] { $count }時間
@@ -21,7 +21,7 @@ spoken-seconds = { $count ->
    *[other] { $count }秒
  }
 continue-row-caught-up-airs = 最新話まで視聴済み · E{ $episode } 放送: { $when }
-continue-row-caught-up-not-out = 追いつきました · エピソード{ $episode }はまだ公開されていません
+continue-row-caught-up-not-out = 最新話まで視聴済み · E{ $episode }は未公開
 language-name-english = 英語
 language-name-japanese = 日本語
 language-name-spanish = スペイン語

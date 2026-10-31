@@ -8,6 +8,7 @@ Later decisions win where they disagree with this text:
 
 - The design review settled: Settings sits inside the Mac and iPad main window, a ⌘K palette is built, torrents run on every device, and Up next counts down 10 s and fades through the ground colour.
 - Copy, 23 October 2026: the legal line is "anistream hosts no content." Drop "ships no sources of its own" and "Every source is run by someone else" where they appear below.
+- Home, 31 October 2026: Home replaces Continue as the first section, as the Home section below sets out. Patterns F1 and A1 on the canvas now read: only the viewer's own next thing sits above their queue, or a plainly labelled popular pick when they have none.
 - Android TV, Windows and Linux follow the same principles, states, motion tokens and copy rules through their own platform's controls. Their own notes are `android/docs/tv-design-brief.md` and `docs/desktop-*.md`.
 
 ## Principles
@@ -22,11 +23,11 @@ Later decisions win where they disagree with this text:
 
 ## Interaction model
 
-One SwiftUI app with three shapes: a split view on Mac, the same split view on iPad that collapses as its window narrows, and a tab bar on iPhone. The sections are the canvas's: Continue, Calendar, Seasonal, Search, Library, Downloads, then Providers and Plugin stores under Sources, then Accounts.
+One SwiftUI app with three shapes: a split view on Mac, the same split view on iPad that collapses as its window narrows, and a tab bar on iPhone. The sections are the canvas's: Home, Calendar, Seasonal, Search, Library, Downloads, then Providers and Plugin stores under Sources, then Accounts.
 
 ### Mac
 
-- The main window is a `NavigationSplitView`. Continue and Library show sidebar, list and a preview of the selected title, as on the canvas. Opening the preview (Return or a double-click) widens it into the full title page (M3). Seasonal, Calendar and Search use two columns, and a title pushes onto the content column. Section changes are instant (M1), and the preview crossfades as the selection moves (M2).
+- The main window is a `NavigationSplitView`. Home is one scrolling page beside the sidebar, with no preview column, and a title pushes onto it. Library shows sidebar, list and a preview of the selected title, as on the canvas. Opening the preview (Return or a double-click) widens it into the full title page (M3). Seasonal, Calendar and Search use two columns, and a title pushes onto the content column. Section changes are instant (M1), and in Library the preview crossfades as the selection moves (M2).
 - The window's minimum size is 960 × 600 pt, and it restores its frame, sidebar width, section and scroll position (`SceneStorage`). The toolbar holds the search field (`searchable(placement: .toolbar)`) and the sync status, which opens a popover of running jobs.
 - The player has its own single-instance `Window` (M4), so browsing goes on during playback. It remembers its size and position, opening the first time at the video's size capped at 70% of the screen, and resizes at the video's aspect ratio. The title bar is transparent and hides with the controls, and dragging the video moves the window.
 - As in the companion, a click on the video pauses after the double-click interval, a double-click toggles full screen, and a drag of more than 8 pt never pauses. ⌘W stops playback with the position saved.
@@ -38,27 +39,29 @@ One SwiftUI app with three shapes: a split view on Mac, the same split view on i
 
 ### iPad
 
-- The root is a `TabView` with `.tabViewStyle(.sidebarAdaptable)`: the Mac's sidebar on iPad and the tab bar on iPhone, from one definition. List and preview sit side by side when the window is at least 900 pt wide.
+- The root is a `TabView` with `.tabViewStyle(.sidebarAdaptable)`: the Mac's sidebar on iPad and the tab bar on iPhone, from one definition. In Library, list and preview sit side by side when the window is at least 900 pt wide. Home scrolls as one page at every width.
 - Touch works as on iPhone. The pointer gets the system's button effects, rows highlight on press and selection only, and secondary click opens context menus.
 - The keyboard has the same `.commands` as Mac, shown in iPadOS 26's menu bar and by holding ⌘.
 - The player is a full-screen cover zoomed from the banner (T2), and it follows the window in Stage Manager.
 
 ### iPhone
 
-- Five tabs: Continue, Calendar, Seasonal, Library and Search (`Tab(role: .search)`, with its field at the bottom). Downloads is Library's first row. Accounts, Sources, Plugin stores and Settings open as a sheet from the account button on Continue and Library.
+- Five tabs: Home, Calendar, Seasonal, Library and Search (`Tab(role: .search)`, with its field at the bottom). Downloads is Library's first row. Accounts, Sources, Plugin stores and Settings open as a sheet from the account button on Home and Library.
 - The tab bar minimises on scroll and the large title collapses, both the system's (T6).
 - The main action sits low. When a title page's Resume button scrolls away, a Resume capsule fades into the bottom toolbar. Sheets open at the medium detent with their action at the bottom.
-- Long press opens `contextMenu(menuItems:preview:)` with the banner as the preview. Pull to refresh (`refreshable`) works on Continue, Calendar, Seasonal, Library (where it also syncs) and Downloads, and its spinner lasts until the engine's job ends, at most 15 s.
+- Long press opens `contextMenu(menuItems:preview:)` with the banner as the preview. Pull to refresh (`refreshable`) works on Home, Calendar, Seasonal, Library (where it also syncs) and Downloads, and its spinner lasts until the engine's job ends, at most 15 s.
 - The app runs in portrait. The player rotates to landscape when it opens (T2).
 
 Swipe actions on iPhone and iPad:
 
 | Row | Leading | Trailing | Full swipe |
 | --- | --- | --- | --- |
-| Continue | Watched (the current episode) | Remove | Trailing, with Undo in a notice |
+| Library, Watching | Watched (the current episode) | Remove from Continue | Trailing, with Undo in a notice |
 | Episode | Watched or Unwatched | Download | Leading |
 | Download | none | Cancel, Delete | None. Delete asks first |
 | A source in Sources | none | none | Reordered by drag in edit mode |
+
+Home's cards and posters have no swipe actions, as they sit in rows that scroll sideways. Their actions are in the long-press menu.
 
 ## Keyboard and menus
 
@@ -82,7 +85,8 @@ Bare-letter keys work only in the player window, and in lists only while no text
 | Open the selection | Return, ⌘↓ | Enter |
 | Play next unwatched | Space while nothing plays, ⌘Return | Space |
 | Mark as Watched or Unwatched | ⇧⌘U | u |
-| Remove from Continue | ⌘⌫ | x |
+| Remove from Continue | ⌘⌫ on a focused Continue card or Watching row | x |
+| Move through Home | ← → along a shelf, ↑ ↓ between shelves | ↑ ↓ ← → |
 | Move source up or down | ⌥⌘↑, ⌥⌘↓ | K, J |
 | Delete download and its file | ⌘⌫ on Downloads, then confirm | X |
 | Sub or Dub | ⌥⌘T | t |
@@ -90,7 +94,7 @@ Bare-letter keys work only in the player window, and in lists only while no text
 | Settings | ⌘, | 9 |
 | Quit | ⌘Q | Q, Ctrl-C |
 
-Set Status, Rate, Episodes, Sources, Source for This Title, Fix Match, Download, Download Range, Watch Order, Recommendations, Play Trailer, Open on AniList, Play in a Watch Party, Mark All Previous as Watched and Clear Finished Downloads are menu items without shortcuts.
+Not interested (on a discovery card, the hover card and the spotlight's More menu), Set Status, Rate, Episodes, Sources, Source for This Title, Fix Match, Download, Download Range, Watch Order, Recommendations, Play Trailer, Open on AniList, Play in a Watch Party, Mark All Previous as Watched and Clear Finished Downloads are menu items without shortcuts.
 
 ### Player window
 
@@ -173,6 +177,28 @@ Three motions belong to surfaces only this spec defines, and use the same tokens
 - The notice capsule fades in (fade-in) and out (fade-out). A newer notice crossfades over the current one.
 - The double-tap seek label (“+10 s”) fades in (fade-in), counts up with each tap and fades out (fade-out) 0.6 s after the last one.
 - The Mac mini player moves the window frame to its corner and back with the system window animation (system); with Reduce Motion it jumps.
+
+Home uses the same tokens and no curves of its own:
+
+| Moment | Token | Timing |
+| --- | --- | --- |
+| Local sections arrive | fade-in | At about 90 ms, with no placeholders |
+| Covers arrive | fade-in | As each arrives |
+| Discovery placeholders | fade-in | From 600 ms, held at least 0.3 s |
+| Activity line | fade-in | From 4 s, “Loading suggestions” |
+| Placeholders to content | standard | One crossfade, with no reflow |
+| The spotlight changes case | standard | A crossfade in place |
+| A card leaves Continue | fade-out | Then the shelves below close the gap on standard |
+| Paging arrows | fade-in, fade-out | While the pointer is over a shelf |
+| A shelf pages | standard | By the whole cards that fit, landing on a card edge |
+| Trackpad or wheel scrolling | system | Free, with no snapping |
+| TV focus | quick | The ring and a 1.05 scale come in, and the old card goes out |
+| TV shelf or page scroll | standard | One card at the safe area edge; a shelf change scrolls the page |
+| Hover card | As the hover card decided | 450 ms dwell, grow on standard, banner at grow start, details from 100 ms, trailer at the first frame after the grow, leave on quick |
+| Not interested | fade-out, then standard | The poster fades and its neighbours close the gap; Undo reverses it |
+| Notice | fade-in, fade-out | Holds 8 s with a button |
+
+With Reduce Motion, Home keeps its fades and turns every move into a fade-out at the old place and a fade-in at the new one. TV keeps the focus ring and drops the scale.
 
 ## Player
 
@@ -280,6 +306,29 @@ libmpv draws with the GPU into its own layer, and Picture in Picture accepts onl
 - Calls and Siri pause, and playback resumes when the interruption allows it. Unplugging headphones pauses.
 - While playing, Mac keeps the display awake (`ProcessInfo.beginActivity` with `.idleDisplaySleepDisabled`) and iPhone disables the idle timer. Pausing releases both.
 
+## Home
+
+The behaviour the Home board sets for every app (31 October 2026). The engine sends Home whole (`Event::Home`): the spotlight, then the sections in order with their headings, cards, lines and counts. No app decides what goes where, which section shows or how many cards it holds.
+
+- The order is the spotlight, Continue (up to twelve, with View all), Starting in the next season (in the two weeks before it starts), This week, Up next for you, This season, Because you finished a title, More of a genre, then the closing line. Signed out with nothing watched, Airing today takes This week's place.
+- An empty section is left out with its heading. Home has no empty state of its own.
+- The spotlight is the viewer's own next thing: a show in Continue with an episode waiting, else the first of Up next for you. Only when they have neither is it this season's most popular title they can start, labelled “Popular this season”, never “for you”. It changes when the pick changes, never on a timer, and a show in it stays first in Continue.
+- One amber per view: the spotlight's main action. Progress fills on cards are silk. Water marks a new episode, always with words (“out today”).
+- Text never sits on art. The spotlight puts its text beside the art on desktops (art at 56% of the content width, 16:9, radius 16) and under it on phones, where the main action is full width. There is no scrim and no gradient behind text.
+- Spotlight actions are the main action (Resume episode 3, Play episode 1, or Add to Planning when no source has it), Details, Trailer and More. More holds Not interested for a suggestion or the popular pick, and Mark episode 3 as watched and Remove from Continue for a show in Continue. On TV the tonal Title page button stays beside the main action.
+- Continue cards are 272 × 153 pt on desktops and 240 × 135 pt on phones. Posters are 128 × 192 pt on desktops, 110 × 165 pt on phones and 118 × 177 dp on TV. A poster shows the short reason; the hover card and the accessibility label carry the full one.
+- This week is seven columns from today on desktops, and a list of the next three days on phones.
+- This season carries its season beside the heading (“This season · Autumn 2026”), worded by each app with its own season names from the season the engine sends.
+- A title appears once across the discovery shelves, and Up next for you leaves out the title the spotlight shows.
+- Desktop shelves page with arrows that show while the pointer is over the shelf.
+- On TV, focus starts on the spotlight's main action. A focused card gets the silk 3 dp ring 3 dp outside its art and scales to 1.05; the spotlight never scales.
+- Text AniList marks as a spoiler shows as the Discussions spoiler bar in the spotlight and the hover card, and opens for the visit on click, tap, Space or OK.
+- When the queue changes while Home is open, Home updates in place: the spotlight crossfades, the card leaves Continue and the shelves close the gap.
+- Not interested takes the title off every shelf at once, with Undo in the notice for 8 s. Settings, Hidden titles lists what is hidden, with Restore. A title hidden before it aired comes back when it airs.
+- When someone shows interest in a title (the spotlight on screen, a hover card, a focused TV card, a title page), the app asks whether its sources have it. Only a miss is marked: “Not found in your sources”, and the main action becomes Add to Planning. A check that cannot tell shows nothing.
+- Signed out, the shelves carry no sign-in prompt. Only the closing line has Sign in to AniList. With no source installed, the closing line says to add one.
+- Home ships dark, like the rest of the app. In a future light appearance, the main action keeps the amber fill with an ink label.
+
 ## Calendar
 
 The behaviour the calendar board sets for every app. The engine owns the range: `CalendarWindow` carries `floor` (90 days before the anchor) and `ceiling` (28 days after it), and no app keeps those numbers.
@@ -302,6 +351,7 @@ Every screen has loading, content, empty, offline and failed states. All of them
 - Under 600 ms the previous content stays, or the ground stays empty on a first visit. Most loads end here.
 - Past 600 ms, static placeholder rows appear in the real layout (`.redacted(reason: .placeholder)`, T8). They stay at least 0.3 s and are replaced in one crossfade (standard). Past 4 s the job's activity line appears below them: “Loading this season”.
 - Covers fade in when they arrive (fade-in). Until then, or if they fail, a Raised plate stands in, with no broken-image glyph, and failed covers retry later.
+- Home's sections load separately. What is local (the spotlight from Continue, Continue, and anything kept from the last half hour) shows at once with no placeholders. A discovery section still on its way gets placeholders from 600 ms in its own place, so nothing above it moves when it lands, and the activity line reads “Loading suggestions”.
 
 ### Empty
 
@@ -309,23 +359,24 @@ Nagare (cell 5, 100 × 160 pt) stands above a title, one line and at most one bu
 
 | Screen | Title | Line | Button |
 | --- | --- | --- | --- |
-| Continue | Nothing watched yet | Pick something from Seasonal, or search for a title. | Browse Seasonal |
 | Library, signed out | Your AniList list shows here | Sign in to sync what you watch and where you stopped. | Sign in to AniList |
 | Downloads | No downloads | Downloaded episodes play without a connection. | none |
 | Sources, no sources | No sources yet | anistream ships no sources of its own. Sources come as plugins from a plugin store. | Join a plugin store |
 | Search, no results | `ContentUnavailableView.search(text:)` |  |  |
 
-Continue with nothing watched shows the welcome on every app that has one: an Airing today row of cards and a This season row of posters, each under a heading with a button to Calendar or Seasonal. Nagare and the Continue line above stand in only when both are empty or failed to load. Suggestions (Up next for you) never sit with the welcome.
+Home has no empty state. Its empty sections are left out, and with nothing watched it still has the popular pick, Airing today and This season. Nagare stays for Home offline with nothing saved (see Offline).
 
 ### Offline
 
 - `NWPathMonitor` drives one app-wide state. Cached screens stay usable, with “Offline. Downloaded episodes still play.” under the title in haze beside a `wifi.slash` glyph, not a coloured banner.
 - A screen with nothing cached shows `ContentUnavailableView` (“You're offline”) with Show downloads. Nothing is disabled ahead of time. When the connection returns, the line fades and the screen refreshes once.
+- Home offline shows what it last loaded, whatever its age, with “Offline. Showing Home from 14:20.” in the same place and style. The time is when the oldest part shown was loaded. With nothing saved it shows Nagare, “You're offline”, “Home needs a connection the first time it opens. Downloads still play.” and Open Downloads.
 
 ### Errors
 
 - Errors show where the action happened. A screen that failed to load shows `ContentUnavailableView` with the reason and Try again. A failed row action restores the row and a notice says why. A failed playback shows “Couldn't play episode 8” in the player with Choose source and Close.
 - Vermilion colours the error glyph (`exclamationmark.triangle.fill`) and nothing else. The full error chain goes to Messages, and the screen shows its first clause in plain words.
+- On Home a section that failed to load is left out, or keeps what it showed before, and one notice says “Couldn't load suggestions” with Try again, however many sections failed.
 - System alerts only confirm destructive actions: deleting a download and its file, leaving a store, removing a member, turning torrents on without protection.
 
 ### Notices
@@ -345,7 +396,7 @@ A job (`JobStarted`, `JobNote`, `JobDone`) shows where its result will land, aft
 | --- | --- |
 | Loading a screen, a title or episodes | Placeholder rows, then the activity line after 4 s |
 | Search | A row under the field: Searching for “lantern” |
-| Sync | Mac: “Syncing” with a small `ProgressView` in the toolbar status. iPhone: `navigationSubtitle` on Continue and Library |
+| Sync | Mac: “Syncing” with a small `ProgressView` in the toolbar status. iPhone: `navigationSubtitle` on Home and Library |
 | Starting an episode | The starting screen (T2) |
 | Checking sources, installing a plugin, signing in | A `ProgressView` in the affected row or button |
 | Queueing downloads | The episode rows show Queued at once; the job shows nothing |
@@ -361,7 +412,7 @@ First launch is three short pages and then the app. It says plainly that anistre
 2. AniList. “Sign in to AniList to sync your list and where you stopped.” Buttons: Sign in to AniList, Not now. A smaller line says other trackers are in Accounts. Sign-in uses the system web authentication sheet, or the device code sheet when the tracker needs one.
 3. Sources. “anistream ships no sources of its own. Sources are plugins, shared through plugin stores by invite.” A field takes a pasted invite link, with Join. Below it: “Each plugin is someone else's code connecting to someone else's service. Use them at your own risk.” Button: Skip for now. An invite link opened from Messages or Mail (`anistream://` URL scheme) jumps straight to this step, filled in.
 
-The app then opens on Continue with its empty state.
+The app then opens on Home.
 
 ### Torrents
 
@@ -391,6 +442,7 @@ On iPhone and iPad, torrents run while the app is open:
 - In the player the controls stay up while VoiceOver runs. The seek line adjusts in 10 s steps, with the value “12 minutes 4 seconds of 23 minutes 40 seconds”. The magic tap plays or pauses, and the escape gesture closes the player.
 - Up next is announced when it appears and once at “Plays in 8 seconds”, never every second. A skip offer is announced once. Every notice is announced (`AccessibilityNotification.Announcement`), alerts at high priority.
 - For Voice Control, icon-only controls get `accessibilityInputLabels` (“Skip”, “Subtitles”).
+- On Home the spotlight is one element, its label first: “Continue watching. Hoshikuzu no Tabibito. Episode 3, 12 minutes left.” The synopsis is its hint, its default action is the main action, and its other actions are custom actions. The main action follows as its own element, so Switch Control reaches it. Shelf headings are headers, with View all as a button after each. A poster's label carries the full reason (“Because you finished Kumo no Ue no Toshokan”), and a Continue card's progress is said as “46 percent watched”.
 
 ### Dynamic Type
 
@@ -469,7 +521,10 @@ Labels are short and concrete, in the words the platform uses for the same thing
 | Surface | Use | Avoid |
 | --- | --- | --- |
 | Title page main button | Resume episode 7 | Watch now! |
-| Continue row | Episode 7 · 14 min left | 42% complete |
+| Continue card | Episode 7 · 14 min left | 42% complete |
+| Spotlight label | Continue watching, Popular this season | Featured, Trending for you |
+| A title no source has | Not found in your sources | Unavailable |
+| After Not interested | Tsuki no Sentakuya is hidden from Up next for you, with Undo | We won't show you this again |
 | Episode menu | Mark as watched | Toggle watched (the TUI's palette label) |
 | Skip button | Skip opening | Skip intro, Skip OP |
 | After an automatic skip | Skipped opening · Undo | Opening skipped automatically for you |
@@ -478,7 +533,6 @@ Labels are short and concrete, in the words the platform uses for the same thing
 | Notice with a hint | Plugin update ready: alpha, with an Open stores button | Plugin update ready: alpha. Go to Sources and press Enter to open the plugin stores. |
 | First frame timeout | Couldn't start episode 8, with Choose source and Stop | mpv has not started playing after 20s — press x to stop; the source may have no data |
 | Failed action | Couldn't open the trailer, with Try again | could not open the trailer: error sending request for url (…) |
-| Empty Continue | Nothing watched yet | Your journey begins here |
 | Settings row | Counts as watched at · 85% | commit\_threshold = 0.85 |
 
 ## Android notes
@@ -487,7 +541,8 @@ The Compose app keeps every rule above and changes only the means: Material 3 wi
 
 | Rule | Compose and Material 3 |
 | --- | --- |
-| Sidebar, tab bar, list and preview | `NavigationSuiteScaffold` (bottom bar on phones, rail or drawer on tablets) and `ListDetailPaneScaffold` |
+| Sidebar, tab bar, list and preview | `NavigationSuiteScaffold` (bottom bar on phones, rail or drawer on tablets), and `ListDetailPaneScaffold` for Library on tablets |
+| Home | A `LazyColumn` of `LazyRow` shelves, on phones, tablets and TV, with the TV brief's focus rules |
 | Cover to title (T1) | `SharedTransitionLayout`, with `Modifier.sharedElement` on the cover and banner and `sharedBounds` for the page |
 | Back and player dismiss (T3) | Predictive back: the title page shrinks toward its cover, and the player toward its banner, as the gesture progresses (`PredictiveBackHandler`) |
 | Motion tokens | quick and standard as `spring(dampingRatio = 1f, stiffness = 1000f)` and `spring(1f, 440f)`, the stiffness of zero-bounce springs of 0.2 s and 0.3 s. fade-in, fade-out and linear as `tween` with `LinearOutSlowInEasing`, `FastOutLinearInEasing` and `LinearEasing`. `MotionScheme.standard()`, never `expressive()`, which overshoots |

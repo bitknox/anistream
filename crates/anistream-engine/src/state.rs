@@ -76,6 +76,14 @@ pub struct EngineState {
     /// Once "Up next for you" has been asked for: the titles on Continue when it was last sent,
     /// so that a change to them sends it again. See [`crate::catalog::up_next`].
     pub up_next_queue: Option<Vec<u32>>,
+    /// Home as last sent, and the parts on their way: see [`crate::catalog::home`].
+    pub home: crate::catalog::home::HomeMemory,
+    /// Once Home has been asked for: where Continue stood when it was last loaded, so that a
+    /// change to it sends Home again.
+    pub home_mark: Option<u64>,
+    /// When each title's sources were last checked from Home, so a title looked at twice in a
+    /// row is asked about once.
+    pub probed: std::collections::HashMap<anistream_core::ids::AnilistId, i64>,
     /// What the device last said of itself: see [`crate::autoplay`].
     pub device: anistream_model::trailer::Device,
     /// Whether trailers may start by themselves, as last said: see [`crate::autoplay`].
@@ -144,6 +152,9 @@ impl EngineState {
             network: Default::default(),
             missed: Default::default(),
             up_next_queue: None,
+            home: Default::default(),
+            home_mark: None,
+            probed: Default::default(),
             device: Default::default(),
             autoplay: None,
             #[cfg(feature = "cast")]

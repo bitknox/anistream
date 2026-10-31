@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="690" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice">
+<defs><filter id="tone" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="-42"/><feComponentTransfer><feFuncR type="linear" slope="1.06"/><feFuncG type="linear" slope="1.06"/><feFuncB type="linear" slope="1.06"/></feComponentTransfer></filter></defs>
+<g filter="url(#tone)">
+<g transform="translate(200 0) scale(-1 1)"><rect x="0" y="0" width="200" height="300" fill="#f0c27a"/><circle cx="142" cy="64" r="30" fill="#f8e6bd"/><rect x="0" y="130" width="200" height="170" fill="#8bb07a"/><polygon points="-40,300 70,130 130,130 240,300" fill="#c65f46"/><line x1="85" y1="130" x2="20" y2="300" stroke="#f3e7d6" stroke-width="3"/><line x1="100" y1="130" x2="100" y2="300" stroke="#f3e7d6" stroke-width="3"/><line x1="115" y1="130" x2="180" y2="300" stroke="#f3e7d6" stroke-width="3"/><line x1="2" y1="236" x2="198" y2="236" stroke="#f3e7d6" stroke-width="4"/></g>
+</g>
+</svg>

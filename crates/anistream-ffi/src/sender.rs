@@ -26,11 +26,12 @@ use anistream_engine::remote::{
         state::{Screen, TrackInfo},
     },
     sender::{
-        CastBrowser, CastCard, CastRouteHint, CastRow, CastSession, CastSink, FoundCast,
-        LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow, TvRowKind, TvSender,
+        CastBrowser, CastCard, CastRouteHint, CastRow, CastSession, CastSink, CastUndo,
+        CastUpNext, FoundCast, LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow,
+        TvRowKind, TvSender,
     },
 };
-use anistream_model::Msg;
+use anistream_model::{Msg, playback::SkipKind};
 use tokio::{runtime::Handle, sync::watch};
 
 use crate::{FfiEngine, remote::FfiScreen, remote::FfiTxtPair, start::FfiError};
@@ -796,6 +797,139 @@ mod fake {
     }
 }
 
+#[cfg(feature = "testing")]
+pub use fake_cast::{FfiFakeCast, FfiFakeCastOptions};
+
+/// A TV with Chromecast built in on the loopback interface, for the Fixtures apps: the cast
+/// crate's fake receiver, found as a `_googlecast._tcp` browse would find it.
+#[cfg(feature = "testing")]
+mod fake_cast {
+    use std::time::Duration;
+
+    use anistream_cast::fake::{FakeOptions, FakeReceiver, Refusal, Refuse, advert_txt};
+
+    use super::*;
+    use crate::remote::FfiAdvert;
+
+    /// How a fixture's fake TV behaves.
+    #[derive(Debug, Clone, uniffi::Record)]
+    pub struct FfiFakeCastOptions {
+        /// The TV's own volume is in charge (`fixed`), or the receiver takes a level.
+        pub fixed_volume: bool,
+        /// Whether it reads the stream at all: a TV behind a firewall doesn't.
+        pub fetches: bool,
+        /// Refuses every stream it is sent.
+        pub refuses: bool,
+        /// How long the receiver takes to come up on the TV.
+        pub launch_ms: u32,
+    }
+
+    #[derive(uniffi::Object)]
+    pub struct FfiFakeCast {
+        receiver: Mutex<Option<FakeReceiver>>,
+        instance: String,
+        txt: Vec<(String, String)>,
+        handle: Handle,
+    }
+
+    #[uniffi::export]
+    impl FfiEngine {
+        /// A TV with Chromecast built in named `name` on 127.0.0.1, for the Fixtures app's Play
+        /// on TV. It plays the fixture source's test patterns as though it read them, for 24
+        /// minutes. Testing builds only.
+        pub fn start_fake_cast(
+            &self,
+            name: String,
+            options: FfiFakeCastOptions,
+        ) -> Result<Arc<FfiFakeCast>, FfiError> {
+            let refuse = if options.refuses {
+                Refuse {
+                    content_types: ["application/x-mpegurl", "video/mp4", "video/x-matroska"]
+                        .map(str::to_owned)
+                        .to_vec(),
+                    bytes: vec![
+                        b"ftyp".to_vec(),
+                        b"moof".to_vec(),
+                        vec![0x1a, 0x45, 0xdf, 0xa3],
+                    ],
+                    how: Some(Refusal::LoadFailed),
+                    ..Refuse::default()
+                }
+            } else {
+                Refuse::default()
+            };
+            let fake = FakeOptions {
+                plays_unfetched: options.fetches,
+                fetches: options.fetches,
+                duration: 1440.0,
+                control: if options.fixed_volume { "fixed" } else { "attenuation" },
+                launch: Duration::from_millis(u64::from(options.launch_ms)),
+                refuse,
+                ..FakeOptions::default()
+            };
+            let handle = self.runtime_handle();
+            let receiver = handle
+                .block_on(handle.spawn(FakeReceiver::start(fake)))
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?;
+            let id = format!("fake-{}", name.to_lowercase().replace(' ', "-"));
+            Ok(Arc::new(FfiFakeCast {
+                receiver: Mutex::new(Some(receiver)),
+                instance: format!("Chromecast-{id}"),
+                txt: advert_txt(&id, &name, "Chromecast"),
+                handle,
+            }))
+        }
+    }
+
+    impl FfiFakeCast {
+        fn with<T>(&self, read: impl FnOnce(&FakeReceiver) -> T) -> Option<T> {
+            self.receiver.lock().unwrap_or_else(PoisonError::into_inner).as_ref().map(read)
+        }
+    }
+
+    #[uniffi::export]
+    impl FfiFakeCast {
+        /// "127.0.0.1".
+        pub fn host(&self) -> String {
+            self.with(|r| r.address.ip().to_string()).unwrap_or_default()
+        }
+
+        /// What a `_googlecast._tcp` browse would find: its instance, port and TXT record.
+        pub fn advert(&self) -> FfiAdvert {
+            FfiAdvert {
+                instance: self.instance.clone(),
+                port: self.with(|r| r.address.port()).unwrap_or_default(),
+                txt: self
+                    .txt
+                    .iter()
+                    .map(|(key, value)| FfiTxtPair { key: key.clone(), value: value.clone() })
+                    .collect(),
+            }
+        }
+
+        /// Another sender starts something on the TV.
+        pub fn take_over(&self) {
+            self.with(FakeReceiver::take_over);
+        }
+
+        /// The TV stops answering, as one switched off at the wall does.
+        pub fn go_silent(&self) {
+            self.with(FakeReceiver::go_silent);
+        }
+
+        pub fn stop(&self) {
+            let receiver = self.receiver.lock().unwrap_or_else(PoisonError::into_inner).take();
+            let _entered = self.handle.enter();
+            drop(receiver);
+        }
+    }
+}
+
 impl Drop for FfiTvLink {
     fn drop(&mut self) {
         let link = self.link.lock().unwrap_or_else(PoisonError::into_inner).take();
@@ -913,6 +1047,13 @@ pub struct FfiCastRow {
     pub route_hint: FfiCastRouteHint,
 }
 
+fn route_hint(hint: CastRouteHint) -> FfiCastRouteHint {
+    match hint {
+        CastRouteHint::Direct => FfiCastRouteHint::Direct,
+        CastRouteHint::ThroughThisDevice => FfiCastRouteHint::ThroughThisDevice,
+    }
+}
+
 impl From<CastRow> for FfiCastRow {
     fn from(row: CastRow) -> Self {
         Self {
@@ -920,11 +1061,52 @@ impl From<CastRow> for FfiCastRow {
             name: row.name,
             model: row.model,
             address: row.address.to_string(),
-            route_hint: match row.route_hint {
-                CastRouteHint::Direct => FfiCastRouteHint::Direct,
-                CastRouteHint::ThroughThisDevice => FfiCastRouteHint::ThroughThisDevice,
-            },
+            route_hint: route_hint(row.route_hint),
         }
+    }
+}
+
+/// Up Next on the casting card, while its card is up.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiCastUpNext {
+    /// The episode's number, as the episode list writes it.
+    pub number: String,
+    #[uniffi(default)]
+    pub title: Option<String>,
+    /// The episode's still, by URL.
+    #[uniffi(default)]
+    pub still: Option<String>,
+    /// The episode plays by itself when the count ends.
+    pub auto: bool,
+    /// Whole seconds left on the count, while it runs: "plays in 6 s". `None` with auto-next
+    /// off, where the card waits for Play now.
+    #[uniffi(default)]
+    pub seconds_left: Option<u32>,
+}
+
+impl From<CastUpNext> for FfiCastUpNext {
+    fn from(next: CastUpNext) -> Self {
+        Self {
+            number: next.number,
+            title: next.title,
+            still: next.still,
+            auto: next.auto,
+            seconds_left: next.seconds_left,
+        }
+    }
+}
+
+/// The note that an automatic skip can be undone: "Skipped opening · Undo".
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiCastUndo {
+    pub kind: SkipKind,
+    /// Where Undo goes back to, in seconds.
+    pub to: f64,
+}
+
+impl From<CastUndo> for FfiCastUndo {
+    fn from(undo: CastUndo) -> Self {
+        Self { kind: undo.kind, to: undo.to }
     }
 }
 
@@ -946,6 +1128,21 @@ pub struct FfiCastCard {
     /// Why the cast stopped, or why nothing played, for the app to say in its own words.
     #[uniffi(default)]
     pub notice: Option<Msg>,
+    /// What an episode starting on the TV is doing, for the card's line: "Starting on Living
+    /// room" for its first 4 seconds, then "Waiting for Living room · 6 s", "Preparing the
+    /// stream · 6 s" or "Starting on Living room · 6 s". `None` once it plays.
+    #[uniffi(default)]
+    pub phase_line: Option<Msg>,
+    /// Up Next, while its card is up: `play_next` and `cancel_next` answer it.
+    #[uniffi(default)]
+    pub up_next: Option<FfiCastUpNext>,
+    /// An automatic skip that can be undone, while its note is up: `undo_skip` takes it.
+    #[uniffi(default)]
+    pub undo: Option<FfiCastUndo>,
+    /// How the stream reaches the TV, once one plays: through this device, or fetched by the
+    /// TV itself.
+    #[uniffi(default)]
+    pub route: Option<FfiCastRouteHint>,
 }
 
 impl From<CastCard> for FfiCastCard {
@@ -958,6 +1155,10 @@ impl From<CastCard> for FfiCastCard {
             },
             muted: card.muted,
             notice: card.notice,
+            phase_line: card.phase_line,
+            up_next: card.up_next.map(FfiCastUpNext::from),
+            undo: card.undo.map(FfiCastUndo::from),
+            route: card.route.map(route_hint),
         }
     }
 }
@@ -1023,11 +1224,23 @@ impl FfiCastSession {
         FfiCastCard::from(self.session.card())
     }
 
-    /// The card once it may read differently. `None` once the engine has stopped.
-    /// Cancel-safe.
+    /// The card once it may read differently. `None` once the engine has stopped. Each second
+    /// while a start counts its seconds or an Undo note is up. Cancel-safe.
     pub async fn next_card(&self) -> Option<FfiCastCard> {
         let mut changes = self.changes.lock().await;
-        changes.changed().await.ok()?;
+        if self.session.ticking() {
+            // The foreign side polls this future, outside the engine's runtime, and a timer is
+            // made and runs on it.
+            let tick = self.handle.spawn(async {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            });
+            tokio::select! {
+                changed = changes.changed() => changed.ok()?,
+                _ = tick => {}
+            }
+        } else {
+            changes.changed().await.ok()?;
+        }
         changes.borrow_and_update();
         Some(self.card())
     }
@@ -1047,6 +1260,31 @@ impl FfiCastSession {
     /// Stop casting: the TV goes back to what it showed.
     pub fn stop(&self) {
         self.session.stop();
+    }
+
+    /// Up Next's Play now: the next episode starts on the TV.
+    pub fn play_next(&self) {
+        let _entered = self.handle.enter();
+        self.session.play_next();
+    }
+
+    /// Up Next's Cancel: this episode doesn't roll on, and the card comes down.
+    pub fn cancel_next(&self) {
+        let _entered = self.handle.enter();
+        self.session.cancel_next();
+    }
+
+    /// The Undo note's button: back to where the automatic skip started.
+    pub fn undo_skip(&self) {
+        let _entered = self.handle.enter();
+        self.session.undo_skip();
+    }
+
+    /// Try again, after the TV didn't start reading the stream: the same episode on the same
+    /// TV, from where it was. The card starts over. `false` when there is nothing to try again.
+    pub fn try_again(&self) -> bool {
+        let _entered = self.handle.enter();
+        self.session.try_again()
     }
 }
 

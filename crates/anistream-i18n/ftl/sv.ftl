@@ -6,32 +6,8 @@ cast-episode = Avsnitt { $episode }
 # What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
 cast-episode-titled = Avsnitt { $episode } · { $title }
 
-# The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-notice-cast-video-codec = TV:n kan inte spela upp den här videon ({ $codec }). Prova en annan källa.
-
-# The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-notice-cast-audio-codec = TV:n kan inte spela upp ljudet ({ $codec }), och den här enheten kan inte konvertera det. Prova en annan källa.
-
-# The stream comes in a kind of file the TV can't read.
-notice-cast-container = TV:n kan inte spela den här filtypen. Prova en annan källa.
-
 # The episode opens in another app, which this device can't cast.
 notice-cast-deep-link = Det här avsnittet öppnas i en annan app, så det kan inte skickas till TV:n.
-
-# The TV accepted the stream but never started reading it.
-notice-cast-never-fetches = TV:n började inte läsa strömmen. Kontrollera att den här enheten och TV:n är på samma nätverk, utan VPN mitt emellan.
-
-# The TV tried every way of playing the stream and played none of them.
-notice-cast-refused = TV:n kunde inte spela strömmen. Prova en annan källa.
-
-# Someone started something else on the TV, which ends the cast.
-notice-cast-taken-over = En annan enhet startade något på TV:n, så skickningen stoppades.
-
-# This device isn't on the TV's network, or reaches it through a VPN.
-notice-cast-not-same-network = Den här enheten är inte på TV:ns nätverk, eller når den via VPN. Skickning kräver att båda är på samma nätverk.
-
-# The TV stopped answering mid-cast.
-notice-cast-lost = Tappade kontakten med TV:n, så skickningen stoppades.
 
 # The TV picked to cast to has left the network.
 notice-cast-no-device = Den TV:n finns inte längre på nätverket.

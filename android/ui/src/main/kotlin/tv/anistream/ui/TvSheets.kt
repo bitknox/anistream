@@ -98,6 +98,7 @@ import tv.anistream.engine.ffi.FfiTvRow
 import tv.anistream.engine.ffi.FfiTvRowKind
 import tv.anistream.engine.ffi.FfiTvTrack
 import tv.anistream.engine.ffi.FfiTvTrackKind
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.TvCard
 import tv.anistream.store.TvPairingStep
 import tv.anistream.store.TvPlayRequest
@@ -199,12 +200,20 @@ private fun TvPicker(tv: TvRemoteModel) {
     }
     SheetTitle(TvWords.pickerTitle(context, request))
     SheetText(TvWords.pickerLine(context, request))
-    TvHeading(stringResource(R.string.tv_sheet_on_network))
-    if (rows.isEmpty()) TvSearchingRow(request)
+    val cast = LocalAppStore.current.cast
+    val castRows by cast.rows.collectAsStateWithLifecycle()
+    val blocked by cast.blocked.collectAsStateWithLifecycle()
+    // The Chromecast group alone, once only TVs with Chromecast built in answered.
+    if (rows.isNotEmpty() || castRows.isEmpty() || blocked) TvHeading(stringResource(R.string.tv_sheet_on_network))
+    when {
+        blocked -> CastLocalNetworkRow()
+        rows.isEmpty() && castRows.isEmpty() -> TvSearchingRow(request, castToo = cast.available && request != null)
+    }
     rows.forEachIndexed { index, row ->
         if (index > 0) TvDivider()
         TvPickerRow(row, chosen = row.fingerprint != null && row.fingerprint == connected) { tv.choose(row) }
     }
+    if (!blocked) CastPickerGroup(cast, request)
     TvHeading(stringResource(R.string.tv_sheet_not_listed))
     TvSheetRow(
         stringResource(R.string.tv_sheet_scan),
@@ -238,7 +247,7 @@ private enum class TvSearch { QUIET, LOOKING, NONE }
  * TV that turns up later still takes the row's place.
  */
 @Composable
-private fun TvSearchingRow(request: TvPlayRequest?) {
+private fun TvSearchingRow(request: TvPlayRequest?, castToo: Boolean) {
     var stage by remember { mutableStateOf(TvSearch.QUIET) }
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -257,7 +266,10 @@ private fun TvSearchingRow(request: TvPlayRequest?) {
                     modifier = Modifier.heightIn(min = 72.dp),
                     leading = { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
                 )
-                TvSearch.NONE -> TvSheetRow(stringResource(TvWords.NONE_FOUND), TvWords.noneLine(context, request))
+                TvSearch.NONE -> Column {
+                    TvSheetRow(stringResource(TvWords.NONE_FOUND), TvWords.noneLine(context, request))
+                    if (castToo) SheetText(stringResource(R.string.cast_sheet_chromecast_too), Modifier.padding(bottom = 8.dp))
+                }
             }
         }
     }
@@ -275,6 +287,7 @@ private fun TvPickerRow(row: FfiTvRow, chosen: Boolean, onClick: () -> Unit) {
         row.name,
         row.detail,
         modifier = Modifier.alpha(if (usable) 1f else 0.38f),
+        leading = { Icon(Icons.Tv, contentDescription = null, tint = colors.onSurfaceVariant) },
         trailing = {
             when {
                 row.kind == FfiTvRowKind.NEW -> Text(stringResource(R.string.tv_pair), style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
@@ -551,7 +564,7 @@ private const val SEEK_HOLD = 3_000L
 
 /** A silk glyph in a 48 target, never amber. */
 @Composable
-private fun TvGlyph(icon: ImageVector, label: String, size: androidx.compose.ui.unit.Dp = 24.dp, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun TvGlyph(icon: ImageVector, label: String, size: androidx.compose.ui.unit.Dp = 24.dp, enabled: Boolean = true, onClick: () -> Unit) {
     IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp).semantics { contentDescription = label }) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(size))
     }
@@ -559,7 +572,7 @@ private fun TvGlyph(icon: ImageVector, label: String, size: androidx.compose.ui.
 
 /** Back or forward 10 s: the turning arrow at 28 with its 10 inside, as the player's. */
 @Composable
-private fun TvStep(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
+internal fun TvStep(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
     val silk = MaterialTheme.colorScheme.onSurface
     IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp).semantics { contentDescription = label }) {
         Box(Modifier.size(28.dp)) {
@@ -618,7 +631,7 @@ private fun TvTrackRow(title: String, kind: FfiTvTrackKind, tracks: List<FfiTvTr
 
 /** A heading over a stretch of the sheet: titleMedium in haze. */
 @Composable
-private fun TvHeading(text: String) {
+internal fun TvHeading(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.titleMedium,
@@ -628,13 +641,13 @@ private fun TvHeading(text: String) {
 }
 
 @Composable
-private fun TvDivider(modifier: Modifier = Modifier) {
+internal fun TvDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(modifier, color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 /** A row flat on the sheet: its name in bodyLarge, what it says under it in haze, 56 high and more. */
 @Composable
-private fun TvSheetRow(
+internal fun TvSheetRow(
     title: String,
     value: String?,
     modifier: Modifier = Modifier,
@@ -771,13 +784,16 @@ internal fun TvSettingsGroup() {
                     trailing = { QuietButton(stringResource(R.string.action_forget)) { tv.forget(paired.fingerprint) } },
                 )
             }
-        } + listOf(@Composable { place: Place -> ActionRow(place, stringResource(R.string.tv_pair_action), onClick = tv::openPicker) }),
+        } + listOf<@Composable (Place) -> Unit>(
+            { place -> ActionRow(place, stringResource(R.string.tv_pair_action), onClick = tv::openPicker) },
+            { place -> SettingSwitch(place, SettingKey.CAST_TVS, stringResource(R.string.cast_settings_tvs), note = stringResource(R.string.cast_settings_tvs_note)) },
+        ),
     )
 }
 
 /** A problem under a field: the error's dot, then its words in the surface's own colour, never vermilion text. */
 @Composable
-private fun ProblemLine(text: String) {
+internal fun ProblemLine(text: String) {
     val style = MaterialTheme.typography.bodyMedium
     // The dot sits level with the first line, however many lines the words wrap to.
     val line = with(LocalDensity.current) { style.lineHeight.toDp() }

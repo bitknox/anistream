@@ -1,13 +1,5 @@
 cast-episode = Avsnitt { $episode }
 cast-episode-titled = Avsnitt { $episode } · { $title }
-notice-cast-video-codec = TV:n kan inte spela upp den här videon ({ $codec }). Prova en annan { -source }.
-notice-cast-audio-codec = TV:n kan inte spela upp ljudet ({ $codec }), och den här { -device }en kan inte konvertera det. Prova en annan { -source }.
-notice-cast-container = TV:n kan inte spela den här filtypen. Prova en annan { -source }.
 notice-cast-deep-link = Det här avsnittet öppnas i en annan app, så det kan inte skickas till TV:n.
-notice-cast-never-fetches = TV:n började inte läsa strömmen. Kontrollera att den här { -device }en och TV:n är på samma nätverk, utan VPN mitt emellan.
-notice-cast-refused = TV:n kunde inte spela strömmen. Prova en annan { -source }.
-notice-cast-taken-over = En annan { -device } startade något på TV:n, så skickningen stoppades.
-notice-cast-not-same-network = Den här { -device }en är inte på TV:ns nätverk, eller når den via VPN. Skickning kräver att båda är på samma nätverk.
-notice-cast-lost = Tappade kontakten med TV:n, så skickningen stoppades.
 notice-cast-no-device = Den TV:n finns inte längre på nätverket.
 notice-cast-unavailable = Den här versionen av { -app-name } kan inte skicka till TV:ar.

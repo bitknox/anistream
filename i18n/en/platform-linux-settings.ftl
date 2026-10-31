@@ -158,3 +158,11 @@ controller-help-title = Controller
 # @only linux
 # @max 40
 controller-help-buttons = Controller buttons
+
+# Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+# @only linux
+settings-note-cast-tvs-computer = They appear under Chromecast in Play on TV. This computer sends them the episode.
+
+# Note under the Torrents while casting setting, shown while torrents are on.
+# @only linux
+settings-note-torrents-while-casting-computer = Lets a TV with Chromecast built in play torrents. This computer sends the episode for as long as it plays.

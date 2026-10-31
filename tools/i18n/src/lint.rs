@@ -130,8 +130,19 @@ fn visible(parts: &[Part], terms: &crate::catalogue::Terms) -> String {
         .collect()
 }
 
-fn longest(m: &Message, terms: &crate::catalogue::Terms) -> usize {
-    m.body.patterns().into_iter().map(|p| visible(p, terms).chars().count()).max().unwrap_or(0)
+/// Length of a text for a `@max` check. A message that reaches the terminal UI (no `@only`, or
+/// `@only tui`) counts terminal cells, where full-width East Asian characters take two; others
+/// count characters.
+fn measure(text: &str, cells: bool) -> usize {
+    if cells { unicode_width::UnicodeWidthStr::width(text) } else { text.chars().count() }
+}
+
+fn reaches_tui(src: &Message) -> bool {
+    matches!(src.only, None | Some(Platform::Tui))
+}
+
+fn longest(m: &Message, terms: &crate::catalogue::Terms, cells: bool) -> usize {
+    m.body.patterns().into_iter().map(|p| measure(&visible(p, terms), cells)).max().unwrap_or(0)
 }
 
 /// The copy rules for one language, ready to hold a message or a bit of text against them.
@@ -268,22 +279,21 @@ impl<'a> LangLint<'a> {
         }
         // Length budgets.
         if let Some(max) = src.max {
-            let len = longest(m, &lang.terms);
+            let cells = reaches_tui(src);
+            let len = longest(m, &lang.terms, cells);
+            let unit = if cells { "cells" } else { "characters" };
             if is_source {
                 let grown = (len as f64 * crate::pseudo::GROWTH).ceil() as usize + len;
                 if grown > max {
                     out.push((
                         Severity::Error,
                         format!(
-                            "is {len} characters, {grown} with 30% growth, over its @max {max}"
+                            "is {len} {unit}, {grown} with 30% growth, over its @max {max}"
                         ),
                     ));
                 }
             } else if len > max {
-                out.push((
-                    Severity::Error,
-                    format!("is {len} characters, over its @max {max}"),
-                ));
+                out.push((Severity::Error, format!("is {len} {unit}, over its @max {max}")));
             }
         }
         out
@@ -492,5 +502,33 @@ mod tests {
         write(dir.path(), &[("pl/ui.ftl", bad_var)]);
         let err = Catalogue::load(dir.path()).unwrap_err().to_string();
         assert!(err.contains("uses $nope"), "{err}");
+    }
+
+    #[test]
+    fn terminal_limits_count_cells_not_characters() {
+        let dir = tempfile::tempdir().unwrap();
+        let langs = format!("{LANGS}[language.ja]\nname = \"x\"\nstage = \"draft\"\n");
+        // Six full-width characters are 12 cells, over a limit of 11 where a terminal shows them.
+        let en = "# @max 11\nshared = Open it\n# @max 11\n# @only tui\ntui = Open it\n# @max 11\n# @only apple\napple = Open it\n";
+        let wide = "\u{958b}\u{304f}".repeat(3);
+        let ja = format!("shared = {wide}\ntui = {wide}\napple = {wide}\n");
+        write(
+            dir.path(),
+            &[
+                ("languages.toml", &langs),
+                ("lint.toml", LINT),
+                ("en/terms.ftl", TERMS),
+                ("en/ui.ftl", en),
+                ("ja/terms.ftl", TERMS),
+                ("ja/ui.ftl", &ja),
+            ],
+        );
+        let cat = Catalogue::load(dir.path()).unwrap();
+        let found: Vec<String> =
+            run(&cat).unwrap().into_iter().map(|f| f.to_string()).collect();
+        let joined = found.join("\n");
+        assert!(joined.contains("ja/shared: is 12 cells"), "{joined}");
+        assert!(joined.contains("ja/tui: is 12 cells"), "{joined}");
+        assert!(!joined.contains("ja/apple"), "{joined}");
     }
 }

@@ -115,6 +115,10 @@ pub struct RemoteSender {
 /// A sender whose commands a test reads back, with no engine behind it.
 #[cfg(all(test, feature = "cast"))]
 impl RemoteSender {
+    #[allow(
+        irrefutable_let_patterns,
+        reason = "Message has more variants with the testing feature"
+    )]
     pub(crate) fn recording() -> (Self, impl FnMut() -> Vec<Command>) {
         let (commands, mut rx) = mpsc::unbounded_channel();
         let read = move || {
@@ -206,6 +210,8 @@ impl Engine {
             every_play_a_party,
             app_clients,
             device_label,
+            handheld,
+            language,
             sources: given,
             background,
             set_aside,
@@ -316,6 +322,14 @@ impl Engine {
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
+        state.config.set_handheld(handheld);
+        #[cfg(feature = "cast")]
+        {
+            casts.set_language(language);
+            casts.set_show_tvs(state.config.effective().cast.show_tvs);
+        }
+        #[cfg(not(feature = "cast"))]
+        let _ = language;
         // With the counts of shows that set each setting for themselves, which the rows say.
         crate::show_settings::count(&mut state, &services.store);
         #[cfg(feature = "testing")]
@@ -921,6 +935,7 @@ impl Actor {
             dispatch(again, job, &mut self.state, &self.services, &tx);
         }
         self.refresh_up_next();
+        self.refresh_home();
         #[cfg(feature = "testing")]
         {
             self.routed += 1;
@@ -939,6 +954,26 @@ impl Actor {
         }
         let tx = self.inbox.sender();
         dispatch(Command::LoadUpNext, None, &mut self.state, &self.services, &tx);
+    }
+
+    /// Home sent again when Continue is not where it stood when Home was last loaded, once Home
+    /// has been asked for: an episode watched, a show started or finished, a row removed. The
+    /// load sends it whole, with the spotlight and every shelf as they now stand.
+    fn refresh_home(&mut self) {
+        let Some(sent) = self.state.home_mark else {
+            return;
+        };
+        if sent == crate::catalog::home::queue_mark(&self.services.store) {
+            return;
+        }
+        let tx = self.inbox.sender();
+        dispatch(
+            Command::LoadHome { refresh: false },
+            None,
+            &mut self.state,
+            &self.services,
+            &tx,
+        );
     }
 
     /// One item of the inbox, in its place.
@@ -1012,6 +1047,7 @@ impl Actor {
         }
         if queue_moves {
             self.refresh_up_next();
+            self.refresh_home();
         }
         // An episode watched: the episodes after it, kept.
         if moved_on {

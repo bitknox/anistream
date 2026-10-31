@@ -6,38 +6,50 @@ cast-episode = [Éþîšöðé { $episode }~~~~]
 # What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
 cast-episode-titled = [Éþîšöðé { $episode } · { $title }~~~~~~]
 
-# The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-notice-cast-video-codec = [Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ṽîðéö ({ $codec }). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]
+# The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+notice-cast-video-codec = [{ $name } çàñ'ţ þļàý ţĥîš ṽîðéö ({ $codec }). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]
 
-# The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-notice-cast-audio-codec = [Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš àüðîö ({ $codec }), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+notice-cast-audio-codec = [{ $name } çàñ'ţ þļàý ţĥîš àüðîö ({ $codec }), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# The stream comes in a kind of file the TV can't read.
-notice-cast-container = [Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]
+# The stream comes in a kind of file the TV can't read. The name is the TV's own.
+notice-cast-container = [{ $name } çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]
 
 # The episode opens in another app, which this device can't cast.
 notice-cast-deep-link = [Ţĥîš éþîšöðé öþéñš îñ àñöţĥéŕ àþþ, šö îţ çàñ'ţ ƀé çàšţ.~~~~~~~~~~~~~~~~~]
 
-# The TV accepted the stream but never started reading it.
-notice-cast-never-fetches = [Ţĥé ŢṼ ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Çĥéçķ ţĥàţ ţĥîš ðéṽîçé àñð ţĥé ŢṼ àŕé öñ ţĥé šàɱé ñéţŵöŕķ, ŵîţĥöüţ à ṼÞÑ îñ ƀéţŵééñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+notice-cast-never-fetches = [{ $name } ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Å ṼÞÑ öŕ à ƒîŕéŵàļļ öñ ţĥîš ðéṽîçé ɱàý ƀé îñ ţĥé ŵàý.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# The TV tried every way of playing the stream and played none of them.
-notice-cast-refused = [Ţĥé ŢṼ çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]
+# The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+notice-cast-refused = [{ $name } çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~]
 
-# Someone started something else on the TV, which ends the cast.
-notice-cast-taken-over = [Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~~]
+# Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+notice-cast-taken-over = [Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ { $name }, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~]
 
-# This device isn't on the TV's network, or reaches it through a VPN.
-notice-cast-not-same-network = [Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ŢṼ'š ñéţŵöŕķ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+notice-cast-not-same-network = [Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ñéţŵöŕķ { $name } îš öñ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# The TV stopped answering mid-cast.
-notice-cast-lost = [Ļöšţ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~]
+# The TV stopped answering mid-cast. The name is the TV's own.
+notice-cast-lost = [Ļöšţ { $name }, šö çàšţîñĝ šţöþþéð.~~~~~~~~~]
 
 # The TV picked to cast to has left the network.
 notice-cast-no-device = [Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]
 
 # This build of the app has no casting.
 notice-cast-unavailable = [Ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ çàñ'ţ çàšţ ţö ŢṼš.~~~~~~~~~~~~~~]
+
+# The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+cast-phase-starting = [Šţàŕţîñĝ öñ { $name }~~~~~]
+
+# The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+cast-phase-starting-for = [Šţàŕţîñĝ öñ { $name } · { $seconds } š~~~~~~~]
+
+# The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+cast-phase-waiting = [Ŵàîţîñĝ ƒöŕ { $name } · { $seconds } š~~~~~~~]
+
+# The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+cast-phase-preparing = [Þŕéþàŕîñĝ ţĥé šţŕéàɱ · { $seconds } š~~~~~~~~~]
 
 # A comment's age, beside its author, when it was written under a minute ago.
 discussion-age-now = [ñöŵ~]
@@ -65,6 +77,81 @@ notice-comment-delete-failed = [Çöüļðñ'ţ ðéļéţé ţĥé çöɱɱéñ
 
 # Toast when the viewer tried to like or post in a discussion without signing in to AniList.
 notice-discussion-sign-in = [Šîĝñ îñ ŵîţĥ ÅñîĻîšţ ţö ļîķé àñð ŕéþļý.~~~~~~~~~~~~]
+
+# Line over the spotlight's title when it is a show the person is part way through.
+home-spotlight-continuing = [Çöñţîñüé ŵàţçĥîñĝ~~~~~~]
+
+# Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.
+home-spotlight-new-season = [Ñéŵ šéàšöñ · Ýöü ƒîñîšĥéð { $title }~~~~~~~~~]
+
+# Line over the spotlight's title when it is on the person's Planning list.
+home-spotlight-planning = [Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]
+
+# Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+home-spotlight-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
+
+# Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
+home-spotlight-recommended = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+
+# Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
+home-spotlight-popular = [Þöþüļàŕ ţĥîš šéàšöñ~~~~~~]
+
+# Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+home-time-left = [Éþîšöðé { $episode } · { $minutes } ɱîñ ļéƒţ~~~~~~~~]
+
+# Line under the spotlight's title for a show part way through with its next episode waiting.
+home-episode-out = [Éþîšöðé { $episode } îš öüţ~~~~~~]
+
+# Line under a { -continue-cap } card whose next episode came out today.
+home-episode-out-today = [Éþîšöðé { $episode } · öüţ ţöðàý~~~~~~~]
+
+# Line under a poster on This season: the newest episode out.
+home-episode-out-short = [Éþîšöðé { $episode } öüţ~~~~~]
+
+# Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+home-out-ago = [Öüţ { $ago } àĝö~~~~]
+
+# Short reason under a poster: a new season of a show the person finished.
+home-reason-new-season = [Ñéŵ šéàšöñ~~~]
+
+# Short reason under a poster: the title is on the person's Planning list.
+home-reason-planning = [Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]
+
+# Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+home-reason-recommended = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+
+# Heading over the shows the person is part way through.
+home-continue = [Çöñţîñüé~~~]
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-winter = [Šţàŕţîñĝ îñ Ŵîñţéŕ~~~~~~]
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-spring = [Šţàŕţîñĝ îñ Šþŕîñĝ~~~~~~]
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-summer = [Šţàŕţîñĝ îñ Šüɱɱéŕ~~~~~~]
+
+# Heading over next season's titles in the two weeks before it starts.
+home-starting-autumn = [Šţàŕţîñĝ îñ Åüţüɱñ~~~~~~]
+
+# Heading over this week's episodes of the shows the person follows.
+home-this-week = [Ţĥîš ŵééķ~~~]
+
+# Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
+home-airing-today = [Åîŕîñĝ ţöðàý~~~~]
+
+# Heading over the suggestions made from what the person watched and their lists.
+home-up-next = [Ûþ ñéẋţ ƒöŕ ýöü~~~~~]
+
+# Heading over this season's most popular titles.
+home-this-season = [Ţĥîš šéàšöñ~~~~]
+
+# Heading over recommendations from one show the person finished and rated well. The title is that show.
+home-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
+
+# Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
+home-more-genre = [Ṁöŕé { $genre }~~~]
 
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = [{ $reason }~]
@@ -1035,6 +1122,12 @@ controller-help-title = [Çöñţŕöļļéŕ~~~]
 # Accessible name of the list of controller buttons in the help window.
 controller-help-buttons = [Çöñţŕöļļéŕ ƀüţţöñš~~~~~~]
 
+# Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+settings-note-cast-tvs-computer = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš çöɱþüţéŕ šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Torrents while casting setting, shown while torrents are on.
+settings-note-torrents-while-casting-computer = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš çöɱþüţéŕ šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
 
@@ -1172,6 +1265,15 @@ tv-track-choice = [{ $row }, { $track }~~~]
 
 # The name this computer goes by in lists of a person's devices, such as a plugin store's.
 shell-device-label = [Ļîñüẋ çöɱþüţéŕ~~~~~]
+
+# Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+tv-cast-through-computer = [Þļàýš ţĥŕöüĝĥ ţĥîš çöɱþüţéŕ~~~~~~~~~]
+
+# The reason the system gives for keeping the computer from sleeping while it sends a TV with Chromecast built in the episode. Other apps and the desktop may show it.
+tv-cast-inhibit-reason = [Šéñðîñĝ àñ éþîšöðé ţö à ŢṼ~~~~~~~~]
+
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+tv-network-group = [Öñ ţĥîš ñéţŵöŕķ~~~~~]
 
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
@@ -3908,6 +4010,57 @@ calendar-show-all = [Šĥöŵ àļļ àîŕîñĝ~~~~~]
 # What a screen reader says for the line that marks the time now. The time is already worded.
 calendar-now-spoken = [Ñöŵ, { $time }~~~]
 
+# Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+cast-chromecast = [Çĥŕöɱéçàšţ~~~]
+
+# Line added to the picker's empty state, under what to check.
+cast-none-found-extra = [ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ šĥöŵ ĥéŕé ţöö.~~~~~~~~~~~~~]
+
+# The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+cast-local-network = [Åļļöŵ àñîšţŕéàɱ ţö ƒîñð ðéṽîçéš öñ ýöüŕ ļöçàļ ñéţŵöŕķ~~~~~~~~~~~~~~~~]
+
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+cast-tvs-label = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+cast-torrents-label = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+cast-tvs-note-mac = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš Ṁàç šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+cast-tvs-note-iphone = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš îÞĥöñé šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+cast-tvs-note-ipad = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš îÞàð šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on a Mac.
+cast-torrents-note-mac = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš Ṁàç šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on an iPhone.
+cast-torrents-note-iphone = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš îÞĥöñé šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on an iPad.
+cast-torrents-note-ipad = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš îÞàð šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the casting card while the next episode counts down. The seconds are whole.
+cast-up-next-plays-in = [Ûþ ñéẋţ · þļàýš îñ { $seconds } š~~~~~~~~]
+
+# The card's line when a cast never started. The name is the TV's.
+cast-couldnt-start = [Çöüļðñ'ţ šţàŕţ öñ { $name }~~~~~~~]
+
+# The card's line when a cast that played has stopped.
+cast-stopped = [Çàšţîñĝ šţöþþéð~~~~~]
+
+# Button that stops the cast and plays the episode on this device, where the TV was.
+cast-play-here = [Þļàý ĥéŕé~~~]
+
+# Button that stops the cast. The TV goes back to its own screen.
+cast-stop = [Šţöþ çàšţîñĝ~~~~]
+
+# Line under TV volume on the card, for a TV whose volume only its own remote sets.
+cast-volume-fixed = [Šéţ öñ ţĥé ŢṼ~~~~]
+
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
 
@@ -4696,6 +4849,121 @@ episode-download-done = [Ðöŵñļöàðéð~~~]
 
 # Line under that button after a failure.
 episode-download-failed = [Çöüļðñ'ţ ðöŵñļöàð éþîšöðé { $episode }. Ţŕý àĝàîñ.~~~~~~~~~~~~~]
+
+# Name of the Home section in the sidebar, the tab bar and the window title.
+home-title = [Ĥöɱé~~]
+
+# Main action for an episode part way through.
+home-resume-episode = [Ŕéšüɱé éþîšöðé { $episode }~~~~~~]
+
+# Main action for an episode not started.
+home-play-episode = [Þļàý éþîšöðé { $episode }~~~~~]
+
+# Shown in place of Add to Planning while it saves, after a moment.
+home-adding = [Åððîñĝ~~]
+
+# Second action that opens the title's page.
+home-details = [Ðéţàîļš~~~]
+
+# Accessible name of the button that opens more actions.
+home-more = [Ṁöŕé~~]
+
+# Action in the spotlight's More menu for a show part way through.
+home-mark-watched = [Ṁàŕķ éþîšöðé { $episode } àš ŵàţçĥéð~~~~~~~~~]
+
+# Notice after the action above. It has an Undo button.
+home-marked-watched = [Éþîšöðé { $episode } ɱàŕķéð àš ŵàţçĥéð~~~~~~~~~]
+
+# Action on a { -continue-cap } card and in the spotlight's More menu.
+home-remove-continue = [Ŕéɱöṽé ƒŕöɱ Çöñţîñüé~~~~~~]
+
+# Count beside the { -continue-cap } heading when there are more than twelve shows.
+home-continue-count =
+    { $count ->
+        [one] [1 šĥöŵ~~]
+       *[other] [{ $count } šĥöŵš~~~]
+    }
+
+# Link beside a heading that opens the full list.
+home-view-all = [Ṽîéŵ àļļ~~~]
+
+# Link beside This week and Airing today that opens the calendar.
+home-full-calendar = [Ƒüļļ çàļéñðàŕ~~~~]
+
+# The first day of This week.
+home-today = [Ţöðàý~~]
+
+# A day of This week with nothing on it.
+home-nothing-airing = [Ñöţĥîñĝ àîŕîñĝ~~~~~]
+
+# A day of This week with more titles than fit.
+home-day-more = [{ $count } ɱöŕé~~~]
+
+# Link beside This season and Starting in that opens Seasonal.
+home-seasonal = [Šéàšöñàļ~~~]
+
+# Link beside a genre shelf that opens Search with that genre.
+home-search = [Šéàŕçĥ~~]
+
+# The closing line at the end of Home. Seasonal and Calendar are links.
+home-end = [Ţĥàţ'š éṽéŕýţĥîñĝ ƒöŕ ñöŵ. Šéàšöñàļ àñð Çàļéñðàŕ ĥàṽé ţĥé ƒüļļ ļîšţš.~~~~~~~~~~~~~~~~~~~~~]
+
+# The closing line at the end of Home when no { -tracker } is signed in.
+home-end-signed-out = [Šîĝñ îñ ţö ÅñîĻîšţ ţö ƀŕîñĝ îñ ýöüŕ ļîšţ àñð Þļàññîñĝ.~~~~~~~~~~~~~~~~~]
+
+# Button in the closing line when no { -tracker } is signed in.
+home-sign-in = [Šîĝñ îñ ţö ÅñîĻîšţ~~~~~~]
+
+# The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.
+home-end-no-sources = [Åðð à šöüŕçé ţö þļàý ƒŕöɱ Ĥöɱé. Þļüĝîñ šţöŕéš ĥàš šöɱé ţö çĥööšé ƒŕöɱ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on a title that no installed { -source } has. The main action becomes Add to Planning.
+home-not-found = [Ñöţ ƒöüñð îñ ýöüŕ šöüŕçéš~~~~~~~~]
+
+# Notice when part of Home could not be loaded. It has a Try again button.
+home-failed = [Çöüļðñ'ţ ļöàð šüĝĝéšţîöñš~~~~~~~~]
+
+# Button in the notice above.
+home-try-again = [Ţŕý àĝàîñ~~~]
+
+# Activity line while Home's suggestions take longer than a few seconds.
+home-loading = [Ļöàðîñĝ šüĝĝéšţîöñš~~~~~~]
+
+# Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.
+home-offline = [Öƒƒļîñé. Šĥöŵîñĝ Ĥöɱé ƒŕöɱ { $time }.~~~~~~~~~~]
+
+# Heading when Home is offline and has nothing saved.
+home-offline-empty-title = [Ýöü'ŕé öƒƒļîñé~~~~~]
+
+# Text under the heading above.
+home-offline-empty-body = [Ĥöɱé ñééðš à çöññéçţîöñ ţĥé ƒîŕšţ ţîɱé îţ öþéñš. Ðöŵñļöàðš šţîļļ þļàý.~~~~~~~~~~~~~~~~~~~~~]
+
+# Button under the text above.
+home-open-downloads = [Öþéñ Ðöŵñļöàðš~~~~~]
+
+# Settings row and page that lists the titles hidden with Not interested.
+settings-hidden-titles = [Ĥîððéñ ţîţļéš~~~~]
+
+# Text under the list of hidden titles.
+settings-hidden-titles-body = [Ţîţļéš ýöü ɱàŕķéð Ñöţ îñţéŕéšţéð. Ţĥéý šţàý öüţ öƒ Ĥöɱé àñð Ûþ ñéẋţ ƒöŕ ýöü üñţîļ ýöü ŕéšţöŕé ţĥéɱ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".
+settings-hidden-on = [Ĥîððéñ { $date }~~~]
+
+# Line under a hidden title that comes back by itself once it starts airing.
+settings-hidden-until-airs = [Çöɱéš ƀàçķ ŵĥéñ îţ àîŕš~~~~~~~]
+
+# Button beside a hidden title that brings it back to Home.
+settings-restore = [Ŕéšţöŕé~~~]
+
+# Settings, Hidden titles, when nothing is hidden.
+settings-hidden-empty = [Ñöţĥîñĝ ĥîððéñ. Ţîţļéš ýöü ɱàŕķ Ñöţ îñţéŕéšţéð àþþéàŕ ĥéŕé.~~~~~~~~~~~~~~~~~~]
+
+# Accessible name of the arrow that pages a shelf back.
+home-previous = [Þŕéṽîöüš~~~]
+
+# Accessible name of the arrow that pages a shelf on.
+home-next = [Ñéẋţ~~]
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
@@ -6060,6 +6328,12 @@ settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
 
 # Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
+
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
 
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = [{ $tracker }'š çĥöîçé~~~~]
@@ -7949,6 +8223,39 @@ tv-row-needs-update = [Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšî
 
 # Title of the remote's volume row.
 tv-volume = [ŢṼ ṽöļüɱé~~~]
+
+# Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+tv-cast-group = [Çĥŕöɱéçàšţ~~~]
+
+# Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+tv-cast-none-found = [ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ šĥöŵ ĥéŕé ţöö.~~~~~~~~~~~~~]
+
+# Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+tv-cast-counting = [{ $line } · { $seconds } š~~~~]
+
+# Status line of the casting card when the cast didn't start. The reason shows under the episode.
+tv-cast-couldnt-start = [Çöüļðñ'ţ šţàŕţ öñ { $name }~~~~~~~]
+
+# Status line of the casting card after the TV stopped answering.
+tv-cast-stopped = [Çàšţîñĝ šţöþþéð~~~~~]
+
+# Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+tv-cast-play-here = [Þļàý ĥéŕé~~~]
+
+# Button on the casting card: stop casting. The TV goes back to what it showed.
+tv-cast-stop = [Šţöþ çàšţîñĝ~~~~]
+
+# Button on the casting card's TV volume row: silence the TV.
+tv-cast-mute = [Ṁüţé~~]
+
+# The same button while the TV is silenced.
+tv-cast-unmute = [Ûñɱüţé~~]
+
+# Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+tv-cast-volume-on-tv = [Šéţ öñ ţĥé ŢṼ~~~~]
+
+# Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+tv-cast-up-next-in = [Ûþ ñéẋţ · þļàýš îñ { $seconds } š~~~~~~~~]
 
 # Heading of the update row in settings and about.
 updates-title = [Ûþðàţéš~~~]

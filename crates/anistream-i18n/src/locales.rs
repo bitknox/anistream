@@ -9,7 +9,14 @@ pub const SOURCE: &str = "en";
 /// The languages this build has text for, source first.
 pub const LOCALES: &[Locale] = &[
     Locale { tag: "en", name: "English", flag: Some("gb"), draft: false, ftl: include_str!("../ftl/en.ftl") },
+    Locale { tag: "de", name: "Deutsch", flag: Some("de"), draft: true, ftl: include_str!("../ftl/de.ftl") },
+    Locale { tag: "es-419", name: "Español (Latinoamérica)", flag: Some("mx"), draft: true, ftl: include_str!("../ftl/es-419.ftl") },
+    Locale { tag: "fr", name: "Français", flag: Some("fr"), draft: true, ftl: include_str!("../ftl/fr.ftl") },
+    Locale { tag: "it", name: "Italiano", flag: Some("it"), draft: true, ftl: include_str!("../ftl/it.ftl") },
     Locale { tag: "ja", name: "日本語", flag: Some("jp"), draft: true, ftl: include_str!("../ftl/ja.ftl") },
+    Locale { tag: "pl", name: "Polski", flag: Some("pl"), draft: true, ftl: include_str!("../ftl/pl.ftl") },
+    Locale { tag: "pt-BR", name: "Português (Brasil)", flag: Some("br"), draft: true, ftl: include_str!("../ftl/pt-BR.ftl") },
+    Locale { tag: "ru", name: "Русский", flag: Some("ru"), draft: true, ftl: include_str!("../ftl/ru.ftl") },
     Locale { tag: "sv", name: "Svenska", flag: Some("se"), draft: true, ftl: include_str!("../ftl/sv.ftl") },
 ];
 

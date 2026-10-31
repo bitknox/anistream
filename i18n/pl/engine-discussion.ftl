@@ -1,0 +1,9 @@
+discussion-age-now = teraz
+discussion-age-minutes = { $minutes } min
+discussion-age-hours = { $hours } g
+discussion-age-days = { $days } d
+discussion-age-weeks = { $weeks } tyg
+discussion-age-years = { $years } r
+notice-comment-like-failed = Nie udało się polubić komentarza. Spróbuj ponownie.
+notice-comment-delete-failed = Nie udało się usunąć komentarza. Spróbuj ponownie.
+notice-discussion-sign-in = Zaloguj się w AniList, by polubić i odpowiedzieć.

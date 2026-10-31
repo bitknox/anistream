@@ -17,41 +17,41 @@ object Strings {
     fun castEpisodeTitled(context: Context, episode: String, title: String): String =
         context.getString(R.string.cast_episode_titled, episode, title)
 
-    /** The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. */
-    fun noticeCastVideoCodec(context: Context, codec: String): String =
-        context.getString(R.string.notice_cast_video_codec, codec)
+    /** The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10. */
+    fun noticeCastVideoCodec(context: Context, name: String, codec: String): String =
+        context.getString(R.string.notice_cast_video_codec, name, codec)
 
-    /** The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. */
-    fun noticeCastAudioCodec(context: Context, codec: String): String =
-        context.getString(R.string.notice_cast_audio_codec, codec)
+    /** The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS. */
+    fun noticeCastAudioCodec(context: Context, name: String, codec: String): String =
+        context.getString(R.string.notice_cast_audio_codec, name, codec)
 
-    /** The stream comes in a kind of file the TV can't read. */
-    fun noticeCastContainer(context: Context): String =
-        context.getString(R.string.notice_cast_container)
+    /** The stream comes in a kind of file the TV can't read. The name is the TV's own. */
+    fun noticeCastContainer(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_container, name)
 
     /** The episode opens in another app, which this device can't cast. */
     fun noticeCastDeepLink(context: Context): String =
         context.getString(R.string.notice_cast_deep_link)
 
-    /** The TV accepted the stream but never started reading it. */
-    fun noticeCastNeverFetches(context: Context): String =
-        context.getString(R.string.notice_cast_never_fetches)
+    /** The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own. */
+    fun noticeCastNeverFetches(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_never_fetches, name)
 
-    /** The TV tried every way of playing the stream and played none of them. */
-    fun noticeCastRefused(context: Context): String =
-        context.getString(R.string.notice_cast_refused)
+    /** The TV tried every way of playing the stream and played none of them. The name is the TV's own. */
+    fun noticeCastRefused(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_refused, name)
 
-    /** Someone started something else on the TV, which ends the cast. */
-    fun noticeCastTakenOver(context: Context): String =
-        context.getString(R.string.notice_cast_taken_over)
+    /** Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own. */
+    fun noticeCastTakenOver(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_taken_over, name)
 
-    /** This device isn't on the TV's network, or reaches it through a VPN. */
-    fun noticeCastNotSameNetwork(context: Context): String =
-        context.getString(R.string.notice_cast_not_same_network)
+    /** This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own. */
+    fun noticeCastNotSameNetwork(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_not_same_network, name)
 
-    /** The TV stopped answering mid-cast. */
-    fun noticeCastLost(context: Context): String =
-        context.getString(R.string.notice_cast_lost)
+    /** The TV stopped answering mid-cast. The name is the TV's own. */
+    fun noticeCastLost(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_lost, name)
 
     /** The TV picked to cast to has left the network. */
     fun noticeCastNoDevice(context: Context): String =
@@ -60,6 +60,22 @@ object Strings {
     /** This build of the app has no casting. */
     fun noticeCastUnavailable(context: Context): String =
         context.getString(R.string.notice_cast_unavailable)
+
+    /** The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room. */
+    fun castPhaseStarting(context: Context, name: String): String =
+        context.getString(R.string.cast_phase_starting, name)
+
+    /** The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap. */
+    fun castPhaseStartingFor(context: Context, name: String, seconds: Int): String =
+        context.getString(R.string.cast_phase_starting_for, name, seconds)
+
+    /** The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start. */
+    fun castPhaseWaiting(context: Context, name: String, seconds: Int): String =
+        context.getString(R.string.cast_phase_waiting, name, seconds)
+
+    /** The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start. */
+    fun castPhasePreparing(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_phase_preparing, seconds)
 
     /** A comment's age, beside its author, when it was written under a minute ago. */
     fun discussionAgeNow(context: Context): String =
@@ -96,6 +112,106 @@ object Strings {
     /** Toast when the viewer tried to like or post in a discussion without signing in to AniList. */
     fun noticeDiscussionSignIn(context: Context): String =
         context.getString(R.string.notice_discussion_sign_in)
+
+    /** Line over the spotlight's title when it is a show the person is part way through. */
+    fun homeSpotlightContinuing(context: Context): String =
+        context.getString(R.string.home_spotlight_continuing)
+
+    /** Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished. */
+    fun homeSpotlightNewSeason(context: Context, title: String): String =
+        context.getString(R.string.home_spotlight_new_season, title)
+
+    /** Line over the spotlight's title when it is on the person's Planning list. */
+    fun homeSpotlightPlanning(context: Context): String =
+        context.getString(R.string.home_spotlight_planning)
+
+    /** Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates. */
+    fun homeSpotlightBecause(context: Context, title: String): String =
+        context.getString(R.string.home_spotlight_because, title)
+
+    /** Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known. */
+    fun homeSpotlightRecommended(context: Context): String =
+        context.getString(R.string.home_spotlight_recommended)
+
+    /** Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started. */
+    fun homeSpotlightPopular(context: Context): String =
+        context.getString(R.string.home_spotlight_popular)
+
+    /** Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it. */
+    fun homeTimeLeft(context: Context, episode: Int, minutes: Int): String =
+        context.getString(R.string.home_time_left, episode, minutes)
+
+    /** Line under the spotlight's title for a show part way through with its next episode waiting. */
+    fun homeEpisodeOut(context: Context, episode: Int): String =
+        context.getString(R.string.home_episode_out, episode)
+
+    /** Line under a { -continue-cap } card whose next episode came out today. */
+    fun homeEpisodeOutToday(context: Context, episode: Int): String =
+        context.getString(R.string.home_episode_out_today, episode)
+
+    /** Line under a poster on This season: the newest episode out. */
+    fun homeEpisodeOutShort(context: Context, episode: Int): String =
+        context.getString(R.string.home_episode_out_short, episode)
+
+    /** Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m. */
+    fun homeOutAgo(context: Context, ago: String): String =
+        context.getString(R.string.home_out_ago, ago)
+
+    /** Short reason under a poster: a new season of a show the person finished. */
+    fun homeReasonNewSeason(context: Context): String =
+        context.getString(R.string.home_reason_new_season)
+
+    /** Short reason under a poster: the title is on the person's Planning list. */
+    fun homeReasonPlanning(context: Context): String =
+        context.getString(R.string.home_reason_planning)
+
+    /** Short reason under a poster: recommended from what the person watched. The hover card gives the full reason. */
+    fun homeReasonRecommended(context: Context): String =
+        context.getString(R.string.home_reason_recommended)
+
+    /** Heading over the shows the person is part way through. */
+    fun homeContinue(context: Context): String =
+        context.getString(R.string.home_continue)
+
+    /** Heading over next season's titles in the two weeks before it starts. */
+    fun homeStartingWinter(context: Context): String =
+        context.getString(R.string.home_starting_winter)
+
+    /** Heading over next season's titles in the two weeks before it starts. */
+    fun homeStartingSpring(context: Context): String =
+        context.getString(R.string.home_starting_spring)
+
+    /** Heading over next season's titles in the two weeks before it starts. */
+    fun homeStartingSummer(context: Context): String =
+        context.getString(R.string.home_starting_summer)
+
+    /** Heading over next season's titles in the two weeks before it starts. */
+    fun homeStartingAutumn(context: Context): String =
+        context.getString(R.string.home_starting_autumn)
+
+    /** Heading over this week's episodes of the shows the person follows. */
+    fun homeThisWeek(context: Context): String =
+        context.getString(R.string.home_this_week)
+
+    /** Heading over what airs today, for someone with nothing watched and no { -tracker } signed in. */
+    fun homeAiringToday(context: Context): String =
+        context.getString(R.string.home_airing_today)
+
+    /** Heading over the suggestions made from what the person watched and their lists. */
+    fun homeUpNext(context: Context): String =
+        context.getString(R.string.home_up_next)
+
+    /** Heading over this season's most popular titles. */
+    fun homeThisSeason(context: Context): String =
+        context.getString(R.string.home_this_season)
+
+    /** Heading over recommendations from one show the person finished and rated well. The title is that show. */
+    fun homeBecause(context: Context, title: String): String =
+        context.getString(R.string.home_because, title)
+
+    /** Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha". */
+    fun homeMoreGenre(context: Context, genre: String): String =
+        context.getString(R.string.home_more_genre, genre)
 
     /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
     fun noticeReason(context: Context, reason: String): String =
@@ -1028,6 +1144,98 @@ object Strings {
     /** Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. */
     fun playerMoreDiscussionPauses(context: Context): String =
         context.getString(R.string.player_more_discussion_pauses)
+
+    /** Play on TV sheet: the heading over the TVs with Chromecast built in. */
+    fun castSheetGroup(context: Context): String =
+        context.getString(R.string.cast_sheet_group)
+
+    /** Play on TV sheet: the line under a Chromecast row when the stream goes out through this phone. */
+    fun castSheetThroughPhone(context: Context): String =
+        context.getString(R.string.cast_sheet_through_phone)
+
+    /** Play on TV sheet: the line under a Chromecast row when the stream goes out through this tablet. */
+    fun castSheetThroughTablet(context: Context): String =
+        context.getString(R.string.cast_sheet_through_tablet)
+
+    /** Play on TV sheet: the line under "No TVs found" after the check line. */
+    fun castSheetChromecastToo(context: Context): String =
+        context.getString(R.string.cast_sheet_chromecast_too)
+
+    /** Play on TV sheet: in place of the rows when the local network permission was turned down. Open settings follows it. */
+    fun castSheetLocalNetwork(context: Context): String =
+        context.getString(R.string.cast_sheet_local_network)
+
+    /** Casting card: over the next episode while the count runs to playing it by itself. */
+    fun castCardUpNextIn(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_card_up_next_in, seconds)
+
+    /** Casting card: over the next episode when auto-next is off and the card waits for Play now. */
+    fun castCardUpNext(context: Context): String =
+        context.getString(R.string.cast_card_up_next)
+
+    /** Casting card: cancels the count, so the next episode does not play by itself. */
+    fun castCardUpNextCancel(context: Context): String =
+        context.getString(R.string.cast_card_up_next_cancel)
+
+    /** Casting card: plays the next episode on the TV at once. */
+    fun castCardUpNextPlay(context: Context): String =
+        context.getString(R.string.cast_card_up_next_play)
+
+    /** Casting card: the note after the TV skipped an opening by itself, with Undo beside it. */
+    fun castCardSkippedOpening(context: Context): String =
+        context.getString(R.string.cast_card_skipped_opening)
+
+    /** Casting card: the note after the TV skipped an ending by itself, with Undo beside it. */
+    fun castCardSkippedEnding(context: Context): String =
+        context.getString(R.string.cast_card_skipped_ending)
+
+    /** Casting card: takes back an automatic skip. */
+    fun castCardUndo(context: Context): String =
+        context.getString(R.string.cast_card_undo)
+
+    /** Casting card: the line under the title when nothing played. */
+    fun castCardFailed(context: Context, name: String): String =
+        context.getString(R.string.cast_card_failed, name)
+
+    /** Casting card: the line under the title when the TV dropped off mid-cast. */
+    fun castCardStopped(context: Context): String =
+        context.getString(R.string.cast_card_stopped)
+
+    /** Casting card: what the TV volume row says when the TV's own volume is in charge. */
+    fun castCardVolumeFixed(context: Context): String =
+        context.getString(R.string.cast_card_volume_fixed)
+
+    /** Casting card: the button that mutes the TV. */
+    fun castCardMute(context: Context): String =
+        context.getString(R.string.cast_card_mute)
+
+    /** Casting card: the button that brings the TV's sound back. */
+    fun castCardUnmute(context: Context): String =
+        context.getString(R.string.cast_card_unmute)
+
+    /** Casting card: stops the TV and plays on in the player here, from where the TV was. */
+    fun castCardPlayHere(context: Context): String =
+        context.getString(R.string.cast_card_play_here)
+
+    /** Casting card and its notification: stops casting, and the app on the TV closes. */
+    fun castCardStop(context: Context): String =
+        context.getString(R.string.cast_card_stop)
+
+    /** Settings, Play on TV: whether the TV picker lists TVs with Chromecast built in. */
+    fun castSettingsTvs(context: Context): String =
+        context.getString(R.string.cast_settings_tvs)
+
+    /** Settings, Play on TV: under the row above. */
+    fun castSettingsTvsNote(context: Context): String =
+        context.getString(R.string.cast_settings_tvs_note)
+
+    /** Settings, Sources: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun castSettingsTorrents(context: Context): String =
+        context.getString(R.string.cast_settings_torrents)
+
+    /** Settings, Sources: under the row above. */
+    fun castSettingsTorrentsNote(context: Context): String =
+        context.getString(R.string.cast_settings_torrents_note)
 
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
@@ -2541,6 +2749,74 @@ object Strings {
     fun calendarNowSpoken(context: Context, time: String): String =
         context.getString(R.string.calendar_now_spoken, time)
 
+    /** Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name. */
+    fun castChromecast(context: Context): String =
+        context.getString(R.string.cast_chromecast)
+
+    /** Line added to the picker's empty state, under what to check. */
+    fun castNoneFoundExtra(context: Context): String =
+        context.getString(R.string.cast_none_found_extra)
+
+    /** The picker's one row while the app may not look on the local network, with a button that opens the system's settings. */
+    fun castLocalNetwork(context: Context): String =
+        context.getString(R.string.cast_local_network)
+
+    /** Settings row: whether the TV picker lists TVs with Chromecast built in. */
+    fun castTvsLabel(context: Context): String =
+        context.getString(R.string.cast_tvs_label)
+
+    /** Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun castTorrentsLabel(context: Context): String =
+        context.getString(R.string.cast_torrents_label)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on a Mac. */
+    fun castTvsNoteMac(context: Context): String =
+        context.getString(R.string.cast_tvs_note_mac)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on an iPhone. */
+    fun castTvsNoteIphone(context: Context): String =
+        context.getString(R.string.cast_tvs_note_iphone)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on an iPad. */
+    fun castTvsNoteIpad(context: Context): String =
+        context.getString(R.string.cast_tvs_note_ipad)
+
+    /** Note under the Settings row that lets a cast play torrents, on a Mac. */
+    fun castTorrentsNoteMac(context: Context): String =
+        context.getString(R.string.cast_torrents_note_mac)
+
+    /** Note under the Settings row that lets a cast play torrents, on an iPhone. */
+    fun castTorrentsNoteIphone(context: Context): String =
+        context.getString(R.string.cast_torrents_note_iphone)
+
+    /** Note under the Settings row that lets a cast play torrents, on an iPad. */
+    fun castTorrentsNoteIpad(context: Context): String =
+        context.getString(R.string.cast_torrents_note_ipad)
+
+    /** Line on the casting card while the next episode counts down. The seconds are whole. */
+    fun castUpNextPlaysIn(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_up_next_plays_in, seconds)
+
+    /** The card's line when a cast never started. The name is the TV's. */
+    fun castCouldntStart(context: Context, name: String): String =
+        context.getString(R.string.cast_couldnt_start, name)
+
+    /** The card's line when a cast that played has stopped. */
+    fun castStopped(context: Context): String =
+        context.getString(R.string.cast_stopped)
+
+    /** Button that stops the cast and plays the episode on this device, where the TV was. */
+    fun castPlayHere(context: Context): String =
+        context.getString(R.string.cast_play_here)
+
+    /** Button that stops the cast. The TV goes back to its own screen. */
+    fun castStop(context: Context): String =
+        context.getString(R.string.cast_stop)
+
+    /** Line under TV volume on the card, for a TV whose volume only its own remote sets. */
+    fun castVolumeFixed(context: Context): String =
+        context.getString(R.string.cast_volume_fixed)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)
@@ -3560,6 +3836,154 @@ object Strings {
     /** Line under that button after a failure. */
     fun episodeDownloadFailed(context: Context, episode: Int): String =
         context.getString(R.string.episode_download_failed, episode)
+
+    /** Name of the Home section in the sidebar, the tab bar and the window title. */
+    fun homeTitle(context: Context): String =
+        context.getString(R.string.home_title)
+
+    /** Main action for an episode part way through. */
+    fun homeResumeEpisode(context: Context, episode: Int): String =
+        context.getString(R.string.home_resume_episode, episode)
+
+    /** Main action for an episode not started. */
+    fun homePlayEpisode(context: Context, episode: Int): String =
+        context.getString(R.string.home_play_episode, episode)
+
+    /** Shown in place of Add to Planning while it saves, after a moment. */
+    fun homeAdding(context: Context): String =
+        context.getString(R.string.home_adding)
+
+    /** Second action that opens the title's page. */
+    fun homeDetails(context: Context): String =
+        context.getString(R.string.home_details)
+
+    /** Accessible name of the button that opens more actions. */
+    fun homeMore(context: Context): String =
+        context.getString(R.string.home_more)
+
+    /** Action in the spotlight's More menu for a show part way through. */
+    fun homeMarkWatched(context: Context, episode: Int): String =
+        context.getString(R.string.home_mark_watched, episode)
+
+    /** Notice after the action above. It has an Undo button. */
+    fun homeMarkedWatched(context: Context, episode: Int): String =
+        context.getString(R.string.home_marked_watched, episode)
+
+    /** Action on a { -continue-cap } card and in the spotlight's More menu. */
+    fun homeRemoveContinue(context: Context): String =
+        context.getString(R.string.home_remove_continue)
+
+    /** Count beside the { -continue-cap } heading when there are more than twelve shows. */
+    fun homeContinueCount(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.home_continue_count, count, count)
+
+    /** Link beside a heading that opens the full list. */
+    fun homeViewAll(context: Context): String =
+        context.getString(R.string.home_view_all)
+
+    /** Link beside This week and Airing today that opens the calendar. */
+    fun homeFullCalendar(context: Context): String =
+        context.getString(R.string.home_full_calendar)
+
+    /** The first day of This week. */
+    fun homeToday(context: Context): String =
+        context.getString(R.string.home_today)
+
+    /** A day of This week with nothing on it. */
+    fun homeNothingAiring(context: Context): String =
+        context.getString(R.string.home_nothing_airing)
+
+    /** A day of This week with more titles than fit. */
+    fun homeDayMore(context: Context, count: Int): String =
+        context.getString(R.string.home_day_more, count)
+
+    /** Link beside This season and Starting in that opens Seasonal. */
+    fun homeSeasonal(context: Context): String =
+        context.getString(R.string.home_seasonal)
+
+    /** Link beside a genre shelf that opens Search with that genre. */
+    fun homeSearch(context: Context): String =
+        context.getString(R.string.home_search)
+
+    /** The closing line at the end of Home. Seasonal and Calendar are links. */
+    fun homeEnd(context: Context): String =
+        context.getString(R.string.home_end)
+
+    /** The closing line at the end of Home when no { -tracker } is signed in. */
+    fun homeEndSignedOut(context: Context): String =
+        context.getString(R.string.home_end_signed_out)
+
+    /** Button in the closing line when no { -tracker } is signed in. */
+    fun homeSignIn(context: Context): String =
+        context.getString(R.string.home_sign_in)
+
+    /** The closing line at the end of Home when no { -source } is installed. Plugin stores is a link. */
+    fun homeEndNoSources(context: Context): String =
+        context.getString(R.string.home_end_no_sources)
+
+    /** Line on a title that no installed { -source } has. The main action becomes Add to Planning. */
+    fun homeNotFound(context: Context): String =
+        context.getString(R.string.home_not_found)
+
+    /** Notice when part of Home could not be loaded. It has a Try again button. */
+    fun homeFailed(context: Context): String =
+        context.getString(R.string.home_failed)
+
+    /** Button in the notice above. */
+    fun homeTryAgain(context: Context): String =
+        context.getString(R.string.home_try_again)
+
+    /** Activity line while Home's suggestions take longer than a few seconds. */
+    fun homeLoading(context: Context): String =
+        context.getString(R.string.home_loading)
+
+    /** Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20. */
+    fun homeOffline(context: Context, time: String): String =
+        context.getString(R.string.home_offline, time)
+
+    /** Heading when Home is offline and has nothing saved. */
+    fun homeOfflineEmptyTitle(context: Context): String =
+        context.getString(R.string.home_offline_empty_title)
+
+    /** Text under the heading above. */
+    fun homeOfflineEmptyBody(context: Context): String =
+        context.getString(R.string.home_offline_empty_body)
+
+    /** Button under the text above. */
+    fun homeOpenDownloads(context: Context): String =
+        context.getString(R.string.home_open_downloads)
+
+    /** Settings row and page that lists the titles hidden with Not interested. */
+    fun settingsHiddenTitles(context: Context): String =
+        context.getString(R.string.settings_hidden_titles)
+
+    /** Text under the list of hidden titles. */
+    fun settingsHiddenTitlesBody(context: Context): String =
+        context.getString(R.string.settings_hidden_titles_body)
+
+    /** Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October". */
+    fun settingsHiddenOn(context: Context, date: String): String =
+        context.getString(R.string.settings_hidden_on, date)
+
+    /** Line under a hidden title that comes back by itself once it starts airing. */
+    fun settingsHiddenUntilAirs(context: Context): String =
+        context.getString(R.string.settings_hidden_until_airs)
+
+    /** Button beside a hidden title that brings it back to Home. */
+    fun settingsRestore(context: Context): String =
+        context.getString(R.string.settings_restore)
+
+    /** Settings, Hidden titles, when nothing is hidden. */
+    fun settingsHiddenEmpty(context: Context): String =
+        context.getString(R.string.settings_hidden_empty)
+
+    /** Accessible name of the arrow that pages a shelf back. */
+    fun homePrevious(context: Context): String =
+        context.getString(R.string.home_previous)
+
+    /** Accessible name of the arrow that pages a shelf on. */
+    fun homeNext(context: Context): String =
+        context.getString(R.string.home_next)
 
     /** Continue row subtitle. The show's title is cut first when the row is short. */
     fun queueEpisodesLeft(context: Context, count: Int, title: String): String =
@@ -5352,6 +5776,14 @@ object Strings {
     /** Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps. */
     fun settingsLabelTrailers(context: Context): String =
         context.getString(R.string.settings_label_trailers)
+
+    /** Settings row: whether the TV picker lists TVs with Chromecast built in. */
+    fun settingsLabelCastTvs(context: Context): String =
+        context.getString(R.string.settings_label_cast_tvs)
+
+    /** Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun settingsLabelTorrentsWhileCasting(context: Context): String =
+        context.getString(R.string.settings_label_torrents_while_casting)
 
     /** Option: use the tracker's own choice. The tracker is a name. */
     fun settingsTitleTracker(context: Context, tracker: String): String =
@@ -7817,6 +8249,50 @@ object Strings {
     fun tvVolume(context: Context): String =
         context.getString(R.string.tv_volume)
 
+    /** Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is. */
+    fun tvCastGroup(context: Context): String =
+        context.getString(R.string.tv_cast_group)
+
+    /** Line under the empty state of Play on TV when no TV was found: casting looks for these too. */
+    fun tvCastNoneFound(context: Context): String =
+        context.getString(R.string.tv_cast_none_found)
+
+    /** Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked. */
+    fun tvCastCounting(context: Context, line: String, seconds: Int): String =
+        context.getString(R.string.tv_cast_counting, line, seconds)
+
+    /** Status line of the casting card when the cast didn't start. The reason shows under the episode. */
+    fun tvCastCouldntStart(context: Context, name: String): String =
+        context.getString(R.string.tv_cast_couldnt_start, name)
+
+    /** Status line of the casting card after the TV stopped answering. */
+    fun tvCastStopped(context: Context): String =
+        context.getString(R.string.tv_cast_stopped)
+
+    /** Button on the casting card: stop casting and play the episode on this device, from where the TV was. */
+    fun tvCastPlayHere(context: Context): String =
+        context.getString(R.string.tv_cast_play_here)
+
+    /** Button on the casting card: stop casting. The TV goes back to what it showed. */
+    fun tvCastStop(context: Context): String =
+        context.getString(R.string.tv_cast_stop)
+
+    /** Button on the casting card's TV volume row: silence the TV. */
+    fun tvCastMute(context: Context): String =
+        context.getString(R.string.tv_cast_mute)
+
+    /** The same button while the TV is silenced. */
+    fun tvCastUnmute(context: Context): String =
+        context.getString(R.string.tv_cast_unmute)
+
+    /** Under the TV volume row on the casting card, for a TV whose volume is set with its own remote. */
+    fun tvCastVolumeOnTv(context: Context): String =
+        context.getString(R.string.tv_cast_volume_on_tv)
+
+    /** Line over the next episode on the casting card while its count runs. At 0 the TV plays it. */
+    fun tvCastUpNextIn(context: Context, seconds: Int): String =
+        context.getString(R.string.tv_cast_up_next_in, seconds)
+
     /** Heading of the update row in settings and about. */
     fun updatesTitle(context: Context): String =
         context.getString(R.string.updates_title)
@@ -8076,7 +8552,14 @@ object Strings {
     /** The languages this build has text for, source first. Draft ones carry the draft label. */
     val languages: List<Language> = listOf(
         Language("en", "English", "gb", false),
+        Language("de", "Deutsch", "de", true),
+        Language("es-419", "Español (Latinoamérica)", "mx", true),
+        Language("fr", "Français", "fr", true),
+        Language("it", "Italiano", "it", true),
         Language("ja", "日本語", "jp", true),
+        Language("pl", "Polski", "pl", true),
+        Language("pt-BR", "Português (Brasil)", "br", true),
+        Language("ru", "Русский", "ru", true),
         Language("sv", "Svenska", "se", true),
     )
 }

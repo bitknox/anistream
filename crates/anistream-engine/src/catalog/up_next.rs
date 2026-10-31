@@ -24,12 +24,15 @@ use anistream_model::{
 use anistream_store::Store;
 use serde::{Deserialize, Serialize};
 
-use crate::{data, dispatch::Lent};
+use crate::{
+    catalog::filter::{DISMISSED_KEY, Dismissed, Viewer, dismissed},
+    data,
+    dispatch::Lent,
+};
 
 /// How long what was found is served before it is asked again.
 const KEPT_FOR: i64 = 30 * 60;
 const KEPT_KEY: &str = "up-next:kept";
-const DISMISSED_KEY: &str = "up-next:dismissed";
 /// Finished titles looked up for their sequels: the most recent watched here, and the most
 /// recent on the list as Completed. Together one request of at most fifty.
 const WATCHED_PROBED: u32 = 25;
@@ -42,15 +45,6 @@ const RECOMMENDED_LOOKED_UP: usize = 18;
 /// One broadcast page of today.
 const TODAY_PER_PAGE: u32 = 50;
 
-/// A dismissal. `waiting` is a title that had not started airing when it was dismissed: it
-/// stays hidden until it does. Any other is hidden for good, as it has no start left to wait
-/// for.
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-struct Dismissed {
-    id: u32,
-    waiting: bool,
-}
-
 /// What was found, as kept: the ids and why, and what they were found from.
 #[derive(Serialize, Deserialize)]
 struct Kept {
@@ -59,23 +53,23 @@ struct Kept {
     picks: Vec<Pick>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-struct Pick {
-    id: u32,
-    reason: Why,
-    because: Option<String>,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub(crate) struct Pick {
+    pub id: u32,
+    pub reason: Why,
+    pub because: Option<String>,
     /// The title's first episode is not out yet, from the schedule that suggested it.
-    unaired: bool,
+    pub unaired: bool,
     /// The viewer's list has it as Planning.
     #[serde(default)]
-    planned: bool,
+    pub planned: bool,
     /// When today's episode airs, for a broadcast.
     #[serde(default)]
-    airs_at: Option<i64>,
+    pub airs_at: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-enum Why {
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Why {
     NewSeason,
     Planning,
     Recommended,
@@ -125,8 +119,8 @@ pub async fn load_up_next(lent: Lent, ask: Ask) {
         let _ = tx.send(Event::UpNext(items));
         return;
     }
-    let picks = match find(&meta, &store, &queue, &dismissed, &ask, room).await {
-        Ok(picks) => picks,
+    let picks = match find(&meta, &store, &queue, &dismissed, &ask, room, true).await {
+        Ok(found) => found.picks,
         Err(e) => {
             tracing::warn!(error = %e, "Up next could not be found");
             return;
@@ -199,15 +193,6 @@ fn queue(store: &Store) -> Vec<AnilistId> {
     store.continue_list(15).unwrap_or_default().iter().map(|p| p.anilist_id).collect()
 }
 
-fn dismissed(store: &Store) -> Vec<Dismissed> {
-    store
-        .get_meta_text(DISMISSED_KEY)
-        .ok()
-        .flatten()
-        .and_then(|json| serde_json::from_str(&json).ok())
-        .unwrap_or_default()
-}
-
 fn kept(store: &Store) -> Option<Kept> {
     store
         .get_meta_text(KEPT_KEY)
@@ -259,7 +244,7 @@ fn items_from_cache(meta: &Meta, store: &Store, picks: &[Pick]) -> Option<Vec<Up
     )
 }
 
-fn item(pick: &Pick, entry: Entry) -> UpNextItem {
+pub(crate) fn item(pick: &Pick, entry: Entry) -> UpNextItem {
     let mut entry = entry;
     let planned = pick.planned;
     if planned {
@@ -283,16 +268,28 @@ fn item(pick: &Pick, entry: Entry) -> UpNextItem {
     }
 }
 
+/// What [`find`] found: the suggestions, and what they were found from.
+pub(crate) struct Found {
+    /// In order, and at most as many as the room after the groups that cannot fill it.
+    pub picks: Vec<(Pick, Entry)>,
+    /// The titles the viewer finished, the most recent first.
+    pub finished: Vec<Entry>,
+    /// Every title finished, whichever way, including those on the list not looked up.
+    pub finished_ids: HashSet<AnilistId>,
+}
+
 /// The suggestions, in order, and as many as the room, with the groups that cannot fill it
-/// followed by the ones that can.
-async fn find(
+/// followed by the ones that can. With `fallback`, what airs today stands in when nothing of the
+/// viewer's own is left; Home has a section of its own for that instead.
+pub(crate) async fn find(
     meta: &Meta,
     store: &Store,
     queue: &[AnilistId],
     dismissed: &[Dismissed],
     ask: &Ask,
     room: usize,
-) -> Result<Vec<(Pick, Entry)>, String> {
+    fallback: bool,
+) -> Result<Found, String> {
     let queue: HashSet<AnilistId> = queue.iter().copied().collect();
     let status_of = |id: AnilistId| -> Option<String> {
         ask.listed.then(|| store.library_status(id).ok().flatten()).flatten()
@@ -336,26 +333,15 @@ async fn find(
     let order = |id: &AnilistId| probe.iter().position(|p| p == id).unwrap_or(usize::MAX);
     finished_entries.sort_by_key(|e| order(&e.id));
 
-    let hidden = |entry: &Entry| -> bool {
-        dismissed.iter().any(|d| {
-            d.id == entry.id.get()
-                && (!d.waiting || entry.status == Some(AiringStatus::NotYetReleased))
-        })
-    };
-    // A title's earlier parts are all finished, whichever way. Unknown counts as unfinished.
-    let after_finished = |entry: &Entry| -> bool {
-        entry.prequels.iter().all(|prequel| finished.contains(&prequel.id))
-    };
-    let suggestible = |entry: &Entry| -> bool {
-        !queue.contains(&entry.id)
-            && !started(entry.id)
-            && !finished.contains(&entry.id)
-            && !hidden(entry)
-            && (ask.adult || !entry.adult)
-            && entry.format.as_deref() != Some("MUSIC")
-            && entry.status != Some(AiringStatus::Cancelled)
-            && after_finished(entry)
-    };
+    let viewer = Viewer::new(
+        store,
+        ask.listed,
+        ask.adult,
+        queue.iter().copied(),
+        finished.clone(),
+        dismissed.to_vec(),
+    );
+    let suggestible = |entry: &Entry| -> bool { viewer.eligible(entry) };
 
     // New seasons and Planning, in one lookup.
     let mut sequel_ids: Vec<AnilistId> = Vec::new();
@@ -478,14 +464,14 @@ async fn find(
     }
 
     // Nothing of their own: what airs today, so a new viewer is not left with a bare screen.
-    if picks.is_empty() {
+    if picks.is_empty() && fallback {
         for (pick, entry) in airing_today(meta, store, ask, &planned_all).await? {
             if suggestible(&entry) {
                 picks.push((pick, entry));
             }
         }
     }
-    Ok(picks)
+    Ok(Found { picks, finished: finished_entries, finished_ids: finished })
 }
 
 /// Airing first, then announced with a date, then finished, then announced without one.
@@ -499,7 +485,7 @@ fn rank(entry: &Entry) -> u8 {
 }
 
 /// The titles with a broadcast today in the viewer's zone, in the order they air.
-async fn airing_today(
+pub(crate) async fn airing_today(
     meta: &Meta,
     store: &Store,
     ask: &Ask,

@@ -1,0 +1,12 @@
+player-episode-line-titled = { $line } · { $title }
+player-episode-fraction = Серия { $number }
+player-starting-fraction = Запускаем серию { $number }
+player-failed-fraction = Не удалось воспроизвести серию { $number }
+player-speed-value = { $speed }×
+player-timeline-playing = Воспроизведение, { $position } из { $duration }
+player-timeline-paused = Пауза, { $position } из { $duration }
+player-track-added = { $name } · Добавлено
+player-load-subtitles-commit = Загрузить субтитры
+player-load-audio-commit = Загрузить аудио
+player-mini-tip = Остаётся поверх других окон. Нажмите { $key }, чтобы вернуться.
+player-stats-row = { $label }: { $value }

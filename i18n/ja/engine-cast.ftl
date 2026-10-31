@@ -1,13 +1,5 @@
 cast-episode = エピソード { $episode }
 cast-episode-titled = エピソード { $episode } · { $title }
-notice-cast-video-codec = テレビでこの映像（{ $codec }）を再生できません。別の{ -source }をお試しください。
-notice-cast-audio-codec = テレビでこの音声（{ $codec }）を再生できず、この{ -device }では変換できません。別の{ -source }をお試しください。
-notice-cast-container = テレビでこの種類のファイルを再生できません。別の{ -source }をお試しください。
 notice-cast-deep-link = このエピソードは別のアプリで開くため、キャストできません。
-notice-cast-never-fetches = テレビがストリームの読み込みを開始しませんでした。この{ -device }とテレビが、VPNを挟まずに同じネットワークに接続されていることを確認してください。
-notice-cast-refused = テレビでこのストリームを再生できませんでした。別の{ -source }をお試しください。
-notice-cast-taken-over = 別の{ -device }がテレビで何かを開始したため、キャストが停止しました。
-notice-cast-not-same-network = この{ -device }はテレビと同じネットワークにないか、VPN経由で接続されています。キャストには、両方が同じネットワークに接続されている必要があります。
-notice-cast-lost = テレビとの接続が切れたため、キャストを停止しました。
 notice-cast-no-device = キャスト先のテレビがネットワーク上にもうありません。
 notice-cast-unavailable = このバージョンの{ -app-name }では、テレビへのキャストはできません。

@@ -1,5 +1,5 @@
 store-joined = { $store }に{ $member }として参加しました。
-store-joined-unnamed = { $store }に参加しました。
+store-joined-unnamed = { $store }に名前なしで参加しました。
 store-left = { $store }から退出しました。インストール済みの{ -plugin-pl }はそのまま残ります。
 plugin-removed = { $plugin }を削除しました。
 store-member-removed = 削除しました。このメンバーの{ -device-pl }は、この{ -plugin-store }で使えなくなりました。

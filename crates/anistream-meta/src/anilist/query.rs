@@ -24,6 +24,7 @@ pub const MEDIA_FIELDS: &str = r"
     isAdult
     countryOfOrigin
     averageScore
+    popularity
     genres
     synonyms
     coverImage { extraLarge large color }
@@ -152,6 +153,25 @@ pub fn recommended_from() -> String {
                     id title {{ romaji english native }}
                     recommendations(perPage: {RECOMMENDED_EACH}, sort: RATING_DESC) {{
                         nodes {{ mediaRecommendation {{ id }} }}
+                    }}
+                }}
+            }}
+        }}"
+    )
+}
+
+/// What people who liked one title rated highest, each recommended title with the whole
+/// [`MEDIA_FIELDS`] fragment, so they need no second lookup: Home's "Because you finished".
+/// `$each` is how many. Still a `media(id_in:)` page, like [`recommended_from`], so the two
+/// read alike.
+pub fn recommended_titles() -> String {
+    format!(
+        r"query ($ids: [Int], $perPage: Int, $each: Int) {{
+            Page(perPage: $perPage) {{
+                media(id_in: $ids, type: ANIME) {{
+                    id
+                    recommendations(perPage: $each, sort: RATING_DESC) {{
+                        nodes {{ mediaRecommendation {{ {MEDIA_FIELDS} }} }}
                     }}
                 }}
             }}

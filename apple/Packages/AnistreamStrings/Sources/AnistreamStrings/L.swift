@@ -15,42 +15,74 @@ public enum L {
         Self.format("cast-episode-titled", fallback: "Episode %1$@ · %2$@", episode, title)
     }
 
-    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-    public static func noticeCastVideoCodec(codec: String) -> String {
-        Self.format("notice-cast-video-codec", fallback: "The TV can't play this video (%1$@). Try another source.", codec)
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+    public static func noticeCastVideoCodec(name: String, codec: String) -> String {
+        Self.format("notice-cast-video-codec", fallback: "%1$@ can't play this video (%2$@). Try another source.", name, codec)
     }
 
-    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-    public static func noticeCastAudioCodec(codec: String) -> String {
-        Self.format("notice-cast-audio-codec", fallback: "The TV can't play this audio (%1$@), and this device can't convert it. Try another source.", codec)
+    /// The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+    public static func noticeCastAudioCodec(name: String, codec: String) -> String {
+        Self.format("notice-cast-audio-codec", fallback: "%1$@ can't play this audio (%2$@), and this device can't convert it. Try another source.", name, codec)
     }
 
-    /// The stream comes in a kind of file the TV can't read.
-    public static var noticeCastContainer: String { string("notice-cast-container", fallback: "The TV can't play this kind of file. Try another source.") }
+    /// The stream comes in a kind of file the TV can't read. The name is the TV's own.
+    public static func noticeCastContainer(name: String) -> String {
+        Self.format("notice-cast-container", fallback: "%1$@ can't play this kind of file. Try another source.", name)
+    }
 
     /// The episode opens in another app, which this device can't cast.
     public static var noticeCastDeepLink: String { string("notice-cast-deep-link", fallback: "This episode opens in another app, so it can't be cast.") }
 
-    /// The TV accepted the stream but never started reading it.
-    public static var noticeCastNeverFetches: String { string("notice-cast-never-fetches", fallback: "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.") }
+    /// The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+    public static func noticeCastNeverFetches(name: String) -> String {
+        Self.format("notice-cast-never-fetches", fallback: "%1$@ didn't start reading the stream. A VPN or a firewall on this device may be in the way.", name)
+    }
 
-    /// The TV tried every way of playing the stream and played none of them.
-    public static var noticeCastRefused: String { string("notice-cast-refused", fallback: "The TV couldn't play this stream. Try another source.") }
+    /// The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+    public static func noticeCastRefused(name: String) -> String {
+        Self.format("notice-cast-refused", fallback: "%1$@ couldn't play this stream. Try another source.", name)
+    }
 
-    /// Someone started something else on the TV, which ends the cast.
-    public static var noticeCastTakenOver: String { string("notice-cast-taken-over", fallback: "Another device started something on the TV, so casting stopped.") }
+    /// Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+    public static func noticeCastTakenOver(name: String) -> String {
+        Self.format("notice-cast-taken-over", fallback: "Another device started something on %1$@, so casting stopped.", name)
+    }
 
-    /// This device isn't on the TV's network, or reaches it through a VPN.
-    public static var noticeCastNotSameNetwork: String { string("notice-cast-not-same-network", fallback: "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.") }
+    /// This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+    public static func noticeCastNotSameNetwork(name: String) -> String {
+        Self.format("notice-cast-not-same-network", fallback: "This device isn't on the network %1$@ is on, or reaches it through a VPN. Casting needs both on the same network.", name)
+    }
 
-    /// The TV stopped answering mid-cast.
-    public static var noticeCastLost: String { string("notice-cast-lost", fallback: "Lost the TV, so casting stopped.") }
+    /// The TV stopped answering mid-cast. The name is the TV's own.
+    public static func noticeCastLost(name: String) -> String {
+        Self.format("notice-cast-lost", fallback: "Lost %1$@, so casting stopped.", name)
+    }
 
     /// The TV picked to cast to has left the network.
     public static var noticeCastNoDevice: String { string("notice-cast-no-device", fallback: "That TV is no longer on the network.") }
 
     /// This build of the app has no casting.
     public static var noticeCastUnavailable: String { string("notice-cast-unavailable", fallback: "This version of anistream can't cast to TVs.") }
+
+    /// The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+    public static func castPhaseStarting(name: String) -> String {
+        Self.format("cast-phase-starting", fallback: "Starting on %1$@", name)
+    }
+
+    /// The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+    public static func castPhaseStartingFor(name: String, seconds: Int) -> String {
+        Self.format("cast-phase-starting-for", fallback: "Starting on %1$@ · %2$lld s", name, seconds)
+    }
+
+    /// The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+    public static func castPhaseWaiting(name: String, seconds: Int) -> String {
+        Self.format("cast-phase-waiting", fallback: "Waiting for %1$@ · %2$lld s", name, seconds)
+    }
+
+    /// The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+    public static func castPhasePreparing(seconds: Int) -> String {
+        Self.format("cast-phase-preparing", fallback: "Preparing the stream · %1$lld s", seconds)
+    }
 
     /// A comment's age, beside its author, when it was written under a minute ago.
     public static var discussionAgeNow: String { string("discussion-age-now", fallback: "now") }
@@ -88,6 +120,99 @@ public enum L {
 
     /// Toast when the viewer tried to like or post in a discussion without signing in to AniList.
     public static var noticeDiscussionSignIn: String { string("notice-discussion-sign-in", fallback: "Sign in with AniList to like and reply.") }
+
+    /// Line over the spotlight's title when it is a show the person is part way through.
+    public static var homeSpotlightContinuing: String { string("home-spotlight-continuing", fallback: "Continue watching") }
+
+    /// Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.
+    public static func homeSpotlightNewSeason(title: String) -> String {
+        Self.format("home-spotlight-new-season", fallback: "New season · You finished %1$@", title)
+    }
+
+    /// Line over the spotlight's title when it is on the person's Planning list.
+    public static var homeSpotlightPlanning: String { string("home-spotlight-planning", fallback: "On your Planning list") }
+
+    /// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+    public static func homeSpotlightBecause(title: String) -> String {
+        Self.format("home-spotlight-because", fallback: "Because you finished %1$@", title)
+    }
+
+    /// Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
+    public static var homeSpotlightRecommended: String { string("home-spotlight-recommended", fallback: "Recommended for you") }
+
+    /// Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
+    public static var homeSpotlightPopular: String { string("home-spotlight-popular", fallback: "Popular this season") }
+
+    /// Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+    public static func homeTimeLeft(episode: Int, minutes: Int) -> String {
+        Self.format("home-time-left", fallback: "Episode %1$lld · %2$lld min left", episode, minutes)
+    }
+
+    /// Line under the spotlight's title for a show part way through with its next episode waiting.
+    public static func homeEpisodeOut(episode: Int) -> String {
+        Self.format("home-episode-out", fallback: "Episode %1$lld is out", episode)
+    }
+
+    /// Line under a { -continue-cap } card whose next episode came out today.
+    public static func homeEpisodeOutToday(episode: Int) -> String {
+        Self.format("home-episode-out-today", fallback: "Episode %1$lld · out today", episode)
+    }
+
+    /// Line under a poster on This season: the newest episode out.
+    public static func homeEpisodeOutShort(episode: Int) -> String {
+        Self.format("home-episode-out-short", fallback: "Episode %1$lld out", episode)
+    }
+
+    /// Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+    public static func homeOutAgo(ago: String) -> String {
+        Self.format("home-out-ago", fallback: "Out %1$@ ago", ago)
+    }
+
+    /// Short reason under a poster: a new season of a show the person finished.
+    public static var homeReasonNewSeason: String { string("home-reason-new-season", fallback: "New season") }
+
+    /// Short reason under a poster: the title is on the person's Planning list.
+    public static var homeReasonPlanning: String { string("home-reason-planning", fallback: "On your Planning list") }
+
+    /// Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+    public static var homeReasonRecommended: String { string("home-reason-recommended", fallback: "Recommended for you") }
+
+    /// Heading over the shows the person is part way through.
+    public static var homeContinue: String { string("home-continue", fallback: "Continue") }
+
+    /// Heading over next season's titles in the two weeks before it starts.
+    public static var homeStartingWinter: String { string("home-starting-winter", fallback: "Starting in Winter") }
+
+    /// Heading over next season's titles in the two weeks before it starts.
+    public static var homeStartingSpring: String { string("home-starting-spring", fallback: "Starting in Spring") }
+
+    /// Heading over next season's titles in the two weeks before it starts.
+    public static var homeStartingSummer: String { string("home-starting-summer", fallback: "Starting in Summer") }
+
+    /// Heading over next season's titles in the two weeks before it starts.
+    public static var homeStartingAutumn: String { string("home-starting-autumn", fallback: "Starting in Autumn") }
+
+    /// Heading over this week's episodes of the shows the person follows.
+    public static var homeThisWeek: String { string("home-this-week", fallback: "This week") }
+
+    /// Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
+    public static var homeAiringToday: String { string("home-airing-today", fallback: "Airing today") }
+
+    /// Heading over the suggestions made from what the person watched and their lists.
+    public static var homeUpNext: String { string("home-up-next", fallback: "Up next for you") }
+
+    /// Heading over this season's most popular titles.
+    public static var homeThisSeason: String { string("home-this-season", fallback: "This season") }
+
+    /// Heading over recommendations from one show the person finished and rated well. The title is that show.
+    public static func homeBecause(title: String) -> String {
+        Self.format("home-because", fallback: "Because you finished %1$@", title)
+    }
+
+    /// Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
+    public static func homeMoreGenre(genre: String) -> String {
+        Self.format("home-more-genre", fallback: "More %1$@", genre)
+    }
 
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
@@ -1222,6 +1347,16 @@ public enum L {
     /// Line of a seeding episode: ratio shared out of the goal, time left and how much went up. Ratios, time and size are already formatted.
     public static func downloadsSeedingUploaded(shared: String, goal: String, left: String, size: String) -> String {
         Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
+    }
+
+    /// Line under a TV with Chromecast built in, in the picker: this device serves the episode to it while it plays. The device is the product's name, such as Mac or iPhone.
+    public static func castRowThrough(device: String) -> String {
+        Self.format("cast-row-through", fallback: "Plays through this %1$@", device)
+    }
+
+    /// Note on the iPhone and iPad casting card: the cast stops when the app leaves the screen. The device is iPhone or iPad; the name is the TV's.
+    public static func castKeepOpen(device: String, name: String) -> String {
+        Self.format("cast-keep-open", fallback: "Keep anistream open on this %1$@ while %2$@ plays.", device, name)
     }
 
     /// Line under the header while AniList's request budget is spent. The placeholders stay.
@@ -2957,6 +3092,61 @@ public enum L {
         Self.format("calendar-now-spoken", fallback: "Now, %1$@", time)
     }
 
+    /// Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+    public static var castChromecast: String { string("cast-chromecast", fallback: "Chromecast") }
+
+    /// Line added to the picker's empty state, under what to check.
+    public static var castNoneFoundExtra: String { string("cast-none-found-extra", fallback: "TVs with Chromecast built in show here too.") }
+
+    /// The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+    public static var castLocalNetwork: String { string("cast-local-network", fallback: "Allow anistream to find devices on your local network") }
+
+    /// Settings row: whether the TV picker lists TVs with Chromecast built in.
+    public static var castTvsLabel: String { string("cast-tvs-label", fallback: "Show TVs with Chromecast built in") }
+
+    /// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+    public static var castTorrentsLabel: String { string("cast-torrents-label", fallback: "Torrents while casting") }
+
+    /// Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+    public static var castTvsNoteMac: String { string("cast-tvs-note-mac", fallback: "They appear under Chromecast in Play on TV. This Mac sends them the episode.") }
+
+    /// Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+    public static var castTvsNoteIphone: String { string("cast-tvs-note-iphone", fallback: "They appear under Chromecast in Play on TV. This iPhone sends them the episode.") }
+
+    /// Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+    public static var castTvsNoteIpad: String { string("cast-tvs-note-ipad", fallback: "They appear under Chromecast in Play on TV. This iPad sends them the episode.") }
+
+    /// Note under the Settings row that lets a cast play torrents, on a Mac.
+    public static var castTorrentsNoteMac: String { string("cast-torrents-note-mac", fallback: "Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.") }
+
+    /// Note under the Settings row that lets a cast play torrents, on an iPhone.
+    public static var castTorrentsNoteIphone: String { string("cast-torrents-note-iphone", fallback: "Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.") }
+
+    /// Note under the Settings row that lets a cast play torrents, on an iPad.
+    public static var castTorrentsNoteIpad: String { string("cast-torrents-note-ipad", fallback: "Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.") }
+
+    /// Line on the casting card while the next episode counts down. The seconds are whole.
+    public static func castUpNextPlaysIn(seconds: Int) -> String {
+        Self.format("cast-up-next-plays-in", fallback: "Up next · plays in %1$lld s", seconds)
+    }
+
+    /// The card's line when a cast never started. The name is the TV's.
+    public static func castCouldntStart(name: String) -> String {
+        Self.format("cast-couldnt-start", fallback: "Couldn't start on %1$@", name)
+    }
+
+    /// The card's line when a cast that played has stopped.
+    public static var castStopped: String { string("cast-stopped", fallback: "Casting stopped") }
+
+    /// Button that stops the cast and plays the episode on this device, where the TV was.
+    public static var castPlayHere: String { string("cast-play-here", fallback: "Play here") }
+
+    /// Button that stops the cast. The TV goes back to its own screen.
+    public static var castStop: String { string("cast-stop", fallback: "Stop casting") }
+
+    /// Line under TV volume on the card, for a TV whose volume only its own remote sets.
+    public static var castVolumeFixed: String { string("cast-volume-fixed", fallback: "Set on the TV") }
+
     /// Button that runs a failed action again.
     public static var actionTryAgain: String { string("action-try-again", fallback: "Try again") }
 
@@ -3818,6 +4008,133 @@ public enum L {
     public static func episodeDownloadFailed(episode: Int) -> String {
         Self.format("episode-download-failed", fallback: "Couldn't download episode %1$lld. Try again.", episode)
     }
+
+    /// Name of the Home section in the sidebar, the tab bar and the window title.
+    public static var homeTitle: String { string("home-title", fallback: "Home") }
+
+    /// Main action for an episode part way through.
+    public static func homeResumeEpisode(episode: Int) -> String {
+        Self.format("home-resume-episode", fallback: "Resume episode %1$lld", episode)
+    }
+
+    /// Main action for an episode not started.
+    public static func homePlayEpisode(episode: Int) -> String {
+        Self.format("home-play-episode", fallback: "Play episode %1$lld", episode)
+    }
+
+    /// Shown in place of Add to Planning while it saves, after a moment.
+    public static var homeAdding: String { string("home-adding", fallback: "Adding") }
+
+    /// Second action that opens the title's page.
+    public static var homeDetails: String { string("home-details", fallback: "Details") }
+
+    /// Accessible name of the button that opens more actions.
+    public static var homeMore: String { string("home-more", fallback: "More") }
+
+    /// Action in the spotlight's More menu for a show part way through.
+    public static func homeMarkWatched(episode: Int) -> String {
+        Self.format("home-mark-watched", fallback: "Mark episode %1$lld as watched", episode)
+    }
+
+    /// Notice after the action above. It has an Undo button.
+    public static func homeMarkedWatched(episode: Int) -> String {
+        Self.format("home-marked-watched", fallback: "Episode %1$lld marked as watched", episode)
+    }
+
+    /// Action on a { -continue-cap } card and in the spotlight's More menu.
+    public static var homeRemoveContinue: String { string("home-remove-continue", fallback: "Remove from Continue") }
+
+    /// Count beside the { -continue-cap } heading when there are more than twelve shows.
+    public static func homeContinueCount(count: Int) -> String {
+        Self.format("home-continue-count", fallback: "%1$lld shows", count)
+    }
+
+    /// Link beside a heading that opens the full list.
+    public static var homeViewAll: String { string("home-view-all", fallback: "View all") }
+
+    /// Link beside This week and Airing today that opens the calendar.
+    public static var homeFullCalendar: String { string("home-full-calendar", fallback: "Full calendar") }
+
+    /// The first day of This week.
+    public static var homeToday: String { string("home-today", fallback: "Today") }
+
+    /// A day of This week with nothing on it.
+    public static var homeNothingAiring: String { string("home-nothing-airing", fallback: "Nothing airing") }
+
+    /// A day of This week with more titles than fit.
+    public static func homeDayMore(count: Int) -> String {
+        Self.format("home-day-more", fallback: "%1$lld more", count)
+    }
+
+    /// Link beside This season and Starting in that opens Seasonal.
+    public static var homeSeasonal: String { string("home-seasonal", fallback: "Seasonal") }
+
+    /// Link beside a genre shelf that opens Search with that genre.
+    public static var homeSearch: String { string("home-search", fallback: "Search") }
+
+    /// The closing line at the end of Home. Seasonal and Calendar are links.
+    public static var homeEnd: String { string("home-end", fallback: "That's everything for now. Seasonal and Calendar have the full lists.") }
+
+    /// The closing line at the end of Home when no { -tracker } is signed in.
+    public static var homeEndSignedOut: String { string("home-end-signed-out", fallback: "Sign in to AniList to bring in your list and Planning.") }
+
+    /// Button in the closing line when no { -tracker } is signed in.
+    public static var homeSignIn: String { string("home-sign-in", fallback: "Sign in to AniList") }
+
+    /// The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.
+    public static var homeEndNoSources: String { string("home-end-no-sources", fallback: "Add a source to play from Home. Plugin stores has some to choose from.") }
+
+    /// Line on a title that no installed { -source } has. The main action becomes Add to Planning.
+    public static var homeNotFound: String { string("home-not-found", fallback: "Not found in your sources") }
+
+    /// Notice when part of Home could not be loaded. It has a Try again button.
+    public static var homeFailed: String { string("home-failed", fallback: "Couldn't load suggestions") }
+
+    /// Button in the notice above.
+    public static var homeTryAgain: String { string("home-try-again", fallback: "Try again") }
+
+    /// Activity line while Home's suggestions take longer than a few seconds.
+    public static var homeLoading: String { string("home-loading", fallback: "Loading suggestions") }
+
+    /// Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.
+    public static func homeOffline(time: String) -> String {
+        Self.format("home-offline", fallback: "Offline. Showing Home from %1$@.", time)
+    }
+
+    /// Heading when Home is offline and has nothing saved.
+    public static var homeOfflineEmptyTitle: String { string("home-offline-empty-title", fallback: "You're offline") }
+
+    /// Text under the heading above.
+    public static var homeOfflineEmptyBody: String { string("home-offline-empty-body", fallback: "Home needs a connection the first time it opens. Downloads still play.") }
+
+    /// Button under the text above.
+    public static var homeOpenDownloads: String { string("home-open-downloads", fallback: "Open Downloads") }
+
+    /// Settings row and page that lists the titles hidden with Not interested.
+    public static var settingsHiddenTitles: String { string("settings-hidden-titles", fallback: "Hidden titles") }
+
+    /// Text under the list of hidden titles.
+    public static var settingsHiddenTitlesBody: String { string("settings-hidden-titles-body", fallback: "Titles you marked Not interested. They stay out of Home and Up next for you until you restore them.") }
+
+    /// Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".
+    public static func settingsHiddenOn(date: String) -> String {
+        Self.format("settings-hidden-on", fallback: "Hidden %1$@", date)
+    }
+
+    /// Line under a hidden title that comes back by itself once it starts airing.
+    public static var settingsHiddenUntilAirs: String { string("settings-hidden-until-airs", fallback: "Comes back when it airs") }
+
+    /// Button beside a hidden title that brings it back to Home.
+    public static var settingsRestore: String { string("settings-restore", fallback: "Restore") }
+
+    /// Settings, Hidden titles, when nothing is hidden.
+    public static var settingsHiddenEmpty: String { string("settings-hidden-empty", fallback: "Nothing hidden. Titles you mark Not interested appear here.") }
+
+    /// Accessible name of the arrow that pages a shelf back.
+    public static var homePrevious: String { string("home-previous", fallback: "Previous") }
+
+    /// Accessible name of the arrow that pages a shelf on.
+    public static var homeNext: String { string("home-next", fallback: "Next") }
 
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {
@@ -5352,6 +5669,12 @@ public enum L {
 
     /// Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
     public static var settingsLabelTrailers: String { string("settings-label-trailers", fallback: "Play trailers") }
+
+    /// Settings row: whether the TV picker lists TVs with Chromecast built in.
+    public static var settingsLabelCastTvs: String { string("settings-label-cast-tvs", fallback: "Show TVs with Chromecast built in") }
+
+    /// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+    public static var settingsLabelTorrentsWhileCasting: String { string("settings-label-torrents-while-casting", fallback: "Torrents while casting") }
 
     /// Option: use the tracker's own choice. The tracker is a name.
     public static func settingsTitleTracker(tracker: String) -> String {
@@ -7514,6 +7837,45 @@ public enum L {
     /// Title of the remote's volume row.
     public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
 
+    /// Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+    public static var tvCastGroup: String { string("tv-cast-group", fallback: "Chromecast") }
+
+    /// Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+    public static var tvCastNoneFound: String { string("tv-cast-none-found", fallback: "TVs with Chromecast built in show here too.") }
+
+    /// Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+    public static func tvCastCounting(line: String, seconds: Int) -> String {
+        Self.format("tv-cast-counting", fallback: "%1$@ · %2$lld s", line, seconds)
+    }
+
+    /// Status line of the casting card when the cast didn't start. The reason shows under the episode.
+    public static func tvCastCouldntStart(name: String) -> String {
+        Self.format("tv-cast-couldnt-start", fallback: "Couldn't start on %1$@", name)
+    }
+
+    /// Status line of the casting card after the TV stopped answering.
+    public static var tvCastStopped: String { string("tv-cast-stopped", fallback: "Casting stopped") }
+
+    /// Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+    public static var tvCastPlayHere: String { string("tv-cast-play-here", fallback: "Play here") }
+
+    /// Button on the casting card: stop casting. The TV goes back to what it showed.
+    public static var tvCastStop: String { string("tv-cast-stop", fallback: "Stop casting") }
+
+    /// Button on the casting card's TV volume row: silence the TV.
+    public static var tvCastMute: String { string("tv-cast-mute", fallback: "Mute") }
+
+    /// The same button while the TV is silenced.
+    public static var tvCastUnmute: String { string("tv-cast-unmute", fallback: "Unmute") }
+
+    /// Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+    public static var tvCastVolumeOnTv: String { string("tv-cast-volume-on-tv", fallback: "Set on the TV") }
+
+    /// Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+    public static func tvCastUpNextIn(seconds: Int) -> String {
+        Self.format("tv-cast-up-next-in", fallback: "Up next · plays in %1$lld s", seconds)
+    }
+
     /// Heading of the update row in settings and about.
     public static var updatesTitle: String { string("updates-title", fallback: "Updates") }
 
@@ -7769,7 +8131,14 @@ public enum L {
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [
         Language(tag: "en", name: "English", flag: "gb", draft: false),
+        Language(tag: "de", name: "Deutsch", flag: "de", draft: true),
+        Language(tag: "es-419", name: "Español (Latinoamérica)", flag: "mx", draft: true),
+        Language(tag: "fr", name: "Français", flag: "fr", draft: true),
+        Language(tag: "it", name: "Italiano", flag: "it", draft: true),
         Language(tag: "ja", name: "日本語", flag: "jp", draft: true),
+        Language(tag: "pl", name: "Polski", flag: "pl", draft: true),
+        Language(tag: "pt-BR", name: "Português (Brasil)", flag: "br", draft: true),
+        Language(tag: "ru", name: "Русский", flag: "ru", draft: true),
         Language(tag: "sv", name: "Svenska", flag: "se", draft: true),
     ]
 

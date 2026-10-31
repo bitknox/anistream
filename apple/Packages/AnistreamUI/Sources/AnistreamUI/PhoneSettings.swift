@@ -617,6 +617,7 @@ struct PhoneSourcesPage: View {
                     PhoneSettingPicker(key: .seedRatio, note: L.settingsSeedRatioDetail)
                     PhoneSettingPicker(key: .seedHours)
                     PhoneSettingPicker(key: .uploadLimit)
+                    PhoneSettingSwitch(key: .torrentsWhileCasting, note: CastWords.torrentsNote)
                 } header: {
                     PhoneSectionHeader(L.downloadsSeedingTitle)
                 }

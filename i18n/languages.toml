@@ -28,3 +28,45 @@ name = "日本語"
 flag = "jp"
 stage = "draft"
 drafts = "ship"
+
+[language.es-419]
+name = "Español (Latinoamérica)"
+flag = "mx"
+stage = "draft"
+drafts = "ship"
+
+[language.pt-BR]
+name = "Português (Brasil)"
+flag = "br"
+stage = "draft"
+drafts = "ship"
+
+[language.fr]
+name = "Français"
+flag = "fr"
+stage = "draft"
+drafts = "ship"
+
+[language.de]
+name = "Deutsch"
+flag = "de"
+stage = "draft"
+drafts = "ship"
+
+[language.it]
+name = "Italiano"
+flag = "it"
+stage = "draft"
+drafts = "ship"
+
+[language.pl]
+name = "Polski"
+flag = "pl"
+stage = "draft"
+drafts = "ship"
+
+[language.ru]
+name = "Русский"
+flag = "ru"
+stage = "draft"
+drafts = "ship"

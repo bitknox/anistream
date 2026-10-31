@@ -4,7 +4,10 @@
 pub mod browse;
 pub mod calendar;
 pub mod detail;
+pub mod filter;
+pub mod home;
 pub mod lists;
+pub mod probe;
 pub mod recents;
 pub mod search;
 pub mod up_next;

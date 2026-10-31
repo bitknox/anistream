@@ -54,7 +54,8 @@ public sealed class EngineSession : IDisposable
         AnilistClientId: signIn ? AnilistClient : null,
         MalClientId: signIn ? MalClient : null,
         SimklClientId: SimklClient,
-        TraktClientId: TraktClient);
+        TraktClientId: TraktClient,
+        Language: T.Language);
 
     /// <summary>anistream's AniList client: implicit grant, redirecting to <c>anistream://auth/anilist</c>.</summary>
     public const string AnilistClient = "54537";

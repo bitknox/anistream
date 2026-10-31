@@ -142,6 +142,26 @@ pub const TV: [&str; 17] = [
     "tv-connecting",
 ];
 
+/// Casting's shots, on TVs with Chromecast built in that run on loopback: `--shot cast` takes them.
+/// The scene's TV running anistream is moved off loopback first, so a Cast TV is not taken for it.
+pub const CAST: [&str; 15] = [
+    "cast-picker",
+    "cast-none-found",
+    "cast-starting",
+    "cast-counting",
+    "cast-playing-fixed",
+    "cast-playing-level",
+    "cast-refused",
+    "cast-never-reads",
+    "cast-lost",
+    "cast-taken-over",
+    "cast-bar",
+    "cast-stopped",
+    "cast-up-next",
+    "settings-integrations",
+    "torrents-on",
+];
+
 /// The source picker's shots, apart from the rest: `--shot sources` takes them.
 pub const SOURCES: [&str; 7] = [
     "source-picker",
@@ -805,6 +825,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         party if party.starts_with("party-") => party_stage(shell, party),
         source if source.starts_with("source-") => source_stage(shell, source),
         tv if tv.starts_with("tv-") => tv_stage(shell, tv),
+        cast if cast.starts_with("cast-") => cast_stage(shell, cast),
         other => {
             tracing::warn!(shot = other, "no such shot");
             0.0
@@ -918,6 +939,7 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         party if party.starts_with("party-") => party_unstage(shell, party),
         source if source.starts_with("source-") => source_unstage(shell),
         tv if tv.starts_with("tv-") => tv_unstage(shell, tv),
+        cast if cast.starts_with("cast-") => cast_unstage(shell),
         _ => {}
     }
 }
@@ -1314,6 +1336,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
                 "pad" => PAD.iter().map(|p| (*p).to_owned()).collect(),
                 "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
                 "tv" => TV.iter().map(|p| (*p).to_owned()).collect(),
+                "cast" => CAST.iter().map(|p| (*p).to_owned()).collect(),
                 one => vec![one.to_owned()],
             })
             .collect(),
@@ -1949,6 +1972,204 @@ fn tv_unstage(shell: &Rc<Shell>, shot: &str) {
         _ => {}
     }
 }
+
+/// Casting's scenes: Play on TV for episode 3 from 8:12, with TVs with Chromecast built in on
+/// loopback, each set up as its scene needs: the pick, then how long the cast takes to show.
+#[cfg(feature = "fixtures")]
+fn cast_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use crate::tv::fixture::{self, LIVING_ROOM};
+    use anistream_cast::fake::{FakeOptions, Refusal, Refuse};
+    const KITCHEN: &str = "Kitchen display";
+    let Some(scene) = fixture::scene() else { return 0.0 };
+    let tv = Rc::clone(&shell.ctx.tv);
+    let later = |ms: u64, f: Box<dyn FnOnce()>| {
+        glib::timeout_add_local_once(Duration::from_millis(ms), f);
+    };
+    // What the episodes stream is a test pattern the fake plays as though it had read it.
+    let plays = |control: &'static str| FakeOptions {
+        plays_unfetched: true,
+        duration: 1440.0,
+        control,
+        ..FakeOptions::default()
+    };
+    scene.apart();
+    scene.cast_clear();
+    // Play on TV for episode 3, from 8:12, once the window has settled.
+    let open = {
+        let window = shell.ctx.window.clone();
+        move || {
+            let window = window.clone();
+            later(
+                600,
+                Box::new(move || {
+                    let _ = WidgetExt::activate_action(
+                        &window,
+                        "win.play-on-tv",
+                        Some(&(TITLE, "3".to_owned(), 492.0).to_variant()),
+                    );
+                }),
+            );
+        }
+    };
+    // Choose the cast row once it is listed, asking again until it is.
+    fn choose(tv: Rc<crate::tv::Tv>, name: &'static str, tries: u32) {
+        if let Some(row) = tv.cast_rows().into_iter().find(|r| r.name == name) {
+            return tv.choose_cast(&row);
+        }
+        if tries > 0 {
+            glib::timeout_add_local_once(Duration::from_millis(500), move || {
+                choose(tv, name, tries - 1);
+            });
+        }
+    }
+    let pick = |name: &'static str, after: u64| {
+        let tv = Rc::clone(&tv);
+        later(after, Box::new(move || choose(tv, name, 10)));
+    };
+    // The board lists only Bedroom on the network; the Living room there is the Cast one.
+    scene.switch_off(LIVING_ROOM);
+    shell.go(Dest::Continue);
+    match shot {
+        "cast-picker" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            scene.cast(KITCHEN, plays("attenuation"));
+            open();
+            2.5
+        }
+        "cast-none-found" => {
+            scene.silence(true);
+            open();
+            11.5
+        }
+        // The TV takes about 7 s to open the receiver: the line before and after its 4 s.
+        "cast-starting" | "cast-counting" => {
+            scene.cast(
+                LIVING_ROOM,
+                FakeOptions { launch: Duration::from_secs(7), ..plays("fixed") },
+            );
+            open();
+            pick(LIVING_ROOM, 1800);
+            if shot == "cast-starting" { 2.7 } else { 7.2 }
+        }
+        "cast-playing-fixed" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            11.0
+        }
+        "cast-playing-level" => {
+            scene.cast(KITCHEN, plays("attenuation"));
+            open();
+            pick(KITCHEN, 1800);
+            11.0
+        }
+        "cast-refused" => {
+            scene.cast(
+                LIVING_ROOM,
+                FakeOptions {
+                    refuse: Refuse {
+                        content_types: vec![
+                            "application/x-mpegurl".into(),
+                            "video/mp4".into(),
+                            "video/x-matroska".into(),
+                            "video/webm".into(),
+                        ],
+                        bytes: vec![
+                            b"ftyp".to_vec(),
+                            b"moof".to_vec(),
+                            vec![0x1a, 0x45, 0xdf, 0xa3],
+                        ],
+                        how: Some(Refusal::LoadFailed),
+                        ..Refuse::default()
+                    },
+                    ..plays("fixed")
+                },
+            );
+            open();
+            pick(LIVING_ROOM, 1800);
+            12.0
+        }
+        "cast-never-reads" => {
+            scene.cast(
+                LIVING_ROOM,
+                FakeOptions { fetches: false, plays_unfetched: false, ..plays("fixed") },
+            );
+            open();
+            pick(LIVING_ROOM, 1800);
+            // The engine gives a TV a minute to start reading before it says why it didn't.
+            70.0
+        }
+        "cast-lost" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            later(9000, Box::new(move || scene.cast_go_silent(LIVING_ROOM)));
+            27.0
+        }
+        "cast-taken-over" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            later(9000, Box::new(move || scene.cast_take_over(LIVING_ROOM)));
+            11.0
+        }
+        "cast-bar" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            let window = shell.ctx.window.clone();
+            later(9500, Box::new(move || close_dialogs(&window)));
+            11.0
+        }
+        "cast-stopped" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            let tv = Rc::clone(&tv);
+            later(9000, Box::new(move || tv.cast_stop()));
+            10.5
+        }
+        // Near the end, so Up next counts down to the next episode.
+        "cast-up-next" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            let tv = Rc::clone(&tv);
+            later(
+                9000,
+                Box::new(move || {
+                    tv.cast_send(
+                        anistream_engine::remote::protocol::command::RemoteCommand::SeekTo {
+                            position: 1440.0 - 26.0,
+                        },
+                    )
+                }),
+            );
+            15.0
+        }
+        _ => 0.0,
+    }
+}
+
+#[cfg(feature = "fixtures")]
+fn cast_unstage(shell: &Rc<Shell>) {
+    let tv = &shell.ctx.tv;
+    tv.cast_stop();
+    tv.sheet_closed();
+    close_dialogs(&shell.ctx.window);
+    if let Some(scene) = crate::tv::fixture::scene() {
+        scene.cast_clear();
+        scene.silence(false);
+    }
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn cast_stage(_: &Rc<Shell>, _: &str) -> f64 {
+    0.0
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn cast_unstage(_: &Rc<Shell>) {}
 
 #[cfg(not(feature = "fixtures"))]
 fn tv_stage(_: &Rc<Shell>, _: &str) -> f64 {

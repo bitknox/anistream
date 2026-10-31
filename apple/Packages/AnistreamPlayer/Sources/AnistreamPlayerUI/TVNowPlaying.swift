@@ -1,4 +1,4 @@
-// Now Playing and the media keys for the TV this Mac drives: while the TV plays something and the
+// Now Playing and the media keys for the TV this Mac drives or casts to: while the TV plays something and the
 // Mac's own player is down, the system's Now Playing shows the TV's episode, and play, pause,
 // the playhead and the next and previous episode go to the TV, as the card's controls do.
 
@@ -34,13 +34,15 @@ public final class TVNowPlaying {
 
     private func update() {
         let playerUp = player?.isPresented ?? false
-        guard !playerUp, tv.connected != nil, let card = tv.card, let now = tv.now else {
+        // A cast is followed as a driven TV is: the card's routing sends the commands to it.
+        let tvName = tv.cast.active ? tv.cast.tvName : tv.connected != nil ? tv.card?.tvName : nil
+        guard !playerUp, let tvName, let now = tv.now else {
             release(playerUp: playerUp)
             return
         }
         if targets.isEmpty { bind() }
         let center = MPNowPlayingInfoCenter.default()
-        center.nowPlayingInfo = Self.info(now, tvName: card.tvName, playhead: tv.playhead() ?? now.position, live: tv.live)
+        center.nowPlayingInfo = Self.info(now, tvName: tvName, playhead: tv.playhead() ?? now.position, live: tv.live)
         center.playbackState = Self.playing(now, live: tv.live) ? .playing : .paused
     }
 
