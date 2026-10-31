@@ -17,7 +17,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -71,6 +70,7 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -408,11 +408,14 @@ internal fun BarLabel(text: String) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val centre = androidx.compose.ui.text.style.TextAlign.Center
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val available = constraints.maxWidth
+    // The item's width, known after its first measure (the bar asks its items for intrinsic sizes,
+    // which a subcomposing layout cannot answer).
+    var available by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    run {
         val largest = if (style.fontSize.isSpecified) style.fontSize else 12.sp
         val smallest = 8.sp
         val plan = remember(text, available, style, density) {
+            if (available == 0) return@remember BarLabelPlan(largest, wraps = false)
             fun width(candidate: String, size: androidx.compose.ui.unit.TextUnit) =
                 measurer.measure(candidate, style.copy(fontSize = size), softWrap = false, maxLines = 1).size.width
             var size = largest
@@ -429,7 +432,7 @@ internal fun BarLabel(text: String) {
         }
         Text(
             text,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().onSizeChanged { available = it.width },
             textAlign = centre,
             fontSize = plan.size,
             maxLines = if (plan.wraps) Int.MAX_VALUE else 1,
