@@ -224,6 +224,30 @@ struct CastStatusLine: View {
     }
 }
 
+/// The overflow at the end of the card's buttons: Choose another TV.
+struct CastMoreMenu: View {
+    @Environment(AppStore.self) private var store
+    let touch: Bool
+
+    var body: some View {
+        Menu {
+            Button(L.tvChooseAnother) { store.tv.castElsewhere() }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(touch ? .ui(17, weight: .semibold) : .mac(13, weight: .semibold))
+                .foregroundStyle(.silk)
+                .frame(width: touch ? 44 : 28, height: touch ? 44 : 28)
+                .background(touch ? Palette.raised : Palette.raisedSelected, in: touch ? AnyShape(.rect(cornerRadius: 12)) : AnyShape(.capsule))
+                .contentShape(.rect)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel(L.actionMore)
+    }
+}
+
 /// The Up next row on the cast card: the next episode and its count, with Cancel and Play now.
 /// At zero the engine plays the episode itself. With auto-next off it waits for Play now.
 struct CastUpNextRow: View {
@@ -461,11 +485,16 @@ struct MacCastCard: View {
                         CastUndoNote(undo: undo, touch: false).transition(.opacity)
                     }
                     MacSheetRows {
-                        SettingsRow(title: L.playerSubtitles) {
-                            TVTrackMenu(title: L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
+                        // The tracks show once the TV has reported them: never "None" for unknown.
+                        if stage == .playing {
+                            SettingsRow(title: L.playerSubtitles) {
+                                TVTrackMenu(title: L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
+                            }
                         }
-                        SettingsRow(title: L.playerAudio) {
-                            TVTrackMenu(title: L.playerAudio, kind: .audio, tracks: now.audio, off: false, phone: false)
+                        if !now.audio.isEmpty {
+                            SettingsRow(title: L.playerAudio) {
+                                TVTrackMenu(title: L.playerAudio, kind: .audio, tracks: now.audio, off: false, phone: false)
+                            }
                         }
                         CastVolumeRow(touch: false)
                     }
@@ -475,12 +504,15 @@ struct MacCastCard: View {
             }
             HStack(spacing: 8) {
                 if running {
-                    // One row when it fits; otherwise Choose Another TV drops under the rest,
-                    // so no button's words are cut short.
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 8) { footer(tv, actions, dismiss, together: true) }
-                        VStack(alignment: .leading, spacing: 8) { footer(tv, actions, dismiss, together: false) }
-                    }
+                    Spacer(minLength: 8)
+                    Button(L.castPlayHere) { actions.playHere() }
+                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    Button(L.castStop) { actions.stop() }
+                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    Button(L.actionDone) { dismiss() }
+                        .buttonStyle(PrimaryCapsuleStyle(height: 28))
+                        .keyboardShortcut(.cancelAction)
+                    CastMoreMenu(touch: false)
                 } else {
                     ForEach(Array(cast.actions.enumerated()), id: \.offset) { index, action in
                         if index == 0 {
@@ -501,41 +533,6 @@ struct MacCastCard: View {
             .padding(.top, 4)
         }
         .animation(.standard, value: stage)
-    }
-
-    @ViewBuilder
-    private func footer(_ tv: TVRemoteModel, _ actions: CastActions, _ dismiss: DismissAction, together: Bool) -> some View {
-        if together {
-            chooseAnother(tv)
-            Spacer(minLength: 8)
-            rest(actions, dismiss)
-        } else {
-            HStack(spacing: 8) {
-                Spacer(minLength: 0)
-                rest(actions, dismiss)
-            }
-            chooseAnother(tv)
-        }
-    }
-
-    private func chooseAnother(_ tv: TVRemoteModel) -> some View {
-        Button(L.tvChooseAnother) { tv.castElsewhere() }
-            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-            .fixedSize()
-    }
-
-    @ViewBuilder
-    private func rest(_ actions: CastActions, _ dismiss: DismissAction) -> some View {
-        Button(L.castPlayHere) { actions.playHere() }
-            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-            .fixedSize()
-        Button(L.castStop) { actions.stop() }
-            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-            .fixedSize()
-        Button(L.actionDone) { dismiss() }
-            .buttonStyle(PrimaryCapsuleStyle(height: 28))
-            .keyboardShortcut(.cancelAction)
-            .fixedSize()
     }
 }
 #endif
@@ -641,10 +638,14 @@ struct PhoneCastCard: View {
                                 .transition(.opacity)
                         }
                         CastBox {
-                            trackRow(L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
-                            CastBoxRule()
-                            trackRow(L.playerAudio, kind: .audio, tracks: now.audio, off: false)
-                            CastBoxRule()
+                            if stage == .playing {
+                                trackRow(L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
+                                CastBoxRule()
+                            }
+                            if !now.audio.isEmpty {
+                                trackRow(L.playerAudio, kind: .audio, tracks: now.audio, off: false)
+                                CastBoxRule()
+                            }
                             CastVolumeRow(touch: true)
                         }
                         .opacity(tv.live ? 1 : 0.4)
@@ -655,8 +656,8 @@ struct PhoneCastCard: View {
                     if sizeClass == .regular {
                         HStack(spacing: 10) {
                             padButton(L.castPlayHere) { actions.playHere() }
-                            padButton(L.tvChooseAnother) { tv.castElsewhere() }
                             padButton(L.castStop) { actions.stop() }
+                            CastMoreMenu(touch: true)
                         }
                     } else {
                         CastBox {
