@@ -253,6 +253,24 @@ Turn the check off with:
 check = false
 ```
 
+### Beta updates
+
+Every change that lands is built as a numbered beta first. The beta becomes the stable release
+the next Tuesday if nothing went wrong in between, so betas arrive with every change and stable
+releases come about once a week. By default an app only sees stable releases.
+
+To get betas, turn on **Beta updates** in Settings. It is a switch on each device, so it can be on
+for your phone and off for your Mac. The app then offers the newest release, beta or stable. The
+same screen labels the build you run as a beta when it is one.
+
+Turning it off does not downgrade anything. The app stays on the beta it has, says that updates
+resume with the next stable release, and updates again when a stable newer than your build is out.
+
+The AppImage update information and the SideStore source follow stable
+releases only. On iPhone and iPad, a beta comes from its page on GitHub, which the update notice
+opens. In the terminal app, `anistream --update --beta` takes the newest beta, and `updates.beta = true`
+under `[updates]` in the config makes the daily check look for betas.
+
 ## Prerequisites
 
 <Tabs syncKey="platform">
