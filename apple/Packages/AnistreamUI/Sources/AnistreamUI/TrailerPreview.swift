@@ -94,7 +94,7 @@ struct TrailerPreviewHost: ViewModifier {
             .task(id: store.trailersMayAutoplay) {
                 // The first grid of covers loads the preview's player, so the first hover starts sooner.
                 guard store.trailersMayAutoplay else { return }
-                TrailerPool.shared.prewarm(subtitles: store.settings.value(.subtitles) ?? "")
+                await TrailerPool.shared.prewarm(subtitles: store.settings.value(.subtitles) ?? "")
             }
             .task {
                 // The Fixtures app can open one at launch, for a shot: sheet=preview, select=<id>.

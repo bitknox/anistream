@@ -4,6 +4,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import os
 import SwiftUI
 import WebKit
 
@@ -163,17 +164,40 @@ final class TrailerPool {
     private let keep = 2
     private var warmed = false
 
+    /// Signposts round the WKWebView calls the trailers make on the main thread: creating a view,
+    /// loading its page and running a script. The page's work runs in WebKit's own processes.
+    static let signposts = OSSignposter(subsystem: "tv.anistream", category: "trailer") // i18n-skip: a log category
+
     /// Load the preview's player ahead of the first hover, with no video in it: once a run, and
-    /// nothing after the first call.
-    func prewarm(subtitles: String) {
+    /// nothing after the first call. The page is built off the main actor; creating the web view
+    /// and loading it are the main thread's part, and the first web view of the run starts
+    /// WebKit's processes, so a caller picks a still moment.
+    func prewarm(subtitles: String) async {
         guard !warmed, Self.standInFree else { return }
         warmed = true
-        guard let html = trailerPage(trailer: nil, style: .banner, app: TrailerPlayer.identity, subtitleLanguage: subtitles),
-              let base = URL(string: trailerBaseUrl(app: TrailerPlayer.identity)) else { return }
-        let page = TrailerPage(style: .banner, store: store, pooled: true, subtitles: subtitles)
-        page.webView.loadHTMLString(html, baseURL: base)
+        let identity = TrailerPlayer.identity
+        let built = await Task.detached(priority: .utility) {
+            (trailerPage(trailer: nil, style: .banner, app: identity, subtitleLanguage: subtitles), trailerBaseUrl(app: identity))
+        }.value
+        guard let html = built.0, let base = URL(string: built.1) else { return }
+        let page = Self.signposts.withIntervalSignpost("create web view") { // i18n-skip: a signpost
+            TrailerPage(style: .banner, store: store, pooled: true, subtitles: subtitles)
+        }
+        Self.signposts.withIntervalSignpost("load page") { // i18n-skip: a signpost
+            _ = page.webView.loadHTMLString(html, baseURL: base)
+        }
         idle.append(page)
         AppLog.debug("trailer", "the preview's player is loading ahead of the first hover")
+    }
+
+    /// The warm preview page, out of the pool, asked to play `trailer`: for priming, which gives
+    /// it back. None when no page is warm.
+    func takeWarm(_ trailer: Trailer, subtitles: String) -> TrailerPage? {
+        guard let index = idle.firstIndex(where: { $0.style == .banner && !$0.broken && $0.subtitles == subtitles }),
+              let script = trailerLoadScript(trailer: trailer) else { return nil }
+        let page = idle.remove(at: index)
+        page.run(script)
+        return page
     }
 
     /// Whether the real page is in use, not the Fixtures app's stand-in.
@@ -282,7 +306,13 @@ final class TrailerPage: NSObject {
     /// Run `script` in the page now, or once it has loaded: a hover can come before a page loaded
     /// ahead of it is up.
     func run(_ script: String) {
-        if loaded { webView.evaluateJavaScript(script, completionHandler: nil) } else { queued.append(script) }
+        guard loaded else {
+            queued.append(script)
+            return
+        }
+        TrailerPool.signposts.withIntervalSignpost("run script") { // i18n-skip: a signpost
+            webView.evaluateJavaScript(script, completionHandler: nil)
+        }
     }
 
     /// Unseen until the page says a frame is up, so YouTube's loading screen never shows.
@@ -326,6 +356,10 @@ final class TrailerPage: NSObject {
             Task { @MainActor in
                 if text == trailerChromeMessage() {
                     AppLog.debug("trailer", "YouTube's controls hidden in the preview's player")
+                    return
+                }
+                if text.hasPrefix("bytes:"), let bytes = Int(text.dropFirst(6)) { // i18n-skip: the page's word
+                    AppLog.debug("trailer", "the preview's player fetched \(bytes / 1024) kB before the first hover")
                     return
                 }
                 self.page?.hear?(text)
