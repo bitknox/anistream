@@ -89,13 +89,19 @@ pub fn page(
         return None;
     }
     let (muted, controls, input) = match style {
-        EmbedStyle::Banner => (1, 0, "pointer-events:none;"),
-        EmbedStyle::Full => (0, 1, ""),
+        // The banner's player is 200 px taller than the view, centred, and the page clips it: the
+        // video fits the width, so the extra height is letterbox, and YouTube's title bar along
+        // the top and its logo along the foot sit in it, out of sight. Play trailer keeps its
+        // controls, along the foot, so it fills the view.
+        EmbedStyle::Banner => {
+            (1, 0, "top: -100px; height: calc(100% + 200px); pointer-events: none;")
+        }
+        EmbedStyle::Full => (0, 1, "top: 0; height: 100%;"),
     };
     // The id and the origin were checked above to hold no quote, backslash or angle bracket,
     // and the language is one of the table's, so each goes into the script as it is.
     Some(
-        PAGE.replace("{INPUT}", input)
+        PAGE.replace("{LAYOUT}", input)
             .replace("{VIDEO}", trailer.map_or("", |trailer| &trailer.id))
             .replace("{ORIGIN}", &app.origin)
             .replace("{MUTE}", &muted.to_string())
@@ -171,7 +177,7 @@ const PAGE: &str = r#"<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
 html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-#player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; {INPUT} }
+#player { position: absolute; left: 0; width: 100%; border: 0; {LAYOUT} }
 </style>
 </head>
 <body>
@@ -211,12 +217,6 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   // The viewer's caption language, or none; and whether captions show now.
   var captions = "{CAPTIONS}";
   var captioned = false;
-  // YouTube shows its title, a pause button, More videos and its logo over the first seconds of
-  // a video, even with no controls, and hides them about four seconds in. The banner's video
-  // comes forward only after that; Play trailer has YouTube's controls anyway.
-  var settle = {CONTROLS} ? 0 : 4500;
-  var began = 0;
-  var moved = false;
   function stopTail() {
     if (tail) { clearInterval(tail); tail = 0; }
   }
@@ -297,17 +297,19 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   function whenMoving() {
     stopWatching();
     var from = player.getCurrentTime ? player.getCurrentTime() : 0;
-    if (!began) { began = Date.now(); }
     watch = setInterval(function () {
       if (!player || !player.getCurrentTime || player.getCurrentTime() <= from) { return; }
-      if (!moved) { moved = true; say("started"); }
-      if (Date.now() - began < settle) { return; }
       stopWatching();
       frames(function () {
         if (!showing) { showing = true; say("playing"); }
       });
     }, 50);
   }
+  // The preview starts five seconds in, past a trailer's quiet opening, as the player loads it
+  // rather than by a seek once it plays. One shorter than SHORT seconds goes back to its start
+  // once its length is known. Play trailer starts at the start.
+  var offset = {MUTE} ? 5 : 0;
+  var SHORT = 20;
   var vars = {
     autoplay: 1,
     mute: {MUTE},
@@ -320,6 +322,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
     enablejsapi: 1,
     origin: "{ORIGIN}"
   };
+  if (offset) { vars.start = offset; }
   if (captions) {
     vars.hl = captions;
     vars.cc_lang_pref = captions;
@@ -344,6 +347,10 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
         },
         onStateChange: function (event) {
           if (event.data === 1) {
+            if (offset && !showing && player.getDuration && player.getDuration() > 0 &&
+                player.getDuration() < SHORT && player.getCurrentTime() >= 1) {
+              player.seekTo(0, true);
+            }
             if (sound && player.isMuted && player.isMuted()) { rampUp(); }
             applyCaptions();
             whenMoving();
@@ -357,8 +364,6 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             stopWatching();
             stopTail();
             showing = false;
-            began = 0;
-            moved = false;
             say("ended");
           }
         },
@@ -402,12 +407,11 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
       stopRamp();
       showing = false;
       told = false;
-      began = 0;
-      moved = false;
       if (!player || !player.loadVideoById) { pending = id; return; }
       if ({MUTE}) { player.mute(); }
-      player.loadVideoById(id);
+      player.loadVideoById({ videoId: id, startSeconds: offset });
     },
+
     remaining: function () {
       if (!player || !player.getDuration || !player.getCurrentTime) { return -1; }
       var left = player.getDuration() - player.getCurrentTime();
@@ -428,12 +432,6 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 /// not a [`TrailerMessage`], so [`TrailerMessage::parse`] ignores it and a front end that does not
 /// know it loses nothing; the `ended` that follows still comes.
 pub const ENDING_MESSAGE: &str = "ending";
-
-/// What the page posts as the video's clock first moves, before YouTube's own title and icons
-/// have faded and so before `playing` in the banner style: the trailer has started, and a front
-/// end that gives up on a trailer that never starts can stop waiting. Not a [`TrailerMessage`],
-/// for the same reason as [`ENDING_MESSAGE`].
-pub const STARTED_MESSAGE: &str = "started";
 
 /// What the page posts when captions start showing over the video, and when they stop, for a
 /// front end that keeps the foot of the video clear while they show. Not [`TrailerMessage`]s
@@ -710,7 +708,9 @@ mod tests {
             "iv_load_policy: 3,",
             "enablejsapi: 1,",
             r#"origin: "https://tv.anistream.app""#,
-            "pointer-events:none;",
+            "pointer-events: none;",
+            // Cropped: YouTube's title bar and logo sit in a letterbox the page clips.
+            "top: -100px; height: calc(100% + 200px);",
             "window.webkit.messageHandlers.anistream.postMessage(message)",
             "window.chrome.webview.postMessage(message)",
             "window.anistream.postMessage(message)",
@@ -719,7 +719,7 @@ mod tests {
         ] {
             assert!(page.contains(required), "{required}");
         }
-        for blank in ["{INPUT}", "{VIDEO}", "{ORIGIN}", "{MUTE}", "{CONTROLS}"] {
+        for blank in ["{LAYOUT}", "{VIDEO}", "{ORIGIN}", "{MUTE}", "{CONTROLS}"] {
             assert!(!page.contains(blank), "{blank}");
         }
         // Nothing of the player's own page is touched: no style or script reaches into it.
@@ -730,7 +730,8 @@ mod tests {
     fn play_trailer_has_sound_controls_and_input() {
         let page = embed_page(&youtube("abc123"), EmbedStyle::Full, &app()).unwrap();
         assert!(page.contains("mute: 0,") && page.contains("controls: 1,"));
-        assert!(!page.contains("pointer-events:none;"));
+        assert!(!page.contains("pointer-events: none;"));
+        assert!(page.contains("top: 0; height: 100%;"), "its controls stay in the view");
     }
 
     #[test]
@@ -765,7 +766,6 @@ mod tests {
             None,
             "a front end that has no use for it"
         );
-        assert_eq!(TrailerMessage::parse(STARTED_MESSAGE), None);
         assert!(
             embed_page(&youtube("abc"), EmbedStyle::Banner, &app())
                 .unwrap()
@@ -774,10 +774,6 @@ mod tests {
         );
         let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
         assert!(page.contains(&format!("say(\"{ENDING_MESSAGE}\")")), "the page says it");
-        // Started as the clock first moves, playing only once the settle is over.
-        let moving = page.find(&format!("say(\"{STARTED_MESSAGE}\")")).unwrap();
-        let settled = page.find("if (Date.now() - began < settle) { return; }").unwrap();
-        assert!(moving < settled, "started comes before the settle");
         assert_eq!(
             TrailerMessage::parse("error:150"),
             Some(TrailerMessage::Error { code: 150 })
@@ -799,6 +795,23 @@ mod tests {
     }
 
     #[test]
+    fn the_preview_starts_five_seconds_in_and_play_trailer_at_the_start() {
+        let banner = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
+        assert!(banner.contains("var offset = 1 ? 5 : 0;"));
+        assert!(
+            banner.contains("if (offset) { vars.start = offset; }"),
+            "as it loads, not a seek"
+        );
+        // A short trailer goes back to its start once its length is known.
+        assert!(
+            banner.contains("player.getDuration() < SHORT && player.getCurrentTime() >= 1")
+        );
+        assert!(banner.contains("player.seekTo(0, true);"));
+        let full = embed_page(&youtube("abc"), EmbedStyle::Full, &app()).unwrap();
+        assert!(full.contains("var offset = 0 ? 5 : 0;"));
+    }
+
+    #[test]
     fn a_page_that_is_up_switches_to_another_trailer() {
         assert_eq!(
             load_script(&youtube("def_45-6")).as_deref(),
@@ -810,7 +823,10 @@ mod tests {
 
         let banner = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
         assert!(banner.contains("    load: function (id) {"));
-        assert!(banner.contains("player.loadVideoById(id);"), "the player the page has");
+        assert!(
+            banner.contains("player.loadVideoById({ videoId: id, startSeconds: offset });"),
+            "the player the page has, from the preview's start"
+        );
         assert!(banner.contains("if (1) { player.mute(); }"), "a banner starts muted again");
         assert!(banner.contains("pending = id;"), "a load before the player is up waits");
         let full = embed_page(&youtube("abc"), EmbedStyle::Full, &app()).unwrap();

@@ -80,10 +80,9 @@ final class TrailerPlayer: NSObject, TrailerSurface {
 
     /// Nothing played in time: logged with what the page last said and YouTube's state now, read
     /// before the pool pauses it.
-    func gaveUp(after: Duration, started: Bool) {
+    func gaveUp(after: Duration) {
         let ms = Int(after.components.seconds * 1000 + after.components.attoseconds / 1_000_000_000_000_000)
-        let what = started ? "started but never came out from under YouTube's title" : "never started"
-        let line = "\(trailer.id) gave up after \(ms) ms: \(what); last heard \(lastHeard), \(warm ? "warm" : "cold")"
+        let line = "\(trailer.id) gave up after \(ms) ms, never playing; last heard \(lastHeard), \(warm ? "warm" : "cold")"
         guard let page else {
             AppLog.warn("trailer", line)
             return
@@ -100,10 +99,6 @@ final class TrailerPlayer: NSObject, TrailerSurface {
         lastHeard = word
         // The page's words that are not the player's state. i18n-skip: the page's words
         switch word {
-        case "started": // i18n-skip
-            AppLog.debug("trailer", "\(trailer.id) started after \(AppLog.ms(since: started)) ms, \(warm ? "warm" : "cold")")
-            onSignal(.started)
-            return
         case "ending": onSignal(.ending); return // i18n-skip
         case "captions:on": onSignal(.captions(true)); return // i18n-skip
         case "captions:off": onSignal(.captions(false)); return // i18n-skip
