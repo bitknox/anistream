@@ -32,6 +32,8 @@ impl StoreServer {
             server::open(&Storage::Dir(dir.path().join("store")), Some(&base), Some("Ours"))
                 .await
                 .unwrap();
+        // Opening the store to its link needs the operator's contact.
+        store.set_contact("owner@store.example").await.unwrap();
         let invite = store.fresh_owner_invite(&base, server::now()).await.unwrap().unwrap();
         let inspector = anistream_engine::plugin_stores::WasmInspector::new(
             anistream_plugin::Limits::default(),
