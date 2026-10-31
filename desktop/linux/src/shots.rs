@@ -254,7 +254,101 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "home-arrows" => {
             shell.go(Dest::Home);
             show_arrows(shell);
-            1.0
+            1.2
+        }
+        // The slow scene past four seconds, with the activity line, and once its answers land.
+        "home-activity" => {
+            shell.go(Dest::Home);
+            1.5
+        }
+        "home-settled" => {
+            shell.go(Dest::Home);
+            // Each part landing, for the recording.
+            let window: gtk::Widget = shell.ctx.window.clone().upcast();
+            // Home is still waiting when this stage starts, so the first view with fewer parts
+            // pending than any before is a landing.
+            let waiting = std::cell::Cell::new(usize::MAX);
+            let _ = shell.ctx.hub.listen(move |event| {
+                if let Event::Home(view) = event {
+                    let now = view.pending.len();
+                    if now < waiting.replace(now) {
+                        mark_step("arrival", &window);
+                    }
+                }
+            });
+            14.0
+        }
+        // Motion, for a recording of the screen (scripts/motion.sh): each logs when its steps
+        // fire, so the frames can be found in the video.
+        "motion-arrows" => {
+            shell.go(Dest::Home);
+            let shelf = paging_shelf(shell);
+            if let Some(shelf) = &shelf {
+                bring_into_view(shelf);
+            }
+            let steps: [(u64, &str, Option<glib::Variant>); 5] = [
+                (500, "shelf.hover", Some(true.to_variant())),
+                (1500, "shelf.page", Some(1i32.to_variant())),
+                (2500, "shelf.page", Some(1i32.to_variant())),
+                (3500, "shelf.page", Some((-1i32).to_variant())),
+                (4500, "shelf.hover", Some(false.to_variant())),
+            ];
+            for (at, action, arg) in steps {
+                let shelf = shelf.clone();
+                glib::timeout_add_local_once(Duration::from_millis(at), move || {
+                    if let Some(shelf) = &shelf {
+                        mark_step(action, shelf);
+                        let _ = WidgetExt::activate_action(shelf, action, arg.as_ref());
+                    }
+                });
+            }
+            5.5
+        }
+        "motion-dismiss" => {
+            shell.go(Dest::Home);
+            // The first card of the last suggestion shelf, so the cards after it close the gap.
+            let Some((_, last)) = last_suggestion(shell) else { return 1.0 };
+            let shelf_of = |card: &gtk::Widget| {
+                let mut shelf = card.parent();
+                while let Some(w) = shelf.as_ref().filter(|w| !w.has_css_class("home-shelf")) {
+                    shelf = w.parent();
+                }
+                shelf
+            };
+            let Some(frame) = shelf_of(&last) else { return 1.0 };
+            let Some(id) = descendants(&frame)
+                .into_iter()
+                .filter(|w| w.has_css_class("home-suggestion"))
+                .find_map(|w| {
+                    w.downcast::<gtk::Button>().ok()?.action_target_value()?.get::<u32>()
+                })
+            else {
+                return 1.0;
+            };
+            bring_into_view(&frame);
+            let window = shell.ctx.window.clone();
+            glib::timeout_add_local_once(Duration::from_millis(500), {
+                let (window, frame) = (window.clone(), frame.clone());
+                move || {
+                    mark_step("dismiss", &frame);
+                    let _ = WidgetExt::activate_action(
+                        &window,
+                        "win.home-dismiss",
+                        Some(&id.to_variant()),
+                    );
+                }
+            });
+            let toasts = shell.ctx.toasts.clone();
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                mark_step("undo", &frame);
+                toasts.dismiss_all();
+                let _ = WidgetExt::activate_action(
+                    &window,
+                    "win.restore-up-next",
+                    Some(&id.to_string().to_variant()),
+                );
+            });
+            4.5
         }
         "home-notice" => {
             shell.go(Dest::Home);
@@ -932,6 +1026,15 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "player" | "player-marks" | "player-undo" | "mini" | "pad-help-player" => {
             shell.player.close()
         }
+        "home-arrows" | "motion-arrows" => {
+            if let Some(shelf) = paging_shelf(shell) {
+                let _ = WidgetExt::activate_action(
+                    &shelf,
+                    "shelf.hover",
+                    Some(&false.to_variant()),
+                );
+            }
+        }
         party if party.starts_with("party-") => party_unstage(shell, party),
         source if source.starts_with("source-") => source_unstage(shell),
         tv if tv.starts_with("tv-") => tv_unstage(shell, tv),
@@ -1375,27 +1478,72 @@ fn descendants(root: &gtk::Widget) -> Vec<gtk::Widget> {
     all
 }
 
-/// Home's paging buttons as the pointer over a shelf leaves them: shown.
+/// Home's paging buttons as the pointer over a shelf shows them, a page in so both show.
 fn show_arrows(shell: &Rc<Shell>) {
-    let Some(root) = shell.ctx.window.content() else { return };
-    for w in descendants(root.upcast_ref()) {
-        if w.has_css_class("home-arrow") {
-            w.set_visible(true);
-            w.set_opacity(1.0);
-        }
+    if let Some(shelf) = paging_shelf(shell) {
+        let _ = WidgetExt::activate_action(&shelf, "shelf.hover", Some(&true.to_variant()));
+        let _ = WidgetExt::activate_action(&shelf, "shelf.page", Some(&1i32.to_variant()));
     }
 }
 
-/// Not interested on the last card Home shows, which sits in a suggestion shelf.
-fn dismiss_last_card(shell: &Rc<Shell>) {
-    let Some(root) = shell.ctx.window.content() else { return };
-    let last = descendants(root.upcast_ref())
+/// Home's shelves, top to bottom.
+fn home_shelves(shell: &Rc<Shell>) -> Vec<gtk::Widget> {
+    let Some(root) = shell.ctx.window.content() else { return Vec::new() };
+    descendants(root.upcast_ref())
         .into_iter()
-        .filter(|w| w.has_css_class("home-card"))
-        .filter_map(|w| w.downcast::<gtk::Button>().ok())
-        .filter_map(|b| b.action_target_value().and_then(|v| v.get::<u32>()))
-        .last();
-    if let Some(id) = last {
+        .filter(|w| w.has_css_class("home-shelf"))
+        .collect()
+}
+
+/// The shelf the paging shots page: the first poster shelf, past Continue.
+fn paging_shelf(shell: &Rc<Shell>) -> Option<gtk::Widget> {
+    let shelves = home_shelves(shell);
+    shelves.get(1).or(shelves.first()).cloned()
+}
+
+/// A motion step, logged with the wall clock and where `frame` sits in the window, so a
+/// recording's frames can be matched to it and cropped to it.
+fn mark_step(step: &str, frame: &gtk::Widget) {
+    let window = frame.root().map(|r| r.upcast::<gtk::Widget>());
+    let bounds = window.and_then(|w| frame.compute_bounds(&w));
+    let (x, y, w, h) =
+        bounds.map_or((0.0, 0.0, 0.0, 0.0), |b| (b.x(), b.y(), b.width(), b.height()));
+    eprintln!("motion step {step} at {} box {x:.0} {y:.0} {w:.0} {h:.0}", glib::real_time()); // i18n-skip
+}
+
+/// Scroll Home so `widget` sits near the top of the page.
+fn bring_into_view(widget: &gtk::Widget) {
+    let mut at = widget.parent();
+    while let Some(w) = at {
+        if let Some(scroll) = w.downcast_ref::<gtk::ScrolledWindow>()
+            && scroll.vscrollbar_policy() != gtk::PolicyType::Never
+            && let Some(child) = scroll.child()
+            && let Some(point) =
+                widget.compute_point(&child, &gtk::graphene::Point::new(0.0, 0.0))
+        {
+            scroll.vadjustment().set_value(f64::from(point.y()) - 24.0);
+            return;
+        }
+        at = w.parent();
+    }
+}
+
+/// The last suggestion card Home shows, and its title's id.
+fn last_suggestion(shell: &Rc<Shell>) -> Option<(u32, gtk::Widget)> {
+    let root = shell.ctx.window.content()?;
+    descendants(root.upcast_ref())
+        .into_iter()
+        .filter(|w| w.has_css_class("home-suggestion"))
+        .filter_map(|w| {
+            let id = w.downcast_ref::<gtk::Button>()?.action_target_value()?.get::<u32>()?;
+            Some((id, w))
+        })
+        .last()
+}
+
+/// Not interested on the last suggestion card Home shows.
+fn dismiss_last_card(shell: &Rc<Shell>) {
+    if let Some((id, _)) = last_suggestion(shell) {
         let _ = WidgetExt::activate_action(
             &shell.ctx.window,
             "win.home-dismiss",

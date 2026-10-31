@@ -28,6 +28,7 @@ mod say;
 mod shots;
 #[cfg(feature = "fixtures")]
 mod showcase;
+mod squeeze;
 mod states;
 mod style;
 mod trailer;

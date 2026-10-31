@@ -141,13 +141,18 @@ pub fn silent_server() -> Option<(std::net::TcpListener, String)> {
 /// Fixtures builds read.
 pub const HOME_WORLD_VAR: &str = "ANISTREAM_FIXTURES_HOME_WORLD";
 
-/// How long a slow scene holds each of Home's discovery answers: past the four seconds after
-/// which Home's activity line shows, inside the five the client waits.
 /// Set by the offline scene, so the network path says offline as the device would.
 pub static OFFLINE_SCENE: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
-const SLOW_ANSWER: std::time::Duration = std::time::Duration::from_millis(4_500);
+/// How long a slow scene holds each of Home's discovery answers: long enough for the shots to
+/// catch the placeholders and the activity line after four seconds, inside the wait the slow
+/// scene gives the client.
+const SLOW_ANSWER: std::time::Duration = std::time::Duration::from_secs(10);
+/// How long the client waits for an answer: twice the slow answer in the slow scene.
+const fn client_wait(scene: HomeScene) -> u64 {
+    if matches!(scene, HomeScene::Slow) { 20 } else { 5 }
+}
 
 /// What Home and the app around it start from: the board's states, as the phones' Fixtures scenes
 /// name them.
@@ -291,9 +296,11 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
         }
         _ => {}
     }
-    let http =
-        HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
-            .map_err(|e| e.to_string())?;
+    let http = HttpClient::offline(&NetworkConfig {
+        timeout_secs: client_wait(scene.home),
+        ..config.network.clone()
+    })
+    .map_err(|e| e.to_string())?;
     let meta = Meta::new(server.anilist(&http), None, store.clone());
     let tracked = tracking::native::with_app_clients(&config, &AppClients::default());
     let mut sync = tracking::Sync::with_tokens(&tracked, &store, &http, tokens.clone());

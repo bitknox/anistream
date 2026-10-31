@@ -61,7 +61,7 @@ if [ "${SCENES-x}" != "" ]; then
     data="/tmp/anistream-scene-home-$scene"
     rm -rf "$data"
     shots="${HOME_SHOTS:-home,home-arrows,home-notice,home-hidden}"
-    [ "$scene" = slow ] && shots="home-loading,home"
+    [ "$scene" = slow ] && shots="home-loading,home-activity,home-settled"
     echo "run: home scene $scene"
     ANISTREAM_FIXTURES_HOME_WORLD=1 dbus-run-session -- timeout 120 "$bin" --fixtures \
       --scene "$scene" --data "$data" --media "$media" --hwdec no --ao null \

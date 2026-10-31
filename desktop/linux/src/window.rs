@@ -349,6 +349,18 @@ impl Shell {
             main_menu: RefCell::default(),
         });
 
+        // The offline scene is offline before Home first asks, as a device without a network
+        // would be: the monitor that says so otherwise is not watched under fixtures.
+        #[cfg(feature = "fixtures")]
+        if fixtures && crate::fixtures::OFFLINE_SCENE.load(std::sync::atomic::Ordering::Relaxed)
+        {
+            ctx.hub.send(Command::NetworkPath {
+                cellular: false,
+                constrained: false,
+                offline: true,
+            });
+        }
+
         // The destinations, each a navigation view of its own.
         let search = pages::search::build(&ctx);
         let settings = pages::settings::build(&ctx);
