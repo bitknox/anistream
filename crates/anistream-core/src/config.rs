@@ -612,11 +612,15 @@ pub struct UpdatesConfig {
     /// One HTTPS request to api.github.com, cached for 24 hours. Nothing is ever
     /// downloaded without `anistream --update` being run explicitly.
     pub check: bool,
+    /// Follow the beta channel: every new version as soon as it is built, not only the weekly
+    /// stable one. Off by default. The check then lists recent releases rather than asking for
+    /// the latest, and `anistream --update` follows it too.
+    pub beta: bool,
 }
 
 impl Default for UpdatesConfig {
     fn default() -> Self {
-        Self { check: true }
+        Self { check: true, beta: false }
     }
 }
 

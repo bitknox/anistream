@@ -8449,3 +8449,15 @@ updates-allow-waiting = [Ŵàîţîñĝ ƒöŕ ţĥé šŵîţçĥ. Îƒ Åñð�
 # Line the first time. The path is the Android settings path.
 updates-allow-once = [Åñðŕöîð àšķš ţĥîš öñçé. Îƒ îţš þàĝé ðöéšñ'ţ öþéñ, ţĥé šŵîţçĥ îš üñðéŕ { $path }.~~~~~~~~~~~~~~~~~~~~~~~]
 
+# Switch in the Updates section of Settings. Off by default.
+updates-beta = [Ɓéţà üþðàţéš~~~~]
+
+# Line under the switch.
+updates-beta-detail = [Ĝéţ éàçĥ ñéŵ ṽéŕšîöñ àš šööñ àš îţ'š ƀüîļţ. Ŵîţĥöüţ ţĥîš, üþðàţéš çöɱé öñçé à ŵééķ.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Status line on a beta build when beta updates are off: no stable version is newer yet.
+updates-stable-behind = [Ýöü ĥàṽé { $version }, à ƀéţà. Ûþðàţéš ŕéšüɱé ŵĥéñ à ñéŵéŕ šţàƀļé ṽéŕšîöñ îš öüţ.~~~~~~~~~~~~~~~~~~~~~~]
+
+# The version in About when the running build is a beta.
+updates-version-beta = [{ $version } ƀéţà~~~]
+

@@ -59,11 +59,16 @@ struct UpdateWords: Equatable {
         if checking {
             self.init(note: L.updatesChecking, action: .checkNow, disabled: true)
         } else if let latest {
-            let action: Action = installsHere ? .update(version: latest.version) : mobile ? .updateInStore : .releasePage
+            // A beta is in no SideStore source: its page has the .ipa, which SideStore installs
+            // from Files.
+            let action: Action = installsHere
+                ? .update(version: latest.version)
+                : mobile && !latest.beta ? .updateInStore : .releasePage
             self.init(note: L.updatesVersionOut(version: latest.version), action: action)
         } else {
             switch outcome {
             case .upToDate: self.init(note: L.updatesUpToDate, action: .checkNow)
+            case .stableBehind(let version): self.init(note: L.updatesStableBehind(version: version), action: .checkNow)
             case .failed: self.init(note: L.updatesCouldNotCheck, problem: true, action: .checkNow)
             case nil: self.init(note: nil, action: .checkNow)
             }
@@ -143,6 +148,9 @@ struct UpdatesGroup: View {
                 SettingSwitch(key: .updateCheck)
             }
             UpdateVersionRow()
+            SettingsRow(title: SettingKey.updateBeta.title, note: L.updatesBetaDetail) {
+                SettingSwitch(key: .updateBeta)
+            }
             if let release = store.updates.latest, !release.notes.isEmpty {
                 ReleaseNotesRow(release: release)
             }
@@ -162,7 +170,7 @@ struct UpdateVersionRow: View {
         let updates = store.updates
         let words = UpdateWords(updates)
         VStack(alignment: .leading, spacing: 0) {
-            SettingsRow(title: AppVersion.long, note: words.note, noteColor: .haze) {
+            SettingsRow(title: updates.runningBeta ? L.updatesVersionBeta(version: AppVersion.long) : AppVersion.long, note: words.note, noteColor: .haze) {
                 UpdateButton(words: words) { UpdateActions(store: store, openURL: openURL).run($0) }
             }
             if updates.progress.isActive {
@@ -319,6 +327,22 @@ struct PhoneUpdatesCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
+            Rectangle().fill(.faintRule).frame(height: 1).padding(.leading, 16)
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(SettingKey.updateBeta.title)
+                        .font(.ui(17))
+                        .foregroundStyle(.silk)
+                    Text(L.updatesBetaDetail)
+                        .font(.ui(15))
+                        .foregroundStyle(.haze)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                SettingSwitch(key: .updateBeta)
+            }
+            .padding(16)
+            .accessibilityElement(children: .combine)
         }
         .background(.raised, in: .rect(cornerRadius: 12))
         .frame(maxWidth: 480)

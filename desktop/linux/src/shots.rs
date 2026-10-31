@@ -970,6 +970,7 @@ fn offer_update(shell: &Rc<Shell>) {
             windows_arm64: None,
             linux_x86_64: Some(appimage("x86_64")),
             linux_aarch64: Some(appimage("aarch64")),
+            beta: false,
         }),
         notify: true,
     })]);

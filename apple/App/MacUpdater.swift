@@ -18,7 +18,7 @@ import Foundation
 import Sparkle
 
 @MainActor
-final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver {
+final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver, SPUUpdaterDelegate {
     private var updater: SPUUpdater?
     private var report: (@MainActor (UpdateProgress) -> Void)?
     private var gate = UpdateGate()
@@ -28,7 +28,7 @@ final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver {
 
     override init() {
         super.init()
-        let updater = SPUUpdater(hostBundle: .main, applicationBundle: .main, userDriver: self, delegate: nil)
+        let updater = SPUUpdater(hostBundle: .main, applicationBundle: .main, userDriver: self, delegate: self)
         updater.automaticallyChecksForUpdates = false
         updater.automaticallyDownloadsUpdates = false
         do {
@@ -56,6 +56,18 @@ final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver {
         cancelDownload?()
         cancelDownload = nil
         gate.disarm()
+    }
+
+    // MARK: SPUUpdaterDelegate
+
+    /// The feed of the release the viewer pressed Update for, which is the one the engine
+    /// offered: a beta is in no `releases/latest` feed. Every appcast is signed the same way,
+    /// and `UpdateGate` still installs only the version asked for. Without one, Info.plist's
+    /// `SUFeedURL` stands.
+    nonisolated func feedURLString(for updater: SPUUpdater) -> String? {
+        MainActor.assumeIsolated {
+            gate.armed.flatMap { UpdatesModel.feedURL(forVersion: $0)?.absoluteString }
+        }
     }
 
     private func say(_ progress: UpdateProgress) {

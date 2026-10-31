@@ -465,7 +465,7 @@ class UpdateModelTest {
         store.apply(Event.Update(UpdateStatus.Available(release, notify = true)))
         assertEquals(offered, store.updates.notice.value)
         // Up to date, nothing is offered any more.
-        store.apply(Event.Update(UpdateStatus.UpToDate))
+        store.apply(Event.Update(UpdateStatus.UpToDate()))
         assertEquals(UpdateState.None, store.updates.state.value)
         assertNull(store.updates.notice.value)
     }
@@ -532,7 +532,7 @@ class UpdateModelTest {
         assertEquals(UpdateCheck.Checking, store.updates.check.value)
         store.apply(Event.Update(UpdateStatus.Failed("GitHub could not be reached")))
         assertEquals(UpdateCheck.Failed("GitHub could not be reached"), store.updates.check.value)
-        store.apply(Event.Update(UpdateStatus.UpToDate))
+        store.apply(Event.Update(UpdateStatus.UpToDate()))
         assertEquals(UpdateCheck.UpToDate, store.updates.check.value)
         // Check now goes to the engine whatever the switch says.
         store.checkForUpdates()

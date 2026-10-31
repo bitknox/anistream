@@ -122,7 +122,7 @@ impl Updater {
                     self.download();
                 }
             }
-            UpdateStatus::UpToDate => {
+            UpdateStatus::UpToDate { .. } => {
                 self.release.replace(None);
                 self.stop();
             }

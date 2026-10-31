@@ -5841,6 +5841,18 @@ public static partial class T
     /// <summary>Line the first time. The path is the Android settings path.</summary>
     public static string UpdatesAllowOnce(string path) => Fill(Get("UpdatesAllowOnce"), ("path", path));
 
+    /// <summary>Switch in the Updates section of Settings. Off by default.</summary>
+    public static string UpdatesBeta => Get("UpdatesBeta");
+
+    /// <summary>Line under the switch.</summary>
+    public static string UpdatesBetaDetail => Get("UpdatesBetaDetail");
+
+    /// <summary>Status line on a beta build when beta updates are off: no stable version is newer yet.</summary>
+    public static string UpdatesStableBehind(string version) => Fill(Get("UpdatesStableBehind"), ("version", version));
+
+    /// <summary>The version in About when the running build is a beta.</summary>
+    public static string UpdatesVersionBeta(string version) => Fill(Get("UpdatesVersionBeta"), ("version", version));
+
     /// <summary>The languages this build has text for, source first. Draft ones carry the draft label.</summary>
     public static readonly IReadOnlyList<(string Tag, string Name, string? Flag, bool Draft)> Languages = new (string, string, string?, bool)[]
     {
@@ -7842,6 +7854,10 @@ public static partial class T
         ["UpdatesAllowStep3"] = "Press Back. The update downloads, and Android asks you to confirm it.",
         ["UpdatesAllowWaiting"] = "Waiting for the switch. If Android's page didn't open, find it under {path}.",
         ["UpdatesAllowOnce"] = "Android asks this once. If its page doesn't open, the switch is under {path}.",
+        ["UpdatesBeta"] = "Beta updates",
+        ["UpdatesBetaDetail"] = "Get each new version as soon as it's built. Without this, updates come once a week.",
+        ["UpdatesStableBehind"] = "You have {version}, a beta. Updates resume when a newer stable version is out.",
+        ["UpdatesVersionBeta"] = "{version} beta",
     };
 
     /// <summary>The plural category of a whole number in a language, from CLDR.</summary>

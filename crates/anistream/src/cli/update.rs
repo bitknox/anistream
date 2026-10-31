@@ -119,10 +119,11 @@ fn install(new_binary: &Path) -> Result<PathBuf> {
     Ok(current)
 }
 
-/// `anistream --update`: fetch, verify, replace.
-pub async fn self_update(http: &HttpClient) -> Result<()> {
+/// `anistream --update`: fetch, verify, replace. `beta` follows the beta channel, as the
+/// `[updates] beta` setting does, for this run or because the setting is on.
+pub async fn self_update(http: &HttpClient, beta: bool) -> Result<()> {
     println!("current version  v{CURRENT}");
-    let tag = latest_tag(http).await.context("could not reach GitHub's releases API")?;
+    let tag = latest_tag(http, beta).await.context("could not reach GitHub's releases API")?;
     println!("latest release   {tag}");
     if !is_newer(&tag, CURRENT) {
         println!("already up to date");

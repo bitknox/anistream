@@ -61,11 +61,17 @@ public final class UpdatesModel {
     /// What the last check the viewer asked for found, when it had nothing to offer.
     public enum Outcome: Equatable, Sendable {
         case upToDate
+        /// This build is a beta ahead of the newest stable release, and beta updates are off:
+        /// the version, so the line can say updates resume with the next stable.
+        case stableBehind(String)
         case failed(String)
     }
 
     /// The newest release, while it is newer than this build.
     public private(set) var latest: Release?
+    /// Whether this build is a beta, a release not yet made the stable one, as the last check
+    /// found. About then shows "2.3.4 beta".
+    public private(set) var runningBeta = false
     /// Whether a check is under way that the viewer asked for.
     public private(set) var checking = false
     /// What the last check said when it found no release to offer.
@@ -86,15 +92,22 @@ public final class UpdatesModel {
     public static let sourceURL =
         URL(string: "https://github.com/bitknox/anistream/releases/latest/download/sidestore.json")!
 
+    /// The Sparkle feed of one release: its own appcast, signed like every other, so a beta
+    /// the engine offered installs even though `releases/latest` is the stable.
+    public static func feedURL(forVersion version: String) -> URL? {
+        URL(string: "https://github.com/bitknox/anistream/releases/download/v\(version)/appcast.xml")
+    }
+
     func apply(_ status: UpdateStatus) {
         switch status {
         case .checking:
             checking = true
-        case .upToDate:
+        case .upToDate(let stableBehind, let beta):
             checking = false
             latest = nil
             notice = nil
-            outcome = .upToDate
+            runningBeta = beta
+            outcome = stableBehind.map { .stableBehind($0) } ?? .upToDate
         case .available(let release, let notify):
             checking = false
             latest = release

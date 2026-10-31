@@ -32,6 +32,12 @@ struct UpdateWordsTests {
         #expect(failed.label == "Check now")
     }
 
+    @Test func stableBehindSaysUpdatesResume() {
+        let w = words(outcome: .stableBehind("2.0.9"))
+        #expect(w.note?.contains("2.0.9") == true)
+        #expect(w.action == .checkNow)
+    }
+
     @Test func aReleaseIsOfferedTheWayThisDeviceTakesIt() {
         let mac = words(latest: release, installsHere: true)
         #expect(mac.note == "Version 2.0.3 is out")

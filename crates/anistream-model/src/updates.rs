@@ -45,6 +45,10 @@ pub struct Release {
     /// The Linux app for aarch64, `anistream-<version>-linux-aarch64.AppImage`.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub linux_aarch64: Option<ReleaseAsset>,
+    /// Whether it is a beta, a GitHub pre-release not yet made the stable release. Only the
+    /// beta channel is offered one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub beta: bool,
 }
 
 /// One file of a release, with what it has to match once downloaded.
@@ -71,8 +75,17 @@ pub struct ReleaseAsset {
 pub enum UpdateStatus {
     /// Asking GitHub now, for a [`Command::CheckForUpdates`](crate::command::Command::CheckForUpdates).
     Checking,
-    /// This build is the newest release.
-    UpToDate,
+    /// This build is the newest release on its channel.
+    UpToDate {
+        /// On the stable channel, when this build is newer than the newest stable release (it
+        /// is a beta): this build's version, so the app can explain the wait. `None` otherwise.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        stable_behind: Option<String>,
+        /// Whether this build is a beta, a release still marked a pre-release. False when the
+        /// check could not tell.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        running_beta: bool,
+    },
     /// A newer release. Settings offers it for as long as it is the newest.
     ///
     /// `notify` is whether to tell of it now, with the app's own notice: a release is told the

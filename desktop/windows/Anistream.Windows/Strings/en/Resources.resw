@@ -7971,4 +7971,20 @@
     <value>Android asks this once. If its page doesn't open, the switch is under {path}.</value>
     <comment>Line the first time. The path is the Android settings path.</comment>
   </data>
+  <data name="UpdatesBeta" xml:space="preserve">
+    <value>Beta updates</value>
+    <comment>Switch in the Updates section of Settings. Off by default.</comment>
+  </data>
+  <data name="UpdatesBetaDetail" xml:space="preserve">
+    <value>Get each new version as soon as it's built. Without this, updates come once a week.</value>
+    <comment>Line under the switch.</comment>
+  </data>
+  <data name="UpdatesStableBehind" xml:space="preserve">
+    <value>You have {version}, a beta. Updates resume when a newer stable version is out.</value>
+    <comment>Status line on a beta build when beta updates are off: no stable version is newer yet.</comment>
+  </data>
+  <data name="UpdatesVersionBeta" xml:space="preserve">
+    <value>{version} beta</value>
+    <comment>The version in About when the running build is a beta.</comment>
+  </data>
 </root>
