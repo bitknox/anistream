@@ -7931,11 +7931,36 @@ object Strings {
 
     /** The languages this build has text for, source first. Draft ones carry the draft label. */
     val languages: List<Language> = listOf(
-        Language("en", "English", false),
-        Language("ja", "日本語", true),
-        Language("sv", "Svenska", true),
+        Language("en", "English", "gb", false),
+        Language("ja", "日本語", "jp", true),
+        Language("sv", "Svenska", "se", true),
     )
 }
 
-/** A language the build has text for; [name] is the language's name in itself. */
-data class Language(val tag: String, val name: String, val draft: Boolean)
+/**
+ * A language the build has text for; [name] is the language's name in itself and [flag] the ISO code of
+ * the flag shown beside it, [flagRes] that flag's image.
+ */
+data class Language(val tag: String, val name: String, val flag: String?, val draft: Boolean) {
+    val flagRes: Int?
+        get() = when (flag) {
+            "gb" -> R.drawable.flag_gb
+            "se" -> R.drawable.flag_se
+            "jp" -> R.drawable.flag_jp
+            "mx" -> R.drawable.flag_mx
+            "br" -> R.drawable.flag_br
+            "fr" -> R.drawable.flag_fr
+            "de" -> R.drawable.flag_de
+            "it" -> R.drawable.flag_it
+            "pl" -> R.drawable.flag_pl
+            "ru" -> R.drawable.flag_ru
+            "tr" -> R.drawable.flag_tr
+            "id" -> R.drawable.flag_id
+            "vn" -> R.drawable.flag_vn
+            "th" -> R.drawable.flag_th
+            "kr" -> R.drawable.flag_kr
+            "cn" -> R.drawable.flag_cn
+            "tw" -> R.drawable.flag_tw
+            else -> null
+        }
+}

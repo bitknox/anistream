@@ -46,7 +46,7 @@ import tv.anistream.store.AppStore
 import tv.anistream.store.label
 
 /** One row of the panel. A [then] sheet opens over the panel instead of closing it, and Back returns from it. */
-data class CardAction(val label: String, val selected: Boolean = false, val then: ActionSheet? = null, val supporting: String? = null, val run: () -> Unit = {})
+data class CardAction(val label: String, val selected: Boolean = false, val then: ActionSheet? = null, val supporting: String? = null, val flagRes: Int? = null, val run: () -> Unit = {})
 
 /** A card's actions, under its title; or, with a [body], what it draws in their place. */
 data class ActionSheet(val title: String, val actions: List<CardAction> = emptyList(), val width: androidx.compose.ui.unit.Dp = 400.dp, val body: (@Composable () -> Unit)? = null)
@@ -142,6 +142,7 @@ private fun Sheet(host: ActionsHost, sheet: ActionSheet, modifier: Modifier) {
                     },
                     selected = action.selected,
                     supporting = action.supporting,
+                    flagRes = action.flagRes,
                     // The chosen option takes focus, else the first.
                     modifier = if (action.selected || (index == 0 && sheet.actions.none { it.selected })) Modifier.focusRequester(first) else Modifier,
                 )

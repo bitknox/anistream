@@ -12,6 +12,7 @@ mod engine;
 mod fit;
 #[cfg(feature = "fixtures")]
 mod fixtures;
+mod flags;
 mod hub;
 mod motion;
 mod mpris;

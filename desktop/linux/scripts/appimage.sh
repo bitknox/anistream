@@ -274,7 +274,7 @@ cp -R "$mpv/licenses/." "$docs/"
 cp "$mpv/stamp" "$mpv/features" "$record/"
 cp "$mpv/stamp" "$docs/libmpv-build.txt"
 cp "$root/LICENSE" "$docs/LICENSE-anistream.txt"
-cp "$root/assets/mpv/licenses/"* "$root/assets/shaders/THIRD-PARTY.md" "$root/assets/shaders/"LICENSE-* "$docs/"
+cp "$root/assets/mpv/licenses/"* "$root/assets/shaders/THIRD-PARTY.md" "$root/assets/shaders/"LICENSE-* "$root/assets/flags/LICENSE-flag-icons" "$docs/"
 if [[ -n "${RUST_LICENCES:-}" ]]; then
   cp "$RUST_LICENCES" "$docs/THIRD-PARTY-rust.txt"
 fi

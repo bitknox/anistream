@@ -148,6 +148,11 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_settings_titles() = shoot("phone-settings-titles", settingsRoute(SettingsPane.General), tap = "Title language")
 
+    /** General › Language: the app's languages, each with its flag beside its name. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_language() = shoot("phone-settings-language", settingsRoute(SettingsPane.General), tap = "Language")
+
     @Test
     @Config(qualifiers = PHONE)
     fun phone_settings_sources() = shoot("phone-settings-sources", settingsRoute(SettingsPane.Sources))

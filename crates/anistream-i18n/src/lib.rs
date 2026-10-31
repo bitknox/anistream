@@ -27,6 +27,8 @@ pub struct Locale {
     pub tag: &'static str,
     /// The language's name in itself, for the picker.
     pub name: &'static str,
+    /// The ISO code of the flag shown beside the name in the graphical apps. The terminal ignores it.
+    pub flag: Option<&'static str>,
     /// The text is a machine draft, or the language is not released: label it as a draft.
     pub draft: bool,
     pub(crate) ftl: &'static str,

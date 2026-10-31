@@ -161,9 +161,10 @@ fn swift(langs: &[Shipped]) -> String {
     out.push_str("    public static let languages: [Language] = [\n");
     for l in langs {
         out.push_str(&format!(
-            "        Language(tag: \"{}\", name: \"{}\", draft: {}),\n",
+            "        Language(tag: \"{}\", name: \"{}\", flag: {}, draft: {}),\n",
             l.tag,
             c_escape(&l.name),
+            l.flag.as_ref().map_or("nil".to_owned(), |f| format!("\"{f}\"")),
             l.draft
         ));
     }
@@ -173,7 +174,14 @@ fn swift(langs: &[Shipped]) -> String {
         public let tag: String
         /// The language's name in itself.
         public let name: String
+        /// The ISO code of the flag shown beside the name, if the language has one.
+        public let flag: String?
         public let draft: Bool
+    }
+
+    /// The bundled flag image of an ISO code (`flag-gb.png`), drawn 4:3.
+    public static func flagURL(_ code: String) -> URL? {
+        bundle.url(forResource: "flag-\(code)", withExtension: "png")
     }
 
     private final class BundleToken {}

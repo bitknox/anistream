@@ -4,7 +4,10 @@ using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using K = Anistream.Engine.Model.SettingKey;
@@ -410,14 +413,15 @@ public sealed partial class SettingsPage : Page
     /// </summary>
     SettingsCard LanguageCard()
     {
-        static string Name((string Tag, string Name, bool Draft) l) => l.Draft ? $"{l.Name} · {T.LanguageDraftLabel}" : l.Name;
+        static string Name((string Tag, string Name, string? Flag, bool Draft) l) => l.Draft ? $"{l.Name} · {T.LanguageDraftLabel}" : l.Name;
         var languages = T.Languages.ToList();
 #if ANISTREAM_TESTING
-        languages.Add(("qps-ploc", "Pseudo", true));
+        languages.Add(("qps-ploc", "Pseudo", null, true));
 #endif
-        var names = new List<string> { T.LanguageFollowSystem };
-        names.AddRange(languages.Select(Name));
-        var box = new ComboBox { MinWidth = 200, ItemsSource = names };
+        var box = new ComboBox { MinWidth = 200 };
+        box.Items.Add(new ComboBoxItem { Content = T.LanguageFollowSystem });
+        foreach (var l in languages)
+            box.Items.Add(FlaggedItem(Name(l), l.Flag));
         var at = languages.FindIndex(l => l.Tag == StringResources.Chosen);
         box.SelectedIndex = at + 1;
         AutomationProperties.SetName(box, T.SettingsLanguageApp);
@@ -439,6 +443,41 @@ public sealed partial class SettingsPage : Page
             card.Description = Description();
         };
         return card;
+    }
+
+    /// <summary>
+    /// A language's row in the picker: its flag, 20 by 15 with corners 2 and a hairline edge in the
+    /// faint rule, then its name. The flag is decoration, hidden from Narrator; the item's name is
+    /// the language's.
+    /// </summary>
+    static ComboBoxItem FlaggedItem(string name, string? flag)
+    {
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        if (flag is not null)
+        {
+            var image = new Image
+            {
+                Width = 20,
+                Height = 15,
+                Stretch = Stretch.Fill,
+                Source = new BitmapImage(new Uri($"ms-appx:///Assets/Flags/{flag}.png")),
+            };
+            AutomationProperties.SetAccessibilityView(image, AccessibilityView.Raw);
+            line.Children.Add(new Border
+            {
+                Width = 20,
+                Height = 15,
+                CornerRadius = new CornerRadius(2),
+                BorderThickness = new Thickness(0.5),
+                BorderBrush = (Brush)Application.Current.Resources["FaintRuleBrush"],
+                Child = image,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+        }
+        line.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center });
+        var item = new ComboBoxItem { Content = line };
+        AutomationProperties.SetName(item, name);
+        return item;
     }
 
     static TextBlock Note(string text)

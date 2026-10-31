@@ -392,6 +392,15 @@ class TvShots {
         compose.onNodeWithText("#k=", substring = true).assertExists()
     }
 
+    /** Settings › General › Language: the sheet of languages, a flag beside each name. */
+    @Test
+    fun language_sheet() = shoot("tv-language", section = "General") {
+        press(Key.DirectionRight)
+        downTo("Language")
+        press(Key.DirectionCenter)
+        settle()
+    }
+
     /** Settings › Sources, torrents off: the switch, and that turning on asks for protection first. */
     @Test
     fun torrents_off() = shoot("tv-torrents-off", section = "Sources") {

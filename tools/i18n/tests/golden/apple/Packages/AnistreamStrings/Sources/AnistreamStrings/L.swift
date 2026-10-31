@@ -62,16 +62,23 @@ public enum L {
 
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [
-        Language(tag: "en", name: "English", draft: false),
-        Language(tag: "da", name: "Dansk", draft: true),
-        Language(tag: "pl", name: "Polski", draft: true),
+        Language(tag: "en", name: "English", flag: "gb", draft: false),
+        Language(tag: "da", name: "Dansk", flag: nil, draft: true),
+        Language(tag: "pl", name: "Polski", flag: "pl", draft: true),
     ]
 
     public struct Language: Sendable, Equatable {
         public let tag: String
         /// The language's name in itself.
         public let name: String
+        /// The ISO code of the flag shown beside the name, if the language has one.
+        public let flag: String?
         public let draft: Bool
+    }
+
+    /// The bundled flag image of an ISO code (`flag-gb.png`), drawn 4:3.
+    public static func flagURL(_ code: String) -> URL? {
+        bundle.url(forResource: "flag-\(code)", withExtension: "png")
     }
 
     private final class BundleToken {}

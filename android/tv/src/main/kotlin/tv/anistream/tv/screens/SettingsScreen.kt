@@ -235,12 +235,13 @@ private fun AppLanguageRow(memory: FocusMemory) {
                 ActionSheet(
                     Strings.settingsLanguageApp(context),
                     listOf(CardAction(follow, selected = chosen == null) { pick(null) }) +
-                        AppLanguage.shipped.map { each -> CardAction(name(each), selected = chosen == each) { pick(each) } },
+                        AppLanguage.shipped.map { each -> CardAction(name(each), selected = chosen == each, flagRes = each.flagRes) { pick(each) } },
                 ),
             )
         },
         supporting = if (chosen?.draft == true) stringResource(R.string.language_draft_note) else null,
         value = chosen?.let(::name) ?: follow,
+        valueFlagRes = chosen?.flagRes,
         modifier = Modifier.remembered(memory, "row/language"),
     )
 }

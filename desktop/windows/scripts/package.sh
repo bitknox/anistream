@@ -93,7 +93,7 @@ build's version names mpv's commit (after the g). anistream keeps the zip, unmod
 deps-libmpv release: https://github.com/bitknox/anistream/releases/tag/deps-libmpv
 LICENSE.LGPL is mpv's licence as the build ships it.
 EOF
-cp "$root"/assets/mpv/licenses/* "$root/assets/shaders/THIRD-PARTY.md" "$root"/assets/shaders/LICENSE-* "$notices/"
+cp "$root"/assets/mpv/licenses/* "$root/assets/shaders/THIRD-PARTY.md" "$root"/assets/shaders/LICENSE-* "$root/assets/flags/LICENSE-flag-icons" "$notices/"
 # The Windows App SDK's licence, from the package the app was built with.
 sdk="$(sed -n 's/.*"Microsoft.WindowsAppSDK" Version="\([^"]*\)".*/\1/p' "$windows/Anistream.Windows/Anistream.Windows.csproj")"
 nuget="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
