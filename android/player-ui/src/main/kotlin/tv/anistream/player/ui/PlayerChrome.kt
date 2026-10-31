@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -77,7 +79,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
@@ -122,12 +129,12 @@ fun PlayerChrome(
         Box(Modifier.fillMaxSize().background(ObiSilk.Ground.copy(alpha = 0.35f)))
         TopBar(
             model, onClose, onTracks, onEpisodes, onPlayOnTv, discussion,
-            Modifier.align(Alignment.TopStart).padding(start = 48.dp, end = 48.dp, top = 16.dp).fillMaxWidth().height(48.dp),
+            Modifier.align(Alignment.TopStart).padding(start = 48.dp, end = 48.dp, top = 16.dp).fillMaxWidth().heightIn(min = 48.dp),
         )
         BottomBar(
             model,
             preview,
-            Modifier.align(Alignment.BottomStart).padding(start = 48.dp, end = 48.dp, bottom = 28.dp).fillMaxWidth().height(48.dp),
+            Modifier.align(Alignment.BottomStart).padding(start = 48.dp, end = 48.dp, bottom = 28.dp).fillMaxWidth().heightIn(min = 48.dp),
         )
     }
 }
@@ -225,14 +232,14 @@ private fun BottomBar(model: PlayerModel, preview: SeekPreview?, modifier: Modif
         Spacer(Modifier.width(4.dp))
         StepButton(PlayerIcons.Forward, stringResource(R.string.player_forward_10)) { model.seekBy(10.0) }
         Spacer(Modifier.width(8.dp))
-        Text(PlayerClock.label(model.position), style = time, color = ObiSilk.Silk, modifier = Modifier.width(44.dp))
+        Text(PlayerClock.label(model.position), style = time, color = ObiSilk.Silk, modifier = Modifier.widthIn(min = 44.dp))
         SeekSlider(model, preview, Modifier.weight(1f).padding(horizontal = 12.dp))
         Text(
             PlayerClock.remaining(maxOf(0.0, duration - model.position)),
             style = time,
             color = ObiSilk.Silk,
             textAlign = TextAlign.End,
-            modifier = Modifier.width(52.dp),
+            modifier = Modifier.widthIn(min = 52.dp),
         )
     }
 }
@@ -288,6 +295,8 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
             .collect { if (model.scrubbing != null) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick) }
     }
     val positionLabel = stringResource(R.string.player_position)
+    val previousChapter = stringResource(R.string.player_chapter_previous)
+    val nextChapter = stringResource(R.string.player_chapter_next)
     val label = buildString {
         append(Strings.playerPositionState(LocalContext.current, PlayerClock.label(model.position), PlayerClock.label(duration)))
         model.chapter(model.position)?.let { append(", $it") }
@@ -366,6 +375,31 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
         }.semantics {
             contentDescription = positionLabel
             stateDescription = label
+            // The adjust gesture moves 10 s like the buttons, not 1 % of the file; the touch drag
+            // keeps its own continuous steps.
+            progressBarRangeInfo = ProgressBarRangeInfo(
+                model.position.toFloat().coerceIn(0f, duration.toFloat()),
+                0f..duration.toFloat(),
+                maxOf(0, (duration / ADJUST_STEP).toInt() - 1),
+            )
+            setProgress { target ->
+                model.seekTo(target.toDouble().coerceIn(0.0, duration))
+                true
+            }
+            val marks = model.chapters.map { it.time }.sorted()
+            if (marks.isNotEmpty()) {
+                customActions = listOf(
+                    CustomAccessibilityAction(previousChapter) {
+                        // Within the first 3 s of a chapter, the one before; else this one's start.
+                        model.seekTo(marks.lastOrNull { it < model.position - 3.0 } ?: 0.0)
+                        true
+                    },
+                    CustomAccessibilityAction(nextChapter) {
+                        marks.firstOrNull { it > model.position }?.let { model.seekTo(it) }
+                        true
+                    },
+                )
+            }
         },
         thumb = {
             Box(Modifier.size(handleWidth, 44.dp).background(ObiSilk.Amber, RoundedCornerShape(2.dp)))
@@ -467,3 +501,6 @@ private fun DrawScope.piece(
         }
     }
 }
+
+/** The step TalkBack's adjust gesture moves the seek line by, as far as the 10 s buttons. */
+private const val ADJUST_STEP = 10.0

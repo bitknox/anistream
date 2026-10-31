@@ -3,6 +3,12 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -90,7 +96,11 @@ fun <T : Any> Loading(
             phase == LoadPhase.Placeholders,
             enter = fadeIn(Motion.fadeIn()),
             exit = fadeOut(Motion.standard()),
-        ) { placeholders() }
+        ) {
+            // One polite "Loading" for the whole page, not each grey bar.
+            val loading = stringResource(R.string.state_loading)
+            Box(Modifier.clearAndSetSemantics { contentDescription = loading; liveRegion = LiveRegionMode.Polite }) { placeholders() }
+        }
         AnimatedVisibility(
             phase == LoadPhase.Content,
             enter = if (fades) fadeIn(Motion.standard()) else EnterTransition.None,

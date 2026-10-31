@@ -112,6 +112,12 @@ player-forward-10 = Forward 10 seconds
 # Accessibility label of the seek bar.
 player-position = Position
 
+# Accessibility action on the seek bar: go to the start of the chapter before.
+player-chapter-previous = Previous chapter
+
+# Accessibility action on the seek bar: go to the start of the next chapter.
+player-chapter-next = Next chapter
+
 # Accessibility label of the volume control.
 player-volume = Volume
 

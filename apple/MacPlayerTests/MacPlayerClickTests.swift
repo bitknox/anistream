@@ -35,7 +35,9 @@ final class MacPlayerClickTests: XCTestCase {
         XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the window did not go full screen")
         click(app, "Exit full screen")
         XCTAssertTrue(waitFor { !self.isFullScreen(app) }, "the window stayed full screen")
-        XCTAssertTrue(button(app, "Enter full screen").exists, "the player closed")
+        // The window leaves full screen before the controls are drawn again, so wait for them.
+        XCTAssertTrue(
+            button(app, "Enter full screen").waitForExistence(timeout: 10), "the player closed")
     }
 
     func testPictureInPictureButtonOpensAndClosesTheFloatingWindow() throws {

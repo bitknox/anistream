@@ -33,6 +33,7 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.semantics.contentDescription
+import tv.anistream.i18n.Strings
 import androidx.glance.semantics.semantics
 import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
@@ -122,9 +123,10 @@ internal fun Play(onClick: Action, label: String, filled: Boolean) {
 /** Progress through an episode: the amber line on its track, 4 dp. */
 @Composable
 internal fun Bar(progress: Float, modifier: GlanceModifier = GlanceModifier.fillMaxWidth()) {
+    val spoken = Strings.tvCardProgressSpoken(LocalContext.current, java.text.NumberFormat.getPercentInstance().format(progress.coerceIn(0f, 1f).toDouble()))
     LinearProgressIndicator(
         progress = progress,
-        modifier = modifier.height(4.dp).cornerRadius(2.dp),
+        modifier = modifier.height(4.dp).cornerRadius(2.dp).semantics { contentDescription = spoken },
         color = ColorProvider(Palette.amber),
         backgroundColor = ColorProvider(Palette.rule),
     )

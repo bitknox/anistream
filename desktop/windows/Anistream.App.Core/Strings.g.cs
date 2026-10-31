@@ -3276,6 +3276,12 @@ public static partial class T
     /// <summary>Accessibility label of the seek bar.</summary>
     public static string PlayerPosition => Get("PlayerPosition");
 
+    /// <summary>Accessibility action on the seek bar: go to the start of the chapter before.</summary>
+    public static string PlayerChapterPrevious => Get("PlayerChapterPrevious");
+
+    /// <summary>Accessibility action on the seek bar: go to the start of the next chapter.</summary>
+    public static string PlayerChapterNext => Get("PlayerChapterNext");
+
     /// <summary>Accessibility label of the volume control.</summary>
     public static string PlayerVolume => Get("PlayerVolume");
 
@@ -6976,6 +6982,8 @@ public static partial class T
         ["PlayerBack10"] = "Back 10 seconds",
         ["PlayerForward10"] = "Forward 10 seconds",
         ["PlayerPosition"] = "Position",
+        ["PlayerChapterPrevious"] = "Previous chapter",
+        ["PlayerChapterNext"] = "Next chapter",
         ["PlayerVolume"] = "Volume",
         ["PlayerVolumeLevel"] = "Volume {percent}",
         ["PlayerMuted"] = "Muted",

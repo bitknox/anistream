@@ -3,6 +3,8 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -97,9 +99,11 @@ fun TrailerScreen(trailer: Trailer, onClose: () -> Unit) {
                 },
         ) {
             if (!failed) {
+                val name = stringResource(R.string.title_trailer)
                 AndroidView(
                     factory = { player.view.also { it.keepScreenOn = true } },
-                    modifier = Modifier.fillMaxSize().focusRequester(focus).focusable(),
+                    modifier = Modifier.fillMaxSize().focusRequester(focus).focusable()
+                        .semantics { contentDescription = name },
                 )
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

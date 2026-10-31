@@ -2549,6 +2549,10 @@ object Strings {
     fun tvHeroStart(context: Context, episode: String): String =
         context.getString(R.string.tv_hero_start, episode)
 
+    /** Poster card, spoken: the state of a title that has a new episode, which the water dot shows. */
+    fun posterNew(context: Context): String =
+        context.getString(R.string.poster_new)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)
@@ -5124,6 +5128,14 @@ object Strings {
     /** Accessibility label of the seek bar. */
     fun playerPosition(context: Context): String =
         context.getString(R.string.player_position)
+
+    /** Accessibility action on the seek bar: go to the start of the chapter before. */
+    fun playerChapterPrevious(context: Context): String =
+        context.getString(R.string.player_chapter_previous)
+
+    /** Accessibility action on the seek bar: go to the start of the next chapter. */
+    fun playerChapterNext(context: Context): String =
+        context.getString(R.string.player_chapter_next)
 
     /** Accessibility label of the volume control. */
     fun playerVolume(context: Context): String =

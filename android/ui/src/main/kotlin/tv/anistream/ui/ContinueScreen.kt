@@ -3,6 +3,8 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.Role
 import tv.anistream.i18n.Strings
 import tv.anistream.i18n.R
 import androidx.compose.ui.res.stringResource
@@ -350,7 +352,7 @@ private fun ProgressCard(item: ContinueItem, actions: AppActions) {
         Text(
             item.entry.showTitle,
             style = ShowTitle.row,
-            maxLines = 1,
+            maxLines = largeTextLines(),
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 4.dp),
         )
@@ -358,7 +360,7 @@ private fun ProgressCard(item: ContinueItem, actions: AppActions) {
             item.minutesLeft?.let { stringResource(R.string.continue_short_left, item.shortEpisode(LocalContext.current), stringResource(R.string.time_minutes_left, it)) } ?: item.actionText(),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+            maxLines = largeTextLines(),
         )
     }
     }
@@ -470,13 +472,13 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
         Modifier
             .width(208.dp)
             .shared(Shared.Page, id, "airing")
-            .clickable(onClickLabel = stringResource(R.string.title_open)) { navigator.openTitle(id, "airing") },
+            .clickable(onClickLabel = stringResource(R.string.title_open), role = Role.Button) { navigator.openTitle(id, "airing") },
     ) {
         BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, id, "airing").clip(ArtShape.banner))
         Text(
             broadcast.entry.showTitle,
             style = ShowTitle.row,
-            maxLines = 1,
+            maxLines = largeTextLines(),
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp),
         )
@@ -486,7 +488,7 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
                 line,
                 style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = colors.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = largeTextLines(),
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -536,10 +538,13 @@ internal fun PosterCell(
     onOpen: (() -> Unit)? = null,
 ) {
     val navigator = LocalNavigator.current
+    val newWord = stringResource(R.string.poster_new)
     Column(
         modifier
             .shared(Shared.Page, entry.id, from)
-            .clickable(onClickLabel = stringResource(R.string.title_open)) {
+            // The water dot is colour alone; the state says it too.
+            .semantics { if (fresh) stateDescription = newWord }
+            .clickable(onClickLabel = stringResource(R.string.title_open), role = Role.Button) {
                 onOpen?.invoke()
                 navigator.openTitle(entry.id, from)
             },

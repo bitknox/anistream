@@ -4,6 +4,9 @@
 
 package tv.anistream.tv.screens
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.heightIn
 import tv.anistream.store.SearchWords
 import androidx.compose.ui.res.stringResource
 import tv.anistream.i18n.Strings
@@ -243,8 +246,9 @@ internal fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit,
     var focused by remember { mutableStateOf(false) }
     val ink = if (focused) ObiSilk.Ground else ObiSilk.Silk
     val quiet = if (focused) ObiSilk.Ground else ObiSilk.Haze
+    val name = stringResource(R.string.search_placeholder)
     Box(
-        modifier.height(56.dp).background(if (focused) ObiSilk.Silk else ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
+        modifier.heightIn(min = 56.dp).background(if (focused) ObiSilk.Silk else ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -262,7 +266,7 @@ internal fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit,
                     cursorBrush = SolidColor(if (focused) ObiSilk.Ground else ObiSilk.Amber),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { onText(value) }),
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus).onFocusChanged { focused = it.isFocused },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus).onFocusChanged { focused = it.isFocused }.semantics { contentDescription = name },
                 )
             }
             if (typing) {

@@ -4507,6 +4507,14 @@
     <value>[Þöšîţîöñ~~~]</value>
     <comment>Accessibility label of the seek bar.</comment>
   </data>
+  <data name="PlayerChapterPrevious" xml:space="preserve">
+    <value>[Þŕéṽîöüš çĥàþţéŕ~~~~~]</value>
+    <comment>Accessibility action on the seek bar: go to the start of the chapter before.</comment>
+  </data>
+  <data name="PlayerChapterNext" xml:space="preserve">
+    <value>[Ñéẋţ çĥàþţéŕ~~~~]</value>
+    <comment>Accessibility action on the seek bar: go to the start of the next chapter.</comment>
+  </data>
   <data name="PlayerVolume" xml:space="preserve">
     <value>[Ṽöļüɱé~~]</value>
     <comment>Accessibility label of the volume control.</comment>

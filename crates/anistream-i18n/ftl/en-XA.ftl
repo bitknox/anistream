@@ -5840,6 +5840,12 @@ player-forward-10 = [Ƒöŕŵàŕð 10 šéçöñðš~~~~~~]
 # Accessibility label of the seek bar.
 player-position = [Þöšîţîöñ~~~]
 
+# Accessibility action on the seek bar: go to the start of the chapter before.
+player-chapter-previous = [Þŕéṽîöüš çĥàþţéŕ~~~~~]
+
+# Accessibility action on the seek bar: go to the start of the next chapter.
+player-chapter-next = [Ñéẋţ çĥàþţéŕ~~~~]
+
 # Accessibility label of the volume control.
 player-volume = [Ṽöļüɱé~~]
 

@@ -222,7 +222,7 @@ internal fun EpisodeLine(
                 )
                 if (row.kind == EpisodeKind.FILLER) {
                     Text(
-                        "FILLER",
+                        stringResource(R.string.episode_filler).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp),

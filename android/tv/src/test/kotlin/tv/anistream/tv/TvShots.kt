@@ -18,6 +18,7 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -349,7 +350,9 @@ class TvShots {
     fun back_closes_a_player_panel() = playerShot(null) { model ->
         repeat(6) { if (focusedText() != "Info") press(Key.DirectionRight) }
         press(Key.DirectionCenter)
-        assertEquals("the panel is open", 2, compose.onAllNodesWithText("Info").fetchSemanticsNodes().size)
+        // The panel's title alone: the chrome under it is hidden from a screen reader while it is open.
+        assertEquals("the panel is open", 1, compose.onAllNodesWithText("Info").fetchSemanticsNodes().size)
+        assertEquals("the panel is titled", 1, compose.onAllNodes(hasText("Info") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).fetchSemanticsNodes().size)
         // Through the activity, as a remote's key comes, not the dispatcher.
         compose.runOnUiThread {
             listOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP).forEach {
@@ -359,7 +362,17 @@ class TvShots {
         compose.mainClock.advanceTimeBy(600)
         compose.waitForIdle()
         assertEquals("the panel is closed", 1, compose.onAllNodesWithText("Info").fetchSemanticsNodes().size)
+        assertEquals("its title is gone", 0, compose.onAllNodes(hasText("Info") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)).fetchSemanticsNodes().size)
         assertTrue("the player is still up", model.isPresented)
+    }
+
+    /**
+     * The page's address shows once its server has bound on an IO thread, in real time, which the
+     * test's clock does not wait for: a loaded machine reached the assertion first.
+     */
+    private fun awaitText(text: String) {
+        compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(text, substring = true).assertExists()
     }
 
     /** First launch's Welcome: Nagare, what anistream is, the legal line, Continue focused. */
@@ -389,7 +402,7 @@ class TvShots {
         compose.runOnUiThread { nav.openSignIn("kitsu") }
         compose.mainClock.advanceTimeBy(3_000)
         compose.waitForIdle()
-        compose.onNodeWithText("#k=", substring = true).assertExists()
+        awaitText("#k=")
     }
 
     /** Settings › General › Language: the sheet of languages, a flag beside each name. */
@@ -502,7 +515,7 @@ class TvShots {
         press(Key.DirectionCenter)
         settle()
         compose.onNodeWithText("Protect torrent traffic").assertExists()
-        compose.onNodeWithText("http://192.0.2.10:", substring = true).assertExists()
+        awaitText("http://192.0.2.10:")
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-change.png")
         compose.mainClock.advanceTimeBy(SignInPage.LIFETIME_MILLIS + 1_000)
         settle()

@@ -258,7 +258,7 @@ private fun MatchContent(entry: Entry, request: MatchPickerRequest, dialog: Bool
                             ) {
                                 // Silent for 600 ms, then the wait shows.
                                 if (searchSlow) {
-                                    CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
+                                    CircularProgressIndicator(Modifier.loadingName().size(28.dp), strokeWidth = 2.dp)
                                     Text(
                                         stringResource(R.string.match_searching, area.source, area.query),
                                         style = MaterialTheme.typography.bodyMedium,
@@ -359,7 +359,7 @@ private fun MatchLine(
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        if (matching) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+        if (matching) CircularProgressIndicator(Modifier.loadingName().size(16.dp), strokeWidth = 2.dp)
         if (trailing != null) {
             Text(trailing, style = MaterialTheme.typography.labelMedium, color = if (matching) colors.onSurface else colors.onSurfaceVariant, maxLines = 1)
         }

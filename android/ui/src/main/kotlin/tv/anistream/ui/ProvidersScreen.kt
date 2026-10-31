@@ -47,7 +47,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -366,12 +369,17 @@ private fun ProviderListRow(
                     Icon(Icons.DragHandle, contentDescription = null, tint = colors.onSurfaceVariant)
                 }
             } else if (info.isPlugin || info.isTorrent) {
+                // One toggle named "Use ...": a Switch is a node of its own, so the name sits on the
+                // toggle around it and the Switch only draws.
                 Box(
-                    Modifier.semantics(mergeDescendants = true) { contentDescription = useLabel },
+                    Modifier
+                        .minimumInteractiveComponentSize()
+                        .toggleable(value = switchOn, role = Role.Switch, onValueChange = onToggle)
+                        .semantics { contentDescription = useLabel },
                 ) {
                     androidx.compose.material3.Switch(
                         checked = switchOn,
-                        onCheckedChange = onToggle,
+                        onCheckedChange = null,
                         colors = androidx.compose.material3.SwitchDefaults.colors(
                             checkedTrackColor = colors.primary,
                             checkedThumbColor = colors.onPrimary,

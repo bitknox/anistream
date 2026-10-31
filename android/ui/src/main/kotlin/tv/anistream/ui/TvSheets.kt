@@ -6,6 +6,8 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
 import androidx.annotation.StringRes
 import tv.anistream.i18n.Strings
 import android.content.Context
@@ -264,7 +266,7 @@ private fun TvSearchingRow(request: TvPlayRequest?, castToo: Boolean) {
                     stringResource(TvWords.EMPTY),
                     null,
                     modifier = Modifier.heightIn(min = 72.dp),
-                    leading = { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
+                    leading = { CircularProgressIndicator(Modifier.loadingName().size(20.dp), strokeWidth = 2.dp) },
                 )
                 TvSearch.NONE -> Column {
                     TvSheetRow(stringResource(TvWords.NONE_FOUND), TvWords.noneLine(context, request))
@@ -332,7 +334,7 @@ private fun TvPairing(tv: TvRemoteModel, step: TvPairingStep) {
                 else -> stringResource(R.string.tv_sheet_connecting)
             },
             step.problem,
-            leading = { if (step.working) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
+            leading = { if (step.working) CircularProgressIndicator(Modifier.loadingName().size(20.dp), strokeWidth = 2.dp) },
         )
         SheetButtons {
             QuietButton(stringResource(R.string.action_back), onClick = tv::cancelPairing)
@@ -349,7 +351,18 @@ private fun TvCodeBoxes(code: String, onChange: (String) -> Unit, submit: (Strin
     val typeTheCode = stringResource(R.string.tv_sheet_type_code)
     val pairingCode = stringResource(R.string.tv_pairing_code)
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    Box(Modifier.padding(top = 4.dp).clickable(onClickLabel = typeTheCode) { runCatching { focus.requestFocus() } }) {
+    // The boxes are one thing to a screen reader: named like the field, the typed digits as its state,
+    // and a tap puts the cursor in the field.
+    val typed = code.toList().joinToString(", ") // i18n-skip
+    Box(
+        Modifier
+            .padding(top = 4.dp)
+            .clickable(onClickLabel = typeTheCode, role = Role.Button) { runCatching { focus.requestFocus() } }
+            .semantics {
+                contentDescription = pairingCode
+                if (typed.isNotEmpty()) stateDescription = typed
+            },
+    ) {
         BasicTextField(
             value = code,
             onValueChange = { typed ->
@@ -365,7 +378,7 @@ private fun TvCodeBoxes(code: String, onChange: (String) -> Unit, submit: (Strin
                 .alpha(0f)
                 .focusRequester(focus)
                 .onFocusChanged { focused = it.isFocused }
-                .semantics { contentDescription = pairingCode },
+                .clearAndSetSemantics { },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             for (index in 0 until 6) {

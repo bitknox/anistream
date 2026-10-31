@@ -68089,6 +68089,30 @@
         }
       }
     },
+    "player-chapter-next" : {
+      "comment" : "Accessibility action on the seek bar: go to the start of the next chapter.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next chapter"
+          }
+        }
+      }
+    },
+    "player-chapter-previous" : {
+      "comment" : "Accessibility action on the seek bar: go to the start of the chapter before.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous chapter"
+          }
+        }
+      }
+    },
     "player-choose-another-source" : {
       "comment" : "Button on the failure card of the TV: offers a different { -source }.",
       "extractionState" : "manual",

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -142,7 +144,7 @@ private fun LazyListScope.tracks(model: PlayerModel) {
             stringResource(R.string.player_subtitles_audio_picture),
             style = MaterialTheme.typography.titleLarge,
             color = ObiSilk.Silk,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp).semantics { heading() },
         )
     }
     heading(R.string.player_subtitles)
@@ -175,7 +177,9 @@ private fun LazyListScope.tracks(model: PlayerModel) {
         divider("tracks-night")
         item(key = "night") {
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { model.setNightMode(!menus.nightMode) }.padding(start = 56.dp, end = 24.dp),
+                Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                    .toggleable(value = menus.nightMode, role = Role.Switch, onValueChange = { model.setNightMode(it) })
+                    .padding(start = 56.dp, end = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -184,7 +188,7 @@ private fun LazyListScope.tracks(model: PlayerModel) {
                 }
                 Switch(
                     checked = menus.nightMode,
-                    onCheckedChange = { model.setNightMode(it) },
+                    onCheckedChange = null,
                     colors = SwitchDefaults.colors(checkedTrackColor = ObiSilk.Amber, checkedThumbColor = ObiSilk.Ground),
                 )
             }
@@ -235,7 +239,7 @@ private fun LazyListScope.sources(model: PlayerModel, onDismiss: () -> Unit) {
                 if (candidate.dubbed) stringResource(R.string.audio_dubbed) else null,
                 if (candidate.dualAudio) stringResource(R.string.player_dual_audio) else null,
             ).joinToString(" · ").ifEmpty { null }
-            Choice(candidate.title, detail = detail, checked = false) {
+            Choice(candidate.title, detail = detail, checked = false, radio = false) {
                 model.play(candidate)
                 onDismiss()
             }
@@ -249,7 +253,7 @@ private fun LazyListScope.heading(@StringRes title: Int) {
             stringResource(title),
             style = MaterialTheme.typography.titleMedium,
             color = ObiSilk.Haze,
-            modifier = Modifier.padding(start = 56.dp, top = 12.dp, bottom = 4.dp),
+            modifier = Modifier.padding(start = 56.dp, top = 12.dp, bottom = 4.dp).semantics { heading() },
         )
     }
 }
@@ -265,14 +269,17 @@ private fun Note(text: String) {
 
 /** A row with the 24 dp check slot every row keeps, so the labels line up; the current one checked in silk. */
 @Composable
-private fun Choice(title: String, detail: String? = null, checked: Boolean, onClick: () -> Unit) {
+private fun Choice(title: String, detail: String? = null, checked: Boolean, radio: Boolean = true, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .semantics {
-                selected = checked
-                role = Role.RadioButton
+                // A list of plain choices (the sources to pick from) is buttons, not a radio group.
+                if (radio) {
+                    selected = checked
+                    role = Role.RadioButton
+                }
             }
             .clickable(onClick = onClick)
             .padding(start = 16.dp, end = 24.dp),

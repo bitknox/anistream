@@ -1062,3 +1062,7 @@ tv-hero-resume = Resume { $episode }
 # @only android
 # @arg episode: text
 tv-hero-start = Play { $episode }
+
+# Poster card, spoken: the state of a title that has a new episode, which the water dot shows.
+# @only android
+poster-new = New
