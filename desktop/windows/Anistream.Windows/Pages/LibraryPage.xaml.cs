@@ -37,8 +37,7 @@ public sealed partial class LibraryPage : Page
         foreach (var (s, name) in Segments)
             Lists.Items.Add(new SelectorBarItem { Text = name, Tag = s, IsSelected = s == segment });
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        ctx.Hear(this, Heard);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)

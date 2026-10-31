@@ -90,9 +90,6 @@ class TrailerPlayer(context: Context, private val trailer: Trailer, private val 
             cacheMode = WebSettings.LOAD_DEFAULT
         }
         CookieManager.getInstance().setAcceptThirdPartyCookies(view, false)
-        // The banner and the preview take no pointer or touch input (embed rule 4); the Full page
-        // keeps YouTube's own controls, which need it.
-        if (style == EmbedStyle.BANNER) view.setOnTouchListener { _, _ -> true }
         view.webViewClient = object : WebViewClient() {
             // The page is the only page: nothing the player does navigates the view away.
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = request.isForMainFrame

@@ -1,10 +1,9 @@
-//! A banner that plays its title's trailer behind it, for the title page and the hover preview.
+//! A banner that plays its title's trailer behind it, for the hover preview.
 //!
 //! The banner shows at once and stays on top. The web view sits underneath, transparent, and the
 //! banner fades away only when the page says a frame is playing, so the wait for the video is
 //! never seen. Nothing is ever drawn over the video: the banner is clear by then. The web view is
-//! exactly the video's 16:9, so the player never letterboxes, and it sits where the [`Slot`]
-//! says: filling the stage in the hover preview, in the corner of the band on the title page.
+//! exactly the video's 16:9, so the player never letterboxes, and it fills the stage.
 
 use std::{
     cell::{Cell, RefCell},
@@ -22,38 +21,9 @@ use gtk::glib;
 use super::webkit::{Signal, Web};
 use crate::motion;
 
-/// The title page's video: 448 by 252, YouTube's 16:9, over its 200 by 200 floor.
-const VIDEO_WIDTH: i32 = 448;
-const VIDEO_HEIGHT: i32 = 252;
-/// Where the corner video sits: this far below the page's top (under the header bar) and in from
-/// the trailing edge.
-const VIDEO_TOP: i32 = 58;
-const VIDEO_END: i32 = 28;
-/// The page must be this wide for the corner video to leave the cover and title clear.
-const MIN_WIDTH: i32 = 700;
 /// The banner comes back this long before the player's last frame.
 const TAIL: Duration = Duration::from_millis(600);
 
-/// Where the video sits in the stage.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Slot {
-    /// The whole stage: the hover preview's 16:9 banner.
-    Fill,
-    /// The corner of the title page's band, at the video's own size.
-    Corner,
-}
-
-impl Slot {
-    /// The bottom edge of the corner video, where the sound button hangs below it.
-    pub const fn video_bottom() -> i32 {
-        VIDEO_TOP + VIDEO_HEIGHT
-    }
-
-    /// The trailing margin of the corner video.
-    pub const fn video_end() -> i32 {
-        VIDEO_END
-    }
-}
 /// A trailer that has not played in this long is let go, with nothing said.
 const GIVE_UP: Duration = Duration::from_secs(8);
 
@@ -68,8 +38,6 @@ enum State {
     Loading,
     /// A frame is on screen and the banner is clear.
     Playing,
-    /// The view is held, paused, with the banner back over it.
-    Paused,
     /// It ended or was refused: not again on this visit.
     Done,
 }
@@ -83,8 +51,6 @@ pub struct Stage {
     timeout: RefCell<Option<glib::SourceId>>,
     changed: RefCell<Option<Showing>>,
     fade: RefCell<Option<adw::TimedAnimation>>,
-    /// The pause has not reached the player yet: the banner is still coming back over it.
-    pausing: Cell<bool>,
 }
 
 impl Stage {
@@ -107,7 +73,6 @@ impl Stage {
             timeout: RefCell::default(),
             changed: RefCell::default(),
             fade: RefCell::default(),
-            pausing: Cell::new(false),
         })
     }
 
@@ -117,33 +82,14 @@ impl Stage {
         self.changed.replace(Some(Rc::new(f)));
     }
 
-    /// Whether a trailer is on screen.
-    pub fn showing(&self) -> bool {
-        self.state.get() == State::Playing
-    }
-
     /// Whether a view is held at all: loading, playing or paused.
     pub fn active(&self) -> bool {
-        matches!(self.state.get(), State::Loading | State::Playing | State::Paused)
+        matches!(self.state.get(), State::Loading | State::Playing)
     }
 
-    /// Whether this stage may start a trailer in `slot`: it has not ended or failed already, and
-    /// the video would be at least 200 by 200 and clear of the cover.
-    pub fn fits(&self, slot: Slot) -> bool {
-        if self.state.get() == State::Done {
-            return false;
-        }
-        match slot {
-            Slot::Fill => self.widget.width() >= 200 && self.widget.height() >= 200,
-            Slot::Corner => {
-                self.widget.width() >= MIN_WIDTH && self.widget.height() >= Slot::video_bottom()
-            }
-        }
-    }
-
-    /// Load `trailer` under the banner, in `slot`. False when it cannot: no WebKitGTK, a trailer
+    /// Load `trailer` under the banner, filling the stage. False when it cannot: no WebKitGTK, a trailer
     /// the player does not play, or one already held.
-    pub fn start(self: &Rc<Self>, trailer: &Trailer, slot: Slot) -> bool {
+    pub fn start(self: &Rc<Self>, trailer: &Trailer) -> bool {
         if self.web.borrow().is_some() || self.state.get() == State::Done {
             return false;
         }
@@ -156,22 +102,11 @@ impl Stage {
             }
         });
         let Some(web) = web else { return false };
-        match slot {
-            Slot::Fill => {
-                self.video.set_halign(gtk::Align::Fill);
-                self.video.set_valign(gtk::Align::Fill);
-                self.video.set_margin_top(0);
-                self.video.set_margin_end(0);
-                self.video.set_size_request(-1, -1);
-            }
-            Slot::Corner => {
-                self.video.set_halign(gtk::Align::End);
-                self.video.set_valign(gtk::Align::Start);
-                self.video.set_margin_top(VIDEO_TOP);
-                self.video.set_margin_end(VIDEO_END);
-                self.video.set_size_request(VIDEO_WIDTH, VIDEO_HEIGHT);
-            }
-        }
+        self.video.set_halign(gtk::Align::Fill);
+        self.video.set_valign(gtk::Align::Fill);
+        self.video.set_margin_top(0);
+        self.video.set_margin_end(0);
+        self.video.set_size_request(-1, -1);
         web.widget.set_vexpand(true);
         self.video.append(&web.widget);
         self.web.replace(Some(web));
@@ -192,7 +127,7 @@ impl Stage {
     fn heard(self: &Rc<Self>, signal: Signal) {
         match signal {
             Signal::Message(TrailerMessage::Playing) => {
-                if matches!(self.state.get(), State::Loading | State::Paused) {
+                if self.state.get() == State::Loading {
                     self.cancel_timeout();
                     self.state.set(State::Playing);
                     self.fade_banner(false);
@@ -226,40 +161,6 @@ impl Stage {
         })));
     }
 
-    /// Hold the trailer: the banner comes back over it, and the player pauses once it has.
-    pub fn pause(self: &Rc<Self>) {
-        if self.state.get() != State::Playing {
-            return;
-        }
-        self.state.set(State::Paused);
-        self.pausing.set(true);
-        let weak = Rc::downgrade(self);
-        self.fade_banner_then(true, move || {
-            if let Some(stage) = weak.upgrade()
-                && stage.pausing.replace(false)
-            {
-                stage.control(TrailerControl::Pause);
-            }
-        });
-        self.say(false);
-    }
-
-    /// Play it again from where it paused; the banner clears when the page says it is playing.
-    pub fn resume(self: &Rc<Self>) {
-        if self.state.get() != State::Paused {
-            return;
-        }
-        if self.pausing.replace(false) {
-            // The player never paused: it is still playing, so the banner clears again.
-            self.state.set(State::Playing);
-            self.fade_banner(false);
-            self.say(true);
-            return;
-        }
-        self.control(TrailerControl::Play);
-        self.timeout.replace(None);
-    }
-
     /// Sound on or off, for this trailer only.
     pub fn set_sound(&self, on: bool) {
         self.control(if on { TrailerControl::Unmute } else { TrailerControl::Mute });
@@ -280,12 +181,11 @@ impl Stage {
 
     fn release(&self, then: State) {
         self.cancel_timeout();
-        self.pausing.set(false);
         let was = self.state.replace(then);
         if let Some(web) = self.web.take() {
             self.video.remove(&web.widget);
         }
-        if was == State::Playing || was == State::Paused {
+        if was == State::Playing {
             if self.banner.opacity() < 1.0 || was == State::Playing {
                 self.fade_banner(true);
             }

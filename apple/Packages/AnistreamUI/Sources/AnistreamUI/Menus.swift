@@ -86,6 +86,8 @@ struct TitleMoreItems: View {
         #endif
         Divider()
         Button(L.sourcePickerTitle) { navigator.sourcePicker = entry.id }
+        Button(L.matchFix) { navigator.fixMatch(entry.id, store: store) }
+            .disabled(!store.match.canFix(store.providers))
         Button(L.shellShowSettings) {
             navigator.showSettings = entry.id
         }
@@ -103,7 +105,10 @@ struct EpisodeMenu: View {
     var body: some View {
         let resuming = entry.progress?.next == number && entry.resume != nil
         // One no source has: the way to a source in Play's and Download's place.
-        if row.metadataOnly {
+        if row.metadataOnly, store.match.asks(entry.id) {
+            // The source could not choose: the way to choose, in Play's place.
+            Button(L.matchChoose) { navigator.matchPicker = MatchPickerRequest(id: entry.id, fromMenu: false) }
+        } else if row.metadataOnly {
             Button(AddSourceWords.menu) { navigator.openProviders() }
         } else if row.unsourced {
             // AniList says it is out and no source lists it: the picker, to try another.

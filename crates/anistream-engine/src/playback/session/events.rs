@@ -22,7 +22,7 @@ use tokio::sync::mpsc;
 use super::{
     FileOutcome, Run,
     companion_state::fetch_still,
-    controls::apply_command,
+    controls::{aimed, apply_command},
     presence::{Playhead, Rpc},
     skips::{offered, skip_target},
     stats::{Playing, StatsWatch, sampled},
@@ -392,7 +392,12 @@ impl Run<'_> {
                             Ok(script) => PlaybackEvent::Script(script),
                             Err(command) => {
                                 stopped |= matches!(command, PlayerCommand::Stop);
-                                apply_command(link, command).await;
+                                let position = tracker.position();
+                                if let Some(command) =
+                                    aimed(command, loaded, position, tracker.duration())
+                                {
+                                    apply_command(link, command).await;
+                                }
                                 continue;
                             }
                         },

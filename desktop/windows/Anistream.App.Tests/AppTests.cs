@@ -1021,7 +1021,10 @@ public class LinkTests
         Assert.Equal(new Link.Invite(Https), Link.Parse("anistream://plugins.example/join/abc#key"));
         Assert.Equal(new Link.Invite(Https), Link.Parse("anistream://join?link=" + Uri.EscapeDataString(Https)));
         Assert.Equal(new Link.Invite(Https), Link.Parse($" \"{Https}\"\n"));
-        Assert.Null(Link.Parse("anistream://auth/anilist#token=x"));
+        Assert.Equal(new Link.Auth("anilist", "anistream://auth/anilist#token=x"), Link.Parse("anistream://auth/anilist#token=x"));
+        Assert.Equal("mal", (Link.Parse("anistream://auth/mal?code=x&state=y") as Link.Auth)?.Tracker);
+        Assert.Null(Link.Parse("anistream://auth/"));
+        Assert.DoesNotContain("token", Link.Parse("anistream://auth/anilist#token=x")!.ToString());
         Assert.Null(Link.Parse("https://plugins.example/about"));
         Assert.Null(Link.Parse("anistream://join?link=" + Uri.EscapeDataString("http://plugins.example/join/abc#key")));
     }
@@ -1096,7 +1099,71 @@ public class UpdateTests
         }
     }
 
+    /// <summary>A server that answers with <paramref name="first"/> bytes of the body, then sends nothing more and never closes; with <paramref name="silent"/> it never answers at all.</summary>
+    sealed class Hang(byte[] body, int first, bool silent = false) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancel)
+        {
+            if (silent)
+                await Task.Delay(Timeout.Infinite, cancel);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StreamContent(new Stalls(body[..first])) };
+        }
+    }
+
+    sealed class Stalls(byte[] head) : Stream
+    {
+        int at;
+        public override async ValueTask<int> ReadAsync(Memory<byte> into, CancellationToken cancel = default)
+        {
+            if (at < head.Length)
+            {
+                var n = Math.Min(into.Length, head.Length - at);
+                head.AsMemory(at, n).CopyTo(into);
+                at += n;
+                return n;
+            }
+            await Task.Delay(Timeout.Infinite, cancel);
+            return 0;
+        }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => at; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
     static string Dir() => Path.Combine(Path.GetTempPath(), "anistream-update-test-" + Guid.NewGuid().ToString("N"));
+
+    [Fact]
+    public async Task ADownloadThatStopsSendingFailsAsALostConnection()
+    {
+        HomeGuard.Check();
+        var dir = Dir();
+        try
+        {
+            var asset = Asset("x64", (ulong)Body.Length);
+            var stall = TimeSpan.FromMilliseconds(300);
+            var midway = await Updates.Fetch(new HttpClient(new Hang(Body, 1000)), asset, "2.1.0", dir, _ => { }, default, stall);
+            Assert.Equal(UpdateStep.Failed, midway.Step);
+            Assert.Equal("The download stopped: the connection was lost.", midway.Reason);
+            Assert.Empty(Directory.GetFiles(dir));
+            var never = await Updates.Fetch(new HttpClient(new Hang(Body, 0, silent: true)) { Timeout = Timeout.InfiniteTimeSpan }, asset, "2.1.0", dir, _ => { }, default, stall);
+            Assert.Equal("The download stopped: the connection was lost.", never.Reason);
+            // Cancelled by the person: no failure to show.
+            using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            Assert.Equal(UpdateStep.Idle, (await Updates.Fetch(new HttpClient(new Hang(Body, 1000)), asset, "2.1.0", dir, _ => { }, cancel.Token, TimeSpan.FromSeconds(30))).Step);
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
 
     [Fact]
     public void ThisMachinesInstallerIsArm64sOnArmAndX64sOtherwise()

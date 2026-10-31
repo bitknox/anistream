@@ -231,6 +231,21 @@ notice-match-did-not-stick = That match didn't stick. The source may have change
 # Toast when a search of the sources for a title found nothing.
 notice-source-search-empty = Nothing found for “{ $query }”. Try a different search.
 
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+match-ruled-out-format = Different format
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+match-ruled-out-episodes = More episodes than this title
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+match-ruled-out-year = Different year
+
+# Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+match-search-timed-out = It didn't answer in time.
+
+# Why a search of a source for a show's match failed: the source isn't installed or switched on.
+match-search-source-off = It isn't switched on.
+
 # Toast after the person picked a source for one title.
 notice-source-pinned = { $source } will be used for this title.
 
@@ -724,6 +739,9 @@ start-failed-folder = anistream couldn't create the folder { $path }. Check that
 
 # Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
 start-failed-config = { $path } has a setting anistream can't use: { $problem }. Fix or remove it, then try again.
+
+# Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+config-reset-failed = anistream couldn't move { $path } aside to reset the settings. { $reason }
 
 # Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
 start-failed-database = anistream couldn't open its database at { $path }. If another anistream app is open on this folder, quit it and try again. { $reason }
@@ -1355,6 +1373,9 @@ continue-preview = Preview
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = Airs at { $time }
 
+# Header title on a terminal too narrow for the rail: the product name, then the section on screen.
+chrome-header-section = anistream · { $section }
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = Metadata { $mark }
 
@@ -1373,29 +1394,26 @@ overlays-help-page = Page { $page } of { $pages }
 # The log overlay, when nothing has been logged this session.
 overlays-logs-empty = Nothing logged yet
 
-# Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
-overlays-hint-manual-query = Type what to search for. An empty Enter resets to the automatic match.
+# Prompt hint under the manual search heading. The footer names its keys.
+overlays-hint-manual-query = Type what to search for, or leave it empty for the automatic match.
 
 # Prompt hint for the first step of signing in to Kitsu.
-overlays-hint-kitsu-username = Email or user name. Enter continues, Esc cancels.
+overlays-hint-kitsu-username = Email or user name.
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
-overlays-hint-kitsu-password = Your password is exchanged for a token and not stored. Enter signs in.
+overlays-hint-kitsu-password = Your password is exchanged for a token and not stored.
 
 # Prompt hint for the download range. The examples are episode numbers and stay as written.
 overlays-hint-download-range = 4 for one episode, 1-12 for a run, 7- for everything from there.
 
-# Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
-overlays-hint-edit-setting = { $setting }. Enter saves, Esc leaves it as it is.
-
-# Prompt hint for editing a setting, when the setting is not known.
-overlays-hint-edit-setting-bare = Enter saves, Esc leaves it as it is.
+# Prompt hint for editing a setting: its label on the Settings screen. The footer names the keys.
+overlays-hint-edit-setting = Type a new value for { $setting }.
 
 # Prompt hint for joining a { -plugin-store }.
-overlays-hint-join-store = Paste the invite or store link you were given. Enter checks it, Esc cancels.
+overlays-hint-join-store = Paste the invite or store link you were given.
 
 # Prompt hint for naming the person an invite link is for.
-overlays-hint-invite-name = Their name, as the members list will show it. Enter makes the link.
+overlays-hint-invite-name = Their name, as the members list will show it.
 
 # Overlay heading after the title: the plugin's version and the { -plugin-store } it comes from. The plugin's name leads the heading.
 overlays-heading-plugin = { $name }   { $version }  ·  from { $store }
@@ -1413,34 +1431,19 @@ overlays-heading-open-link-of = { $store }
 overlays-heading-publish-to = To { $store }
 
 # Overlay heading, after the title "Which one": the title being matched.
-overlays-heading-disambiguate = Match for { $name }. Enter pins it.
-
-# Same, when no title is known.
-overlays-heading-disambiguate-bare = Enter pins it.
+overlays-heading-disambiguate = Match for { $name }
 
 # Overlay heading, after the title "Watch order": the title the order is built around.
-overlays-heading-watch-order = Around { $name }. Enter opens.
-
-# Same, when no title is known.
-overlays-heading-watch-order-bare = Enter opens.
+overlays-heading-watch-order = Around { $name }
 
 # Overlay heading, after the title "Recommended": the title the list came from.
-overlays-heading-recommendations = Because you liked { $name }. Enter opens.
-
-# Same, when no title is known.
-overlays-heading-recommendations-bare = Enter opens.
+overlays-heading-recommendations = Because you liked { $name }
 
 # Overlay heading, after the title of the release list.
-overlays-heading-release = Enter pins it. The other sources fill what it lacks.
+overlays-heading-release = The other sources fill what it lacks.
 
 # Overlay heading, after the title of the { -source } list: the choice is kept for this title.
-overlays-heading-source = { $name }. Enter pins it.
-
-# Same, when no title is known.
-overlays-heading-source-bare = Enter pins it.
-
-# Overlay heading, after the title "Filters": the keys of the filter editor.
-overlays-heading-filters = ←/→ pick. Enter searches. Esc keeps them.
+overlays-heading-source = { $name }
 
 # Overlay heading, after the title of the releases list: the episode it is for.
 overlays-heading-releases = Episode { $episode }. Enter plays your pick.
@@ -1874,8 +1877,8 @@ keys-action-rate-title = Rate this title
 # Action label in the help overlay and the command palette.
 keys-action-toggle-synopsis = Expand synopsis
 
-# Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = Hide from Continue
+# Action label in the help overlay and the command palette. The key removes a row from { -continue-cap }, and on a suggestion under it says Not interested.
+keys-action-hide-from-continue = Remove, or not interested
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = Episodes
@@ -2042,6 +2045,9 @@ keys-hint-add-source = Add a source to play
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-play = Play
 
+# Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
+keys-hint-not-interested = Not interested
+
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-list = List
 
@@ -2130,7 +2136,7 @@ keys-scope-global = Global
 keys-scope-movement = Movement
 
 # Heading of a group of keys in the help overlay.
-keys-scope-lists = Lists and grids
+keys-scope-lists = Lists
 
 # Heading of a group of keys in the help overlay.
 keys-scope-title = Title
@@ -2491,6 +2497,9 @@ accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mappi
 # Action beside a sync difference in the overlay: Enter keeps the value on this device.
 accounts-conflict-keep-mine = Keep mine
 
+# Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
+accounts-conflict-keep-theirs = Keep theirs
+
 # A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 accounts-conflict-row = { $title }  ·  { $field }: mine { $local } / theirs { $remote }
 
@@ -2583,6 +2592,9 @@ lists-episode = E{ $episode }
 
 # An episode in a list row, for a title watched dubbed.
 lists-episode-dubbed = E{ $episode } · Dubbed
+
+# A title's AniList score, out of a hundred, in its facts line and at the end of a list row.
+lists-score = { $score }%
 
 # A row on the { -continue-cap } list: the episode and how far into it the person stopped.
 lists-row-resume-percent = { $episode } · { $percent }%
@@ -2723,9 +2735,6 @@ lists-sort-trending = Trending
 
 # A search sort order.
 lists-sort-newest = Newest
-
-# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
-lists-up-next-dismissed = { $title } hidden from up next for you.
 
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = Detached. mpv is still playing.
@@ -2951,6 +2960,12 @@ settings-value-theme-adaptive = Adaptive
 # Value of the theme setting: draws its own background.
 settings-value-theme-immersive = Immersive
 
+# Value of the theme setting: the terminal's background, with colours for a light one.
+settings-value-theme-light = Light
+
+# Value of the theme setting: the terminal's background, with colours for a dark one.
+settings-value-theme-dark = Dark
+
 # Value of the titles setting: use the language AniList picks for the signed-in account.
 settings-value-titles-anilist = AniList's choice
 
@@ -3168,7 +3183,7 @@ settings-label-torrents-while-casting = Torrents while casting
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
 
 # Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = The apps play trailers muted in place of the banner. The terminal keeps the setting and plays none.
+settings-note-trailers = The desktop apps play trailers muted in hover previews. The terminal keeps the setting and plays none.
 
 # Note under the subtitles row.
 settings-note-subtitles = Press Enter to type a language code. There are too many values to cycle through.
@@ -3588,9 +3603,6 @@ stores-open-link-warning = Anyone with it can join, without a name, as often as 
 # Line in the store's link overlay.
 stores-open-link-lasts = It works until the store goes back to invites only.
 
-# Last line of the link overlays: Enter is the key.
-stores-link-close = Enter closes
-
 # Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
 stores-invite-works-once = Works once. { $expiry }.
 
@@ -3661,17 +3673,11 @@ stores-join-already = Already joined. Joining again gives this device a new toke
 # Note under the device name field in the join confirmation.
 stores-join-device-note = The store's owner sees this name. Type to change it.
 
-# Last line of the join confirmation: Enter and Esc are the keys.
-stores-join-keys = Enter joins · Esc cancels
-
 # Lines of the leave confirmation.
 stores-leave-plugins = Plugins installed from it stay on this machine and stop updating.
 
 # Lines of the leave confirmation.
 stores-leave-revoked = This device's access to the store is revoked.
-
-# Last line of the leave confirmation.
-stores-leave-keys = Enter leaves · Esc stays
 
 # Line of the remove member confirmation.
 stores-remove-member-devices =
@@ -3683,20 +3689,11 @@ stores-remove-member-devices =
 # Line of the remove member confirmation.
 stores-remove-member-plugins = Plugins they already installed stay on their machines.
 
-# Last line of the remove member confirmation.
-stores-remove-member-keys = Enter removes · Esc keeps them
-
 # Line of the cancel invite confirmation.
 stores-cancel-invite-link = The link stops working.
 
-# Last line of the cancel invite confirmation.
-stores-cancel-invite-keys = Enter cancels it · Esc keeps it
-
 # Line of the stop offering confirmation.
 stores-unpublish-members = Members who installed it keep it, and it stops updating.
-
-# Last line of the stop offering confirmation.
-stores-unpublish-keys = Enter withdraws it · Esc keeps it
 
 # Line of the confirmation to let anyone with the store's link join.
 stores-open-anyone = Anyone with the store's link can join it, without a name.
@@ -3707,17 +3704,11 @@ stores-open-link-new = The link is new each time, so an earlier one stays dead.
 # Line of the confirmation to let anyone with the store's link join.
 stores-open-members-see = Members see that the store is open.
 
-# Last line of the confirmation to let anyone with the store's link join.
-stores-open-keys = Enter opens it · Esc keeps it to invites
-
 # Line of the confirmation to let only invited people join.
 stores-close-link = The link stops working, and no one new joins without an invite.
 
 # Line of the confirmation to let only invited people join.
 stores-close-devices = Devices that joined with it keep working until you remove them in members.
-
-# Last line of the confirmation to let only invited people join.
-stores-close-keys = Enter limits it to invites · Esc keeps it open
 
 # Line of the confirmation to remove one device that joined with the store's link.
 stores-anonymous-one-stops = It stops working with this store at once.
@@ -3730,9 +3721,6 @@ stores-anonymous-plugins = Plugins already installed stay where they are.
 
 # Line of the confirmation to remove devices that joined with the store's link.
 stores-anonymous-still-joins = While the store is open, the link still joins anyone.
-
-# Last line of the confirmation to remove devices that joined with the store's link.
-stores-anonymous-keys = Enter removes · Esc keeps
 
 # Line of the plugin overlay: the hosts the plugin may contact.
 stores-plugin-may-contact = May contact { $hosts }
@@ -5917,6 +5905,9 @@ search-loading-more = Loading more titles
 # Title of the filters sheet and panel.
 filters-title = Filters
 
+# Accessible label and tooltip of the button that closes the filters panel.
+filters-close = Close filters
+
 # Button that opens the filters, with how many are on.
 filters-button-count = All filters · { $count }
 
@@ -6136,7 +6127,7 @@ settings-value-trailers-always = Always
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = Wi-Fi only
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Play trailers
 
 # Option: use the tracker's own choice. The tracker is a name.
@@ -6432,6 +6423,12 @@ settings-upload-unlimited = Unlimited
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-upscaling-natural = Natural · ArtCNN
 
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+settings-label-hover-cards = Expand covers on hover
+
+# Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+settings-hover-cards-note = Shows a larger card with the trailer when you rest the pointer on a cover.
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
 
@@ -6476,6 +6473,18 @@ settings-trailers-always = Always
 
 # Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 settings-trailers-wifi-only = Wi-Fi only
+
+# Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+settings-reset = Reset settings
+
+# Title of the confirmation for resetting the settings.
+settings-reset-title = Reset settings?
+
+# Line under it. The old settings file is moved aside, not deleted.
+settings-reset-detail = Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.
+
+# Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+settings-reset-done = Settings are back to their defaults. The old file is kept as { $file }.
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6686,6 +6695,79 @@ sources-rebuilding = Sources are being set up again
 
 # Value of a plugin's response time, in milliseconds.
 sources-response-ms = { $ms } ms
+
+# Menu, palette and source picker entry that opens the sheet.
+match-fix = Fix this match
+
+# The title page's main action while the source couldn't choose, and the sheet's title.
+match-choose = Choose the match
+
+# The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+match-uncertain =
+    { $count ->
+        [one] { $source } lists a title that could be this one. Choose it to play its episodes.
+       *[other] { $source } lists { $count } titles that could be this one. Choose one to play its episodes.
+    }
+
+# The line on a title page when the source listed no title that fits, so the person searches.
+match-uncertain-none = { $source } has no title that fits this one. Choose one anyway, or search.
+
+# The last row of the source picker, which opens the match sheet.
+match-source-picker-row = Wrong title? Fix this match
+
+# Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+match-anilist-facts = On AniList: { $facts }
+
+# Heading over the titles a source offers.
+match-section-source = On { $source }
+
+# Heading over the title the show is matched to now.
+match-now = Matched now
+
+# Beside the title matched now: the person chose it.
+match-chosen-by-you = Chosen by you
+
+# Beside the title matched now: anistream chose it.
+match-chosen-automatically = Chosen automatically
+
+# How closely a source's title matches the show, at the end of its row.
+match-similarity = { $similarity } match
+
+# Placeholder of the search field in the sheet.
+match-search-field = Search { $source }
+
+# While a search of the source runs.
+match-searching = Searching { $source } for “{ $query }”
+
+# A search of the source that found nothing.
+match-search-empty = Nothing on { $source } for “{ $query }”.
+
+# Under match-search-empty: what to try.
+match-search-empty-hint = Try fewer words, or the title in another language.
+
+# A search of the source that failed. The reason follows on its own line.
+match-search-failed = Couldn't search { $source }.
+
+# On the row picked, while the source lists its episodes.
+match-picking = Matching
+
+# A pick that failed. The reason follows on its own line.
+match-fix-failed = Couldn't use that match.
+
+# Notice once a picked title's episodes arrive.
+match-picked = Matched to { $title } on { $source }.
+
+# Button that forgets the person's choice, shown only while the match is one they chose.
+match-automatic = Match automatically
+
+# Under "Match automatically", on iPhone, iPad and Android.
+match-automatic-detail = Forget your choice and let anistream match this title again.
+
+# Notice after "Match automatically".
+match-cleared = Matching automatically again.
+
+# Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+match-row-label = { $title }, { $facts }, { $closeness }
 
 # Short label for a joined store, on a row.
 stores-joined = Joined
@@ -7556,7 +7638,7 @@ accounts-welcome-detail = Sign in to { $tracker } to sync your list and where yo
 accounts-brings-lists = Brings in your lists and fills Continue with what you are watching.
 
 # Line under the accounts screen when the library needs a tracker.
-accounts-library-needs = Library and sync need a { $tracker } account
+accounts-library-needs = Library and sync need your { $tracker } account
 
 # Line on the settings page: where the library gets its lists.
 accounts-library-from = Library shows your lists from { $tracker }.
@@ -7675,6 +7757,9 @@ accounts-password = Password
 
 # Button label while the sign-in runs.
 accounts-signing-in-action = Signing in
+
+# Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+accounts-credentials-refused = { $tracker } didn't accept that user name and password. Check them and try again.
 
 # Line under the title: what to do.
 accounts-code-detail = Go to { $host } and enter this code. anistream signs in once you have.

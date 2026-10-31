@@ -22,9 +22,13 @@ data class MpvEvent(val id: Int, val name: String?, val json: String?) {
     /** The value, read. */
     val value: MpvValue get() = json?.let(MpvValue::parse) ?: MpvValue.None
 
+    /** The playlist entry a `START_FILE` is for, when mpv said. */
+    val entry: Long? get() = if (id == MpvNative.Event.START_FILE) value["playlist_entry_id"].long else null
+
     companion object {
         fun property(name: String, value: MpvValue) = MpvEvent(MpvNative.Event.PROPERTY_CHANGE, name, value.json)
         fun of(id: Int) = MpvEvent(id, null, null)
+        fun startFile(entry: Long) = MpvEvent(MpvNative.Event.START_FILE, null, """{"playlist_entry_id":$entry}""")
         fun endFile(reason: String) = MpvEvent(MpvNative.Event.END_FILE, null, """{"reason":"$reason"}""")
     }
 }
@@ -98,6 +102,15 @@ class MpvClient(private val name: String) {
     suspend fun command(name: String, arguments: Map<String, MpvValue>) = call {
         val node = MpvValue.Map(linkedMapOf<String, MpvValue>("name" to MpvValue.Text(name)) + arguments)
         live()?.let { checked(MpvNative.commandNode(it, node.json.toByteArray()), name) }
+    }
+
+    /** [command] with named arguments, answering mpv's result: `loadfile`'s names its playlist entry. */
+    suspend fun commandResult(name: String, arguments: Map<String, MpvValue>): MpvValue = call {
+        val node = MpvValue.Map(linkedMapOf<String, MpvValue>("name" to MpvValue.Text(name)) + arguments)
+        val h = live() ?: return@call MpvValue.None
+        val answer = MpvNative.commandNodeResult(h, node.json.toByteArray())?.toString(Charsets.UTF_8)?.let(MpvValue::parse) ?: MpvValue.None
+        checked(answer["code"].long?.toInt() ?: -1, name)
+        answer["result"]
     }
 
     /** Sets a property: a scalar as mpv's string, a list or a map as a node. */

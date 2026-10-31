@@ -11,6 +11,9 @@
 //! asked for is empty and every title is not found. It is there so the fallback can be switched
 //! on, as the default config has it, without any request leaving the machine.
 //!
+//! Under [`FakeAniList::kitsu_base`] sits a fake Kitsu ([`kitsu`]), with one made-up account,
+//! so a fixture build's Kitsu sign-in has somewhere to go that is not Kitsu.
+//!
 //! Asked to, it also serves the fixture titles' art ([`FakeAniList::serve_art`]), and points
 //! every image URL it answers with at itself.
 //!
@@ -38,6 +41,7 @@ use tokio::{
 
 use crate::fixtures::{self, FIXTURE_NOW};
 
+pub mod kitsu;
 mod threads;
 pub use threads::comment;
 
@@ -92,6 +96,8 @@ pub enum Operation {
     ToggleCommentLike,
     /// A request to the empty Tenrai.
     Tenrai,
+    /// A request to the fake Kitsu: see [`kitsu`].
+    Kitsu,
     /// Anything else. Answered with an error, and recorded, so a test can catch a query the
     /// fake was never taught rather than reading its failure as the app's.
     Unknown,
@@ -286,6 +292,12 @@ impl FakeAniList {
     /// An AniList client that talks to this server, with [`crate::TEST_RATE_LIMIT`].
     pub fn anilist(&self, http: &HttpClient) -> AniList {
         AniList::new(http.clone(), crate::TEST_RATE_LIMIT).with_endpoint(self.endpoint())
+    }
+
+    /// Where the fake Kitsu answers, for [`anistream_track`]'s `kitsu::Site::at`: its token
+    /// endpoint and API under this base, as Kitsu lays them out.
+    pub fn kitsu_base(&self) -> String {
+        format!("http://{}/kitsu", self.addr)
     }
 
     /// A Tenrai client that talks to the empty one here.
@@ -704,6 +716,16 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             None => Reply::status(404, json!({ "message": "no such image" })),
         };
     }
+    if let Some(rest) = head.path.strip_prefix("/kitsu") {
+        lock(state).requests.push(Request {
+            operation: Operation::Kitsu,
+            path: head.path.clone(),
+            query: String::new(),
+            variables: Value::Null,
+            authorization: head.authorization.clone(),
+        });
+        return kitsu::answer(&head.method, rest, head.authorization.as_deref(), body);
+    }
     if let Some(rest) = head.path.strip_prefix("/tenrai/v1") {
         lock(state).requests.push(Request {
             operation: Operation::Tenrai,
@@ -1042,6 +1064,8 @@ fn respond(
         | Operation::DeleteThreadComment
         | Operation::ToggleCommentLike
         | Operation::Tenrai
+        // Kitsu's requests are answered before the GraphQL ones are read.
+        | Operation::Kitsu
         | Operation::Unknown => {
             Reply::errors(400, "the fake AniList was never taught this query", Value::Null)
         }

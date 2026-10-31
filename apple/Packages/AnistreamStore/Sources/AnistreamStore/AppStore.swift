@@ -22,6 +22,9 @@ public final class AppStore {
     }
 
     public private(set) var phase: Phase = .starting
+    /// The start failed on `config.toml`: on iPhone and iPad, where nobody can edit the file, the
+    /// start-failed screen offers Reset settings.
+    public private(set) var settingsUnusable = false
     /// Whether the engine has been told to stop, so it is not told twice.
     @ObservationIgnored private var shutDown = false
     /// What the engine was last started with, for Try again.
@@ -48,6 +51,8 @@ public final class AppStore {
     public let providers = ProvidersModel()
     /// The source picker's options per title.
     public let sourceChoices = SourceChoiceModel()
+    /// The match sheet's question, search and pick per title.
+    public let match = MatchPickerModel()
     public let stores = StoresModel()
     public let downloads = DownloadsModel()
     /// New-episode notifications: the week coming up, permission, and each show's switch.
@@ -78,7 +83,7 @@ public final class AppStore {
 
     @ObservationIgnored private var client: EngineClient?
     /// When a batch was last applied.
-    @ObservationIgnored private var lastApplied = ContinuousClock.now
+    @ObservationIgnored var lastApplied = ContinuousClock.now
     /// What the screens asked for before the engine was there, sent once it is.
     @ObservationIgnored private var early: [Command] = []
     /// The titles whose episodes were asked for their stills.
@@ -141,6 +146,7 @@ public final class AppStore {
     /// Start the engine `launch` describes with `host`, off the main thread, and read its events.
     public func start(_ launch: EngineLaunch, host: any FfiHost) async {
         phase = .starting
+        settingsUnusable = false
         launched = (launch, host)
         shutDown = false
         #if FIXTURES
@@ -164,6 +170,7 @@ public final class AppStore {
             attach(engine)
         } catch let error as FfiError {
             AppLog.error("store", "engine did not start: \(error.reason)")
+            if case .Config = error { settingsUnusable = true }
             phase = .failed(error.reason)
             early = []
             engineGone()
@@ -179,6 +186,32 @@ public final class AppStore {
     public func restart() async {
         guard let launched, phase != .starting, phase != .running else { return }
         await start(launched.launch, host: launched.host)
+    }
+
+    /// Reset settings on the start-failed screen, once the viewer has confirmed it: `config.toml`
+    /// is kept aside as `config.damaged-<date>`, and the engine starts again on the defaults, VPN
+    /// and proxy included. The database, and the watch history in it, stay.
+    public func resetSettings() async {
+        guard let launched, settingsUnusable, phase != .starting, phase != .running else { return }
+        let dirs = launched.launch.home.dirs
+        let kept: String?
+        do {
+            kept = try await Task.detached(priority: .userInitiated) { try resetConfig(dirs: dirs) }.value
+        } catch let error as FfiError {
+            AppLog.error("store", "the settings were not reset: \(error.reason)")
+            phase = .failed(error.reason)
+            return
+        } catch {
+            AppLog.error("store", "the settings were not reset: \(error.localizedDescription)")
+            phase = .failed(error.localizedDescription)
+            return
+        }
+        AppLog.warn("store", "settings reset to the defaults; the old file kept at \(kept ?? "nowhere, there was none")")
+        await start(launched.launch, host: launched.host)
+        if phase == .running, let kept {
+            let file = URL(filePath: kept).lastPathComponent
+            notices.post(Notice(kind: .info, text: L.settingsResetDone(file: file), hint: nil))
+        }
     }
 
     /// The engine stopped, or never started: nothing is going to answer what was asked, so no
@@ -296,6 +329,10 @@ public final class AppStore {
         tv.offer(TVPlayRequest(id: id, title: titles[id]?.title ?? "", episode: episode, from: from))
     }
 
+    /// The player's say over a play asked for in the app: with its picture in Picture in Picture,
+    /// it brings the picture back, and answers true for the episode it plays, which is not sent.
+    @ObservationIgnored public var playerTakesPlay: (@MainActor (Command) -> Bool)?
+
     /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:
     /// while it starts, the command waits and is sent once it has.
     @discardableResult
@@ -303,6 +340,10 @@ public final class AppStore {
         #if FIXTURES
         sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
         #endif
+        if playerTakesPlay?(command) == true {
+            AppLog.info("store", "play: the episode playing, back from picture in picture")
+            return nil
+        }
         switch command {
         case .play(let id, let episode, _):
             playSent = .now
@@ -387,9 +428,54 @@ public final class AppStore {
         send(.loadSeasonal)
     }
 
-    public func loadCalendar() {
+    /// The calendar's first week each way. The engine keeps the last window for a while; a
+    /// refresh the person asks for (`force`) fetches it again.
+    public func loadCalendar(force: Bool = false) {
         calendar.list.asked()
-        send(.loadCalendar)
+        send(force ? .refreshCalendar : .loadCalendar)
+    }
+
+    /// Earlier broadcasts, walking back until `through` is covered (one page without it).
+    public func loadCalendarPast(through: Date? = nil) {
+        guard let anchor = calendar.anchor, calendar.morePast, !calendar.loadingPast else { return }
+        calendar.askedPast()
+        send(.loadCalendarPast(anchor: anchor, page: calendar.pages, through: through.map { Int64($0.timeIntervalSince1970) }))
+    }
+
+    /// Later broadcasts, walking forward until `through` is covered (one page without it).
+    public func loadCalendarAhead(through: Date? = nil) {
+        guard let anchor = calendar.anchor, calendar.moreAhead, !calendar.loadingAhead else { return }
+        calendar.askedAhead()
+        send(.loadCalendarAhead(anchor: anchor, page: calendar.aheadPages, through: through.map { Int64($0.timeIntervalSince1970) }))
+    }
+
+    /// Asks for whatever of `start...end` is not loaded yet. Stops where a page failed, until
+    /// the person tries again (`retryCalendar`).
+    public func ensureCalendar(from start: Date, to end: Date) {
+        let rows = calendar.rows
+        let first = rows.first?.airingIn.map { Date(timeIntervalSince1970: TimeInterval(calendar.anchor ?? 0) + TimeInterval($0)) }
+        let last = rows.last?.airingIn.map { Date(timeIntervalSince1970: TimeInterval(calendar.anchor ?? 0) + TimeInterval($0)) }
+        if calendar.morePast, !calendar.pastFailed, first.map({ $0 > start }) ?? true {
+            loadCalendarPast(through: start)
+        }
+        if calendar.moreAhead, !calendar.aheadFailed, last.map({ $0 < end }) ?? true {
+            loadCalendarAhead(through: end)
+        }
+    }
+
+    /// Whether `start...end` is loaded, or the calendar has nothing more to load for it.
+    public func calendarCovers(from start: Date, to end: Date) -> Bool {
+        let anchor = TimeInterval(calendar.anchor ?? 0)
+        let rows = calendar.rows.compactMap { $0.airingIn.map { Date(timeIntervalSince1970: anchor + TimeInterval($0)) } }
+        let behind = !calendar.morePast || (rows.first.map { $0 <= start } ?? false)
+        let ahead = !calendar.moreAhead || (rows.last.map { $0 >= end } ?? false)
+        return behind && ahead
+    }
+
+    /// Try again after a page failed: asks for `start...end` once more.
+    public func retryCalendar(from start: Date, to end: Date) {
+        calendar.clearFailures()
+        ensureCalendar(from: start, to: end)
     }
 
     /// Search now, as Return, a recent search or a rail's See All does: always asked, and kept
@@ -679,8 +765,12 @@ public final class AppStore {
             if case .calendar = view { widgetsChanged() }
         case .caption(let view, let text):
             caption(text, for: view)
-        case .calendarWindow(let anchor, let pages, let morePast, _, _, _, _):
-            calendar.window(anchor: anchor, pages: pages, morePast: morePast)
+        case .calendarWindow(let anchor, let pages, let morePast, let floor, let ceiling, let aheadPages, let moreAhead):
+            calendar.window(
+                anchor: anchor, pages: pages, morePast: morePast,
+                floor: floor, ceiling: ceiling, aheadPages: aheadPages, moreAhead: moreAhead)
+        case .calendarAhead(let page, let entries, let moreAhead):
+            calendar.ahead(page: page, entries: entries, moreAhead: moreAhead, titles: titles)
         case .calendarBackfill(let page, let entries, let morePast):
             calendar.backfill(page: page, entries: entries, morePast: morePast, titles: titles)
         case .detail(let entry):
@@ -697,7 +787,11 @@ public final class AppStore {
 
         case .toast(let notice):
             party.apply(event)
+            // The page says an uncertain match in its own line, so it is not said twice.
+            if case .noticeMatchUncertain? = notice.msg { break }
             notices.post(notice)
+        case .matchChoices, .matchSearchFailed, .matchFixFailed, .titleMatch:
+            applyMatch(event)
         case .connectivity(let offline):
             AppLog.info("store", offline ? "offline" : "online")
             self.offline = offline

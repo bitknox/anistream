@@ -56,6 +56,7 @@ final class AppDelegate: NSObject {
         #endif
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
+        store.playerTakesPlay = { [weak player = self.player] command in player?.playAsked(command) ?? false }
         // Play on TV from the player: the TV picker over it, and the player closed once the TV
         // plays the episode.
         player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
@@ -271,6 +272,11 @@ final class AppDelegate: NSObject {
 
 #if os(macOS)
 extension AppDelegate: NSApplicationDelegate {
+    /// No window tabs: ⌘T is the calendar's Go to Today.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
+
     /// The main window on screen once the app has launched, as a Mac app opens with its window:
     /// never the menu bar alone.
     func applicationDidFinishLaunching(_ notification: Notification) {

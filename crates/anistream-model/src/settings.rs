@@ -124,6 +124,10 @@ pub enum SettingKey {
     /// on phones and tablets and on elsewhere, until chosen; under Sources, shown while
     /// torrents are on. Off, a torrent is passed over for a cast and the next source tried.
     TorrentsWhileCasting,
+    /// Whether a cover the pointer rests on grows into a card with the title's details and its
+    /// trailer, where trailers may play: the Mac's grids, and the desktop apps' later. On by
+    /// default. With it off, a cover opens its title on a click and shows nothing on hover.
+    HoverCards,
 }
 
 impl SettingKey {
@@ -170,7 +174,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 17] = [
+    pub const NATIVE_ROWS: [Self; 18] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -188,6 +192,7 @@ impl SettingKey {
         Self::CalendarMine,
         Self::CastTvs,
         Self::TorrentsWhileCasting,
+        Self::HoverCards,
     ];
 
     /// Where the file keeps it: the containing table, as the dotted path
@@ -207,6 +212,7 @@ impl SettingKey {
             Self::CalendarMine => (&["meta"], "calendar_mine"),
             Self::CastTvs => (&["cast"], "show_tvs"),
             Self::TorrentsWhileCasting => (&["providers", "torrent"], "while_casting"),
+            Self::HoverCards => (&["theme"], "hover_cards"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
             Self::Subtitles => (&["playback"], "subtitle_language"),
@@ -338,6 +344,7 @@ impl SettingKey {
             Self::TorrentsWhileCasting => {
                 to.providers.torrent.while_casting = from.providers.torrent.while_casting;
             }
+            Self::HoverCards => to.theme.hover_cards = from.theme.hover_cards,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
@@ -370,7 +377,8 @@ impl SettingKey {
             | Self::AdultTitles
             | Self::ControllerInput
             | Self::SwapFaceButtons
-            | Self::CalendarMine => "appearance",
+            | Self::CalendarMine
+            | Self::HoverCards => "appearance",
             Self::Translation
             | Self::Quality
             | Self::Subtitles
@@ -476,6 +484,7 @@ impl SettingKey {
             Self::CalendarMine => "calendar shows only my list",
             Self::CastTvs => "show tvs with chromecast built in",
             Self::TorrentsWhileCasting => "torrents while casting",
+            Self::HoverCards => "expand covers on hover",
             Self::EpisodeNotifications => "new episode notifications",
             Self::MpvOptions => "mpv options",
         }
@@ -535,6 +544,10 @@ pub struct SettingsView {
     pub quality: u32,
     /// The theme in effect, which the terminal paints with.
     pub theme: ThemeMode,
+    /// Whether the front end may animate: off, the terminal's wipe cuts straight to its card and
+    /// its pulses hold still.
+    #[cfg_attr(feature = "ffi", uniffi(default = true))]
+    pub motion: bool,
     /// The sources the config sets up: the header's chips, the source the status line names,
     /// and the order Providers moves a source up and down.
     pub sources: ConfiguredSources,
@@ -595,6 +608,7 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         translation: effective.playback.translation,
         quality: effective.playback.quality,
         theme: effective.theme.mode,
+        motion: effective.theme.motion,
         sources: ConfiguredSources::of(&effective.providers),
         speed: effective.playback.persisted_speed,
         presence_client: effective.presence.resolved_client_id().is_some(),
@@ -684,13 +698,14 @@ pub fn step(
     let playback = &effective.playback;
     let seeding = &effective.providers.torrent.seeding;
     Some(match key {
-        SettingKey::Theme => V::Str(
-            match saved.theme.mode {
-                ThemeMode::Adaptive => "immersive",
-                ThemeMode::Immersive => "adaptive",
-            }
-            .into(),
-        ),
+        // Round the four, either way: adaptive first, as it is the one most want.
+        SettingKey::Theme => {
+            const RING: [ThemeMode; 4] =
+                [ThemeMode::Adaptive, ThemeMode::Immersive, ThemeMode::Light, ThemeMode::Dark];
+            let at = RING.iter().position(|m| *m == saved.theme.mode).unwrap_or(0) as i64;
+            let next = RING[(at + delta.signum()).rem_euclid(RING.len() as i64) as usize];
+            V::Str(format!("{next:?}").to_lowercase())
+        }
         SettingKey::Motion => V::Bool(!effective.theme.motion),
         SettingKey::Titles => {
             const LADDER: [TitleChoice; 3] =
@@ -789,6 +804,7 @@ pub fn step(
         SettingKey::CalendarMine => V::Bool(!effective.meta.calendar_mine),
         SettingKey::CastTvs => V::Bool(!effective.cast.show_tvs),
         SettingKey::TorrentsWhileCasting => V::Bool(!while_casting(effective)),
+        SettingKey::HoverCards => V::Bool(!effective.theme.hover_cards),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
         SettingKey::VpnOnFailure => V::Str(
@@ -828,6 +844,8 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
             config.theme.mode = match mode.as_str() {
                 "adaptive" => ThemeMode::Adaptive,
                 "immersive" => ThemeMode::Immersive,
+                "light" => ThemeMode::Light,
+                "dark" => ThemeMode::Dark,
                 _ => return false,
             };
         }
@@ -949,6 +967,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::TorrentsWhileCasting, V::Bool(on)) => {
             config.providers.torrent.while_casting = Some(*on);
         }
+        (SettingKey::HoverCards, V::Bool(on)) => config.theme.hover_cards = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
         }
@@ -1088,6 +1107,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::CalendarMine => on_off(effective.meta.calendar_mine),
         SettingKey::CastTvs => on_off(effective.cast.show_tvs),
         SettingKey::TorrentsWhileCasting => on_off(while_casting(effective)),
+        SettingKey::HoverCards => on_off(effective.theme.hover_cards),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
             LeakAction::Stop => "stop torrents",
@@ -1128,7 +1148,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
     Some(match key {
         // Theme and sub/dub can differ for this session (`--theme`, `t`), and their arrows
         // change the saved choice, so that is the one they stand on.
-        S::Theme => saved.theme.mode == ThemeMode::Immersive,
+        S::Theme => saved.theme.mode != ThemeMode::Adaptive,
         S::Translation => saved.playback.translation == anistream_core::media::Translation::Dub,
         S::PlayerUi => c.playback.player_ui == PlayerUi::Mpv,
         S::Motion => c.theme.motion,
@@ -1162,6 +1182,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::CalendarMine => c.meta.calendar_mine,
         S::CastTvs => c.cast.show_tvs,
         S::TorrentsWhileCasting => while_casting(c),
+        S::HoverCards => c.theme.hover_cards,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
             c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
@@ -1315,6 +1336,30 @@ mod tests {
     }
 
     #[test]
+    fn hover_cards_are_a_switch_of_their_own_beside_trailers() {
+        let default = Config::default();
+        assert_eq!(value(&default, &default, SettingKey::HoverCards), "on");
+        assert_eq!(SettingKey::at(&["theme"], "hover_cards"), Some(SettingKey::HoverCards));
+        assert_eq!(SettingKey::HoverCards.category(), "appearance");
+        assert_eq!(
+            step(&default, &default, SettingKey::HoverCards, 1),
+            Some(SettingValue::Bool(false))
+        );
+
+        let mut off = Config::default();
+        assert!(put(&mut off, SettingKey::HoverCards, &SettingValue::Bool(false)));
+        assert!(!off.theme.hover_cards);
+        assert_eq!(value(&off, &off, SettingKey::HoverCards), "off");
+        assert_eq!(off.theme.trailers, TrailerAutoplay::Always, "trailers stay as they were");
+        assert!(put(&mut off, SettingKey::Trailers, &SettingValue::Str("off".into())));
+        assert!(!off.theme.hover_cards, "and the other way round");
+
+        let mut copied = Config::default();
+        SettingKey::HoverCards.copy(&off, &mut copied);
+        assert!(!copied.theme.hover_cards);
+    }
+
+    #[test]
     fn trailers_step_from_always_to_wifi_only_to_off_under_the_titles_row() {
         let default = Config::default();
         let trailers = |config: &Config| value(config, config, SettingKey::Trailers);
@@ -1406,6 +1451,7 @@ mod tests {
                 (SettingKey::CalendarMine, "off"),
                 (SettingKey::CastTvs, "on"),
                 (SettingKey::TorrentsWhileCasting, "on"),
+                (SettingKey::HoverCards, "on"),
             ]
         );
         assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));

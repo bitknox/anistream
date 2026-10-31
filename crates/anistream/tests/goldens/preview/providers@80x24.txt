@@ -1,14 +1,14 @@
 anistream                                       torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Sources
-  ▤│
-  ▦│    Source              Kind        State           Latency
-  /│  ────────────────────────────────────────────────────────────────────────
-  ▥│  ▌ fixture             Built in    Ready           0 ms
-  ↓│
-▌ ◇│
-  ◎│  Plugin stores
-  ⚙│    Plugins shared by people you know. Join with an invite link.   ↵ Open
+ ▸ │  Sources
+ ▤ │
+ ▦ │    Source              Kind        State           Latency
+ / │  ────────────────────────────────────────────────────────────────────────
+ ▥ │  ▌ fixture             Built in    Ready           0 ms
+ ↓ │
+▌◇ │
+ ◎ │  Plugin stores
+ ≡ │    Plugins shared by people you know. Join with an invite link.   ↵ Open
    │
    │  Metadata
    │

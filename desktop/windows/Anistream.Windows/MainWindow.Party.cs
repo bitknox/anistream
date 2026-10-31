@@ -128,7 +128,7 @@ public sealed partial class MainWindow
         {
             if (CloseDialogs())
                 await Task.Delay(250);
-            answer = await dialog.ShowAsync();
+            answer = await Dialogs.Show(dialog, first: true);
         }
         catch (COMException)
         {

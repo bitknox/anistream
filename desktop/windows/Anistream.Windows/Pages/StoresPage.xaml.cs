@@ -22,8 +22,7 @@ public sealed partial class StoresPage : Page
     public StoresPage()
     {
         InitializeComponent();
-        ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        ctx.Hear(this, Heard);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -210,9 +209,7 @@ public sealed partial class StoresPage : Page
             row.Children.Add(box);
             var copy = Ui.Label(T.ActionCopy, (_, _) =>
             {
-                var data = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
-                data.SetText(link.Link);
-                global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
+                Ui.TryCopy(link.Link);
             });
             Grid.SetColumn(copy, 1);
             row.Children.Add(copy);
@@ -307,7 +304,7 @@ public sealed partial class StoresPage : Page
             CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Close,
         };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await Dialogs.Show(dialog) == ContentDialogResult.Primary)
             ctx.Send(new Command.LeaveStore(store.Id));
     }
 

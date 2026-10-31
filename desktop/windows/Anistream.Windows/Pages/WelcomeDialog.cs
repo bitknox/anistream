@@ -37,7 +37,7 @@ sealed class WelcomeDialog
         Show(0);
     }
 
-    public Task ShowAsync() => dialog.ShowAsync().AsTask();
+    public Task ShowAsync() => Dialogs.Show(dialog);
 
     /// <summary>Opens on a later page, for a screenshot: anilist or sources.</summary>
     public void Step(string name) => Show(name switch { "anilist" => 1, "sources" => 2, _ => 0 });

@@ -53,6 +53,9 @@ object MpvNative {
     /** A command with named arguments, as one JSON object with its `name`. */
     @JvmStatic external fun commandNode(handle: Long, json: ByteArray): Int
 
+    /** [commandNode], answering `{"code": …, "result": …}`: mpv's result, as JSON, and its code. */
+    @JvmStatic external fun commandNodeResult(handle: Long, json: ByteArray): ByteArray?
+
     @JvmStatic external fun setProperty(handle: Long, name: String, value: String): Int
 
     /** A property set to a node, from JSON. */

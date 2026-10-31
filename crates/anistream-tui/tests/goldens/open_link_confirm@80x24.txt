@@ -1,7 +1,7 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Plugin stores
-  ▤│
+ ▸ │  Plugin stores
+ ▤ │
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Join Hearth plugins?
 ────────────────────────────────────────────────────────────────────────────────
@@ -14,8 +14,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   Anyone with the link can join.
   You join without a name, and another device joins with the same link.
 
-  Enter joins · Esc cancels
-
+   │
+   │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
@@ -40,7 +40,8 @@ r06 c00-79 fg=rule bg=ground
 r07 c00-01 fg=rule bg=ground
 r07 c02-34 fg=text-dim bg=ground
 r07 c35-79 fg=rule bg=ground
-r08 c00-01 fg=rule bg=ground
+r08 c00-00 fg=rule bg=ground
+r08 c01-01 fg=rule bg=ground mod=BOLD
 r08 c02-50 fg=text-dim bg=ground
 r08 c51-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
@@ -64,10 +65,8 @@ r14 c00-01 fg=rule bg=ground
 r14 c02-70 fg=text-dim bg=ground
 r14 c71-79 fg=rule bg=ground
 r15 c00-79 fg=rule bg=ground
-r16 c00-01 fg=rule bg=ground
-r16 c02-26 fg=text-dim bg=ground
-r16 c27-79 fg=rule bg=ground
-r17 c00-79 fg=rule bg=ground
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
 r18 c00-79 fg=rule
 r19 c00-79 fg=rule
 r20 c00-79 fg=rule

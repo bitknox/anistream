@@ -166,8 +166,12 @@ public sealed class Known
                     lastSearch = search;
                 if (c.ContentValue is ContentList.Entries list)
                 {
+                    // Continue's list carries this device's watch history. Another view's rows may
+                    // carry a tracker's progress, or none, so they refresh a known title's details
+                    // and leave what was watched here alone.
+                    var local = c.View is ContentFor.Continue;
                     foreach (var entry in list.V1)
-                        Entries[entry.Id] = Merge(Fixed(entry));
+                        Entries[entry.Id] = Merge(Fixed(entry), local);
                     if (c.View is ContentFor.Continue)
                         HiddenFromContinue.Clear();
                 }
@@ -176,7 +180,7 @@ public sealed class Known
                 UpNext = up.V1;
                 UpNextSent = true;
                 foreach (var item in up.V1)
-                    Entries[item.Entry.Id] = Merge(Fixed(item.Entry));
+                    Entries[item.Entry.Id] = Merge(Fixed(item.Entry), local: false);
                 break;
             case Event.Detail d:
                 Entries[d.V1.Id] = Fixed(d.V1);
@@ -297,12 +301,21 @@ public sealed class Known
 
     /// <summary>
     /// A list's row for a title, keeping what the title's own page knew that a list row leaves
-    /// out (its synopsis, relations and banner when the row has none).
+    /// out (its synopsis, relations and banner when the row has none). A row from any list but
+    /// Continue (<paramref name="local"/> false) also keeps the progress, resume point and last
+    /// aired episode already known, so a tracker's 12 of 12 can't turn "Resume E7" into E1.
     /// </summary>
-    Entry Merge(Entry row)
+    Entry Merge(Entry row, bool local)
     {
         if (!Entries.TryGetValue(row.Id, out var page))
             return row;
+        if (!local)
+            row = row with
+            {
+                Progress = page.Progress ?? row.Progress,
+                Resume = page.Resume ?? row.Resume,
+                LastAired = page.LastAired ?? row.LastAired,
+            };
         return row with
         {
             Synopsis = row.Synopsis.Length > 0 ? row.Synopsis : page.Synopsis,

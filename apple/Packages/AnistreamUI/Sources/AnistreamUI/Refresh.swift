@@ -27,7 +27,7 @@ extension AppStore {
             loadContinue(force: true)
             (activities, list) = (["loading continue watching"], continuing.list)
         case .calendar:
-            loadCalendar()
+            loadCalendar(force: true)
             (activities, list) = (["loading the calendar"], calendar.list)
         case .seasonal:
             loadSeasonal()

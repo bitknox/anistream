@@ -47,8 +47,13 @@ public final class Navigator {
     public var calendarWeek = 0
     /// The day the calendar opens on, as days after today, until it has: the launch route's.
     public var calendarOpensOn = 0
-    /// Whether the calendar shows only the titles on your lists.
-    public var calendarMine = true
+    /// Whether the last step in the calendar went forward, for the way the week slides.
+    public var calendarForward = true
+    /// Counts the times the Calendar tab was tapped again on its own screen: each one returns
+    /// the iPhone agenda to today.
+    public var calendarToToday = 0
+    /// The launch route asks for My list: set on the first look at the calendar.
+    var launchCalendarMine = false
     /// The Settings pane on screen, on the Mac and iPad.
     public var settingsPane: SettingsPane = .general
     /// What Settings' own search field holds.
@@ -69,6 +74,8 @@ public final class Navigator {
     public var moreAbout: AnilistId?
     /// The title whose source picker is open.
     public var sourcePicker: AnilistId?
+    /// The title whose match sheet is open.
+    public var matchPicker: MatchPickerRequest?
     /// The trailer Play trailer opened: a window on the Mac, a sheet on iPhone and iPad.
     var trailerRequest: TrailerRequest?
     /// The titles whose watched episodes are open in their episode lists, for the session.
@@ -91,8 +98,12 @@ public final class Navigator {
         if route.sheet == "show" { showSettings = route.title }
         if route.sheet == "about" { moreAbout = route.title }
         if route.sheet == "source" { sourcePicker = route.title }
+        if let shape = AppStore.matchSheetOpens(route.sheet), let title = route.title {
+            matchPicker = MatchPickerRequest(id: title, fromMenu: shape == .fromMenu)
+        }
         if route.sheet == "messages" { messagesShown = true }
         if route.fold == "open", let title = route.title { watchedOpen.insert(title) }
+        launchCalendarMine = route.calendarMine
         if let day = route.day {
             calendarOpensOn = day
             calendarWeek = weekOffset(ofDaysAhead: day)
