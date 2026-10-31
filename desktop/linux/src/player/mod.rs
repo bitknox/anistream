@@ -817,7 +817,9 @@ impl PlayerView {
                 });
                 if !self.ui.skip.shown() {
                     self.skip_since.set(Some(Instant::now()));
-                    self.announce(&t::player_announce_skip(&self.ui.skip_button.label().unwrap_or_default()));
+                    self.announce(&t::player_announce_skip(
+                        &self.ui.skip_button.label().unwrap_or_default(),
+                    ));
                 }
                 self.ui.skip.set(true);
             }
@@ -1192,10 +1194,12 @@ impl PlayerView {
             if let Some(duration) = state.duration {
                 let second = position as i64;
                 if self.said_second.replace(second) != second {
-                    ui.timeline.update_property(&[gtk::accessible::Property::ValueText(&t::player_position_spoken(
-                        &say::spoken_duration(position),
-                        &say::spoken_duration(duration),
-                    ))]);
+                    ui.timeline.update_property(&[gtk::accessible::Property::ValueText(
+                        &t::player_position_spoken(
+                            &say::spoken_duration(position),
+                            &say::spoken_duration(duration),
+                        ),
+                    )]);
                 }
             }
         }
@@ -2518,7 +2522,9 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     volume.set_size_request(-1, 140);
     volume.set_draw_value(false);
     volume.update_property(&[gtk::accessible::Property::Label(&t::player_volume())]);
-    volume.update_property(&[gtk::accessible::Property::ValueText(&t::player_volume_percent(100))]);
+    volume.update_property(&[gtk::accessible::Property::ValueText(&t::player_volume_percent(
+        100,
+    ))]);
     volume.connect_value_changed(|scale| {
         scale.update_property(&[gtk::accessible::Property::ValueText(
             &t::player_volume_percent(scale.value().round() as i64),
