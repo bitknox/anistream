@@ -20,6 +20,14 @@ final class AccessibilityAuditTests: XCTestCase {
     func testSeasonalLargest() throws { try audit("seasonal", ["-AnistreamSection", "seasonal"], largest: true) }
     func testLibrary() throws { try audit("library", ["-AnistreamSection", "library"]) }
     func testLibraryLargest() throws { try audit("library", ["-AnistreamSection", "library"], largest: true) }
+    // Landed since the first audit: Settings, and the discussion sheet over a title (episode 7's
+    // thread comes from the testing engine). Home is the Continue screen above.
+    func testSettings() throws { try audit("settings", ["-AnistreamSection", "settings"]) }
+    func testSettingsLargest() throws { try audit("settings", ["-AnistreamSection", "settings"], largest: true) }
+    func testDiscussion() throws { try audit("discussion", ["-AnistreamTitle", "900001", "-AnistreamSheet", "discussion-7"]) }
+    func testDiscussionLargest() throws {
+        try audit("discussion", ["-AnistreamTitle", "900001", "-AnistreamSheet", "discussion-7"], largest: true)
+    }
 
     /// Launch on `arguments`, let the engine settle, and audit what is on screen.
     private func audit(_ screen: String, _ arguments: [String] = [], largest: Bool = false) throws {

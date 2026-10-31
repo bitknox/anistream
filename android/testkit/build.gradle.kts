@@ -17,5 +17,12 @@ dependencies {
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.serialization.json)
 
+    // The screenshot tests' capture wrapper, which checks the semantics it draws (A11yShots).
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.test.junit4)
+    implementation(libs.roborazzi)
+    implementation(libs.roborazzi.compose)
+
     testImplementation(libs.junit)
 }

@@ -9,7 +9,7 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import com.github.takahirom.roborazzi.captureRoboImage
+import tv.anistream.testkit.captureRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import java.time.Clock
 import java.time.ZoneId
