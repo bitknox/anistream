@@ -213,7 +213,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
 #endif
         var suggestions = empty ? [] : sent.Where(i => !dismissed.Contains(i.Entry.Id)).ToArray();
         if (suggestions.Length > 0)
-            groups.Add(new(UpNextWording.Heading(suggestions), suggestions.Select(Suggestion), suggestions: true));
+            groups.Add(new(T.UpNextHeading, suggestions.Select(Suggestion), suggestions: true));
         for (var i = 1; i < groups.Count; i++)
             groups[i].Gap = new Thickness(0, 12, 0, 0);
         ShowSyncLine();
@@ -289,21 +289,13 @@ public sealed partial class ContinuePage : Page, IPageKeys
         if (FakeIds.Any(id => known.Entry(id) is null))
             return null;
         Entry E(uint id) => known.Entry(id)!;
-        var now = DateTimeOffset.Now.ToUnixTimeSeconds();
-        UpNextItem I(uint id, UpNextReason r, UpNextAction a, string? because = null, FuzzyDate? starts = null, long? airs = null, bool fallback = false) =>
-            new(E(id), r, a, because, starts, airs, fallback);
+        UpNextItem I(uint id, UpNextReason r, UpNextAction a, string? because = null, FuzzyDate? starts = null) =>
+            new(E(id), r, a, because, starts);
         var play = UpNextAction.PlayFirstEpisode;
         var shown = mode;
         mode = mode.Split('+')[0];
         faked = mode switch
         {
-            "fallback" =>
-            [
-                I(900004, UpNextReason.AiringToday, play, airs: now - 7200, fallback: true),
-                I(900003, UpNextReason.AiringToday, play, airs: now + 3 * 3600, fallback: true),
-                I(900002, UpNextReason.AiringToday, play, airs: now + 6 * 3600, fallback: true),
-                I(900006, UpNextReason.AiringToday, play, airs: now + 8 * 3600, fallback: true),
-            ],
             "signed-out" =>
             [
                 I(900004, UpNextReason.NewSeason, play),
@@ -437,7 +429,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
     }
 
     QueueRow Suggestion(UpNextItem item) =>
-        new(item, Cover(item.Entry), UpNextWording.Line(item, DateTimeOffset.Now, TimeZoneInfo.Local));
+        new(item, Cover(item.Entry), UpNextWording.Line(item, DateTimeOffset.Now));
 
     CoverItem Cover(Entry entry)
     {
@@ -524,7 +516,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
         PlayButton.Content = button;
         PlayButton.Visibility = button is not null ? Visibility.Visible : Visibility.Collapsed;
         OpenButton.Visibility = Visibility.Visible;
-        var line = UpNextWording.Line(suggestion, DateTimeOffset.Now, TimeZoneInfo.Local);
+        var line = UpNextWording.Line(suggestion, DateTimeOffset.Now);
         WaitingLine.Text = line.ToString();
         WaitingLine.Visibility = Visibility.Visible;
         Synopsis.Text = entry.Synopsis;

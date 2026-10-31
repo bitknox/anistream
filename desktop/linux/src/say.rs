@@ -561,38 +561,17 @@ pub fn fuzzy_date(date: FuzzyDate) -> String {
 }
 
 /// The line under a suggestion's title: why it is there, and when it starts when it has not
-/// started. A suggestion that airs today says when instead. `clock` words a time of day.
-pub fn up_next_line(item: &UpNextItem, now: i64, clock: &dyn Fn(i64) -> String) -> String {
+/// started.
+pub fn up_next_line(item: &UpNextItem) -> String {
     let reason = match (item.reason, item.because.as_deref()) {
         (UpNextReason::NewSeason, _) => t::up_next_reason_new_season(),
         (UpNextReason::Planning, _) => t::up_next_reason_planning(),
         (UpNextReason::Recommended, Some(title)) => t::up_next_reason_recommended(title),
         (UpNextReason::Recommended, None) => t::up_next_reason_recommended_plain(),
-        (UpNextReason::AiringToday, _) => return airing_line(item, now, clock),
     };
     match item.starts {
         Some(date) => t::up_next_row_starts(&reason, &t::up_next_starts(&fuzzy_date(date))),
         None => reason,
-    }
-}
-
-/// "Episode 9 · out 2h ago" or "Episode 6 · 18:30", by what the title's schedule says; with no
-/// episode known, only the time.
-fn airing_line(item: &UpNextItem, now: i64, clock: &dyn Fn(i64) -> String) -> String {
-    let airs = item.airs_at.unwrap_or(now);
-    let entry = &item.entry;
-    if airs <= now {
-        let ago = ago(now - airs);
-        return match entry.last_aired {
-            Some(aired) => {
-                t::up_next_broadcast(i64::from(aired.episode), &t::up_next_out(&ago))
-            }
-            None => ago,
-        };
-    }
-    match entry.next_episode {
-        Some(episode) => t::up_next_broadcast(i64::from(episode), &clock(airs)),
-        None => t::up_next_airs_at(&clock(airs)),
     }
 }
 
@@ -821,8 +800,6 @@ mod tests {
             because: None,
             starts: None,
             action: anistream_model::up_next::UpNextAction::PlayFirstEpisode,
-            airs_at: None,
-            fallback: false,
         }
     }
 
@@ -836,26 +813,13 @@ mod tests {
 
     #[test]
     fn a_suggestion_says_why_and_when_it_starts() {
-        let clock = |_| "18:30".to_owned();
         let mut item = suggestion(UpNextReason::NewSeason);
-        assert_eq!(up_next_line(&item, 0, &clock), "New season");
+        assert_eq!(up_next_line(&item), "New season");
         item.starts = Some(FuzzyDate { year: 2027, month: Some(1), day: Some(9) });
-        assert_eq!(up_next_line(&item, 0, &clock), "New season · Starts 9 January");
+        assert_eq!(up_next_line(&item), "New season · Starts 9 January");
         let mut item = suggestion(UpNextReason::Recommended);
-        assert_eq!(up_next_line(&item, 0, &clock), "Recommended for you");
+        assert_eq!(up_next_line(&item), "Recommended for you");
         item.because = Some("Title 1".into());
-        assert_eq!(up_next_line(&item, 0, &clock), "Because you finished Title 1");
-    }
-
-    #[test]
-    fn an_airing_suggestion_says_its_episode_and_time() {
-        let clock = |_| "18:30".to_owned();
-        let mut item = suggestion(UpNextReason::AiringToday);
-        item.airs_at = Some(1_000);
-        assert_eq!(up_next_line(&item, 0, &clock), "Airs at 18:30");
-        item.entry.next_episode = Some(6);
-        assert_eq!(up_next_line(&item, 0, &clock), "Episode 6 · 18:30");
-        item.entry.last_aired = Some(Aired { episode: 5, ago: 0 });
-        assert!(up_next_line(&item, 8_200, &clock).starts_with("Episode 5 · out 2 h"));
+        assert_eq!(up_next_line(&item), "Because you finished Title 1");
     }
 }

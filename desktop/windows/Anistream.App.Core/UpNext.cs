@@ -15,10 +15,6 @@ public readonly record struct UpNextLine(string Lead, string Tail)
 /// </summary>
 public static class UpNextWording
 {
-    /// <summary>The heading over the group: the fallback group is the public schedule, not "for you".</summary>
-    public static string Heading(IEnumerable<UpNextItem> items) =>
-        items.Any(i => i.Fallback) ? T.ContinueAiringToday : T.UpNextHeading;
-
     /// <summary>"9 January", "January 2027" or "2027": as much of the date as AniList knows.</summary>
     public static string Date(FuzzyDate date, DateTimeOffset now, CultureInfo? culture = null)
     {
@@ -44,21 +40,16 @@ public static class UpNextWording
                 var whole = T.UpNextReasonRecommended(because);
                 var at = whole.LastIndexOf(because, StringComparison.Ordinal);
                 return at >= 0 ? new(whole[..at], whole[at..]) : new(whole, "");
-            case UpNextReason.Recommended:
-                return new(T.UpNextReasonRecommendedPlain, "");
             default:
-                return new(T.UpNextReasonAiringToday, "");
+                return new(T.UpNextReasonRecommendedPlain, "");
         }
     }
 
     /// <summary>
-    /// A row's second line. A title not yet airing says when it starts after the reason. The
-    /// fallback says when today's episode airs, or came out.
+    /// A row's second line. A title not yet airing says when it starts after the reason.
     /// </summary>
-    public static UpNextLine Line(UpNextItem item, DateTimeOffset now, TimeZoneInfo zone, CultureInfo? culture = null)
+    public static UpNextLine Line(UpNextItem item, DateTimeOffset now, CultureInfo? culture = null)
     {
-        if (item.Fallback)
-            return new(Airs(item, now, zone, culture), "");
         var reason = Reason(item);
         if (item.Starts is not { } starts)
             return reason;
@@ -67,16 +58,6 @@ public static class UpNextWording
         return reason.Tail.Length > 0
             ? new(reason.Lead, reason.Tail + " · " + when)
             : new(T.UpNextRowStarts(reason.Lead, when), "");
-    }
-
-    /// <summary>"18:30" for an episode still to come, "Out 2h ago" for one that is out.</summary>
-    public static string Airs(UpNextItem item, DateTimeOffset now, TimeZoneInfo zone, CultureInfo? culture = null)
-    {
-        if (item.AirsAt is not { } at)
-            return T.UpNextReasonAiringToday;
-        return at <= now.ToUnixTimeSeconds()
-            ? T.CalendarOut(Wording.Ago(now.ToUnixTimeSeconds() - at))
-            : Calendar.Time(at, zone, culture);
     }
 
     /// <summary>What Not interested says it did: a title that has not aired is hidden until it does.</summary>
