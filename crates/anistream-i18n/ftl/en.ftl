@@ -3948,7 +3948,7 @@ report-versions = App and device versions
 report-last-error = The last error
 
 # Report item for a saved crash. The time and the place are already worded.
-report-crash-item = Crash · { $when } · { $where }
+report-crash-item = Crash · { $when } · { $place }
 
 # Disclosure that opens the exact text of the report.
 report-show-sent = Show what is sent

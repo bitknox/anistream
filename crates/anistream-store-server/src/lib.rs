@@ -461,12 +461,53 @@ pub async fn invite(storage: &StorageArgs, name: &str, owner: bool) -> Result<()
     let now = now();
     let new = NewInvite::member(name, role, None, AnyStore::default_expiry(now));
     let (_, invite) = store.create_invite(new, &base, now).await.map_err(|e| e.to_string())?;
-    println!("{}", invite.link());
+    let link = invite.link();
+    // On a terminal the code is drawn above the link, to be scanned from a phone; piped, only
+    // the link is printed, as scripts read it.
+    if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+        for line in qr_lines(&link) {
+            println!("{line}");
+        }
+        println!();
+    }
+    println!("{link}");
     eprintln!(
         "works once, for seven days — for {name}{}",
         if owner { ", as an owner" } else { "" }
     );
     Ok(())
+}
+
+/// The QR code for `text` in half blocks, two module rows to a line, quiet zone included. A dark
+/// module is a filled block: print it on a light terminal, or in reverse video on a dark one.
+/// Empty when the text is too long for a code.
+fn qr_lines(text: &str) -> Vec<String> {
+    use qrcode::{Color, EcLevel, QrCode};
+    let Ok(code) = QrCode::with_error_correction_level(text.as_bytes(), EcLevel::M) else {
+        return Vec::new();
+    };
+    let (zone, size) = (4_i64, i64::try_from(code.width()).unwrap_or(0));
+    let modules = code.to_colors();
+    let dark = |x: i64, y: i64| {
+        let (x, y) = (x - zone, y - zone);
+        (0..size).contains(&x)
+            && (0..size).contains(&y)
+            && modules[usize::try_from(y * size + x).unwrap_or(0)] == Color::Dark
+    };
+    let full = size + 2 * zone;
+    (0..full)
+        .step_by(2)
+        .map(|y| {
+            (0..full)
+                .map(|x| match (dark(x, y), dark(x, y + 1)) {
+                    (true, true) => '█',
+                    (true, false) => '▀',
+                    (false, true) => '▄',
+                    (false, false) => ' ',
+                })
+                .collect()
+        })
+        .collect()
 }
 
 /// Print a sign-in link for the admin page.

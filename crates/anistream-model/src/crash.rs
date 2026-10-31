@@ -169,7 +169,12 @@ impl CrashRecord {
             .take(MAX_FRAMES)
             .collect();
         Self {
-            id: self.id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(64).collect(),
+            id: self
+                .id
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+                .take(64)
+                .collect(),
             at_ms: self.at_ms,
             uptime_secs: self.uptime_secs,
             platform: short_text(&self.platform, 40),

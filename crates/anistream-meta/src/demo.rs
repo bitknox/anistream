@@ -42,6 +42,8 @@ mod tests {
         assert_eq!(media.id, DEMO_ANILIST_ID);
         assert_eq!(media.title.native.as_deref(), Some(DEMO_TITLE));
         assert_eq!(media.episodes, Some(PARTS.len() as u32));
-        assert!(media.cover_image.best().is_some_and(|url| url.contains("upload.wikimedia.org")));
+        assert!(
+            media.cover_image.best().is_some_and(|url| url.contains("upload.wikimedia.org"))
+        );
     }
 }

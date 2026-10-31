@@ -109,7 +109,11 @@ pub fn issue_url_with(report: &BugReport, crashes: &[CrashRecord]) -> String {
 /// The address cut to fit `max_bytes`: the TV's QR code takes 900, so it stays readable from
 /// the sofa. The error's message is cut first, then the crashes' frames, then the crashes to
 /// their kind line, and last the text itself.
-pub fn issue_url_capped(report: &BugReport, crashes: &[CrashRecord], max_bytes: usize) -> String {
+pub fn issue_url_capped(
+    report: &BugReport,
+    crashes: &[CrashRecord],
+    max_bytes: usize,
+) -> String {
     let mut chars = MESSAGE_CHARS;
     loop {
         let url = build(report, crashes, chars, true);

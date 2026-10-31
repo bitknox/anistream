@@ -214,6 +214,19 @@ impl App {
             | S::CastTvs
             | S::TorrentsWhileCasting
             | S::HoverCards => return None,
+            // The subtitle rows take the engine's steps like any closed set.
+            S::SubtitleSize
+            | S::SubtitleFont
+            | S::SubtitleColour
+            | S::SubtitleEdge
+            | S::SubtitleThickness
+            | S::SubtitleBackground
+            | S::SubtitleOpacity
+            | S::SubtitleRaise
+            | S::StyledSubtitles
+            | S::FollowSystemCaptions => return None,
+            S::SaveCrashReports => t::settings_crash_save_detail(),
+            S::AskAfterCrash => t::settings_crash_ask_detail(),
         })
     }
 
@@ -327,6 +340,18 @@ fn label_text(key: SettingKey) -> String {
         S::CastTvs => t::settings_label_cast_tvs(),
         S::TorrentsWhileCasting => t::settings_label_torrents_while_casting(),
         S::HoverCards => t::settings_label_hover_cards(),
+        S::SubtitleSize => t::settings_subs_size(),
+        S::SubtitleFont => t::settings_subs_font(),
+        S::SubtitleColour => t::settings_subs_colour(),
+        S::SubtitleEdge => t::settings_subs_edge(),
+        S::SubtitleThickness => t::settings_subs_thickness(),
+        S::SubtitleBackground => t::settings_subs_background(),
+        S::SubtitleOpacity => t::settings_subs_opacity(),
+        S::SubtitleRaise => t::settings_subs_raise(),
+        S::StyledSubtitles => t::settings_subs_styled(),
+        S::FollowSystemCaptions => t::settings_system_captions(),
+        S::SaveCrashReports => t::settings_crash_save(),
+        S::AskAfterCrash => t::settings_crash_ask(),
     }
 }
 

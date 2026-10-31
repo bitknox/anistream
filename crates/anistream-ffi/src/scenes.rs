@@ -110,6 +110,26 @@ pub enum FfiScene {
     /// saved to show. [`FfiEngine::testing_set_offline`] does the same to any other scene once
     /// Home has loaded, for the offline line over what it last loaded.
     Offline,
+    /// A first launch with the demo as the only source: Home's spotlight offers the demo, and
+    /// Sources lists it with About the demo.
+    DemoOnly,
+    /// [`Self::DemoOnly`] after part 1 was played: the spotlight is gone, Continue holds the
+    /// demo, and Home ends as a user with only the demo would.
+    DemoPlayed,
+    /// The fixture source beside the demo, as after adding a source with the demo still on.
+    DemoAndStore,
+    /// No source at all and the demo taken out, so Sources offers Add the demo.
+    DemoRemoved,
+    /// [`Self::Watching`] with a styled look: larger serif yellow subtitles on a plate, styled
+    /// subtitles restyled.
+    SubtitleStyled,
+    /// A first launch with crash reports off, as they are until turned on.
+    CrashOff,
+    /// Crash reports on, with one saved report in the list.
+    CrashSaved,
+    /// Crash reports on, turned on a day ago. The app offers its system's own records from the
+    /// week before; the scene has none of its own.
+    CrashHeld,
 }
 
 /// The environment variable that puts Home's world in a scene: see [`FfiScene`].
@@ -145,6 +165,7 @@ impl FfiScene {
             Self::Watching
                 | Self::WatchingMedia { .. }
                 | Self::Sourceless
+                | Self::SubtitleStyled
                 | Self::Suggested
                 | Self::Slow
                 | Self::Failed
@@ -158,6 +179,7 @@ impl FfiScene {
             Self::Watching
                 | Self::WatchingMedia { .. }
                 | Self::Sourceless
+                | Self::SubtitleStyled
                 | Self::Unsure
                 | Self::Suggested
                 | Self::ContinueFull
@@ -229,8 +251,10 @@ impl FfiEngine {
         if matches!(scene, FfiScene::Playing { .. }) {
             offer_skips(&dirs)?;
         }
-        let opened = Opened::open(&dirs)?;
         let now = clock.now();
+        scene_config(&dirs, &scene, now)?;
+        let opened = Opened::open(&dirs)?;
+        seed_crashes(&opened.paths.data_dir, &scene, now);
         let world = home_world.then(|| HomeWorld::at(HomeClock::in_zone(now, &clock.zone())));
         seed_scene(&opened.store, &scene, now);
         if let Some(world) = world.as_ref().filter(|_| scene.has_world_history()) {
@@ -339,6 +363,29 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
 /// streams the test kit's episode-long clip, or `media` in a scene that plays. None at all for
 /// [`FfiScene::Sourceless`].
 fn scene_sources(scene: &FfiScene, art: &str, provided: &[(Media, u32)]) -> ProviderRegistry {
+    use anistream_providers::demo::DemoProvider;
+    let demo = DemoProvider::shared();
+    match scene {
+        // The demo alone: what a first launch with nothing else has.
+        FfiScene::DemoOnly
+        | FfiScene::DemoPlayed
+        | FfiScene::CrashOff
+        | FfiScene::CrashSaved
+        | FfiScene::CrashHeld => return ProviderRegistry::new(vec![demo]),
+        FfiScene::DemoRemoved => return ProviderRegistry::new(Vec::new()),
+        // The fixture source, and the demo last.
+        FfiScene::Fresh | FfiScene::DemoAndStore => {
+            let registry = fixture_sources(scene, art, provided);
+            registry.extend(vec![demo]);
+            return registry;
+        }
+        _ => {}
+    }
+    fixture_sources(scene, art, provided)
+}
+
+/// [`scene_sources`] without the demo.
+fn fixture_sources(scene: &FfiScene, art: &str, provided: &[(Media, u32)]) -> ProviderRegistry {
     if *scene == FfiScene::Sourceless {
         return ProviderRegistry::new(Vec::new());
     }
@@ -455,6 +502,63 @@ fn sign_in_config(dirs: &FfiDirs) -> Result<(), FfiError> {
     written.map_err(|e| FfiError::config(Msg::verbatim(format!("{}: {e}", file.display()))))
 }
 
+/// The config a scene starts from, written where there is none yet. A first launch has none, and
+/// reads as having the demo on; the scenes that say otherwise write it.
+fn scene_config(dirs: &FfiDirs, scene: &FfiScene, now: i64) -> Result<(), FfiError> {
+    let file = std::path::Path::new(&dirs.config).join("config.toml");
+    let text = match scene {
+        FfiScene::DemoAndStore => "[sources]\ndemo = true\n".to_owned(),
+        FfiScene::DemoRemoved => "[sources]\ndemo = false\n".to_owned(),
+        FfiScene::SubtitleStyled => "[subtitles]\nsize = 130\nfont = \"serif\"\n\
+             colour = \"yellow\"\nedge = \"outline\"\nbackground = \"each-line\"\n\
+             opacity = 75\nraise = 8\nstyled = \"restyle\"\n"
+            .to_owned(),
+        FfiScene::CrashSaved => crash_config(now),
+        FfiScene::CrashHeld => crash_config(now - 24 * 3_600),
+        _ => return Ok(()),
+    };
+    if file.exists() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(&dirs.config).and_then(|()| std::fs::write(&file, text)).map_err(
+        |e| FfiError::dirs(Msg::verbatim(format!("{} cannot be written: {e}", file.display()))),
+    )
+}
+
+/// Saving on since `since` (Unix seconds), with the demo on.
+fn crash_config(since: i64) -> String {
+    format!(
+        "[sources]\ndemo = true\n\n[crash_reports]\nsave = true\nask = true\nenabled_at = {}\n",
+        since * 1_000
+    )
+}
+
+/// The one saved report of [`FfiScene::CrashSaved`], in the crash store of the scene's data.
+fn seed_crashes(data_dir: &std::path::Path, scene: &FfiScene, now: i64) {
+    use anistream_model::crash::{CrashFrame, CrashPlace, CrashRecord};
+    if *scene != FfiScene::CrashSaved {
+        return;
+    }
+    let record = CrashRecord {
+        id: "scene-1".into(),
+        at_ms: (now - 2 * 3_600) * 1_000,
+        uptime_secs: 754,
+        platform: "Fixtures".into(),
+        app_version: env!("CARGO_PKG_VERSION").into(),
+        place: CrashPlace::Player,
+        detail: "playing".into(),
+        reason: "index out of bounds".into(),
+        frames: vec![CrashFrame {
+            module: "anistream".into(),
+            symbol: Some("anistream_engine::play::start".into()),
+            offset: 0,
+        }],
+        demo_on: true,
+        ..CrashRecord::default()
+    };
+    anistream_engine::crash::CrashStore::in_data(data_dir).save(&record, true, now * 1_000);
+}
+
 /// A config that offers skips rather than taking them, written where there is none yet.
 fn offer_skips(dirs: &FfiDirs) -> Result<(), FfiError> {
     let file = std::path::Path::new(&dirs.config).join("config.toml");
@@ -484,7 +588,18 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
     const HOUR: i64 = 3_600;
     const DAY: i64 = 24 * HOUR;
     match scene {
-        FfiScene::Fresh | FfiScene::NotFound | FfiScene::Offline => {}
+        FfiScene::Fresh
+        | FfiScene::NotFound
+        | FfiScene::Offline
+        | FfiScene::DemoOnly
+        | FfiScene::DemoAndStore
+        | FfiScene::DemoRemoved
+        | FfiScene::CrashOff
+        | FfiScene::CrashSaved
+        | FfiScene::CrashHeld => {}
+        FfiScene::DemoPlayed => {
+            seed::watched(store, anistream_core::demo::DEMO_ANILIST_ID, 1, now - HOUR);
+        }
         FfiScene::Playing { .. } => seed::watched(store, FINISHED, 6, now - HOUR),
         FfiScene::Suggested => {
             let all = fixtures::media(FINISHED).episodes.unwrap_or(1);
@@ -503,6 +618,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
         FfiScene::Watching
         | FfiScene::WatchingMedia { .. }
         | FfiScene::Sourceless
+        | FfiScene::SubtitleStyled
         | FfiScene::Unsure
         | FfiScene::Slow
         | FfiScene::Failed => {

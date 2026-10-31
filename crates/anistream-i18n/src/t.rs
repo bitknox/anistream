@@ -6291,8 +6291,8 @@ pub fn report_last_error() -> String {
 }
 
 /// Report item for a saved crash. The time and the place are already worded.
-pub fn report_crash_item(when: &str, where: &str) -> String {
-    text("report-crash-item", &[("when", Arg::Text(when)), ("where", Arg::Text(where))])
+pub fn report_crash_item(when: &str, place: &str) -> String {
+    text("report-crash-item", &[("when", Arg::Text(when)), ("place", Arg::Text(place))])
 }
 
 /// Disclosure that opens the exact text of the report.

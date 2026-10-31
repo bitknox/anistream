@@ -1513,13 +1513,14 @@ mod tests {
                 Event::Autoplay(view) if view.trailers => "autoplay",
                 Event::Stores(_) => "stores",
                 Event::Providers(_) => "providers",
+                Event::Demo(_) => "demo",
                 Event::Sync(_) => "sync",
                 _ => "other",
             })
             .collect();
         // Kitsu is the one tracker the defaults build.
         // Trailers may start until the front end says otherwise: Always is the default.
-        assert_eq!(launch, ["settings", "autoplay", "stores", "providers", "sync"]);
+        assert_eq!(launch, ["settings", "autoplay", "stores", "providers", "demo", "sync"]);
         assert!(events.launch().await.is_empty(), "taken once");
     }
 

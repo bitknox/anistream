@@ -153,6 +153,9 @@ pub struct App {
     pub device_code: Option<DeviceCodePrompt>,
     /// Snapshot for the Providers screen.
     pub providers: Vec<ProviderRow>,
+    /// Whether the demo is a source, offered, the only one, and played: what the first run and
+    /// the Sources screen word.
+    pub demo: anistream_model::sources::DemoState,
     /// The metadata ladder's rungs, for the Providers screen and the header chip.
     pub meta_status: Vec<MetaSourceRow>,
     /// The source pinned for the title on screen. `None` means automatic.
@@ -396,6 +399,7 @@ impl App {
             vpn_badge: None,
             vpn_leaking: false,
             providers: Vec::new(),
+            demo: anistream_model::sources::DemoState::default(),
             meta_status: Vec::new(),
             provider_preference: None,
             source_options: Vec::new(),
@@ -531,6 +535,7 @@ impl App {
             Event::ArtworkReady { .. } => {}
             Event::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
             Event::Providers(rows) => self.apply_providers(rows),
+            Event::Demo(state) => self.demo = state,
             Event::MetaStatus(rows) => self.meta_status = rows,
             Event::Stores(rows) => self.apply_stores(rows),
             Event::StorePreview(outcome) => self.apply_store_preview(outcome),

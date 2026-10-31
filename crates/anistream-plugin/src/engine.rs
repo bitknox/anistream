@@ -499,7 +499,7 @@ impl PluginHost {
             return Err(fail("manifest has no id".into()));
         }
         if let Err(message) = refuse_reserved(&manifest.id) {
-            tracing::warn!(id = %manifest.id, file = %display, "plugin refused: {message}");
+            tracing::warn!(id = %manifest.id, file = %path.display(), "plugin refused: {message}");
             return Err(fail(message));
         }
 

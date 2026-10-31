@@ -42,8 +42,7 @@ pub fn remember_fresh_install(engine: &mut EngineState, paths: &anistream_core::
     if paths.config_file.exists() || !engine.config.effective().sources.demo {
         return;
     }
-    let written =
-        engine.config.write(paths, &["sources"], "demo", SettingValue::Bool(true));
+    let written = engine.config.write(paths, &["sources"], "demo", SettingValue::Bool(true));
     if let Err(error) = written {
         tracing::warn!(%error, "could not write the demo's first-run choice");
     }
@@ -71,7 +70,11 @@ pub fn set(on: bool, engine: &mut EngineState, services: &Services, tx: &Outbox)
         return;
     }
     if on {
-        sources::place(registry, anistream_providers::demo::DemoProvider::shared(), engine.config.effective());
+        sources::place(
+            registry,
+            anistream_providers::demo::DemoProvider::shared(),
+            engine.config.effective(),
+        );
     } else {
         registry.remove(DEMO_SOURCE_ID);
     }
@@ -81,7 +84,8 @@ pub fn set(on: bool, engine: &mut EngineState, services: &Services, tx: &Outbox)
     let _ = tx.send(Event::Demo(state(engine, services)));
     let _ = tx.internal(Internal::SettingsSaved);
     if !on {
-        let notice = Notice::info(Msg::SourcesDemoRemoved).with_hint(NoticeHint::UndoRemoveDemo);
+        let notice =
+            Notice::info(Msg::SourcesDemoRemoved).with_hint(NoticeHint::UndoRemoveDemo);
         let _ = tx.send(Event::Toast(notice));
     }
 }

@@ -30,6 +30,7 @@ pub fn reset(engine: &mut EngineState, services: &Services, tx: &Outbox) {
         let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeNotSaved { reason })));
         return;
     }
-    let notice = Notice::info(Msg::SettingsSubsResetDone).with_hint(NoticeHint::UndoSubtitleReset);
+    let notice =
+        Notice::info(Msg::SettingsSubsResetDone).with_hint(NoticeHint::UndoSubtitleReset);
     let _ = tx.send(Event::Toast(notice));
 }

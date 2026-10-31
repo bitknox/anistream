@@ -15,8 +15,8 @@ use crate::{
     protocol::{
         AdminLink, ErrorBody, Index, IndexEntry, InviteCreated, InviteRequest,
         MAX_PLUGIN_BYTES, Me, MemberList, OpenJoinRequest, OpenSetting, OpenState, PART_SIZE,
-        PROTOCOL, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse, SignedIndex,
-        RESERVED_IDS, StoreInfo, UploadRequest, UploadStarted, is_valid_id, is_valid_version,
+        PROTOCOL, PreviewRequest, PublishRequest, RESERVED_IDS, RedeemRequest, RedeemResponse,
+        SignedIndex, StoreInfo, UploadRequest, UploadStarted, is_valid_id, is_valid_version,
     },
 };
 

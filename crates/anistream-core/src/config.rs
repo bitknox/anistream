@@ -1565,7 +1565,10 @@ mod tests {
         assert!(name.starts_with("config.damaged-20"), "{name}");
         assert_eq!(std::fs::read_to_string(&aside).unwrap(), "[playback\nupscaling = ");
         assert!(!paths.config_file.exists());
-        assert_eq!(Config::read(&paths).unwrap(), Config::default());
+        // No file reads as a new install, which has the demo.
+        let mut fresh = Config::default();
+        fresh.sources.demo = true;
+        assert_eq!(Config::read(&paths).unwrap(), fresh);
 
         // A second the same day takes the next name, and the first stays.
         std::fs::write(&paths.config_file, "junk = [").unwrap();

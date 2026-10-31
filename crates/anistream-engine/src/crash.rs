@@ -83,7 +83,8 @@ impl CrashStore {
 
     /// Delete what is past the limits: the oldest beyond ten, and any past thirty days.
     pub fn prune(&self, now_ms: i64) {
-        let summaries: Vec<CrashSummary> = self.records().iter().map(CrashRecord::summary).collect();
+        let summaries: Vec<CrashSummary> =
+            self.records().iter().map(CrashRecord::summary).collect();
         let (_, drop) = retention(&summaries, now_ms);
         for id in drop {
             let _ = std::fs::remove_file(self.file(&id));
@@ -93,13 +94,15 @@ impl CrashStore {
     /// The saved reports, newest first.
     pub fn list(&self, now_ms: i64) -> Vec<CrashSummary> {
         self.prune(now_ms);
-        let mut list: Vec<CrashSummary> = self.records().iter().map(CrashRecord::summary).collect();
+        let mut list: Vec<CrashSummary> =
+            self.records().iter().map(CrashRecord::summary).collect();
         list.sort_by_key(|record| std::cmp::Reverse(record.at_ms));
         list
     }
 
     pub fn get(&self, id: &str) -> Option<CrashRecord> {
-        let id: String = id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+        let id: String =
+            id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
         serde_json::from_slice(&std::fs::read(self.file(&id)).ok()?).ok()
     }
 
@@ -109,7 +112,8 @@ impl CrashStore {
     }
 
     pub fn delete(&self, id: &str) {
-        let id: String = id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+        let id: String =
+            id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
         let _ = std::fs::remove_file(self.file(&id));
     }
 
@@ -293,7 +297,9 @@ pub fn frames_of(backtrace: &str, module: &str) -> Vec<CrashFrame> {
             let symbol = symbol.trim();
             let symbol = symbol
                 .rsplit_once("::h")
-                .filter(|(_, hash)| hash.len() == 16 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
+                .filter(|(_, hash)| {
+                    hash.len() == 16 && hash.bytes().all(|b| b.is_ascii_hexdigit())
+                })
                 .map_or(symbol, |(name, _)| name);
             Some(CrashFrame {
                 module: module.to_owned(),
@@ -454,11 +460,8 @@ mod tests {
         let store = CrashStore::new(dir.path().join("crash"));
         let held = HeldCrashes::default();
         let on = 50 * DAY_MS;
-        let records = vec![
-            record(1, on - DAY_MS),
-            record(2, on - 9 * DAY_MS),
-            record(3, on + DAY_MS),
-        ];
+        let records =
+            vec![record(1, on - DAY_MS), record(2, on - 9 * DAY_MS), record(3, on + DAY_MS)];
         assert!(held.offer(records.clone(), false, Some(on)).is_empty(), "saving is off");
         assert!(held.offer(records.clone(), true, None).is_empty());
         let offered = held.offer(records, true, Some(on));

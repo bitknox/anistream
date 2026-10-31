@@ -3948,7 +3948,7 @@ report-versions = [Åþþ àñð ðéṽîçé ṽéŕšîöñš~~~~~~~]
 report-last-error = [Ţĥé ļàšţ éŕŕöŕ~~~~~]
 
 # Report item for a saved crash. The time and the place are already worded.
-report-crash-item = [Çŕàšĥ · { $when } · { $where }~~~~~~]
+report-crash-item = [Çŕàšĥ · { $when } · { $place }~~~~~~]
 
 # Disclosure that opens the exact text of the report.
 report-show-sent = [Šĥöŵ ŵĥàţ îš šéñţ~~~~~~]
