@@ -38,6 +38,15 @@ import Testing
     }
 
     @Test func languagesListSourceFirst() {
-        #expect(L.languages.first == L.Language(tag: "en", name: "English", draft: false))
+        #expect(L.languages.first == L.Language(tag: "en", name: "English", flag: "gb", draft: false))
+    }
+
+    @Test func everyBundledFlagIsFoundAndEveryLanguageFlagIsBundled() {
+        let codes = ["gb", "se", "jp", "mx", "br", "fr", "de", "it", "pl", "ru", "tr", "id", "vn", "th", "kr", "cn", "tw"]
+        for code in codes { #expect(L.flagURL(code) != nil, "flag-\(code).png") }
+        for language in L.languages {
+            if let flag = language.flag { #expect(L.flagURL(flag) != nil, "\(language.tag)") }
+        }
+        #expect(L.flagURL("xx") == nil)
     }
 }

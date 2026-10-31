@@ -1,0 +1,36 @@
+settings-preview = プレビュー
+settings-previous-value = 前の値
+settings-next-value = 次の値
+settings-sources-come-from = { -source-cap-pl }は、参加する{ -plugin-store-pl }から提供されます。
+settings-preview-source = 480p { -source }
+settings-upscaling-note-off = 480pの{ -source }を、処理せずに画面に合わせて拡大します。
+settings-caption-sample = ランタンの道は、最後の町を過ぎても続いています。
+settings-caption-note = 字幕のあるエピソードでは、{ $language }の標準字幕がこのように表示されます。スタイル付きの字幕は独自の見た目を保ちます。
+settings-notify-note-on = 視聴リストの作品のエピソードが公開されると、{ $tracker }が伝える時刻に1件通知します。作品ごとの設定が優先されます。
+settings-notify-note-off = オフです。作品ごとの設定で通知をオンにした作品だけ通知します。
+settings-connection-check-title = 接続の確認
+settings-connection-check-note = { -app-name }は、トレントの開始時と実行中は1分ごとに、トレント通信の出口を確認します。確認に失敗するとトレントを一時停止します。身を守るのはVPNまたはプロキシです。
+settings-accounts-note = { -app-name }はアカウントなしで使えます。サインアウトしても、視聴履歴はこのコンピューターに残ります。
+settings-presence-note-on = エピソードの再生中、Discordのプロフィールに視聴中の作品が表示されます。
+settings-presence-note-off = オフです。オンにすると、エピソードの再生中にDiscordのプロフィールに視聴中の作品が表示されます。
+settings-advanced-note = ここの設定で、アップスケーリングやナイトモードなど再生の設定を打ち消せます。ほとんどの方はこの画面を使う必要はありません。
+updates-view-version = バージョンを見る
+updates-progress-label = アップデートの進行状況
+accounts-sync-detail = 進行状況と一覧の変更は{ $tracker }に同期されます。{ -library-cap }とカレンダーの「マイリスト」に、{ $tracker }のリストが表示されます。
+accounts-changes-waiting-offline = { $count ->
+   *[other] { $count }件の変更が、オンラインになるまで待機中です。
+ }
+accounts-tokens-keyring = サインイン用のトークンは、この{ -device }のキーリングに保存されます。
+updates-why-read = ダウンロードしたファイルを読み込めませんでした: { $reason }
+updates-why-reopen = 新しいバージョンはインストールされましたが、開けませんでした。{ -app-name }をもう一度開いてください。
+nagare-description = Nagare、{ -app-name }のマスコット。絹のようなボブヘア、琥珀色のスカーフ、藍色のマントをまとい、水の飾りがついた杖を持っています。
+settings-note-trailers-linux = 予告編はYouTubeからミュートで再生されます。YouTubeにはあなたのIPアドレスが届きます。従量課金の接続、アニメーションオフ、省電力モード、スクリーンリーダー使用中には再生されません。
+settings-label-controller-input = コントローラーを使う
+settings-label-swap-face-buttons = AとBを入れ替える
+settings-group-controller = コントローラー
+settings-controller-device = コントローラー
+settings-controller-none = コントローラーが見つかりません。Steam Inputのキーボード配列は引き続き使えます。
+controller-connected = コントローラーに接続しました · { $name }
+controller-disconnected = コントローラーの接続が切れました
+controller-help-title = コントローラー
+controller-help-buttons = コントローラーのボタン

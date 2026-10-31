@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -202,6 +203,8 @@ internal fun EngineDown() {
     val shown = phase
     if (shown !is AppStore.Phase.Failed && shown !is AppStore.Phase.Stopped) return
     val activity = androidx.activity.compose.LocalActivity.current
+    var confirming by rememberSaveable { mutableStateOf(false) }
+    val unusable = (shown as? AppStore.Phase.Failed)?.settingsUnusable == true
     androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             StateBlock(
@@ -210,10 +213,35 @@ internal fun EngineDown() {
                 line = if (shown is AppStore.Phase.Failed) plainReason(LocalContext.current, shown.reason) else stringResource(R.string.engine_down_stopped),
             ) {
                 FilledTonalButton(onClick = store::restartEngine) { Text(stringResource(R.string.action_try_again)) }
+                if (unusable) TextButton(onClick = { confirming = true }) { Text(stringResource(R.string.settings_reset)) }
                 TextButton(onClick = { activity?.finishAffinity() }) { Text(stringResource(R.string.engine_down_quit)) }
             }
         }
     }
+    if (confirming && unusable) {
+        ResetSettingsDialog(onDismiss = { confirming = false }) {
+            confirming = false
+            store.resetSettings()
+        }
+    }
+}
+
+/** Reset settings asks first: every setting goes back to its default. */
+@Composable
+private fun ResetSettingsDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_reset_title)) },
+        text = { Text(stringResource(R.string.settings_reset_detail)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) { Text(stringResource(R.string.settings_reset)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    )
 }
 
 /** A screen with nothing to show while offline: "You're offline", with Show downloads. */
@@ -299,7 +327,14 @@ private fun StateBlock(
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.padding(top = 4.dp),
         )
-        Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // A row of buttons that wraps when larger text or a third button leaves no room.
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(
+            Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             androidx.compose.runtime.CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { buttons() }
         }
     }

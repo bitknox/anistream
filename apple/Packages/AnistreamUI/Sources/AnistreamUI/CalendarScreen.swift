@@ -385,7 +385,9 @@ struct DayBroadcasts: View {
 
     var body: some View {
         let today = Calendar.current.isDate(day, inSameDayAs: now)
-        VStack(alignment: .leading, spacing: 4) {
+        // A day's cells run the column's width and meet with no spacing: each takes half the 12 pt
+        // gap as its own padding, so a click anywhere goes to the nearer cell.
+        VStack(alignment: .leading, spacing: 0) {
             switch kind {
             case .normal:
                 normal(today: today)
@@ -439,7 +441,10 @@ struct DayBroadcasts: View {
                 }
             }
         }
-        .padding(4)
+        // 8 pt above the first cell and below the last, the cells' own padding included.
+        .padding(kind == .normal ? EdgeInsets(top: 8 - BroadcastCell.inset.height, leading: 0,
+                                              bottom: 8 - BroadcastCell.inset.height, trailing: 0)
+                                 : EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
         // When a broadcast airs, the line moves below its card and the card up into its space.
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : .standard, value: today ? aired : 0)
         // As long as the longest day, which the row's fixed height makes every column.
@@ -457,18 +462,27 @@ struct DayBroadcasts: View {
             Text(L.calendarDayEmptyApple)
                 .font(.mac(12))
                 .foregroundStyle(.haze)
-                .padding(4)
+                .padding(.horizontal, BroadcastCell.inset.width)
+                .padding(.vertical, BroadcastCell.inset.height)
         }
         let split = today ? aired : -1
         ForEach(Array(broadcasts.enumerated()), id: \.element.id) { index, broadcast in
             if index == split {
-                NowLine(now: now, size: 11).frame(height: 18)
+                nowLine
             }
             BroadcastCell(broadcast: broadcast, now: now)
         }
         if today, split == broadcasts.count, !broadcasts.isEmpty {
-            NowLine(now: now, size: 11).frame(height: 18)
+            nowLine
         }
+    }
+
+    /// The line for now, 8 pt from the cells on either side, as it stood with spacing between them.
+    private var nowLine: some View {
+        NowLine(now: now, size: 11)
+            .frame(height: 18)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 8 - BroadcastCell.inset.height)
     }
 }
 
@@ -521,6 +535,10 @@ struct BroadcastCell: View {
     let broadcast: Broadcast
     let now: Date
 
+    /// The cell's padding: 8 pt in from the column's sides, and above and below half the gap
+    /// between two cells.
+    static let inset = CGSize(width: 8, height: 6)
+
     var body: some View {
         Button {
             navigator.openTitle(broadcast.entry.id)
@@ -544,8 +562,10 @@ struct BroadcastCell: View {
                         .lineLimit(1)
                 }
                 .foregroundStyle(.haze)
-                .padding(4)
+                .padding(.horizontal, Self.inset.width)
+                .padding(.vertical, Self.inset.height)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .modifier(BroadcastCellShape())
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     BannerArt(entry: broadcast.entry)
@@ -591,15 +611,32 @@ struct BroadcastCell: View {
                         .foregroundStyle(.haze)
                     }
                 }
-                .padding(4)
+                .padding(.horizontal, Self.inset.width)
+                .padding(.vertical, Self.inset.height)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .modifier(BroadcastCellShape())
             }
         }
         .buttonStyle(.plain)
         .pointerHover()
-        .contentShape(.rect(cornerRadius: 8))
+        .modifier(BroadcastCellShape())
         .titleElement(broadcast.entry, value: broadcast.spoken(now: now)) { TitleActions(entry: broadcast.entry) }
         .contextMenu { TitleMenu(entry: broadcast.entry) }
+    }
+}
+
+/// A cell's hit area. A Mac button takes clicks only on what its label draws or shapes, so the
+/// label carries it, making the banner, the lines and the gaps between them one area; the button
+/// carries it again for its context menu. Square for clicks, so two cells meet with no corner
+/// between them; rounded and 4 pt in for the iPad's highlight and the menu's lifted preview.
+private struct BroadcastCellShape: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .contentShape(.interaction, .rect)
+            #if os(iOS)
+            .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 8).inset(by: 4))
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 8).inset(by: 4))
+            #endif
     }
 }
 

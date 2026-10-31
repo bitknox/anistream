@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import tv.anistream.design.LanguageFlag
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 
@@ -179,18 +180,24 @@ internal fun RowText(
     selected: Boolean,
     modifier: Modifier = Modifier,
     titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
+    valueFlag: Int? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val secondary = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant
     Column(modifier) {
         Text(title, style = titleStyle, color = LocalContentColor.current)
-        value?.let { Text(it, style = MaterialTheme.typography.bodyMedium.tabular(), color = secondary) }
+        value?.let {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                valueFlag?.let { res -> LanguageFlag(res) }
+                Text(it, style = MaterialTheme.typography.bodyMedium.tabular(), color = secondary)
+            }
+        }
         note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = secondary) }
     }
 }
 
 /** One choice in a menu: its words, and an example title under them where it helps. */
-data class MenuChoice<T>(val value: T, val label: String, val example: String? = null)
+data class MenuChoice<T>(val value: T, val label: String, val example: String? = null, val flagRes: Int? = null)
 
 /**
  * A setting chosen from a list: its value under its name and the dropdown's triangle at the end;
@@ -209,6 +216,7 @@ fun <T> MenuRow(
     enabled: Boolean = true,
     focus: String? = null,
     menuWidth: Int = 280,
+    valueFlag: Int? = null,
     onPick: (T) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -221,7 +229,7 @@ fun <T> MenuRow(
             modifier = Modifier.heightIn(min = if (note != null) 88.dp else 72.dp),
         ) { selected ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                RowText(title, value, note, selected, Modifier.weight(1f))
+                RowText(title, value, note, selected, Modifier.weight(1f), valueFlag = valueFlag)
                 Icon(
                     Icons.DropDown,
                     contentDescription = null,
@@ -251,7 +259,10 @@ private fun <T> MenuItem(choice: MenuChoice<T>, picked: Boolean, onClick: () -> 
     DropdownMenuItem(
         text = {
             Column {
-                Text(choice.label, style = MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    choice.flagRes?.let { LanguageFlag(it) }
+                    Text(choice.label, style = MaterialTheme.typography.labelLarge)
+                }
                 choice.example?.let {
                     Text(
                         it,

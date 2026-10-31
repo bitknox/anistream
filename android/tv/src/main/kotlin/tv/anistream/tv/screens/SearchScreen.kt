@@ -238,7 +238,7 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
  * coming and going moves nothing under it.
  */
 @Composable
-private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, focus: FocusRequester, typing: Boolean, modifier: Modifier) {
+internal fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, focus: FocusRequester, typing: Boolean, modifier: Modifier) {
     val text = value.text
     var focused by remember { mutableStateOf(false) }
     val ink = if (focused) ObiSilk.Ground else ObiSilk.Silk
@@ -277,7 +277,7 @@ private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, 
 
 /** Six columns of 48 × 48 keys, then Space, Delete and Clear two columns each. */
 @Composable
-private fun Keyboard(memory: FocusMemory, onKey: (SearchKeys.Key) -> Unit) {
+internal fun Keyboard(memory: FocusMemory, onKey: (SearchKeys.Key) -> Unit) {
     Column {
         SearchKeys.characters.chunked(SearchKeys.COLUMNS).forEach { line ->
             Row {

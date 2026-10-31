@@ -5542,9 +5542,11 @@ public static partial class T
     public static string UpdatesAllowOnce(string path) => Fill(Get("UpdatesAllowOnce"), ("path", path));
 
     /// <summary>The languages this build has text for, source first. Draft ones carry the draft label.</summary>
-    public static readonly IReadOnlyList<(string Tag, string Name, bool Draft)> Languages = new (string, string, bool)[]
+    public static readonly IReadOnlyList<(string Tag, string Name, string? Flag, bool Draft)> Languages = new (string, string, string?, bool)[]
     {
-        ("en", "English", false),
+        ("en", "English", "gb", false),
+        ("ja", "日本語", "jp", true),
+        ("sv", "Svenska", "se", true),
     };
 
     static readonly Dictionary<string, string> English = new()
@@ -7441,6 +7443,10 @@ public static partial class T
         var tag = language.Split('-', '_')[0].ToLowerInvariant();
         switch (tag)
         {
+            case "ja":
+                return Pick(n, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 'x');
+            case "sv":
+                return Pick(n, "xoxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 'x');
             default:
                 return Pick(n, "xoxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 'x');
         }

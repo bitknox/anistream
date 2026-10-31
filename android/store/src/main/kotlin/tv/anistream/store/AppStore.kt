@@ -24,9 +24,12 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.ffi.resetConfig
 import tv.anistream.i18n.Strings
 import tv.anistream.engine.ffi.trailerWatchUrl as engineTrailerWatchUrl
 import tv.anistream.engine.model.Entry as EngineEntry
+import tv.anistream.engine.model.MatchCandidate
+import tv.anistream.engine.model.MatchQuestion
 import tv.anistream.engine.model.Notice as EngineNotice
 import tv.anistream.engine.model.Trailer as EngineTrailer
 import tv.anistream.engine.ffi.FfiException
@@ -81,8 +84,11 @@ class AppStore(
         data object Running : Phase
         data object Stopped : Phase
 
-        /** It did not start, and why, in the engine's words. */
-        data class Failed(val reason: String) : Phase
+        /**
+         * It did not start, and why, in the engine's words. [settingsUnusable] is set when the
+         * settings file is what it could not read: the start-failed screen then offers to reset it.
+         */
+        data class Failed(val reason: String, val settingsUnusable: Boolean = false) : Phase
     }
 
     private val _phase = MutableStateFlow<Phase>(Phase.Starting)
@@ -112,6 +118,9 @@ class AppStore(
 
     /** The source picker's options per title. */
     val sourceChoices = SourceChoiceModel()
+
+    /** The match sheet's question, search and pick per title. */
+    val match = MatchPickerModel()
     val episodeFolds = EpisodeFolds()
     val coming = ComingModel()
 
@@ -198,7 +207,7 @@ class AppStore(
                 }
                 attach(engine)
             } catch (e: FfiException) {
-                _phase.value = Phase.Failed(e.reason)
+                _phase.value = Phase.Failed(e.reason, settingsUnusable = e is FfiException.Config)
                 early.clear()
             } catch (e: LinkageError) {
                 // The engine's library did not load: UnsatisfiedLinkError is an Error, not an Exception.
@@ -218,6 +227,38 @@ class AppStore(
         client?.cancel()
         client = null
         start(launch, host, prepare)
+    }
+
+    /**
+     * Reset settings on the start-failed screen, once the viewer has confirmed it: `config.toml` is
+     * kept aside as `config.damaged-<date>`, and the engine starts again on the defaults, VPN and
+     * proxy included. The database, and the watch history in it, stay. Does nothing unless the
+     * start failed on the settings file.
+     */
+    fun resetSettings() {
+        val failed = _phase.value as? Phase.Failed ?: return
+        if (!failed.settingsUnusable) return
+        val (launch, host, prepare) = lastStart ?: return
+        scope.launch {
+            val kept = try {
+                withContext(Dispatchers.IO) {
+                    prepare()
+                    resetConfig(launch.home.dirs)
+                }
+            } catch (e: FfiException) {
+                android.util.Log.e("anistream", "the settings were not reset: ${e.reason}")
+                _phase.value = Phase.Failed(e.reason, settingsUnusable = true)
+                return@launch
+            }
+            android.util.Log.w("anistream", "settings reset to the defaults; the old file kept at ${kept ?: "nowhere, there was none"}")
+            start(launch, host, prepare)
+            val name = kept?.let { File(it).name } ?: return@launch
+            if (_phase.first { it !is Phase.Starting } is Phase.Running) {
+                notices.post(
+                    EngineNotice(kind = NoticeKind.INFO, text = "", hint = null),
+                ) { context -> Strings.settingsResetDone(context, name) }
+            }
+        }
     }
 
     /**
@@ -990,7 +1031,13 @@ class AppStore(
 
             is Event.Connectivity -> _offline.value = event.offline
             // A failed sign-in the open sheet says in its place: the snackbar would draw under it.
-            is Event.Toast -> if (accounts.tookSignInFailure(event.v1)) notices.log(event.v1) else notices.post(event.v1)
+            // The page says an uncertain match in its own line, so it is not said twice.
+            is Event.Toast -> when {
+                accounts.tookSignInFailure(event.v1) -> notices.log(event.v1)
+                event.v1.msg is tv.anistream.engine.model.Msg.NoticeMatchUncertain -> {}
+                else -> notices.post(event.v1)
+            }
+            is Event.MatchChoices, is Event.MatchSearchFailed, is Event.MatchFixFailed, is Event.TitleMatch -> applyMatch(event)
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)
@@ -1040,6 +1087,52 @@ class AppStore(
             is Event.PlayerStats -> onPlayback?.invoke(event)
 
             // Everything else is said in the events above, or has no screen yet.
+            else -> {}
+        }
+    }
+
+    // Fixing a source match: the commands the match sheet sends, and the engine's answers to them.
+
+    /**
+     * Search the title's source for [query], as the sheet's field does on Search. [providerId]
+     * names the source; `null` searches the sources in order.
+     */
+    fun searchMatch(id: AnilistId, query: String, providerId: String?) {
+        val typed = query.trim()
+        if (typed.isEmpty()) return
+        match.searching(id, typed)
+        send(Command.ManualSearch(id, typed, providerId))
+    }
+
+    /** Match [id] to [candidate] on [providerId]'s source. The sheet closes when the episodes come. */
+    fun pickMatch(id: AnilistId, providerId: String, source: String, candidate: MatchCandidate) {
+        match.picking(id, candidate.key, candidate.title, source)
+        send(Command.FixMatch(id, providerId, candidate.key, candidate.title))
+    }
+
+    /** Forget the person's choice for [id] and let the engine match it again. */
+    fun matchAutomatically(id: AnilistId) {
+        match.cleared(id)
+        notices.post(EngineNotice(kind = NoticeKind.INFO, text = "", hint = null), Strings::matchCleared)
+        send(Command.ClearMatch(id))
+    }
+
+    private fun applyMatch(event: Event) {
+        when (event) {
+            is Event.MatchChoices -> when (val answers = event.answers) {
+                MatchQuestion.Ladder -> match.asked(event.id, event.providerId, event.source, event.candidates)
+                is MatchQuestion.Search -> match.found(event.id, answers.query, event.providerId, event.source, event.candidates)
+            }
+            is Event.MatchSearchFailed -> match.searchFailed(event.id, event.query, event.reason)
+            is Event.MatchFixFailed -> match.fixFailed(event.id, event.reason)
+            is Event.TitleMatch -> {
+                val before = match.state.value.settled
+                match.matched(event.id, event.current)
+                val settled = match.state.value.settled
+                if (settled != null && settled != before) {
+                    notices.post(EngineNotice(kind = NoticeKind.INFO, text = "", hint = null)) { Strings.matchPicked(it, settled.title, settled.source) }
+                }
+            }
             else -> {}
         }
     }

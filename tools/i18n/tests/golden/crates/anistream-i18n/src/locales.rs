@@ -8,11 +8,11 @@ pub const SOURCE: &str = "en";
 
 /// The languages this build has text for, source first.
 pub const LOCALES: &[Locale] = &[
-    Locale { tag: "en", name: "English", draft: false, ftl: include_str!("../ftl/en.ftl") },
-    Locale { tag: "da", name: "Dansk", draft: true, ftl: include_str!("../ftl/da.ftl") },
-    Locale { tag: "pl", name: "Polski", draft: true, ftl: include_str!("../ftl/pl.ftl") },
+    Locale { tag: "en", name: "English", flag: Some("gb"), draft: false, ftl: include_str!("../ftl/en.ftl") },
+    Locale { tag: "da", name: "Dansk", flag: None, draft: true, ftl: include_str!("../ftl/da.ftl") },
+    Locale { tag: "pl", name: "Polski", flag: Some("pl"), draft: true, ftl: include_str!("../ftl/pl.ftl") },
 ];
 
 /// Accented, padded English for looking at layouts. Never in a release build unless `pseudo` is on.
 #[cfg(any(debug_assertions, feature = "pseudo"))]
-pub const PSEUDO: Locale = Locale { tag: "en-XA", name: "English (pseudo)", draft: true, ftl: include_str!("../ftl/en-XA.ftl") };
+pub const PSEUDO: Locale = Locale { tag: "en-XA", name: "English (pseudo)", flag: None, draft: true, ftl: include_str!("../ftl/en-XA.ftl") };

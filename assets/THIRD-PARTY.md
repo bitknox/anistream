@@ -77,3 +77,12 @@ modified file is shipped in source form, as MPL-2.0 requires.
 | What | upscaling shaders: `assets/shaders/Anime4K_*.glsl` |
 | Source | https://github.com/bloc97/Anime4K; vendored before this file existed, and the commit was not recorded |
 | Licence | MIT, `assets/shaders/LICENSE-Anime4K` |
+
+## flag-icons
+
+| | |
+|---|---|
+| What | the flags beside the languages in the language picker: `assets/flags/svg/*.svg` (4x3), and `assets/flags/png/*.png`, which `tools/i18n/flags.mjs` renders from them at 80 by 60 for the apps |
+| Source | https://github.com/lipis/flag-icons, version `7.6.0` at `ac7e0eb3259eb62aa6100c435607e2fe03896a97` |
+| Licence | MIT, `assets/flags/LICENSE-flag-icons` |
+| Changes | Only the flags the apps use are included, and the PNGs are renders of the SVGs. The apps draw them at 20 by 15 with rounded corners and a hairline edge. |

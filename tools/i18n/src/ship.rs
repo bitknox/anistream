@@ -30,6 +30,12 @@ pub struct Entry {
     pub by: String,
     #[serde(default)]
     pub at: String,
+    /// What the back-translation pass noticed (meaning drift, tone, register, length risk).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub flags: Vec<String>,
+    /// The draft translated back into the source language by a second agent.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub back: String,
 }
 
 pub type Status = BTreeMap<String, Entry>;
@@ -74,6 +80,8 @@ pub fn verdict(status: &Status, source: &Message) -> Verdict {
 pub struct Shipped {
     pub tag: String,
     pub name: String,
+    /// The flag shown beside the name, an ISO code from `catalogue::FLAGS`.
+    pub flag: Option<String>,
     /// The language ships text nobody has reviewed yet, or is not released: the app labels it.
     pub draft: bool,
     pub is_source: bool,
@@ -128,6 +136,7 @@ pub fn select(
         out.push(Shipped {
             tag: tag.to_owned(),
             name: cfg.name.clone(),
+            flag: cfg.flag.clone(),
             draft: !is_source && (shipped_draft || cfg.stage != Stage::Released),
             is_source,
             entries,

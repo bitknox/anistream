@@ -185,16 +185,19 @@ struct SegmentedCapsule<Value: Hashable>: View {
         HStack(spacing: 0) {
             ForEach(options, id: \.0) { value, name in
                 let selected = selection == value
-                Button(name) {
+                Button {
                     withAnimation(.quick) { selection = value }
+                } label: {
+                    // The whole capsule in the label, where the button takes its clicks from.
+                    Text(name)
+                        .font(.mac(12))
+                        .foregroundStyle(selected ? .silk : .haze)
+                        .padding(.horizontal, 12)
+                        .frame(height: 24)
+                        .background(selected ? Palette.raisedSelected : .clear, in: .capsule)
+                        .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
-                .font(.mac(12))
-                .foregroundStyle(selected ? .silk : .haze)
-                .padding(.horizontal, 12)
-                .frame(height: 24)
-                .background(selected ? Palette.raisedSelected : .clear, in: .capsule)
-                .contentShape(.capsule)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }

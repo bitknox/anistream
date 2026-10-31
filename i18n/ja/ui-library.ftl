@@ -1,0 +1,75 @@
+queue-episodes-left = { $count ->
+   *[other] { $title } · 残り { $count }話
+ }
+episodes-count = { $count ->
+   *[other] { $count }話
+ }
+progress-episodes = { $total ->
+   *[other] { $watched }/{ $total }話
+ }
+duration-days-hours = { $days }日{ $hours }時間
+group-in-progress = 視聴中
+group-new-this-week = 今週の新着
+continue-empty-title = まだ視聴した作品はありません
+continue-empty-detail = シーズナルから選ぶか、作品を検索してください。
+continue-empty-action = シーズナルを見る
+continue-load-failed = { -continue-cap }を読み込めませんでした
+continue-heading = { -continue-cap }
+continue-airing-today = 今日放送
+continue-this-season = 今シーズン
+continue-hide = { -continue-cap }から非表示
+continue-hidden = { -continue-cap }から非表示にしました。
+continue-drop = ドロップに移動
+continue-more-for = { $title }のその他の操作
+continue-row-resume = E{ $episode }を再開 · { $clock }
+continue-row-resume-dubbed = E{ $episode } { -dubbed }を再開 · { $clock }
+continue-row-start = E{ $episode }を再生
+continue-row-start-dubbed = E{ $episode } { -dubbed }を再生
+continue-row-start-aired = E{ $episode }を再生 · { $ago }に公開
+continue-row-caught-up = E{ $episode }まで視聴済み · { $when }
+continue-row-caught-up-plain = 視聴済み
+continue-widget-connect = AniListに接続すると、ここに表示されます。
+continue-caught-up = すべて視聴済みです。
+title-button-resume = 第{ $episode }話を再開 · { $time }
+title-button-play = 第{ $episode }話を再生
+title-button-add-source = { -source }を追加して再生
+library-status-watching = 視聴中
+library-status-planning = 視聴予定
+library-status-completed = 視聴完了
+library-status-paused = 保留中
+library-status-dropped = ドロップ
+library-sort-updated = 最終更新
+library-sort-title = タイトル
+library-sort-score = 評価
+library-sort-button = 並び替え: { $sort }
+library-sort-label = { $sort }で並び替え
+library-signed-out-title = リストはAniListから取得します
+library-signed-out-detail = サインインすると、視聴状況と中断した位置を同期できます。
+library-signed-out-action = AniListにサインイン
+library-list-empty = 「{ $list }」リストは空です
+library-list-empty-detail = AniListでこのリストに追加した作品が、ここに表示されます。
+library-list-load-failed = 「{ $list }」リストを読み込めませんでした
+library-loading = リストを読み込んでいます
+library-add-to-list = リストに追加
+library-add-planning = 視聴予定に追加
+library-added-planning = 視聴予定に追加しました。
+library-on-your-list = リストに登録済み
+library-in-your-list = 登録済み
+progress-episodes-short = E{ $done }/{ $total }
+progress-episode-short = E{ $done }
+continue-row-start-aired-dubbed = E{ $episode } { -dubbed }を再生 · { $ago }に公開
+up-next-heading = { -up-next-cap }
+up-next-starts = { $date }放送開始
+up-next-reason-new-season = 新シーズン
+up-next-reason-planning = 視聴予定リストにあります
+up-next-reason-recommended = { $title }を見終えたため
+up-next-reason-recommended-plain = おすすめ
+up-next-because-detail = { $title }を好きな人たちがAniListでおすすめしている作品
+up-next-reason-airing-today = 今日放送
+up-next-add-planning = 視聴予定に追加
+up-next-not-interested = 興味なし
+up-next-row-starts = { $reason } · { $starts }
+up-next-hidden = { $title }を{ -up-next-cap }のおすすめから非表示にしました。
+up-next-hidden-until-airs = { $title }は放送が始まるまで非表示になります。
+up-next-broadcast = 第{ $episode }話 · { $when }
+up-next-out = { $ago }に公開

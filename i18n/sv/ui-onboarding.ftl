@@ -1,0 +1,11 @@
+onboarding-welcome = Välkommen
+onboarding-welcome-to = Välkommen till { -app-name }
+onboarding-tagline = Håll koll på anime och spela upp den från { -source-pl } du väljer.
+onboarding-continue = { -continue-cap }
+onboarding-skip = Hoppa över
+onboarding-skip-for-now = Hoppa över för nu
+onboarding-not-now = Inte nu
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl } är { -plugin-pl }, som delas via { -plugin-store-pl } på inbjudan.
+onboarding-join = Gå med
+onboarding-invite-hint = Inbjudningslänk

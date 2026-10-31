@@ -136,7 +136,10 @@ class TvActivity : ComponentActivity() {
         val playing = app.player.isPresented
         when (intent) {
             is FrontIntent.Open -> if (!playing) nav.openTitle(intent.id)
-            is FrontIntent.Text -> if (!playing) {
+            is FrontIntent.Text -> if (app.store.match.tvSearching) {
+                // The match search is up: the phone types into it, not into Search.
+                app.store.match.phoneTyped(intent.text, intent.submit)
+            } else if (!playing) {
                 if (nav.destination != Destination.Search || nav.pages.isNotEmpty()) nav.go(Destination.Search)
                 nav.phoneSearch(intent.text)
                 if (intent.submit) {

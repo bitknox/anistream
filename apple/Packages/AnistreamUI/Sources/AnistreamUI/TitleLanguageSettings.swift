@@ -271,7 +271,10 @@ struct AppLanguageRow: View {
             note: language.draft ? L.languageDraftNote : nil
         ) {
             HStack(spacing: 10) {
-                Text(language.draft ? "\(language.name) · \(L.languageDraftLabel)" : language.name)
+                LanguageNameLabel(
+                    language: language,
+                    text: language.draft ? "\(language.name) · \(L.languageDraftLabel)" : language.name
+                )
                     .font(.mac(13))
                     .foregroundStyle(.haze)
                 if let url = Self.settingsURL {

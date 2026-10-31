@@ -1,0 +1,14 @@
+nav-continue = { -continue-cap }
+nav-calendar = カレンダー
+nav-seasonal = シーズナル
+nav-library = { -library-cap }
+nav-search = 検索
+nav-downloads = ダウンロード
+nav-plugin-stores = { -plugin-store-cap-pl }
+nav-settings = 設定
+nav-accounts = アカウント
+nav-accounts-and-settings = アカウントと設定
+nav-sections-label = セクション
+nav-collapse = ナビゲーションを閉じる
+nav-expand = ナビゲーションを開く
+tooltip-with-key = { $name }（{ $key }）

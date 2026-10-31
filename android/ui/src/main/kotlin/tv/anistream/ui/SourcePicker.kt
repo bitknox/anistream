@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -79,6 +80,12 @@ fun SourcePickerSheet(entry: Entry, onDismiss: () -> Unit) {
                 store.chooseRelease(entry.id, option.providerId, release)
                 onDismiss()
             },
+            onFixMatch = if (store.match.canFix(store.providers.rows.collectAsStateWithLifecycle().value)) {
+                {
+                    onDismiss()
+                    store.match.open(entry.id, fromMenu = true)
+                }
+            } else null,
         )
     }
 }
@@ -91,6 +98,7 @@ internal fun SourcePickerContent(
     loading: Boolean,
     onSource: (provider: String?) -> Unit,
     onRelease: (SourceOption, SourceCandidate) -> Unit,
+    onFixMatch: (() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
@@ -125,6 +133,16 @@ internal fun SourcePickerContent(
                     inset = true,
                 ) { onRelease(row.option, row.candidate) }
             }
+        }
+        // Wrong title? The way to the match sheet, under the sources.
+        if (onFixMatch != null) {
+            HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), color = colors.outlineVariant)
+            PickerLine(
+                title = stringResource(R.string.match_source_picker_row),
+                detail = null,
+                chosen = false,
+                onClick = onFixMatch,
+            )
         }
         if (options != null && options.isEmpty()) {
             Text(

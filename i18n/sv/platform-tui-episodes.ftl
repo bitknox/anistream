@@ -1,0 +1,93 @@
+title-heading = Titel
+title-nothing-selected-note = Inget valt
+title-nothing-selected = Inget är valt. Markera en titel och försök igen.
+title-trailer-off-page = Öppna titelsidan för att hitta trailern.
+title-recommendations-off-page = Öppna titelsidan för att se rekommendationerna.
+title-seasons-off-page = Öppna titelsidan för att se de kopplade säsongerna.
+title-no-trailer = Ingen trailer finns registrerad för den här titeln.
+title-no-recommendations = Inga rekommendationer finns för den här titeln.
+title-no-seasons = Inga kopplade säsonger finns för den här titeln.
+title-pin-off-page = Öppna titelsidan för att välja en { -source } för den.
+title-no-sources-yet = Inga { -source-pl } är registrerade än. Försök igen om en stund.
+title-status-needs-tracker = Din liststatus sparas hos en { -tracker }, och ingen är inloggad. Använd :accounts för att logga in på en.
+title-rating-needs-tracker = Betyg sparas hos en { -tracker }, och ingen är inloggad. Använd :accounts för att logga in på en.
+title-status-set = Status ändrad till { $status }. Köad för { $trackers }.
+title-rated = Betyg { $score }/10. Köad för { $trackers }.
+title-status-watching = Tittar
+title-status-planning = Planerar
+title-status-completed = Klar
+title-status-paused = Pausad
+title-status-dropped = Avbruten
+title-status-completed-hint = Sätter framsteget till sista avsnittet
+title-rating-10 = Mästerverk
+title-rating-9 = Utmärkt
+title-rating-8 = Mycket bra
+title-rating-7 = Bra
+title-rating-6 = Godkänd
+title-rating-5 = Medel
+title-rating-4 = Svag
+title-rating-3 = Dålig
+title-rating-2 = Usel
+title-rating-1 = Förfärlig
+title-season = Säsong { $number }
+title-relation-prequel = Föregångare
+title-relation-parent = Ursprung
+title-relation-sequel = Uppföljare
+title-source-automatic = Automatiskt (bästa tillgängliga { -source })
+title-source-failing = Fungerar inte
+title-release-first = Den { -release } som { -source } rankar först
+title-release-seeders = { $count ->
+    [one] { $count } seedare
+   *[other] { $count } seedare
+ }
+title-available-on = Finns på { $services }
+title-up-next = { -up-next-cap }: avsnitt { $next }
+title-progress-aired = { $done } av { $aired } har sänts
+title-progress-watched = { $done } sedda
+episodes-heading = Avsnitt
+episodes-column-title = Titel
+episodes-column-run = Längd
+episodes-column-watched = Sett
+episodes-done = Klar
+episodes-airs-in = Om { $span }
+episodes-kind-canon = Kanon
+episodes-kind-mixed = Blandat
+episodes-kind-filler = Fyllnad
+episodes-kind-anime-canon = Animekanon
+episodes-filter-all = Alla avsnitt
+episodes-filter-unwatched = Osedda
+episodes-filter-no-filler = Utan fyllnad
+episodes-showing-all = Visar alla avsnitt.
+episodes-showing-unwatched = Visar osedda avsnitt.
+episodes-showing-no-filler = Visar avsnitt utan fyllnad.
+episodes-dub-through = { -dubbed-cap } till avsnitt { $through }
+episodes-dub-complete = { -dubbed-cap }
+episodes-empty-filtered = Inget matchar filtret
+episodes-empty-filtered-hint = Filtret döljer alla avsnitt. Tryck { $key } för att ändra det.
+episodes-empty-no-source = Inga avsnitt än
+episodes-empty-no-source-hint = AniList listar inga avsnitt för den här titeln än, och ingen { -source } är klar. Tryck { $key } för att öppna skärmen för { -source-cap-pl }.
+episodes-empty-unaired = Inget har sänts än
+episodes-empty-unaired-hint = Avsnitt { $episode } sänds om { $span }.
+episodes-empty-none-listed = Inga avsnitt listade
+episodes-empty-none-listed-hint = { -source }n listade inga avsnitt för den här titeln. Tryck { $search } för att söka efter rätt matchning, eller { $pick } för att välja en annan { -source }.
+episodes-no-releases = Det finns inga { -release-pl } att välja mellan för det här avsnittet.
+episodes-add-source-to-download = Lägg till en { -source } innan du laddar ner. Tryck { $key } för att öppna skärmen för { -source-cap-pl }.
+episodes-mark-none-listed = Inga avsnitt är listade att markera.
+episodes-mark-nothing-before = Inget kommer före första avsnittet.
+episodes-mark-already-watched = Allt före avsnitt { $episode } är redan sett.
+episodes-marked-watched = { $count ->
+    [one] Markerade { $count } avsnitt som sett.
+   *[other] Markerade { $count } avsnitt som sett.
+ }
+episodes-range-invalid = Det gick inte att läsa intervallet. Använd ett avsnitt (4), ett intervall (1-12) eller allt från ett avsnitt och framåt (7-).
+episodes-range-empty = Inga avsnitt i intervallet. Prova ett annat.
+episodes-queueing = { $count ->
+    [one] Lägger ett avsnitt i kön för nedladdning.
+   *[other] Lägger { $count } avsnitt i kön för nedladdning.
+ }
+episodes-match-off-page = Öppna titelsidan för att rätta matchningen.
+episodes-match-nothing = Inget är valt att matcha om.
+episodes-matched = Matchad med { $title }.
+episodes-release-dual = { -subbed-cap } och { -dubbed }
+episodes-release-dub = { -dubbed-cap }
+episodes-release-current-pick = Nuvarande val

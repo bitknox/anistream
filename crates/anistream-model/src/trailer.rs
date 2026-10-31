@@ -412,6 +412,12 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
       player.loadVideoById({ videoId: id, startSeconds: offset });
     },
 
+    // What YouTube's frame has fetched so far, once: it answers `bytes:` and the count.
+    bytes: function () {
+      var frame = document.getElementById("player");
+      if (frame && frame.contentWindow) { frame.contentWindow.postMessage("anistream:bytes", "*"); }
+    },
+
     remaining: function () {
       if (!player || !player.getDuration || !player.getCurrentTime) { return -1; }
       var left = player.getDuration() - player.getCurrentTime();
@@ -519,7 +525,8 @@ pub const CHROME_MESSAGE: &str = "chrome:hidden";
 /// flashes on play and pause, the pause overlay and its more videos panel, and the top and bottom
 /// chrome, then says [`CHROME_MESSAGE`]. The page's crop still covers the top and bottom if
 /// YouTube renames what this matches, so a style that stops matching only lets the centre button
-/// show again.
+/// show again. It also counts what the frame's fetches bring, until [`BYTES_SCRIPT`] asks once,
+/// for the log of what the warm page used before the first hover.
 pub const CHROME_SCRIPT: &str = r#"(function () {
   if (window === window.top) { return; }
   if (!/(^|\.)youtube(-nocookie)?\.com$/.test(location.hostname)) { return; }
@@ -538,7 +545,38 @@ pub const CHROME_SCRIPT: &str = r#"(function () {
   ].join(", ") + " { display: none !important; }";
   (document.head || document.documentElement).appendChild(style);
   try { window.webkit.messageHandlers.anistream.postMessage("chrome:hidden"); } catch (e) {}
+  var bytes = 0;
+  var metering = true;
+  var fetched = window.fetch;
+  window.fetch = function () {
+    var answer = fetched.apply(this, arguments);
+    if (!metering) { return answer; }
+    return answer.then(function (response) {
+      try {
+        var reader = response.clone().body.getReader();
+        var read = function () {
+          reader.read().then(function (part) {
+            if (part.done) { return; }
+            if (!metering) { reader.cancel(); return; }
+            bytes += part.value.byteLength;
+            read();
+          }, function () {});
+        };
+        read();
+      } catch (e) {}
+      return response;
+    });
+  };
+  window.addEventListener("message", function (event) {
+    if (event.source !== window.parent || event.data !== "anistream:bytes" || !metering) { return; }
+    metering = false;
+    try { window.webkit.messageHandlers.anistream.postMessage("bytes:" + bytes); } catch (e) {}
+  });
 })();"#;
+
+/// The script that asks the preview's YouTube frame what its fetches have brought so far, once:
+/// the frame then says `bytes:` and the count, and stops counting.
+pub const BYTES_SCRIPT: &str = "window.trailer && window.trailer.bytes();";
 
 /// What the device says about itself with
 /// [`Command::DeviceState`](crate::command::Command::DeviceState), as the engine keeps it: the
@@ -752,8 +790,11 @@ mod tests {
         for blank in ["{LAYOUT}", "{VIDEO}", "{ORIGIN}", "{MUTE}", "{CONTROLS}"] {
             assert!(!page.contains(blank), "{blank}");
         }
-        // Nothing of the player's own page is touched: no style or script reaches into it.
-        assert!(!page.contains("contentDocument") && !page.contains("contentWindow"));
+        // The page never reaches into the player's own document; it only posts the frame the
+        // question CHROME_SCRIPT answers.
+        assert!(!page.contains("contentDocument"));
+        assert!(page.contains("frame.contentWindow.postMessage(\"anistream:bytes\", \"*\")"));
+        assert_eq!(page.matches("contentWindow").count(), 2, "the check and the post");
     }
 
     #[test]
@@ -841,6 +882,16 @@ mod tests {
         }
         assert!(CHROME_SCRIPT.contains(&format!("postMessage(\"{CHROME_MESSAGE}\")")));
         assert!(!CHROME_SCRIPT.contains(".ytp-caption"), "captions stay");
+        assert!(CHROME_SCRIPT.contains("postMessage(\"bytes:\" + bytes)"));
+        assert!(
+            CHROME_SCRIPT.contains("event.source !== window.parent"),
+            "only the app's page asks"
+        );
+        assert!(
+            super::page(None, EmbedStyle::Banner, &app(), "")
+                .unwrap()
+                .contains("bytes: function ()")
+        );
     }
 
     #[test]

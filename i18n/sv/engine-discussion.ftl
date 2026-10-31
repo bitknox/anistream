@@ -1,0 +1,9 @@
+discussion-age-now = nu
+discussion-age-minutes = { $minutes } min
+discussion-age-hours = { $hours } t
+discussion-age-days = { $days } d
+discussion-age-weeks = { $weeks } v
+discussion-age-years = { $years } år
+notice-comment-like-failed = Det gick inte att gilla kommentaren. Försök igen.
+notice-comment-delete-failed = Det gick inte att ta bort kommentaren. Försök igen.
+notice-discussion-sign-in = Logga in med AniList för att gilla och svara.

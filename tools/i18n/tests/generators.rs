@@ -14,9 +14,11 @@ use i18n_tool::{generate_all, stale, write};
 const LANGUAGES: &str = r#"source = "en"
 [language.en]
 name = "English"
+flag = "gb"
 stage = "released"
 [language.pl]
 name = "Polski"
+flag = "pl"
 stage = "beta"
 [language.da]
 name = "Dansk"
@@ -108,6 +110,8 @@ fn entry(source: &str, state: &str) -> Entry {
         state: state.to_owned(),
         by: "agent".into(),
         at: "2026-11-03".into(),
+        flags: Vec::new(),
+        back: String::new(),
     }
 }
 
@@ -201,8 +205,10 @@ fn only_shipped_translations_reach_a_catalogue() {
     // Danish ships drafts, so they are there, and the language is labelled as a draft.
     assert!(apple.contains("Et afsnit tilbage"));
     let swift = file(&files, "L.swift");
-    assert!(swift.contains("Language(tag: \"da\", name: \"Dansk\", draft: true)"));
-    assert!(swift.contains("Language(tag: \"pl\", name: \"Polski\", draft: true)"));
+    assert!(swift.contains("Language(tag: \"da\", name: \"Dansk\", flag: nil, draft: true)"));
+    assert!(
+        swift.contains("Language(tag: \"pl\", name: \"Polski\", flag: \"pl\", draft: true)")
+    );
     // The same filter applies on every platform.
     for suffix in ["values-pl/strings.xml", "pl/Resources.resw", "ftl/pl.ftl"] {
         let text = file(&files, suffix);
@@ -348,4 +354,124 @@ fn every_xml_output_parses_strictly_and_a_resw_is_a_resw() {
         }
     }
     assert!(xml >= 4, "expected strings.xml, locales_config.xml and .resw files, saw {xml}");
+}
+
+#[test]
+fn script_and_region_tags_land_where_each_platform_wants_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let put = |path: &str, text: &str| {
+        let full = root.join("i18n").join(path);
+        fs::create_dir_all(full.parent().unwrap()).unwrap();
+        fs::write(full, text).unwrap();
+    };
+    let tags = [
+        ("zh-Hans", "简体中文", "语言"),
+        ("zh-Hant", "繁體中文", "語言"),
+        ("es-419", "Español (Latinoamérica)", "Idioma"),
+        ("pt-BR", "Português (Brasil)", "Idioma"),
+        ("ru", "Русский", "Язык"),
+    ];
+    let mut langs = String::from(
+        "source = \"en\"\n[language.en]\nname = \"English\"\nstage = \"released\"\n",
+    );
+    for (tag, name, _) in tags {
+        langs.push_str(&format!(
+            "[language.{tag}]\nname = \"{name}\"\nstage = \"draft\"\ndrafts = \"ship\"\n"
+        ));
+    }
+    put("languages.toml", &langs);
+    put("en/terms.ftl", "-app-name = anistream\n");
+    put(
+        "en/ui.ftl",
+        "# @arg count: int\nleft = { $count ->\n    [one] One left\n   *[other] { $count } left\n }\nlanguage = Language\n",
+    );
+    for (tag, _, word) in tags {
+        put(&format!("{tag}/terms.ftl"), "-app-name = anistream\n");
+        let left = if tag == "ru" {
+            "left = { $count ->\n    [one] { $count } остался\n    [few] { $count } осталось\n    [many] { $count } осталось\n   *[other] { $count } осталось\n }\n"
+        } else if tag.starts_with("zh") {
+            "left = { $count ->\n   *[other] 还剩 { $count }\n }\n"
+        } else {
+            "left = { $count ->\n    [one] Queda { $count }\n    [many] Quedan { $count }\n   *[other] Quedan { $count }\n }\n"
+        };
+        put(&format!("{tag}/ui.ftl"), &format!("{left}language = {word}\n"));
+    }
+    let cat = Catalogue::load(root).unwrap();
+    let mut status = Status::new();
+    for m in &cat.source().messages {
+        status.insert(m.id.clone(), entry(&hash(m), "draft"));
+    }
+    for (tag, _, _) in tags {
+        let path = root.join("i18n/status").join(format!("{tag}.json"));
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, serde_json::to_string(&status).unwrap()).unwrap();
+    }
+    let files = generate_all(&cat, Mode::Release).unwrap();
+    let paths: Vec<&String> = files.keys().collect();
+    for want in [
+        "values-b+zh+Hans/strings.xml",
+        "values-b+zh+Hant/strings.xml",
+        "values-b+es+419/strings.xml",
+        "values-b+pt+BR/strings.xml",
+        "values-ru/strings.xml",
+        "Strings/zh-Hans/Resources.resw",
+        "Strings/es-419/Resources.resw",
+        "ftl/zh-Hans.ftl",
+        "ftl/pt-BR.ftl",
+    ] {
+        assert!(paths.iter().any(|p| p.ends_with(want)), "no {want} in {paths:#?}");
+    }
+    // Android's locale list and Apple's catalogue keep the BCP 47 tags as they are.
+    let config = file(&files, "locales_config.xml");
+    for tag in ["zh-Hans", "zh-Hant", "es-419", "pt-BR"] {
+        assert!(config.contains(&format!("android:name=\"{tag}\"")), "{tag}");
+    }
+    let apple = file(&files, "Localizable.xcstrings");
+    for (tag, _, word) in tags {
+        assert!(apple.contains(&format!("\"{tag}\"")), "{tag} key in the xcstrings");
+        assert!(apple.contains(word), "{word}");
+    }
+    // Plural categories follow the language, not the region or script.
+    let strings = file(&files, "values-ru/strings.xml");
+    assert!(strings.contains("quantity=\"few\"") && strings.contains("quantity=\"many\""));
+    assert!(!file(&files, "values-b+zh+Hans/strings.xml").contains("quantity=\"one\""));
+    // Windows picks the plural table by the language part only, once for the two Chinese scripts.
+    let windows = file(&files, "Strings.g.cs");
+    assert_eq!(windows.matches("case \"zh\":").count(), 1);
+    assert!(windows.contains("case \"es\":") && windows.contains("case \"pt\":"));
+}
+
+#[test]
+fn a_flag_that_is_not_bundled_is_refused() {
+    let dir = fixture();
+    let path = dir.path().join("i18n/languages.toml");
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replace("flag = \"pl\"", "flag = \"xx\"")).unwrap();
+    let err = Catalogue::load(dir.path()).unwrap_err().to_string();
+    assert!(err.contains("flag \"xx\""), "{err}");
+}
+
+#[test]
+fn the_flag_reaches_every_platform() {
+    let dir = fixture();
+    let cat = Catalogue::load(dir.path()).unwrap();
+    let files = generate_all(&cat, Mode::Release).unwrap();
+    let all: String = files.values().map(String::as_str).collect::<Vec<_>>().join("\n");
+    assert!(all.contains("Language(\"pl\", \"Polski\", \"pl\", true)"), "android");
+    assert!(all.contains("(\"pl\", \"Polski\", \"pl\", true)"), "windows");
+    assert!(all.contains("Locale { tag: \"pl\", name: \"Polski\", flag: Some(\"pl\")"), "rust");
+    assert!(all.contains("Language(\"da\", \"Dansk\", null, true)"), "no flag");
+}
+
+#[test]
+fn every_bundled_flag_has_its_image() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/flags");
+    for code in i18n_tool::catalogue::FLAGS {
+        for path in [format!("svg/{code}.svg"), format!("png/{code}.png")] {
+            assert!(root.join(&path).is_file(), "assets/flags/{path} is missing");
+        }
+    }
+    let svgs = std::fs::read_dir(root.join("svg")).unwrap().count();
+    assert_eq!(svgs, i18n_tool::catalogue::FLAGS.len(), "an image without a flag code");
 }

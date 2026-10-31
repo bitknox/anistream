@@ -43,6 +43,10 @@
 .state { color: var(--water); }
 .state-dot { background: var(--water); border-radius: 999px; min-width: 8px; min-height: 8px; }
 
+/* A language's flag in the picker: corners 2 and a hairline in the faint rule, for white flags. */
+.language-flag { border-radius: 2px; overflow: hidden; }
+.language-flag-edge { border-radius: 2px; border: 1px solid var(--faint-rule); }
+
 /* Show titles in Zen Kaku Gothic New, sized relative so they follow the text scale. */
 .show-title { font-family: "Zen Kaku Gothic New"; font-weight: 700; }
 .show-title.row { font-size: 1.07em; }

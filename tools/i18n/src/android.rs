@@ -175,13 +175,18 @@ fn kotlin(langs: &[Shipped]) -> String {
     out.push_str("    val languages: List<Language> = listOf(\n");
     for l in langs {
         out.push_str(&format!(
-            "        Language(\"{}\", \"{}\", {}),\n",
+            "        Language(\"{}\", \"{}\", {}, {}),\n",
             l.tag,
             c_escape(&l.name),
+            l.flag.as_ref().map_or("null".to_owned(), |f| format!("\"{f}\"")),
             l.draft
         ));
     }
-    out.push_str("    )\n}\n\n/** A language the build has text for; [name] is the language's name in itself. */\ndata class Language(val tag: String, val name: String, val draft: Boolean)\n");
+    out.push_str("    )\n}\n\n/**\n * A language the build has text for; [name] is the language's name in itself and [flag] the ISO code of\n * the flag shown beside it, [flagRes] that flag's image.\n */\ndata class Language(val tag: String, val name: String, val flag: String?, val draft: Boolean) {\n    val flagRes: Int?\n        get() = when (flag) {\n");
+    for code in crate::catalogue::FLAGS {
+        out.push_str(&format!("            \"{code}\" -> R.drawable.flag_{code}\n"));
+    }
+    out.push_str("            else -> null\n        }\n}\n");
     out
 }
 

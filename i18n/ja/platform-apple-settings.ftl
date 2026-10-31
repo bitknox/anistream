@@ -1,0 +1,112 @@
+settings-download-cellular = モバイルデータ通信でダウンロード
+settings-syncplay = Syncplayの{ -watch-party-pl }
+settings-syncplay-server = Syncplayサーバー
+settings-syncplay-room = Syncplayルーム
+settings-start-full-screen = フルスクリーンで起動
+settings-hook-command = コマンド
+settings-no-match = 一致する設定はありません。
+settings-results = 検索結果
+settings-upscaling-source-apple = 480p { -source }
+settings-upscaling-compare = 480pの{ -source }と{ $mode }を並べて表示しています。
+settings-upscaling-note-none = { -source }を、処理せずに表示サイズに合わせています。
+settings-advanced-none = 追加のオプションはありません。プレーヤーは{ -app-name }自身の設定で動作します。
+settings-aside-check-title = 接続の確認
+settings-aside-sources-apple = { -source-cap-pl }は上から順に試されます。作品ごとに、作品ページから専用の{ -source }を選ぶこともできます。
+settings-aside-advanced = ここでの設定は、アップスケールやナイトモードなど再生の設定を上書きする場合があります。ほとんどの方はこのパネルを使う必要はありません。
+settings-quality-detail = 「高」にすると、{ -source }が提供する最高の画質を選び、より多くの容量を使います。
+settings-merge-subtitles-detail = ファイルをどこへ移動しても、字幕はエピソードと一緒に残ります。
+settings-keep-seeding-detail-mac = シードを続けるダウンロードは、ダウンロード先のフォルダではなく{ -app-name }のキャッシュに保存されます。
+settings-keep-seeding-detail = シードを続けるダウンロードは、{ -app-name }のキャッシュに保存されます。
+settings-watched-downloads = 視聴済みのダウンロード
+settings-watched-one = { $title }の{ $episodes } · { $size }
+settings-watched-many = { $episodes } · { $size }
+settings-delete-watched-title = { $count ->
+   *[other] 視聴済みのダウンロードを{ $count }件削除しますか？
+ }
+settings-delete-watched-detail = この{ -device }からファイルが削除されます。まだ視聴していないエピソードは残ります。
+settings-folder-default = トレントのキャッシュに保存
+settings-storage-unwatched = 未視聴
+settings-storage-used = ダウンロードで{ $size }を使用しています。
+settings-storage-used-free = ダウンロードで{ $size }を使用しています。この{ -device }の空きは{ $free }です。
+settings-torrents-warn-note = 「警告のみ」を選ぶと、「保護なし」と同様に、まず確認を求めます。
+settings-source-count = { $count ->
+   *[other] { $count }件の{ -source-pl }
+ }
+settings-accounts-sync-note = 進捗とリストの変更は{ $tracker }に同期されます。{ -library-cap }とカレンダーの「マイリスト」には、{ $tracker }のリストが表示されます。
+settings-conflicts = { $count ->
+   *[other] { $count }件のタイトルが{ $tracker }と異なります
+ }
+settings-review = 確認
+settings-changes-waiting = { $count ->
+   *[other] 同期待ちの変更が{ $count }件あります
+ }
+settings-synced-just-now = たった今同期しました
+settings-synced-ago = { $ago }に同期しました
+settings-privacy-note = { -app-name }が送信する情報と、この{ -device }に残る情報
+settings-read-online = オンラインで読む
+settings-presence-note = リッチプレゼンスには、カバー画像、進捗バー、{ $tracker }での作品へのリンクが表示されます。Discordは{ $tracker }からカバー画像を直接取得します。タイトルを表示する設定が必要です。
+settings-presence-cover = カバー
+settings-presence-button = { $tracker }で見る
+settings-presence-nothing = アニメを視聴中
+settings-presence-episode-of = エピソード{ $episode }（全{ $total }話）
+settings-presence-episode = エピソード{ $episode }
+settings-presence-on = エピソードの再生中、Discordのプロフィールに以下が表示されます。
+settings-presence-off = オフです。オンにすると、エピソードの再生中にDiscordのプロフィールに以下が表示されます。
+settings-notify-permission = { -app-name }は、初めてオンにするときに通知の許可を求めます。
+settings-week-empty = 今後7日間、フォロー中の作品の放送はありません。
+settings-week-loading = 今週の放送を読み込んでいます…
+settings-system-app-mac = システム設定
+settings-system-app-ios = 設定
+settings-notify-not-allowed = { $settings }で{ -app-name }の通知が許可されていません
+settings-week-dub-one = { $show }は、{ -dubbed }の配信時に通知します。
+settings-week-dub-many = { $shows }は、{ -dubbed }の配信時に通知します。
+settings-week-off-one = { $show }は、作品ごとの設定でオフになっています。
+settings-week-off-many = { $shows }は、作品ごとの設定でオフになっています。
+settings-week-row-opens = 行を選ぶと、その作品の設定が開きます。
+settings-when-today = 今日 { $time }
+settings-when-tomorrow = 明日 { $time }
+settings-when-day = { $day } { $time }
+settings-week-row-label = { $title }、エピソード{ $episode }、{ $when }
+settings-week-row-hint = この作品の設定を開く
+settings-notify-explain-on = { $tracker }が伝える時刻に、「視聴中」リストの作品のエピソードが公開されると1件通知します。作品ごとの設定が優先されます。
+settings-notify-explain-off = オフです。作品ごとの設定でオンにした作品だけが通知されます。
+settings-preview-show = 視聴中の作品
+settings-preview-words = エピソード9が公開されました。
+settings-preview-label = 通知：{ $show }、{ $words }
+settings-show-notices-label = 新着エピソード：{ $value }
+settings-this-show = この作品
+settings-show-off-not-watching = オフ · 視聴していません
+settings-option-natural = ナチュラル · ArtCNN
+settings-option-sharp = シャープ · Anime4K
+settings-option-mpv = mpvの設定
+settings-option-until-ratio = シード比{ $ratio }まで
+settings-option-unlimited = 無制限
+settings-option-per-second = { $size }/秒
+settings-option-standard = 標準
+settings-option-higher = 高
+settings-option-adaptive = 控えめ
+settings-option-immersive = 没入
+settings-torrents-value-on = トレント：オン
+settings-torrents-value-off = トレント：オフ
+settings-seed-ratio-detail = この{ -device }でのベストエフォート。{ -app-name }を開いているあいだだけ動作します。
+settings-review-differences = { $count ->
+   *[other] { $count }件の差異を確認
+ }
+settings-swipe-resume = 再開
+settings-swipe-retry = 再試行
+settings-stores-value-updates = { $count } · { $updates }
+show-settings-row-label = { $label }：
+show-settings-unnamed-track = 名前のないトラック
+settings-title-line-signed-out = { $tracker }にサインインしていないあいだは英語
+settings-title-line-from-account = { $tracker }アカウントの設定による{ $language }
+settings-title-line-english = 英語タイトルがない場合はローマ字
+settings-title-line-romaji = 日本語のタイトルをローマ字で表示
+settings-title-note-signed-out = { $tracker }にサインインしていないあいだは、タイトルは英語で表示されます。
+settings-title-note-follows = { $tracker }アカウントの設定に従います。{ $then }
+settings-title-note-follows-set = { $tracker }アカウントの設定に従います。このアカウントは{ $language }に設定されています。{ $then }
+settings-title-note-kept = { $tracker }に英語タイトルがないため、{ $title }はローマ字のタイトルのままです。
+settings-title-note-english = { $tracker }の一覧にある英語タイトルを表示します。英語タイトルがない場合はローマ字です。
+settings-title-note-romaji = { $tracker }の一覧にある、日本語のタイトルをローマ字で表示します。
+settings-folder-choose = 選択
+settings-trailers-row = 予告編を再生
+settings-trailers-note-apple = 予告編はYouTubeからミュートで再生され、YouTubeにIPアドレスが送られます。低データモード、「視差効果を減らす」の設定、低電力モードでは再生されません。

@@ -85,16 +85,17 @@ fn locales(langs: &[Shipped]) -> String {
     out.push_str("\";\n\n/// The languages this build has text for, source first.\npub const LOCALES: &[Locale] = &[\n");
     for l in langs {
         out.push_str(&format!(
-            "    Locale {{ tag: \"{}\", name: \"{}\", draft: {}, ftl: include_str!(\"../ftl/{}.ftl\") }},\n",
+            "    Locale {{ tag: \"{}\", name: \"{}\", flag: {}, draft: {}, ftl: include_str!(\"../ftl/{}.ftl\") }},\n",
             l.tag,
             rust_escape(&l.name),
+            l.flag.as_ref().map_or("None".to_owned(), |f| format!("Some(\"{f}\")")),
             l.draft,
             l.tag
         ));
     }
     out.push_str("];\n\n");
     out.push_str(&format!(
-        "/// Accented, padded English for looking at layouts. Never in a release build unless `pseudo` is on.\n#[cfg(any(debug_assertions, feature = \"pseudo\"))]\npub const PSEUDO: Locale = Locale {{ tag: \"{PSEUDO_TAG}\", name: \"English (pseudo)\", draft: true, ftl: include_str!(\"../ftl/{PSEUDO_TAG}.ftl\") }};\n"
+        "/// Accented, padded English for looking at layouts. Never in a release build unless `pseudo` is on.\n#[cfg(any(debug_assertions, feature = \"pseudo\"))]\npub const PSEUDO: Locale = Locale {{ tag: \"{PSEUDO_TAG}\", name: \"English (pseudo)\", flag: None, draft: true, ftl: include_str!(\"../ftl/{PSEUDO_TAG}.ftl\") }};\n"
     ));
     out
 }

@@ -101,7 +101,7 @@ dependencies = [
 
 [[package]]
 name = "anistream"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-engine",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-cast"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-playback",
  "async-trait",
@@ -157,7 +157,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-core"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "directories",
@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-discord"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "serde_json",
  "tempfile",
@@ -183,7 +183,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-engine"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-cast",
  "anistream-core",
@@ -222,7 +222,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-ffi"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-engine",
@@ -251,7 +251,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-i18n"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "fluent-bundle",
  "unic-langid",
@@ -259,7 +259,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-meta"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-net",
@@ -276,7 +276,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-model"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-i18n",
@@ -286,7 +286,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-mpv-host"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-model",
  "find-msvc-tools",
@@ -298,7 +298,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-net"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "reqwest 0.13.1",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-party"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "rustls",
  "serde",
@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-playback"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "serde",
@@ -335,7 +335,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-player"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-net",
@@ -353,7 +353,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-plugin"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "aes 0.9.3",
  "anistream-core",
@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-plugin-store"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-store-core",
  "async-trait",
@@ -403,7 +403,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-providers"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -422,7 +422,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-remote"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-model",
@@ -442,7 +442,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-store"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "rusqlite",
@@ -455,7 +455,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-store-core"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -472,7 +472,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-store-server"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-plugin",
  "anistream-plugin-store",
@@ -486,7 +486,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-store-wasm"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-store-core",
  "async-trait",
@@ -498,7 +498,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-testkit"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -512,7 +512,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-track"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -532,7 +532,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-tui"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anistream-core",
  "anistream-i18n",
@@ -2994,7 +2994,7 @@ dependencies = [
 
 [[package]]
 name = "i18n-tool"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "clap",

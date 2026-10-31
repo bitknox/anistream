@@ -27,6 +27,8 @@ pub struct Locale {
     pub tag: &'static str,
     /// The language's name in itself, for the picker.
     pub name: &'static str,
+    /// The ISO code of the flag shown beside the name in the graphical apps. The terminal ignores it.
+    pub flag: Option<&'static str>,
     /// The text is a machine draft, or the language is not released: label it as a draft.
     pub draft: bool,
     pub(crate) ftl: &'static str,
@@ -67,19 +69,54 @@ pub fn negotiate<'a>(preferred: impl IntoIterator<Item = &'a str>) -> &'static s
         if want.is_empty() || want == "C" || want == "POSIX" {
             continue;
         }
-        if let Some(l) = have.iter().find(|l| l.tag.eq_ignore_ascii_case(&want)) {
-            return l.tag;
-        }
-        let lang = want.split('-').next().unwrap_or("");
-        // The pseudo-locale is chosen by its whole tag, never by English being the language.
-        if let Some(l) = have.iter().find(|l| {
-            l.tag != PSEUDO_TAG
-                && l.tag.split('-').next().is_some_and(|b| b.eq_ignore_ascii_case(lang))
-        }) {
-            return l.tag;
+        let tags: Vec<&'static str> = have.iter().map(|l| l.tag).collect();
+        if let Some(tag) = pick(&tags, &want) {
+            return tag;
         }
     }
     SOURCE
+}
+
+/// Chinese is written in two scripts, and a tag often names only a region (`zh-TW`, `zh_CN`).
+fn script(tag: &str) -> Option<&'static str> {
+    let parts: Vec<&str> = tag.split('-').collect();
+    if let Some(s) = parts
+        .iter()
+        .skip(1)
+        .find(|p| p.len() == 4 && p.chars().all(|c| c.is_ascii_alphabetic()))
+    {
+        return match s.to_ascii_lowercase().as_str() {
+            "hant" => Some("Hant"),
+            "hans" => Some("Hans"),
+            _ => None,
+        };
+    }
+    if parts[0].eq_ignore_ascii_case("zh") {
+        let traditional = parts
+            .iter()
+            .skip(1)
+            .any(|p| ["TW", "HK", "MO"].iter().any(|r| p.eq_ignore_ascii_case(r)));
+        return Some(if traditional { "Hant" } else { "Hans" });
+    }
+    None
+}
+
+/// The built-in tag that serves `want`: the same tag, else the same language (and script, for
+/// Chinese) in another region. The pseudo-locale is chosen by its whole tag only.
+fn pick(have: &[&'static str], want: &str) -> Option<&'static str> {
+    if let Some(t) = have.iter().find(|t| t.eq_ignore_ascii_case(want)) {
+        return Some(t);
+    }
+    let lang = want.split('-').next().unwrap_or("");
+    let same_language = |t: &&&'static str| {
+        **t != PSEUDO_TAG && t.split('-').next().is_some_and(|b| b.eq_ignore_ascii_case(lang))
+    };
+    let wanted = script(want);
+    have.iter()
+        .filter(same_language)
+        .find(|t| wanted.is_none() || script(t) == wanted)
+        .or_else(|| have.iter().find(same_language))
+        .copied()
 }
 
 /// The language to start in. In order: `ANISTREAM_LANG` (for trying a language or the
@@ -275,5 +312,25 @@ mod tests {
                 assert_ne!(loc.text(id, &[]), id, "{} lacks {id}", l.tag);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod negotiation_tests {
+    use super::pick;
+
+    #[test]
+    fn regions_and_scripts_find_the_closest_built_in_tag() {
+        let have = ["en", "es-419", "pt-BR", "zh-Hans", "zh-Hant", "sv"];
+        assert_eq!(pick(&have, "sv-SE"), Some("sv"));
+        assert_eq!(pick(&have, "es-ES"), Some("es-419"));
+        assert_eq!(pick(&have, "pt-PT"), Some("pt-BR"));
+        assert_eq!(pick(&have, "zh-CN"), Some("zh-Hans"));
+        assert_eq!(pick(&have, "zh"), Some("zh-Hans"));
+        assert_eq!(pick(&have, "zh-TW"), Some("zh-Hant"));
+        assert_eq!(pick(&have, "zh-HK"), Some("zh-Hant"));
+        assert_eq!(pick(&have, "zh-Hant-TW"), Some("zh-Hant"));
+        assert_eq!(pick(&have, "ZH-hans-SG"), Some("zh-Hans"));
+        assert_eq!(pick(&have, "fr"), None);
     }
 }

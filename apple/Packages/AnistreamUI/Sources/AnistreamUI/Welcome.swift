@@ -47,6 +47,7 @@ struct AiringToday: View {
                         Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
                     }
                     .frame(height: 28)
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .pointerHover()
@@ -133,6 +134,7 @@ struct ThisSeason: View {
                             Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
                         }
                         .frame(height: 28)
+                        .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
                     .pointerHover()

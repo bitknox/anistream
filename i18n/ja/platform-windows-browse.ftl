@@ -1,0 +1,36 @@
+continue-menu-resume = { -continue-cap }
+continue-loading = 視聴中の作品を読み込んでいます
+continue-sync-waiting = { $count ->
+   *[other] AniListに未同期の変更が{ $count }件あります
+ }
+calendar-day-empty = 放送なし
+calendar-week-range = { $start }～{ $end }
+calendar-time-estimate = 約{ $time }
+calendar-time-about = 約{ $time }
+calendar-episode-dubbed = E{ $episode }{ -dubbed }
+calendar-watched-line = { $title } · { $episode }
+calendar-watched-spoken = { $title }、{ $episode }、視聴済み
+library-list-count = { $list }（{ $count }）
+search-sort-name = 並び替え
+filter-picked-two = { $first }、{ $second }
+filter-picked-more = { $first } +{ $more }
+title-season-when = { $season } · { $when }
+episode-download-text = エピソード{ $episode }をダウンロード
+episode-download-failed-text = エピソード{ $episode }をダウンロードできませんでした。もう一度試してください。
+episode-number-text = エピソード{ $episode }
+episode-text-with-title = エピソード{ $episode } · { $title }
+episode-row-spoken = { $heading }、{ $line }
+episode-listed-by-anilist = AniListにのみ掲載されています。まだ再生できません。
+title-relation-format = { $relation } · { $format }
+title-episode-out-ago = E{ $episode } 公開 { $ago }
+title-next-airs = { -up-next }は{ $when }放送予定
+title-episode-download = ダウンロード
+title-download-menu = ダウンロード…
+title-show-settings-menu = 作品の設定…
+title-play-on-tv-tooltip = このエピソードをテレビで再生（{ -app-name }）
+title-list-status = リストのステータス
+download-range-title = エピソードをダウンロード
+download-range-from = 開始
+download-range-to = 終了
+download-range-quality-note = ダウンロードは「設定 › ダウンロード」の画質を使用します。
+calendar-today-tooltip = 今日（{ $keys }）

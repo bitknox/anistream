@@ -30,6 +30,7 @@ private fun FixtureScene.ffi(): FfiScene = when (this) {
     // With a file to stream, every episode streams it, as the Playing scene's do.
     FixtureScene.WATCHING -> if (fixtureMedia.isEmpty()) FfiScene.Watching else FfiScene.WatchingMedia(media = fixtureMedia)
     FixtureScene.SOURCELESS -> FfiScene.Sourceless
+    FixtureScene.UNSURE -> FfiScene.Unsure
     // What it streams is the player's business, which comes with A3: a path or URL on the device.
     FixtureScene.PLAYING -> FfiScene.Playing(media = fixtureMedia)
 }

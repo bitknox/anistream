@@ -100,3 +100,10 @@ pub fn trailer_chrome_script() -> String {
 pub fn trailer_chrome_message() -> String {
     trailer::CHROME_MESSAGE.to_owned()
 }
+
+/// What the warm page's YouTube frame has fetched so far, asked once: the frame answers `bytes:`
+/// and the count.
+#[uniffi::export]
+pub fn trailer_bytes_script() -> String {
+    trailer::BYTES_SCRIPT.to_owned()
+}

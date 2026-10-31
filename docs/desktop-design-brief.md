@@ -73,7 +73,7 @@ below is given at 100% scale and must reflow, not only grow, as scale and text s
 | | Windows | Linux |
 |---|---|---|
 | Minimum window | 500×420 epx (fits a quarter snap on a 1920×1080 display at 125%) | 360×360, the HIG's adaptive minimum |
-| Default window | 1280×800 | 1280×800 |
+| Default window | First launch: 80% of the display's work area, at least 1280×800, centred | The same |
 | Wide | Window from 1008 epx: NavigationView expanded, pane open at 240 | Window from 1000 sp: sidebar shown, 240 wide |
 | Medium | 641 to 1007 epx: pane compact, a 48 epx icon rail | 600 to 999 sp: sidebar shown, 220 wide; inner splits collapse |
 | Narrow | Under 641 epx: pane minimal, behind the menu button in the title bar | Under 600 sp: sidebar collapses to an overlay behind a sidebar button |

@@ -102,6 +102,8 @@ final class HoverCards {
     @ObservationIgnored private var ticker: Task<Void, Never>?
     @ObservationIgnored private var inside = false
     @ObservationIgnored private var sessions = 0
+    /// The last scroll, key press or close: what the warm-up waits a still moment after.
+    @ObservationIgnored private var stirred = ContinuousClock.now
     @ObservationIgnored private let start = ContinuousClock.now
 
     private var now: Double {
@@ -126,7 +128,18 @@ final class HoverCards {
 
     /// A scroll, a key press, the window losing key status: the card closes at once.
     func dismiss(holding: Bool = true) {
+        stirred = .now
         apply(intent.dismiss(holding: holding))
+    }
+
+    /// Wait for a still moment: no card open or closing, and nothing scrolled for half a second.
+    /// False when cancelled.
+    func still() async -> Bool {
+        while card != nil || ContinuousClock.now - stirred < .milliseconds(500) {
+            try? await Task.sleep(for: .milliseconds(200))
+            if Task.isCancelled { return false }
+        }
+        return !Task.isCancelled
     }
 
     private func run() {
@@ -224,6 +237,15 @@ private struct HoverCardLayer: ViewModifier {
                                       area: visible, origin: proxy.frame(in: .global).origin)
                     ZStack(alignment: .topLeading) {
                         Color.clear
+                        if let page = trailer.priming {
+                            // The warm page while it is primed: in the window, so it plays, and
+                            // never seen or heard (muted, and transparent until a card shows it).
+                            TrailerWebView(view: page.webView)
+                                .frame(width: HoverCardSize.width, height: HoverCardSize.band)
+                                .opacity(0)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
                         if let card = cards.card, let entry = store.titles[card.id] {
                             HoverCardView(card: card, entry: entry, cards: cards, trailer: trailer, reduceMotion: reduceMotion)
                                 .id(card.session)
@@ -241,10 +263,16 @@ private struct HoverCardLayer: ViewModifier {
                     }
                     .task(id: !place.covers.isEmpty && store.hoverCardsOn && store.trailersMayAutoplay) {
                         // The warm player loads once a grid that can show cards is here (decision 3),
-                        // and only while cards are on and trailers may play.
-                        if !place.covers.isEmpty, store.hoverCardsOn, store.trailersMayAutoplay {
-                            trailer.prewarm(subtitles: store.settings.value(.subtitles) ?? "")
-                        }
+                        // and only while cards are on and trailers may play: 2 s after, so the first
+                        // screen has drawn and the engine has started, and at a still moment, as
+                        // the run's first web view starts WebKit's processes on the main thread.
+                        guard !place.covers.isEmpty, store.hoverCardsOn, store.trailersMayAutoplay else { return }
+                        try? await Task.sleep(for: .seconds(2))
+                        guard await cards.still(), store.hoverCardsOn, store.trailersMayAutoplay else { return }
+                        let first = cards.layout.covers.lazy
+                            .compactMap { store.titles[$0.id] }
+                            .first { store.trailerMayAutoplay($0) }?.trailer
+                        await trailer.warmUp(subtitles: store.settings.value(.subtitles) ?? "", first: first)
                     }
                     .task(id: place.covers.first?.id) {
                         guard place.covers.first != nil else { return }

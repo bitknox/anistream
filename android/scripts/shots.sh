@@ -4,7 +4,7 @@
 #   android/scripts/shots.sh <phone|phone-37|tablet|fold> [shot…]
 #
 # A shot is a scene, and optionally a screen: watching (the default), sourceless (watching with no
-# source set up) or fresh, the fixtures flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
+# source set up), unsure (a source unsure of the match) or fresh, the fixtures flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
 # colon a section (continue, calendar, seasonal, library, search) or key=value, with more joined by
 # +: watched=<id>:<episodes> marks episodes watched as the shot starts, title=<id> opens a title
 # page, query=<words> searches, genre=<name> browses a genre on Search, sheet=filters opens
@@ -29,13 +29,15 @@
 # ANISTREAM_SHOTS_LOCALE=en-XA takes the shots in that app language, to look for clipped or
 # unaccented text.
 #
+# ANISTREAM_SHOTS_FONT_SCALE=2.0 sets the system's font size for the run (back to 1.0 after).
+#
 # The status bar is in demo mode at 19:30, and the system dark. The app says ANISTREAM_READY in the
 # log once its screens have what they asked for, and the shot is taken then.
 set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 usage() {
-  echo "usage: android/scripts/shots.sh <phone|phone-37|tablet|fold> [<watching|sourceless|fresh|app>[:<section|key=value>[+…]]]…" >&2
+  echo "usage: android/scripts/shots.sh <phone|phone-37|tablet|fold> [<watching|sourceless|fresh|unsure|app>[:<section|key=value>[+…]]]…" >&2
   exit 2
 }
 
@@ -52,7 +54,7 @@ shift
 shots=("$@")
 (( ${#shots[@]} )) || shots=(watching)
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | sourceless | fresh | app) ;; *) usage ;; esac
+  case "${shot%%:*}" in watching | sourceless | fresh | unsure | app) ;; *) usage ;; esac
 done
 
 android="$(cd "$(dirname "$0")/.." && pwd)"
@@ -185,6 +187,7 @@ for shot in "${shots[@]}"; do
   shell pm clear "$package" >/dev/null
   # A pseudo-locale (en-XA, ar-XB) or any language tag for the app alone; clearing forgets it.
   [[ -z "${ANISTREAM_SHOTS_LOCALE:-}" ]] || shell cmd locale set-app-locales "$package" --locales "$ANISTREAM_SHOTS_LOCALE" >/dev/null
+  [[ -z "${ANISTREAM_SHOTS_FONT_SCALE:-}" ]] || shell settings put system font_scale "$ANISTREAM_SHOTS_FONT_SCALE"
   "$adb" -s "$serial" logcat -c
   shell am start -W -n "$package/tv.anistream.app.MainActivity" "${args[@]}" >/dev/null
   # This launch's marker, by its process, never one an earlier shot left in the log.
@@ -204,4 +207,5 @@ for shot in "${shots[@]}"; do
   echo "shots.sh: wrote $file"
   shell am force-stop "$package"
 done
+[[ -z "${ANISTREAM_SHOTS_FONT_SCALE:-}" ]] || shell settings put system font_scale 1.0
 demo exit

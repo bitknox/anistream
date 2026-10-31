@@ -16,7 +16,7 @@ let package = Package(
     targets: [
         .target(
             name: "AnistreamStrings",
-            resources: [.process("Localizable.xcstrings")]
+            resources: [.process("Localizable.xcstrings"), .process("Flags")]
         ),
         .testTarget(name: "AnistreamStringsTests", dependencies: ["AnistreamStrings"]),
     ]

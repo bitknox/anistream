@@ -1,0 +1,11 @@
+about-title = 概要
+about-title-app = { -app-name }について
+about-version = バージョン { $version }
+about-licence = MITライセンスで公開されています。
+about-acknowledgements = 謝辞
+about-licences = ライセンス
+about-website = ウェブサイト
+about-report-bug = 不具合を報告
+about-report-bug-detail = GitHubで不具合報告を開きます（サインインが必要です）。バージョンと最後のエラーを含みます。アドレス、ファイルパス、タイトルは含まれません。
+about-artwork = 一部のアートワークはCreative Commons BY-NC 4.0のもとで提供されています。
+about-font-licence = SIL Open Font License 1.1 に基づいてライセンスされています。

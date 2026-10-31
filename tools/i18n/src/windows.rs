@@ -267,12 +267,13 @@ fn class(langs: &[Shipped]) -> Result<String> {
         }
     }
     out.push_str("    /// <summary>The languages this build has text for, source first. Draft ones carry the draft label.</summary>\n");
-    out.push_str("    public static readonly IReadOnlyList<(string Tag, string Name, bool Draft)> Languages = new (string, string, bool)[]\n    {\n");
+    out.push_str("    public static readonly IReadOnlyList<(string Tag, string Name, string? Flag, bool Draft)> Languages = new (string, string, string?, bool)[]\n    {\n");
     for l in langs {
         out.push_str(&format!(
-            "        (\"{}\", \"{}\", {}),\n",
+            "        (\"{}\", \"{}\", {}, {}),\n",
             l.tag,
             c_escape(&l.name),
+            l.flag.as_ref().map_or("null".to_owned(), |f| format!("\"{f}\"")),
             if l.draft { "true" } else { "false" }
         ));
     }

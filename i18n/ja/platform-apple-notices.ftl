@@ -1,0 +1,10 @@
+notice-out = 第{ $episode }話が公開されました。
+notice-out-dubbed = 第{ $episode }話が公開されました（{ -dubbed }）。
+notice-out-behind = 第{ $episode }話が公開されました。{ -up-next-cap }は第{ $next }話です。
+notice-out-dubbed-behind = 第{ $episode }話が公開されました（{ -dubbed }）。{ -up-next-cap }は第{ $next }話です。
+notice-hidden-preview = 新しいエピソード
+notice-summary = ほか%u件の新しいエピソード
+notice-dismiss = 消去
+accounts-code-expired-detail = このコードの有効期限が切れました。{ $tracker }にサインインするには、新しいコードを取得してください。
+list-refresh-failed = 更新できませんでした。読み込み済みの内容を表示しています。
+sign-in-failed = { $tracker }にサインインできませんでした。もう一度お試しください。
