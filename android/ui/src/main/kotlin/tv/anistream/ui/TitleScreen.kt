@@ -105,6 +105,7 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.store.MatchWords
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.LinkedTitle
@@ -1133,6 +1134,16 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
                         showSources = true
                     },
                 )
+                if (store.match.canFix(store.providers.rows.collectAsStateWithLifecycle().value)) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.match_fix)) },
+                        leadingIcon = { Icon(Icons.Search, null) },
+                        onClick = {
+                            more = false
+                            store.match.open(entry.id, fromMenu = true)
+                        },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.continue_hide)) },
                     leadingIcon = { Icon(Icons.HideRow, null) },
@@ -1173,8 +1184,11 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
     val store = LocalAppStore.current
     val action = titleAction(entry)
     val colors = MaterialTheme.colorScheme
+    val asking = store.match.state.collectAsStateWithLifecycle().value.asks(entry.id)
     Column(Modifier.padding(horizontal = 16.dp).padding(top = 16.dp)) {
-        if (action.playable && unlisted) {
+        if (action.playable && asking) {
+            ChooseMatchButton(entry.id, Modifier.fillMaxWidth().heightIn(min = 56.dp))
+        } else if (action.playable && unlisted) {
             AddSourceButton(Modifier.fillMaxWidth().heightIn(min = 56.dp))
         } else if (action.playable) {
             Button(
@@ -1232,7 +1246,33 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                 }
             }
         }
+        if (asking) MatchUncertainLine(entry.id, Modifier.padding(top = 12.dp))
     }
+}
+
+/**
+ * In the amber action's place when a source could not choose between its titles: the question
+ * the match sheet answers. Amber, as Play is, since it is the one thing to do on the page.
+ */
+@Composable
+internal fun ChooseMatchButton(id: AnilistId, modifier: Modifier = Modifier) {
+    val store = LocalAppStore.current
+    Button(onClick = { store.match.open(id, fromMenu = false) }, modifier = modifier, contentPadding = PaddingValues(horizontal = 24.dp)) {
+        Text(stringResource(R.string.match_choose), style = MaterialTheme.typography.titleMedium, maxLines = 1)
+    }
+}
+
+/** Why Play is not there: one quiet line, how many titles the source lists that could be this one. */
+@Composable
+internal fun MatchUncertainLine(id: AnilistId, modifier: Modifier = Modifier) {
+    val store = LocalAppStore.current
+    val asked = store.match.state.collectAsStateWithLifecycle().value.asked[id] ?: return
+    Text(
+        MatchWords.uncertain(LocalContext.current, asked),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -1967,8 +2007,11 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
     val store = LocalAppStore.current
     val action = titleAction(entry)
     var open by remember { mutableStateOf(false) }
+    val asking = store.match.state.collectAsStateWithLifecycle().value.asks(entry.id)
     Row(modifier.heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (action.playable && unlisted) {
+        if (action.playable && asking) {
+            ChooseMatchButton(entry.id, Modifier.heightIn(min = 56.dp))
+        } else if (action.playable && unlisted) {
             AddSourceButton(Modifier.heightIn(min = 56.dp))
         } else if (action.playable) {
             Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.heightIn(min = 56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {

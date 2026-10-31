@@ -356,6 +356,7 @@ fun AppRoot(
             }
         }
         if (firstLaunch) FirstLaunch(onCover = { covered = it })
+        MatchPickerHost()
         EngineDown()
     }
 }

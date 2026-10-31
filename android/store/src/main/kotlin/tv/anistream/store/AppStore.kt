@@ -28,6 +28,8 @@ import tv.anistream.i18n.Strings
 import tv.anistream.engine.ffi.trailerMayAutoplay as engineTrailerMayAutoplay
 import tv.anistream.engine.ffi.trailerWatchUrl as engineTrailerWatchUrl
 import tv.anistream.engine.model.Entry as EngineEntry
+import tv.anistream.engine.model.MatchCandidate
+import tv.anistream.engine.model.MatchQuestion
 import tv.anistream.engine.model.Notice as EngineNotice
 import tv.anistream.engine.model.Trailer as EngineTrailer
 import tv.anistream.engine.ffi.FfiException
@@ -121,6 +123,9 @@ class AppStore(
 
     /** The source picker's options per title. */
     val sourceChoices = SourceChoiceModel()
+
+    /** The match sheet's question, search and pick per title. */
+    val match = MatchPickerModel()
     val episodeFolds = EpisodeFolds()
     val coming = ComingModel()
 
@@ -1005,7 +1010,11 @@ class AppStore(
 
             is Event.Connectivity -> _offline.value = event.offline
             is Event.Autoplay -> _autoplay.value = event.v1.trailers
-            is Event.Toast -> notices.post(event.v1)
+            is Event.Toast -> {
+                // The page says an uncertain match in its own line, so it is not said twice.
+                if (event.v1.msg !is tv.anistream.engine.model.Msg.NoticeMatchUncertain) notices.post(event.v1)
+            }
+            is Event.MatchChoices, is Event.MatchSearchFailed, is Event.MatchFixFailed, is Event.TitleMatch -> applyMatch(event)
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)
@@ -1055,6 +1064,52 @@ class AppStore(
             is Event.PlayerStats -> onPlayback?.invoke(event)
 
             // Everything else is said in the events above, or has no screen yet.
+            else -> {}
+        }
+    }
+
+    // Fixing a source match: the commands the match sheet sends, and the engine's answers to them.
+
+    /**
+     * Search the title's source for [query], as the sheet's field does on Search. [providerId]
+     * names the source; `null` searches the sources in order.
+     */
+    fun searchMatch(id: AnilistId, query: String, providerId: String?) {
+        val typed = query.trim()
+        if (typed.isEmpty()) return
+        match.searching(id, typed)
+        send(Command.ManualSearch(id, typed, providerId))
+    }
+
+    /** Match [id] to [candidate] on [providerId]'s source. The sheet closes when the episodes come. */
+    fun pickMatch(id: AnilistId, providerId: String, source: String, candidate: MatchCandidate) {
+        match.picking(id, candidate.key, candidate.title, source)
+        send(Command.FixMatch(id, providerId, candidate.key, candidate.title))
+    }
+
+    /** Forget the person's choice for [id] and let the engine match it again. */
+    fun matchAutomatically(id: AnilistId) {
+        match.cleared(id)
+        notices.post(EngineNotice(kind = NoticeKind.INFO, text = "", hint = null), Strings::matchCleared)
+        send(Command.ClearMatch(id))
+    }
+
+    private fun applyMatch(event: Event) {
+        when (event) {
+            is Event.MatchChoices -> when (val answers = event.answers) {
+                MatchQuestion.Ladder -> match.asked(event.id, event.providerId, event.source, event.candidates)
+                is MatchQuestion.Search -> match.found(event.id, answers.query, event.providerId, event.source, event.candidates)
+            }
+            is Event.MatchSearchFailed -> match.searchFailed(event.id, event.query, event.reason)
+            is Event.MatchFixFailed -> match.fixFailed(event.id, event.reason)
+            is Event.TitleMatch -> {
+                val before = match.state.value.settled
+                match.matched(event.id, event.current)
+                val settled = match.state.value.settled
+                if (settled != null && settled != before) {
+                    notices.post(EngineNotice(kind = NoticeKind.INFO, text = "", hint = null)) { Strings.matchPicked(it, settled.title, settled.source) }
+                }
+            }
             else -> {}
         }
     }
