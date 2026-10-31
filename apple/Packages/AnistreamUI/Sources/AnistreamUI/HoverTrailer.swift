@@ -2,6 +2,7 @@
 
 #if os(macOS)
 import AnistreamKit
+import AnistreamStore
 import Foundation
 import Observation
 
@@ -29,10 +30,46 @@ final class HoverTrailer {
     /// Whether the player is drawing captions: they follow the sound.
     var captions: Bool { visit.captions }
 
-    /// Load the player once, with no title, as a grid that can show cards appears: the pool's
-    /// warm page, which then only switches video.
-    func prewarm(subtitles: String) {
-        TrailerPool.shared.prewarm(subtitles: subtitles)
+    /// The warm page while it is primed: hosted unseen by the hover layer until it plays.
+    private(set) var priming: TrailerPage?
+    @ObservationIgnored private var primed = false
+    @ObservationIgnored private var primeTimeout: Task<Void, Never>?
+
+    /// Load the player once a run, with no title, then prime it with `first`, the first cover on
+    /// screen with a trailer: its video loads and plays a moment, hidden and muted, and the page
+    /// goes back to the pool paused. The first hover then starts as fast as later ones, which
+    /// it does not on a page that has played nothing. The caller picks a still moment.
+    func warmUp(subtitles: String, first: Trailer?) async {
+        await TrailerPool.shared.prewarm(subtitles: subtitles)
+        guard !primed, id == nil, priming == nil, let first else { return }
+        primed = true
+        guard let page = TrailerPool.shared.takeWarm(first, subtitles: subtitles) else { return }
+        let began = ContinuousClock.now
+        page.hear = { [weak self] text in
+            let word = text.trimmingCharacters(in: .whitespaces)
+            if word == "playing" || word.hasPrefix("error:") { // i18n-skip: the page's words
+                AppLog.debug("trailer", "primed with \(first.id): \(word) after \(AppLog.ms(since: began)) ms")
+                self?.endPrime()
+            }
+        }
+        priming = page
+        primeTimeout = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled else { return }
+            AppLog.debug("trailer", "priming with \(first.id) did not play in 8 s")
+            self?.endPrime()
+        }
+    }
+
+    /// The priming is over, or a hover wants the page: it goes back to the pool, paused, after
+    /// saying what it fetched.
+    private func endPrime() {
+        primeTimeout?.cancel()
+        guard let page = priming else { return }
+        priming = nil
+        page.hear = nil
+        page.run(trailerBytesScript())
+        TrailerPool.shared.give(page)
     }
 
     /// The pointer has slowed on `entry`'s cover, 300 ms before its card opens: the warm page
@@ -74,6 +111,7 @@ final class HoverTrailer {
 
     private func start(_ id: AnilistId, _ trailer: Trailer, subtitles: String, held: Bool) {
         stop()
+        endPrime()
         self.id = id
         let visit = TrailerVisit(loadTimeout: Self.giveUp)
         self.visit = visit
