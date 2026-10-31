@@ -10,10 +10,12 @@ import Testing
 private final class FakeSurface: TrailerSurface {
     var controls: [TrailerControl] = []
     var released = false
+    var gaveUp: [Bool] = []
     var signal: (@MainActor (TrailerSignal) -> Void)?
 
     func control(_ control: TrailerControl) { controls.append(control) }
     func tearDown() { released = true }
+    func gaveUp(after: Duration, started: Bool) { gaveUp.append(started) }
 }
 
 /// A sound preference of the test's own, in defaults no other test or the app reads.
@@ -27,9 +29,10 @@ private func sound() -> TrailerSound {
 
 @MainActor
 private func visit(
-    load: Duration = .seconds(5), fade: Duration = .milliseconds(30), sound: TrailerSound = sound()
+    load: Duration = .seconds(5), settle: Duration = .seconds(5), fade: Duration = .milliseconds(30),
+    sound: TrailerSound = sound()
 ) -> (TrailerVisit, FakeSurface) {
-    let visit = TrailerVisit(loadTimeout: load, fade: fade, sound: sound)
+    let visit = TrailerVisit(loadTimeout: load, settleTimeout: settle, fade: fade, sound: sound)
     let surface = FakeSurface()
     visit.begin { signal in
         surface.signal = signal
@@ -96,6 +99,29 @@ struct TrailerVisitTests {
         #expect(!visit.live)
         #expect(!visit.shown)
         #expect(surface.released)
+        #expect(surface.gaveUp == [false], "said in the log, as never started")
+    }
+
+    @Test func aStartedTrailerIsWaitedForPastTheLoadTimeout() async throws {
+        // The hover card's 4 s is to the first moving frame; the page then waits for YouTube's
+        // chrome to fade before it says playing, which can be past it.
+        let (visit, surface) = visit(load: .milliseconds(60), settle: .seconds(5))
+        surface.signal?(.started)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(visit.live, "started, so not given up on")
+        #expect(!visit.shown, "still under the art")
+        surface.signal?(.playing)
+        #expect(visit.shown)
+        #expect(surface.gaveUp.isEmpty)
+    }
+
+    @Test func aStartedTrailerThatNeverComesOutIsGivenUpAndSaid() async throws {
+        let (visit, surface) = visit(load: .seconds(5), settle: .milliseconds(40))
+        surface.signal?(.started)
+        try await until { !visit.live }
+        #expect(!visit.shown)
+        #expect(surface.released)
+        #expect(surface.gaveUp == [true])
     }
 
     @Test func anErrorLetsGoAtOnce() {
@@ -104,6 +130,7 @@ struct TrailerVisitTests {
         #expect(!visit.live)
         #expect(surface.released)
         #expect(visit.failure == 150)
+        #expect(surface.gaveUp.isEmpty, "the error is its own log line")
     }
 
     @Test func theArtReturnsBeforeTheEndAndTheViewIsReleasedUnderIt() async throws {
