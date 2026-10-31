@@ -1,6 +1,6 @@
 ---
 name: ci-triage
-description: Find why an anistream CI run or release failed without reading whole logs, and check that a release published. Use when a PR check, the Release workflow or a store image fails.
+description: Find why an anistream CI run, beta release or promotion failed without reading whole logs, and check that a beta published. Use when a PR check, the Release or Promote workflow or a store image fails.
 ---
 
 # CI triage
@@ -33,10 +33,23 @@ gh api repos/bitknox/anistream/actions/jobs/<job>/logs \
 - **Runners flooded:** many Dependabot PRs at once queue main's release behind them;
   `gh run cancel` their runs.
 
-## Re-run and confirm a release
+## Re-run and confirm a beta
 
 - Re-run only failed jobs: `gh run rerun <run> --failed`.
-- After a merge to main:
-  `gh run list --commit <sha> --workflow Release --json status,conclusion`, then
-  `gh release view <tag> --json assets -q '.assets|length'` (31 files, including `appcast.xml`
-  and `sidestore.json`).
+- After a merge to main, confirm the beta pre-release published:
+
+```bash
+gh run list --commit <sha> --workflow Release --json status,conclusion
+gh release view <tag> --json isPrerelease,assets -q '{pre: .isPrerelease, files: (.assets|length)}'
+# a beta: pre true, 31 files, including appcast.xml and sidestore.json
+gh run list --workflow Promote --limit 1 --json conclusion,displayTitle
+gh api repos/bitknox/anistream/releases/latest -q .tag_name     # the stable
+```
+
+## Promote failed
+
+Read the run's notice first. A held, too young or missing beta is a notice and a green run, not a
+failure. A run waiting for approval is waiting for Johan. A real failure names its step: the
+checks at the end say which of `releases/latest`, the appcast, `sidestore.json` or the image tag
+did not match. Clearing the pre-release flag is the last change, so Johan can run a failed
+promotion again with the same tag if it failed before that. Never dispatch Promote yourself.

@@ -129,8 +129,9 @@ docker build -f deploy/container/Dockerfile -t anistream-store .
 
 ### For maintainers
 
-The image is published with each release, which every push to main makes (see How releases work
-in `packaging/README.md`), so the templates above work once there is a release. GHCR makes a new
+The image is published with each beta, which every push to main makes (see How releases work
+in `packaging/README.md`), so the templates above work once there is a release. Betas are tagged
+`beta`, and the stable release adds `latest`. GHCR makes a new
 package private: after the first publish, open the package's
 settings on GitHub (Packages, anistream-store, Package settings) and change its visibility to
 public once, or the platforms cannot pull it.

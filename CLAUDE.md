@@ -51,10 +51,16 @@ Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`, `webs
   train waits for Johan to try local Mac and Android builds of it before it merges.
 - main requires the `CI passed` check. `gh pr merge --auto --merge` only after confirming that
   protection; never `gh pr merge` without `--auto`.
-- Every push to main publishes a release by itself. The merge train sets the version in
-  `Cargo.toml` (minor if it merges a feat/* branch, else patch; `packaging/next-version.sh`
-  and a PR check enforce it), except pushes that only touch `website/**`, `docs/**`, top-level
-  `*.md`, `**/CLAUDE.md` or `.claude/**`. After a merge, confirm the Release run actually published.
+- Every push to main publishes a beta by itself, a GitHub pre-release. The merge train sets the
+  version in `Cargo.toml` (minor if it merges a feat/* branch, else patch;
+  `packaging/next-version.sh` and a PR check enforce it), except pushes that only touch
+  `website/**`, `docs/**`, top-level `*.md`, `**/CLAUDE.md` or `.claude/**`. After a merge,
+  confirm the beta pre-release published (the Release run succeeded and the pre-release has all
+  its files).
+- Stable comes from the Promote workflow, weekly on Tuesday at 09:00 Copenhagen time or by
+  dispatch for a fix release. Johan approves every promotion in the `stable-release` environment.
+  Never dispatch Promote unless Johan says to in so many words. Promote checks itself; look at it
+  only when asked or when it failed.
 - Always compile and run the touched area's tests locally before pushing (`local-checks`).
 
 ## Keeping token use down
