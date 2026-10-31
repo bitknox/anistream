@@ -1,0 +1,13 @@
+updates-preparing = Preparazione dell'aggiornamento
+updates-downloading-bytes = Scaricamento di { $done }
+updates-downloading-bytes-of = Scaricamento di { $done } su { $total }
+updates-restarting = Riavvio per completare l'aggiornamento
+updates-did-not-finish = L'aggiornamento non è stato completato. Riprova.
+updates-could-not-check = Impossibile controllare gli aggiornamenti. Riprova più tardi.
+updates-in-sidestore = Aggiornamento in SideStore
+updates-release-page = Pagina della { -release }
+updates-release-notes = Novità
+updates-whats-new-in = Novità della { -release } { $version }
+updates-installer-not-ready = Il programma di aggiornamento non è ancora pronto. Riprova tra poco.
+updates-feed-missing = Il feed degli aggiornamenti non contiene ancora questa { -release }.
+updates-fixtures-no-install = L'app Fixtures non installa aggiornamenti.

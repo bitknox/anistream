@@ -134,11 +134,7 @@ fn visible(parts: &[Part], terms: &crate::catalogue::Terms) -> String {
 /// `@only tui`) counts terminal cells, where full-width East Asian characters take two; others
 /// count characters.
 fn measure(text: &str, cells: bool) -> usize {
-    if cells {
-        unicode_width::UnicodeWidthStr::width(text)
-    } else {
-        text.chars().count()
-    }
+    if cells { unicode_width::UnicodeWidthStr::width(text) } else { text.chars().count() }
 }
 
 fn reaches_tui(src: &Message) -> bool {
@@ -297,10 +293,7 @@ impl<'a> LangLint<'a> {
                     ));
                 }
             } else if len > max {
-                out.push((
-                    Severity::Error,
-                    format!("is {len} {unit}, over its @max {max}"),
-                ));
+                out.push((Severity::Error, format!("is {len} {unit}, over its @max {max}")));
             }
         }
         out
@@ -531,7 +524,8 @@ mod tests {
             ],
         );
         let cat = Catalogue::load(dir.path()).unwrap();
-        let found: Vec<String> = run(&cat).unwrap().into_iter().map(|f| f.to_string()).collect();
+        let found: Vec<String> =
+            run(&cat).unwrap().into_iter().map(|f| f.to_string()).collect();
         let joined = found.join("\n");
         assert!(joined.contains("ja/shared: is 12 cells"), "{joined}");
         assert!(joined.contains("ja/tui: is 12 cells"), "{joined}");

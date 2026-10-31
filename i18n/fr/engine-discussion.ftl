@@ -1,0 +1,9 @@
+discussion-age-now = À l’instant
+discussion-age-minutes = { $minutes } min
+discussion-age-hours = { $hours } h
+discussion-age-days = { $days } j
+discussion-age-weeks = { $weeks } sem
+discussion-age-years = { $years } ans
+notice-comment-like-failed = Impossible d’aimer le commentaire. Réessayez.
+notice-comment-delete-failed = Impossible de supprimer le commentaire. Réessayez.
+notice-discussion-sign-in = Connectez-vous à AniList pour aimer et répondre.

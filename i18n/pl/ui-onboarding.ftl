@@ -1,0 +1,11 @@
+onboarding-welcome = Witaj
+onboarding-welcome-to = Witaj w { -app-name }
+onboarding-tagline = Śledź anime i odtwarzaj je, wybierając { -source-pl }.
+onboarding-continue = Dalej
+onboarding-skip = Pomiń
+onboarding-skip-for-now = Pomiń na razie
+onboarding-not-now = Nie teraz
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl } to { -plugin-pl }, a { -plugin-store-pl } udostępniają je na zaproszenie.
+onboarding-join = Dołącz
+onboarding-invite-hint = Link zaproszenia

@@ -1,0 +1,13 @@
+cast-episode = Episodio { $episode }
+cast-episode-titled = Episodio { $episode } · { $title }
+notice-cast-video-codec = Il TV non riesce a riprodurre questo video ({ $codec }). Prova un'altra { -source }.
+notice-cast-audio-codec = Il TV non riesce a riprodurre questo audio ({ $codec }), e questo { -device } non può convertirlo. Prova un'altra { -source }.
+notice-cast-container = Il TV non riesce a riprodurre questo tipo di file. Prova un'altra { -source }.
+notice-cast-deep-link = Questo episodio si apre in un'altra app, quindi non può essere trasmesso.
+notice-cast-never-fetches = Il TV non ha iniziato a leggere lo stream. Controlla che questo { -device } e il TV siano sulla stessa rete, senza VPN di mezzo.
+notice-cast-refused = Il TV non è riuscito a riprodurre questo stream. Prova un'altra { -source }.
+notice-cast-taken-over = Un altro { -device } ha avviato qualcosa sul TV, quindi la trasmissione si è interrotta.
+notice-cast-not-same-network = Questo { -device } non è sulla rete del TV, o la raggiunge tramite una VPN. Per trasmettere servono entrambi sulla stessa rete.
+notice-cast-lost = Connessione al TV persa, quindi la trasmissione si è interrotta.
+notice-cast-no-device = Quel TV non è più sulla rete.
+notice-cast-unavailable = Questa build di { -app-name } non può trasmettere ai TV.

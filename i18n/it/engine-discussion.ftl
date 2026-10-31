@@ -1,0 +1,9 @@
+discussion-age-now = ora
+discussion-age-minutes = { $minutes } min
+discussion-age-hours = { $hours } h
+discussion-age-days = { $days } g
+discussion-age-weeks = { $weeks } sett
+discussion-age-years = { $years } a
+notice-comment-like-failed = Impossibile mettere mi piace al commento. Riprova.
+notice-comment-delete-failed = Impossibile eliminare il commento. Riprova.
+notice-discussion-sign-in = Accedi con AniList per mettere mi piace e rispondere.

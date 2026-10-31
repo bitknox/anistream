@@ -1,0 +1,13 @@
+cast-episode = Folge { $episode }
+cast-episode-titled = Folge { $episode } · { $title }
+notice-cast-video-codec = Der Fernseher kann dieses Video nicht abspielen ({ $codec }). Probiere eine andere { -source }.
+notice-cast-audio-codec = Der Fernseher kann diesen Ton nicht abspielen ({ $codec }), und dieses { -device } kann ihn nicht umwandeln. Probiere eine andere { -source }.
+notice-cast-container = Der Fernseher kann diese Art von Datei nicht abspielen. Probiere eine andere { -source }.
+notice-cast-deep-link = Diese Folge öffnet sich in einer anderen App, deshalb lässt sie sich nicht übertragen.
+notice-cast-never-fetches = Der Fernseher hat nicht begonnen, den Stream zu laden. Prüfe, ob dieses { -device } und der Fernseher im selben Netzwerk sind, ohne VPN dazwischen.
+notice-cast-refused = Der Fernseher konnte diesen Stream nicht abspielen. Probiere eine andere { -source }.
+notice-cast-taken-over = Ein anderes { -device } hat auf dem Fernseher etwas gestartet, deshalb wurde die Übertragung beendet.
+notice-cast-not-same-network = Dieses { -device } ist nicht im Netzwerk des Fernsehers oder erreicht ihn über ein VPN. Für die Übertragung müssen beide im selben Netzwerk sein.
+notice-cast-lost = Die Verbindung zum Fernseher ist abgebrochen, deshalb wurde die Übertragung beendet.
+notice-cast-no-device = Dieser Fernseher ist nicht mehr im Netzwerk.
+notice-cast-unavailable = Diese Version von { -app-name } kann nicht auf Fernseher übertragen.

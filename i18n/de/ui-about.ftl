@@ -1,0 +1,11 @@
+about-title = Über
+about-title-app = Über { -app-name }
+about-version = Version { $version }
+about-licence = Veröffentlicht unter der MIT-Lizenz.
+about-acknowledgements = Danksagungen
+about-licences = Lizenzen
+about-website = Website
+about-report-bug = Fehler melden
+about-report-bug-detail = Öffnet einen Fehlerbericht auf GitHub, wo du dich anmeldest. Er enthält deine Versionen und den letzten Fehler, ohne Adressen, Dateipfade oder Titel.
+about-artwork = Einige Grafiken sind unter Creative Commons BY-NC 4.0 lizenziert.
+about-font-licence = Lizenziert unter der SIL Open Font License 1.1.

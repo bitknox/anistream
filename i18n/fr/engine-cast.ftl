@@ -1,0 +1,13 @@
+cast-episode = Épisode { $episode }
+cast-episode-titled = Épisode { $episode } · { $title }
+notice-cast-video-codec = La télévision ne peut pas lire cette vidéo ({ $codec }). Essayez une autre { -source }.
+notice-cast-audio-codec = La télévision ne peut pas lire cet audio ({ $codec }), et cet { -device } ne peut pas le convertir. Essayez une autre { -source }.
+notice-cast-container = La télévision ne peut pas lire ce type de fichier. Essayez une autre { -source }.
+notice-cast-deep-link = Cet épisode s’ouvre dans une autre application, donc il ne peut pas être diffusé.
+notice-cast-never-fetches = La télévision n’a pas commencé à lire le flux. Vérifiez que cet { -device } et la télévision sont sur le même réseau, sans VPN entre les deux.
+notice-cast-refused = La télévision n’a pas pu lire ce flux. Essayez une autre { -source }.
+notice-cast-taken-over = Un autre { -device } a lancé quelque chose sur la télévision, donc la diffusion s’est arrêtée.
+notice-cast-not-same-network = Cet { -device } n’est pas sur le réseau de la télévision, ou y accède par un VPN. La diffusion exige que les deux soient sur le même réseau.
+notice-cast-lost = La télévision ne répond plus, donc la diffusion s’est arrêtée.
+notice-cast-no-device = Cette télévision n’est plus sur le réseau.
+notice-cast-unavailable = Cette version de { -app-name } ne peut pas diffuser sur les télévisions.

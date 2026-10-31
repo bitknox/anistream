@@ -1,0 +1,96 @@
+title-heading = Titre
+title-nothing-selected-note = Aucune sélection
+title-nothing-selected = Rien n’est sélectionné. Sélectionnez un titre, puis réessayez.
+title-trailer-off-page = Ouvrez la page du titre pour trouver sa bande-annonce.
+title-recommendations-off-page = Ouvrez la page du titre pour voir ses recommandations.
+title-seasons-off-page = Ouvrez la page du titre pour voir les saisons liées.
+title-no-trailer = Aucune bande-annonce n’est connue pour ce titre.
+title-no-recommendations = Aucune recommandation n’est connue pour ce titre.
+title-no-seasons = Aucune saison liée n’est connue pour ce titre.
+title-pin-off-page = Ouvrez la page du titre pour choisir sa { -source }.
+title-no-sources-yet = Aucune { -source } n’est encore enregistrée. Réessayez dans un instant.
+title-status-needs-tracker = Votre statut dans la liste est conservé sur un { -tracker }, et aucun n’est connecté. Utilisez :accounts pour en connecter un.
+title-rating-needs-tracker = Les notes sont conservées sur un { -tracker }, et aucun n’est connecté. Utilisez :accounts pour en connecter un.
+title-status-set = Statut défini sur { $status }. Envoi prévu vers { $trackers }.
+title-rated = Note : { $score }/10. Envoi prévu vers { $trackers }.
+title-status-watching = En cours
+title-status-planning = Prévu
+title-status-completed = Terminé
+title-status-paused = En pause
+title-status-dropped = Abandonné
+title-status-completed-hint = Met la progression au dernier épisode
+title-rating-10 = Chef-d’œuvre
+title-rating-9 = Excellent
+title-rating-8 = Très bien
+title-rating-7 = Bien
+title-rating-6 = Correct
+title-rating-5 = Moyen
+title-rating-4 = Faible
+title-rating-3 = Mauvais
+title-rating-2 = Très mauvais
+title-rating-1 = Catastrophique
+title-season = Saison { $number }
+title-relation-prequel = Préquelle
+title-relation-parent = Origine
+title-relation-sequel = Suite
+title-source-automatic = Automatique (meilleure { -source } disponible)
+title-source-failing = En panne
+title-release-first = La { -release } que la { -source } classe en premier
+title-release-seeders = { $count ->
+    [one] { $count } seeder
+    [many] { $count } seeders
+   *[other] { $count } seeders
+ }
+title-available-on = Disponible sur { $services }
+title-up-next = { -up-next-cap } : épisode { $next }
+title-progress-aired = { $done } sur { $aired } diffusés
+title-progress-watched = { $done } vus
+episodes-heading = Épisodes
+episodes-column-title = Titre
+episodes-column-run = Durée
+episodes-column-watched = Vu
+episodes-done = Terminé
+episodes-airs-in = Dans { $span }
+episodes-kind-canon = Canon
+episodes-kind-mixed = Mixte
+episodes-kind-filler = Filler
+episodes-kind-anime-canon = Canon anime
+episodes-filter-all = Tous les épisodes
+episodes-filter-unwatched = Non vus
+episodes-filter-no-filler = Sans filler
+episodes-showing-all = Tous les épisodes sont affichés.
+episodes-showing-unwatched = Affichage des épisodes non vus.
+episodes-showing-no-filler = Affichage des épisodes sans filler.
+episodes-dub-through = Doublage jusqu’à l’épisode { $through }
+episodes-dub-complete = { -dubbed-cap }
+episodes-empty-filtered = Aucun épisode ne correspond au filtre
+episodes-empty-filtered-hint = Le filtre masque tous les épisodes. Appuyez sur { $key } pour le modifier.
+episodes-empty-no-source = Pas encore d’épisodes
+episodes-empty-no-source-hint = AniList ne liste pas encore d’épisodes pour ce titre, et aucune { -source } n’est prête. Appuyez sur { $key } pour ouvrir l’écran { -source-cap-pl }.
+episodes-empty-unaired = Rien n’a encore été diffusé
+episodes-empty-unaired-hint = L’épisode { $episode } sort dans { $span }.
+episodes-empty-none-listed = Aucun épisode listé
+episodes-empty-none-listed-hint = La { -source } n’a listé aucun épisode pour ce titre. Appuyez sur { $search } pour chercher la bonne correspondance, ou sur { $pick } pour choisir une autre { -source }.
+episodes-no-releases = Aucune { -release } n’est disponible pour cet épisode.
+episodes-add-source-to-download = Ajoutez une { -source } avant de télécharger. Appuyez sur { $key } pour ouvrir l’écran { -source-cap-pl }.
+episodes-mark-none-listed = Aucun épisode n’est listé à marquer.
+episodes-mark-nothing-before = Rien ne précède le premier épisode.
+episodes-mark-already-watched = Tous les épisodes avant l’épisode { $episode } sont déjà vus.
+episodes-marked-watched = { $count ->
+    [one] { $count } épisode marqué comme vu.
+    [many] { $count } épisodes marqués comme vus.
+   *[other] { $count } épisodes marqués comme vus.
+ }
+episodes-range-invalid = Impossible de lire cette plage. Utilisez un épisode (4), une plage (1-12) ou tous les épisodes à partir d’un numéro (7-).
+episodes-range-empty = Aucun épisode dans cette plage. Essayez une autre plage.
+episodes-queueing = { $count ->
+    [one] Ajout de { $count } épisode à la file de téléchargement.
+    [many] Ajout de { $count } épisodes à la file de téléchargement.
+   *[other] Ajout de { $count } épisodes à la file de téléchargement.
+ }
+episodes-match-off-page = Ouvrez la page du titre pour corriger sa correspondance.
+episodes-match-nothing = Aucune sélection à associer à nouveau.
+episodes-matched = Associé à { $title }.
+episodes-release-dual = { -subbed-cap } et { -dubbed }
+episodes-release-dub = { -dubbed-cap }
+episodes-release-current-pick = Choix actuel

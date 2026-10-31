@@ -1,0 +1,13 @@
+updates-preparing = Подготовка обновления
+updates-downloading-bytes = Загрузка { $done }
+updates-downloading-bytes-of = Загрузка: { $done } из { $total }
+updates-restarting = Перезапуск для завершения обновления
+updates-did-not-finish = Обновление не завершилось. Попробуйте снова.
+updates-could-not-check = Не удалось проверить обновления. Попробуйте позже.
+updates-in-sidestore = Обновить в SideStore
+updates-release-page = Страница версии
+updates-release-notes = Что нового
+updates-whats-new-in = Что нового в версии { $version }
+updates-installer-not-ready = Установщик ещё не готов. Попробуйте через минуту.
+updates-feed-missing = В ленте обновлений ещё нет этой версии.
+updates-fixtures-no-install = Приложение Fixtures не устанавливает обновления.

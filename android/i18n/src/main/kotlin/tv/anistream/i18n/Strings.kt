@@ -7932,8 +7932,14 @@ object Strings {
     /** The languages this build has text for, source first. Draft ones carry the draft label. */
     val languages: List<Language> = listOf(
         Language("en", "English", false),
+        Language("de", "Deutsch", true),
         Language("es-419", "Español (Latinoamérica)", true),
+        Language("fr", "Français", true),
+        Language("it", "Italiano", true),
         Language("ja", "日本語", true),
+        Language("pl", "Polski", true),
+        Language("pt-BR", "Português (Brasil)", true),
+        Language("ru", "Русский", true),
         Language("sv", "Svenska", true),
     )
 }

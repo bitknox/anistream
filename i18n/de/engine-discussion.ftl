@@ -1,0 +1,9 @@
+discussion-age-now = jetzt
+discussion-age-minutes = { $minutes } Min
+discussion-age-hours = { $hours } Std
+discussion-age-days = { $days } T
+discussion-age-weeks = { $weeks } Wo
+discussion-age-years = { $years } J
+notice-comment-like-failed = „Gefällt mir“ konnte nicht gesetzt werden. Versuch es noch einmal.
+notice-comment-delete-failed = Der Kommentar konnte nicht gelöscht werden. Versuch es noch einmal.
+notice-discussion-sign-in = Melde dich mit AniList an, um Gefällt mir zu geben und zu antworten.

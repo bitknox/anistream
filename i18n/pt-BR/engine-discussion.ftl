@@ -1,0 +1,9 @@
+discussion-age-now = agora
+discussion-age-minutes = { $minutes } min
+discussion-age-hours = { $hours } h
+discussion-age-days = { $days } d
+discussion-age-weeks = { $weeks } sem
+discussion-age-years = { $years } a
+notice-comment-like-failed = Não foi possível curtir o comentário. Tente de novo.
+notice-comment-delete-failed = Não foi possível excluir o comentário. Tente de novo.
+notice-discussion-sign-in = Entre com AniList para curtir e responder.

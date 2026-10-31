@@ -1,0 +1,45 @@
+tv-picker-episode-of = { $title }, Folge { $episode }
+episode-label = Folge { $episode }
+episode-label-of = Folge { $episode } von { $title }
+tv-connecting-to-tv = Verbindung zum Fernseher wird hergestellt
+tv-device-code = Ein Fernseher listet dieses { -device } mit dem Code { $code } auf. Wenn du hier einen Fernseher vergisst, vergisst er auch dieses { -device }.
+tv-unnamed = Fernseher
+tv-another-short = Anderer…
+tv-volume-label = Lautstärke des Fernsehers
+tv-waiting = Warte auf den Fernseher
+tv-waiting-for = Warte auf { $name }
+tv-row-name = { $name }, { $detail }
+tv-row-name-connected = { $name }, { $detail }, verbunden
+tv-row-pair-help = Koppelt mit diesem Fernseher
+tv-none-found-name = { $title }. { $detail }
+tv-setting-value = { $setting }, { $value }
+party-choose-source-for = Wähle eine { -source } für Folge { $episode }
+party-nosource-unaired-title = Folge { $episode } ist noch nicht erschienen
+party-nosource-unaired-when = { $when } Deine { -source-pl } haben sie bis dahin nicht. Sie wird mit dem Raum abgespielt, sobald eine davon sie hat.
+sources-check = { -source-pl } prüfen
+sources-origin-version = { $origin } · Version { $version }
+sources-standing = Zustand
+sources-status-working = Bereit
+sources-torrent-indexes = Sucht in den { -torrent-index }en, die du unter Einstellungen aktiviert hast.
+sources-version-ready = Version { $version } ist bereit
+sources-use-this = Diese { -source } verwenden
+sources-use-name = { $name } an
+sources-remove-detail = Es wird nicht mehr für Folgen ausprobiert. Du kannst es über seinen { -plugin-store } erneut installieren.
+stores-updates-count = { $count ->
+    [one] Ein Update
+   *[other] { $count } Updates
+ }
+stores-offline-keep-working = Er hat nicht geantwortet, als dieses { -device } zuletzt gefragt hat. Die installierten { -plugin-pl } funktionieren weiter.
+stores-standing-version = { $standing } · { $version }
+stores-unreachable = Der { -plugin-store } war nicht erreichbar. Prüfe den Link und deine Verbindung und versuche es dann erneut.
+stores-already-joined-title = Bereits bei { $name } beigetreten
+stores-owner-sees-as = Der Besitzer sieht dieses { -device } als
+downloads-free-used = { $free } frei · { $used } für Downloads
+downloads-group-line = { $episodes } · { $size }
+downloads-line-rate = { $line } · { $rate }
+downloads-line-left = { $line } · noch { $left }
+downloads-failed-row = Der Download konnte nicht abgeschlossen werden. Versuche es erneut oder entferne ihn aus der Warteschlange.
+downloads-play-label = Folge { $episode } abspielen
+downloads-progress-name = Fortschritt von { $name }
+torrents-proxy-host-example = proxy.example
+tv-problem-no-code = Dieser Code ist abgelaufen. Lass dir auf dem Fernseher einen neuen anzeigen.

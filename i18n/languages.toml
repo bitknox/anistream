@@ -26,3 +26,33 @@ drafts = "ship"
 name = "Español (Latinoamérica)"
 stage = "draft"
 drafts = "ship"
+
+[language.pt-BR]
+name = "Português (Brasil)"
+stage = "draft"
+drafts = "ship"
+
+[language.fr]
+name = "Français"
+stage = "draft"
+drafts = "ship"
+
+[language.de]
+name = "Deutsch"
+stage = "draft"
+drafts = "ship"
+
+[language.it]
+name = "Italiano"
+stage = "draft"
+drafts = "ship"
+
+[language.pl]
+name = "Polski"
+stage = "draft"
+drafts = "ship"
+
+[language.ru]
+name = "Русский"
+stage = "draft"
+drafts = "ship"
