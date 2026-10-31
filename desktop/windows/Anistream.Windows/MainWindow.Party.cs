@@ -261,7 +261,7 @@ public sealed partial class MainWindow
             Go(state == "party-bar" ? "continue" : "together");
             return;
         }
-        Player.HoldUpNext = true;
+        Player.HoldUpNext = state != "party-next";
         ctx.Send(new Command.PartyJoin(server, FixtureRoom, "Ada"));
         ctx.Play(900001, "7", fromStart: true);
         // Until this device's member has the episode open, for the others to open the same.
@@ -298,6 +298,22 @@ public sealed partial class MainWindow
                 ctx.Send(new Command.PartyReady(true));
                 await Task.Delay(600);
                 Player.ShowParty();
+                break;
+            case "party-notice":
+                // Mika pauses once the room is playing: everyone's player says so in its top corner.
+                fakeParty.MemberReady("Ren", true);
+                ctx.Send(new Command.PartyReady(true));
+                await Task.Delay(5500);
+                fakeParty.MemberPauses("Mika");
+                break;
+            case "party-next":
+                // Near the end, playing, with the room's Up Next countdown on the card.
+                fakeParty.MemberReady("Ren", true);
+                ctx.Send(new Command.PartyReady(true));
+                await Task.Delay(1500);
+                ctx.Send(new Command.Player(new PlayerCommand.SeekTo(Math.Max(0, length - 12))));
+                await Task.Delay(500);
+                fakeParty.MemberPlays("Mika");
                 break;
             case "party-chat":
                 fakeParty.MemberSays("Mika", "Starting in a minute, grabbing tea");
