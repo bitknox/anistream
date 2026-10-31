@@ -1,34 +1,34 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  Continue               │  ▌ Stardust Wayfarer         E4 · 21%   ░░░░░░░░░░░░░░░░░
-  ▤  Calendar               │                                         ░░░░░░░░░░░░░░░░░
-  ▦  Seasonal               │                                         ░░░░░░░░░░░░░░░░░
-  /  Search                 │                                         ░░░░░░░░░░░░░░░░░
-  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
-  ◎  Accounts               │                                         ░░░░░░░░░░░░░░░░░
-  ≡  Settings               │                                         ░░░░░░░░░░░░░░░░░
-                            │                                         ░░░░░░░░░░░░░░░░░
-                            │                                         ░░░░░░░░░░░░░░░░░
-                            │                                         ░░░░░░░░░░░░░░░░░
-                            │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Home                   │    Continue watching  ───────────────────────────   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │  ▌ Stardust Wayfarer      Episode 4 · 19 min left   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │                                                     ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Continue  ────────────────────────────────────   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │    Stardust Wayfarer      Episode 4 · 19 min left   ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                                     ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │    This season · Autumn 2026  ───────────────────   ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │    The Library Above the Clouds     Episode 5 out   ░░░░░░░░░░░░░░░░░
+  ≡  Settings               │    Summer Wind Relay                Episode 8 out   ░░░░░░░░░░░░░░░░░
+                            │                                                     ░░░░░░░░░░░░░░░░░
+                            │    Sign in to AniList to bring in your list and     ░░░░░░░░░░░░░░░░░
+                            │    Planning.                                        ░░░░░░░░░░░░░░░░░
+                            │                                                     ░░░░░░░░░░░░░░░░░
                             │
-                            │                                         Stardust Wayfarer
-                            │                                         Hoshikuzu no Tabibito
+                            │                                                     Stardust Wayfarer
+                            │                                                     Hoshikuzu no Tabibito
                             │
-                            │                                         TV  ·  12 episodes  ·  Spring 2024  ·  82%  ·…
-                            │                                         Adventure  ·  Drama  ·  Fantasy
+                            │                                                     TV  ·  12 episodes  ·  Spring 202…
+                            │                                                     Adventure  ·  Drama  ·  Fantasy
                             │
-                            │                                         ▏ Continue E4 at 5:00 (21%)
-                            │                                         █████░░░░░░░░░░░░░░░░░░░
+                            │                                                     ▏ Continue E4 at 5:00 (21%)
+                            │                                                     █████░░░░░░░░░░░░░░░░░░░
                             │
-                            │                                         A lamplighter with no memory of her home walks
-                            │                                         the old star roads, relighting the beacons
-                            │                                         that guide travellers between the towns. Each
-                            │                                         town she saves remembers a little of her, and
-                            │                                         she, a little less of herself.
+                            │                                                     A lamplighter with no memory of
+                            │                                                     her home walks the old star roads,
+                            │                                                     relighting the beacons that guide
+                            │                                                     travellers between the towns. Each
+                            │                                                     town she saves remembers a little…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
+                            │                                                     ████░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                                             j move down   l move right   ? keys

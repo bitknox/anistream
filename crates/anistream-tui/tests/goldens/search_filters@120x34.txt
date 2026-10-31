@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Find    Comedy · 2026 · Autumn · TV · Airing · Score
+  ▸  Home                   │  Find    Comedy · 2026 · Autumn · TV · Airing · Score
   ▤  Calendar               │
   ▦  Seasonal               │         ▄
 ▌ /  Search                 │      ▄▀▀▀▀▀▄

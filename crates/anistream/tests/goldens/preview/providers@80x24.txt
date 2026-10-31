@@ -14,7 +14,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │
    │    anilist             Live
    │    tenrai              Not in use
-   │    cache               ready       1 title
+   │    cache               ready       6 titles
    │
    │
    │

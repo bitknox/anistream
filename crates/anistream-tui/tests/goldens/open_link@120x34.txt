@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Members · Hearth plugins
+  ▸  Home                   │  Members · Hearth plugins
   ▤  Calendar               │
   ▦  Seasonal               │    Name                        Role      Devices   Last seen
   /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────

@@ -73,47 +73,19 @@ public sealed class QueueTemplates : DataTemplateSelector
     protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container) => SelectTemplateCore(item);
 }
 
-/// <summary>A title on the welcome: a card for what airs today, a poster for this season.</summary>
-public sealed class WelcomeCard : System.ComponentModel.INotifyPropertyChanged
-{
-    ImageSource? art;
-
-    internal WelcomeCard(CoverItem cover, string line, bool dot)
-    {
-        Cover = cover;
-        Line = line;
-        DotShown = dot ? Visibility.Visible : Visibility.Collapsed;
-        Name = line.Length > 0 ? $"{cover.Title}, {line}" : cover.Title;
-        art = cover.Banner ?? cover.Cover;
-        cover.PropertyChanged += (_, _) =>
-        {
-            art = cover.Banner ?? cover.Cover;
-            PropertyChanged?.Invoke(this, new(nameof(Art)));
-        };
-    }
-
-    public CoverItem Cover { get; }
-    public string Line { get; }
-    public string Name { get; }
-    public Visibility DotShown { get; }
-    public ImageSource? Art => art;
-
-    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
-}
-
 /// <summary>
-/// Continue: the queue first, at most five rows under way, then what is new this week, each row
+/// Library, Watching: the queue first, at most five rows under way, then what is new this week, each row
 /// saying what it plays. Beside it the selected row's preview with the one amber action. The
 /// queue's rules are the model's (<c>present::Queue</c>), the same the other apps read.
 /// </summary>
-public sealed partial class ContinuePage : Page, IPageKeys
+public sealed partial class WatchingView : UserControl, IPageKeys
 {
     readonly Ctx ctx = Ctx.Current;
     QueueRow? selected;
 #if ANISTREAM_TESTING
     bool asked;
 #endif
-    bool loaded, welcomeAsked, hadSuggestions;
+    bool loaded, hadSuggestions;
     DateTimeOffset lastPick;
 
     /// <summary>The title whose detail and episodes the preview asked for last.</summary>
@@ -122,7 +94,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
     /// <summary>Suggestions marked Not interested here, until Undo, so a refill cannot bring one back first.</summary>
     readonly HashSet<uint> dismissed = [];
 
-    public ContinuePage()
+    public WatchingView()
     {
         InitializeComponent();
         State.Placeholders = () => States.Rows(5, 36, 54);
@@ -137,9 +109,9 @@ public sealed partial class ContinuePage : Page, IPageKeys
         });
     }
 
-    protected override void OnNavigatedTo(NavigationEventArgs e)
+    /// <summary>The Library shows the Watching list: ask for it and draw it.</summary>
+    internal void Start()
     {
-        base.OnNavigatedTo(e);
 #if ANISTREAM_TESTING
         foreach (var part in (ctx.Options.Hide ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
             if (uint.TryParse(part, out var hide))
@@ -213,7 +185,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
 #endif
         var suggestions = empty ? [] : sent.Where(i => !dismissed.Contains(i.Entry.Id)).ToArray();
         if (suggestions.Length > 0)
-            groups.Add(new(UpNextWording.Heading(suggestions), suggestions.Select(Suggestion), suggestions: true));
+            groups.Add(new(T.UpNextHeading, suggestions.Select(Suggestion), suggestions: true));
         for (var i = 1; i < groups.Count; i++)
             groups[i].Gap = new Thickness(0, 12, 0, 0);
         ShowSyncLine();
@@ -226,34 +198,16 @@ public sealed partial class ContinuePage : Page, IPageKeys
         }
         else if (known.Lists.GetValueOrDefault(new ContentFor.Continue()) is ContentList.Failed failed && empty)
         {
-            SetWelcome(false);
             State.Failed(failed.V1, () => ctx.Send(new Command.LoadContinue()));
             return;
         }
         else if (empty)
         {
-            if (!welcomeAsked)
-            {
-                welcomeAsked = true;
-                ctx.Send(new Command.LoadCalendar());
-                ctx.Send(new Command.LoadSeasonal());
-            }
-            var (shown, pending) = BuildWelcome();
-            if (shown)
-            {
-                SetWelcome(true);
-                return;
-            }
-            SetWelcome(false);
-            if (pending)
-                State.Wait(hasContent: false);
-            else
-                State.Empty(States.Empty(T.ContinueEmptyTitle, T.ContinueEmptyDetail, T.ContinueEmptyAction, () => ctx.Window.Go("seasonal")));
+            State.Empty(States.Unavailable(T.LibraryListEmpty(T.LibraryStatusWatching.ToLower(System.Globalization.CultureInfo.CurrentCulture)), T.LibraryListEmptyDetail));
             return;
         }
         else
             State.Done();
-        SetWelcome(false);
 
         var keep = selected?.Entry.Id;
         var rows = groups.SelectMany(g => g).ToList();
@@ -289,21 +243,13 @@ public sealed partial class ContinuePage : Page, IPageKeys
         if (FakeIds.Any(id => known.Entry(id) is null))
             return null;
         Entry E(uint id) => known.Entry(id)!;
-        var now = DateTimeOffset.Now.ToUnixTimeSeconds();
-        UpNextItem I(uint id, UpNextReason r, UpNextAction a, string? because = null, FuzzyDate? starts = null, long? airs = null, bool fallback = false) =>
-            new(E(id), r, a, because, starts, airs, fallback);
+        UpNextItem I(uint id, UpNextReason r, UpNextAction a, string? because = null, FuzzyDate? starts = null) =>
+            new(E(id), r, a, because, starts);
         var play = UpNextAction.PlayFirstEpisode;
         var shown = mode;
         mode = mode.Split('+')[0];
         faked = mode switch
         {
-            "fallback" =>
-            [
-                I(900004, UpNextReason.AiringToday, play, airs: now - 7200, fallback: true),
-                I(900003, UpNextReason.AiringToday, play, airs: now + 3 * 3600, fallback: true),
-                I(900002, UpNextReason.AiringToday, play, airs: now + 6 * 3600, fallback: true),
-                I(900006, UpNextReason.AiringToday, play, airs: now + 8 * 3600, fallback: true),
-            ],
             "signed-out" =>
             [
                 I(900004, UpNextReason.NewSeason, play),
@@ -361,62 +307,6 @@ public sealed partial class ContinuePage : Page, IPageKeys
         }
     }
 
-    // The welcome: what airs today and this season, when nothing is watched yet.
-
-    void SetWelcome(bool on)
-    {
-        if (on == (Welcome.Visibility == Visibility.Visible))
-            return;
-        State.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
-        if (on)
-            Motion.FadeIn(Welcome);
-        else
-            Welcome.Visibility = Visibility.Collapsed;
-    }
-
-    /// <summary>Fills the welcome from the calendar and the season. Whether any of it shows, and whether either list is still on its way.</summary>
-    (bool Shown, bool Pending) BuildWelcome()
-    {
-        var known = ctx.Known;
-        var calendar = known.List(new ContentFor.Calendar());
-        var season = known.List(new ContentFor.Seasonal());
-        var pending = calendar is null or ContentList.Loading || season is null or ContentList.Loading;
-
-        var cards = new List<WelcomeCard>();
-        if (known.CalendarAnchor is { } anchor && calendar is ContentList.Entries)
-        {
-            var zone = TimeZoneInfo.Local;
-            var now = DateTimeOffset.Now;
-            DateOnly Day(long unix) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeSeconds(unix), zone).DateTime);
-            var today = Day(now.ToUnixTimeSeconds());
-            foreach (var b in Calendar.Broadcasts(known.ListRows(new ContentFor.Calendar()), anchor, known, mine: false)
-                         .Where(b => Day(b.Airs) == today).Take(8))
-            {
-                var out_ = b.Airs <= now.ToUnixTimeSeconds();
-                var when = out_ ? T.UpNextOut(Wording.Ago(now.ToUnixTimeSeconds() - b.Airs)) : Calendar.Time(b.Airs, zone);
-                cards.Add(new(new CoverItem(b.Entry).Load(ctx.Art, withBanner: true), T.UpNextBroadcast(b.Episode, when), out_ && !b.Watched));
-            }
-        }
-        var posters = known.ListEntries(new ContentFor.Seasonal()).Take(12)
-            .Select(e => new WelcomeCard(new CoverItem(e).Load(ctx.Art), "", false)).ToList();
-
-        AiringCards.ItemsSource = cards;
-        SeasonPosters.ItemsSource = posters;
-        AiringSection.Visibility = cards.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SeasonSection.Visibility = posters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        return (cards.Count > 0 || posters.Count > 0, pending);
-    }
-
-    void OnWelcomeOpen(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.Tag is WelcomeCard card)
-            ctx.OpenTitle(card.Cover.Id);
-    }
-
-    void OnWelcomeCalendar(object sender, RoutedEventArgs e) => ctx.Go("calendar");
-
-    void OnWelcomeSeasonal(object sender, RoutedEventArgs e) => ctx.Go("seasonal");
-
     /// <summary>Whether the row for title <paramref name="id"/> now plays a different episode than it says.</summary>
     bool Moved(uint id)
     {
@@ -437,7 +327,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
     }
 
     QueueRow Suggestion(UpNextItem item) =>
-        new(item, Cover(item.Entry), UpNextWording.Line(item, DateTimeOffset.Now, TimeZoneInfo.Local));
+        new(item, Cover(item.Entry), UpNextWording.Line(item, DateTimeOffset.Now));
 
     CoverItem Cover(Entry entry)
     {
@@ -524,7 +414,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
         PlayButton.Content = button;
         PlayButton.Visibility = button is not null ? Visibility.Visible : Visibility.Collapsed;
         OpenButton.Visibility = Visibility.Visible;
-        var line = UpNextWording.Line(suggestion, DateTimeOffset.Now, TimeZoneInfo.Local);
+        var line = UpNextWording.Line(suggestion, DateTimeOffset.Now);
         WaitingLine.Text = line.ToString();
         WaitingLine.Visibility = Visibility.Visible;
         Synopsis.Text = entry.Synopsis;

@@ -38,6 +38,8 @@
         <app:CoverGrid x:Name="Grid" />
       </local:StateHost>
     </ScrollViewer>
+    <!-- Watching: the list with the selected row's preview beside it. -->
+    <local:WatchingView x:Name="Watching" Grid.Row="2" Visibility="Collapsed" />
     <!-- Signed out: Nagare, a line and one action. -->
     <Border x:Name="SignedOut" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" Margin="0,0,0,80" />
   </Grid>

@@ -61,6 +61,21 @@ public static class Wording
     /// <summary>"2d ago", or "just now" under a minute.</summary>
     public static string Ago(long seconds) => seconds < 60 ? T.TimeJustNowInline : T.TimeAgo(Countdown(seconds));
 
+    /// <summary>
+    /// "3d ago", "2h ago", "5m ago" in the model's compact form, the one the board shows for
+    /// the Hidden titles line. <see cref="Ago"/> spaces its units ("3 d"), as other screens do.
+    /// </summary>
+    public static string AgoCompact(long seconds)
+    {
+        if (seconds < 60)
+            return T.TimeJustNowInline;
+        long minutes = seconds / 60, hours = minutes / 60, days = hours / 24;
+        var span = days >= 1 ? (days < 7 && hours % 24 > 0 ? $"{days}d {hours % 24}h" : $"{days}d")
+            : hours >= 1 ? (minutes % 60 > 0 ? $"{hours}h {minutes % 60}m" : $"{hours}h")
+            : $"{minutes}m";
+        return T.TimeAgo(span);
+    }
+
     /// <summary>"in 4d 20h".</summary>
     public static string In(long seconds) => T.TimeIn(Countdown(seconds));
 

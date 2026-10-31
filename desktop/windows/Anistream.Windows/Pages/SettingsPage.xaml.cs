@@ -34,6 +34,7 @@ public sealed partial class SettingsPage : Page
             "notifications" => T.SettingsGroupNotifications,
             "sources" => T.SourcesTitle,
             "accounts" => T.NavAccounts,
+            "library" => T.NavLibrary,
             "integrations" => T.SettingsGroupIntegrations,
             "advanced" => T.SettingsGroupAdvanced,
             _ => T.AboutTitle,
@@ -65,6 +66,7 @@ public sealed partial class SettingsPage : Page
             ("seeding", [K.KeepSeeding, K.SeedRatio, K.SeedHours, K.UploadLimit]),
         ]),
         new("accounts", "", []),
+        new("library", "\uE8F1", []),
         new("integrations", "",
         [
             ("discord", [K.Presence, K.PresenceTitle, K.PresenceRich]),
@@ -202,7 +204,7 @@ public sealed partial class SettingsPage : Page
 
     void Heard(IReadOnlyList<Event> batch)
     {
-        if (batch.Any(e => e is Event.Settings || e is Event.Sync && pane.Name == "accounts"))
+        if (batch.Any(e => e is Event.Settings || e is Event.Sync && pane.Name == "accounts" || e is Event.HiddenTitles && pane.Name == "library"))
             Show();
         else if (batch.Any(e => e is Event.Vpn))
             ShowGuard();
@@ -274,6 +276,9 @@ public sealed partial class SettingsPage : Page
             case "about":
                 ShowAbout();
                 break;
+            case "library":
+                ShowHidden();
+                break;
             default:
                 if (ctx.Known.Settings is null)
                 {
@@ -324,6 +329,55 @@ public sealed partial class SettingsPage : Page
                 break;
         }
         quiet = false;
+    }
+
+    /// <summary>
+    /// Hidden titles: what was marked Not interested, each with Restore. A title hidden until it
+    /// airs says it comes back by itself. Restoring takes the row away at once.
+    /// </summary>
+    void ShowHidden()
+    {
+        ctx.Send(new Command.LoadHiddenTitles());
+        Cards.Children.Add(Heading(T.SettingsHiddenTitles));
+        Cards.Children.Add(Note(T.SettingsHiddenTitlesBody));
+        var hidden = ctx.Known.Hidden.Where(h => !ctx.Known.RestoredHere.Contains(h.Entry.Id)).ToArray();
+        if (hidden.Length == 0)
+        {
+            Cards.Children.Add(Note(T.SettingsHiddenEmpty));
+            State.Done();
+            return;
+        }
+        foreach (var title in hidden)
+        {
+            var row = new Grid { ColumnSpacing = 12, MinHeight = 64, Padding = new Thickness(12, 8, 12, 8), CornerRadius = new CornerRadius(4), Background = Ui.Res<Brush>("RaisedBrush") };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
+            text.Children.Add(new TextBlock { Text = title.Entry.Title, Style = Ui.Res<Style>("ShowTitleStyle") });
+            if (title.UntilAirs)
+                text.Children.Add(new TextBlock { Text = T.SettingsHiddenUntilAirs, Style = Ui.Res<Style>("HazeCaptionStyle") });
+            // When it was hidden, as the engine words it ("Hidden 3d ago"); nothing when the time was not kept.
+            if (title.HiddenAt > 0)
+                text.Children.Add(new TextBlock
+                {
+                    Text = T.SettingsHiddenOn(Wording.AgoCompact(Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeSeconds() - title.HiddenAt))),
+                    Style = Ui.Res<Style>("HazeCaptionStyle"),
+                });
+            row.Children.Add(text);
+            var restore = new Button { Content = T.SettingsRestore, MinHeight = 32, VerticalAlignment = VerticalAlignment.Center };
+            AutomationProperties.SetName(restore, $"{T.SettingsRestore}, {title.Entry.Title}");
+            var id = title.Entry.Id;
+            restore.Click += (_, _) =>
+            {
+                ctx.Known.RestoredHere.Add(id);
+                ctx.Send(new Command.RestoreUpNext(id));
+                Show();
+            };
+            Grid.SetColumn(restore, 1);
+            row.Children.Add(restore);
+            Cards.Children.Add(row);
+        }
+        State.Done();
     }
 
     StackPanel? tvGroup;

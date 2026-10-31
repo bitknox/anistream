@@ -1,6 +1,6 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Sources
+  ▸  Home                   │  Sources
   ▤  Calendar               │
   ▦  Seasonal               │    Source              Kind        State           Latency
   /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ anistream                                                                       
                             │
                             │    anilist             Live
                             │    tenrai              Not in use
-                            │    cache               ready       1 title
+                            │    cache               ready       6 titles
                             │
                             │
                             │

@@ -89,6 +89,18 @@ public sealed class Known
     /// </summary>
     public UpNextItem[] UpNext { get; private set; } = [];
 
+    /// <summary>Home as the engine last sent it, whole, or null before the first send.</summary>
+    public HomeView? Home { get; private set; }
+
+    /// <summary>The titles hidden with Not interested, newest first, once asked for.</summary>
+    public HiddenTitle[] Hidden { get; private set; } = [];
+
+    /// <summary>Titles restored from Settings in this run, until the engine sends the list again.</summary>
+    public HashSet<uint> RestoredHere { get; } = [];
+
+    /// <summary>Titles dismissed from Home in this run, until the engine's next Home: so a late send cannot bring one back first.</summary>
+    public HashSet<uint> DismissedHere { get; } = [];
+
     /// <summary>A suggestion was put on Planning here: its button is gone until the engine says otherwise.</summary>
     public void PlannedFromUpNext(uint id) =>
         UpNext = [.. UpNext.Select(i => i.Entry.Id == id ? i with { Action = UpNextAction.Nothing } : i)];
@@ -181,6 +193,19 @@ public sealed class Known
                 UpNextSent = true;
                 foreach (var item in up.V1)
                     Entries[item.Entry.Id] = Merge(Fixed(item.Entry), local: false);
+                break;
+            case Event.Home home:
+                Home = home.V1;
+                DismissedHere.Clear();
+                if (home.V1.Spotlight is { } spot)
+                    Entries[spot.Entry.Id] = Merge(Fixed(spot.Entry), local: false);
+                foreach (var section in home.V1.Sections)
+                    foreach (var item in section.Items)
+                        Entries[item.Entry.Id] = Merge(Fixed(item.Entry), local: section.Kind == SectionKind.Continue);
+                break;
+            case Event.HiddenTitles hidden:
+                Hidden = hidden.V1;
+                RestoredHere.Clear();
                 break;
             case Event.Detail d:
                 Entries[d.V1.Id] = Fixed(d.V1);

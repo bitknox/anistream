@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
+▌ ▸  Home                   │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
   ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
   ▦  Seasonal               │    Yoru no Toshokan  E6 in 2 h 41 min   ░░░░░░░░░░░░░░░░░
   /  Search                 │                                         ░░░░░░░░░░░░░░░░░
@@ -31,7 +31,7 @@ anistream                                                                       
                             │
                             │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · Subbed · 1080p                                                                    ↵ play   e episodes   ? keys
+plugins · Subbed · 1080p                                                                    ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text bg=#161a2e mod=BOLD
@@ -47,8 +47,8 @@ r02 c00-00 fg=#9298b5 bg=#161a2e
 r02 c01-01 bg=#161a2e
 r02 c02-02 fg=text bg=#161a2e
 r02 c03-04 bg=#161a2e
-r02 c05-12 fg=text bg=#161a2e mod=BOLD
-r02 c13-27 bg=#161a2e
+r02 c05-08 fg=text bg=#161a2e mod=BOLD
+r02 c09-27 bg=#161a2e
 r02 c28-28 fg=#434653 bg=#161a2e
 r02 c29-30 bg=#161a2e
 r02 c31-31 fg=obi bg=#161a2e

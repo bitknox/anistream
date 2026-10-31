@@ -46,43 +46,12 @@ impl App {
         if !matches!(self.nav.current(), StageView::Section(_)) {
             return None;
         }
-        let selected = self.section_cursor().selected;
-        let entries = self.content.entries();
-        entries.get(selected).or_else(|| {
-            self.up_next_here().get(selected - entries.len().min(selected)).map(|i| &i.entry)
-        })
+        self.content.entries().get(self.section_cursor().selected)
     }
 
-    /// The cursor is on a suggestion under Continue rather than on one of its rows.
-    pub fn on_up_next(&self) -> bool {
-        let continuing = self.content.entries().len();
-        self.section_cursor()
-            .selected
-            .checked_sub(continuing)
-            .is_some_and(|n| n < self.up_next_here().len())
-    }
-
-    /// The suggestions under Continue, while Home's list is what is on screen and has rows. A
-    /// pushed view keeps the Home list as `content`, and its rail is not selectable there.
-    pub fn up_next_here(&self) -> &[anistream_model::up_next::UpNextItem] {
-        let at_home = self.nav.section() == Section::Home
-            && matches!(self.nav.current(), StageView::Section(Section::Home));
-        if at_home && !self.content.is_empty() { &self.up_next } else { &[] }
-    }
-
-    /// How many rows the list on screen has to move over: its entries, and Home's rail.
+    /// How many rows the list on screen has to move over.
     pub(super) fn rows_len(&self) -> usize {
-        self.content.len() + self.up_next_here().len()
-    }
-
-    /// Take the suggestions the engine sent.
-    pub(super) fn apply_up_next(&mut self, items: Vec<anistream_model::up_next::UpNextItem>) {
-        self.up_next = items;
-        let len = self.rows_len();
-        let cursor = self.cursors.section_mut(self.nav.section());
-        if self.nav.section() == Section::Home {
-            cursor.selected = cursor.selected.min(len.saturating_sub(1));
-        }
+        self.content.len()
     }
 
     /// Fetch older broadcasts once the selection nears the top of the calendar.
@@ -417,19 +386,16 @@ impl App {
         Some(self.run_search())
     }
 
-    /// Whether Enter resumes the highlighted row rather than opening it: a part-watched title
-    /// on the Home list. One answer for the key and for the hint that names it.
+    /// Whether Enter plays the highlighted row rather than opening it: a Home title whose main
+    /// action is Resume or Play. One answer for the key and for the hint that names it.
     pub fn resumes_on_enter(&self) -> bool {
-        matches!(self.nav.current(), StageView::Section(Section::Home))
-            && self.selected_entry().is_some_and(|e| e.resume.is_some() && e.progress.is_some())
+        self.home_plays().is_some()
     }
 
-    /// The highlighted Continue row's episode, resumed where it was left.
+    /// The highlighted Home title's episode, played where it was left.
     pub(super) fn resume_selected(&mut self) -> Option<Command> {
-        let entry = self.selected_entry().expect("checked");
-        let id = entry.id;
-        let next = entry.progress.expect("checked").next;
-        Some(self.begin_playback(id, next.to_string()))
+        let (id, episode) = self.home_plays().expect("checked");
+        Some(self.begin_playback(id, episode.to_string()))
     }
 
     /// The highlighted title taken off the Continue list.
@@ -447,30 +413,18 @@ impl App {
             self.push_toast(info(t::lists_remove_wrong_list()));
             return None;
         }
+        if self.home.is_some() {
+            return self.hide_from_home();
+        }
         let ContentList::Entries(entries) = &mut self.content else {
             return None;
         };
         if entries.is_empty() {
             return None;
         }
-        // A suggestion under the list: Not interested, which hides it until it airs.
-        let on_rail = self.cursors.home.selected.checked_sub(entries.len());
-        if let Some(n) = on_rail.filter(|n| *n < self.up_next.len()) {
-            let item = self.up_next.remove(n);
-            let home = &mut self.cursors.home;
-            home.selected = home.selected.min(entries.len() + self.up_next.len() - 1);
-            // One that has not started airing comes back when it does; one airing is gone.
-            let said = if item.starts.is_some() {
-                t::up_next_hidden_until_airs(&item.entry.title)
-            } else {
-                t::up_next_hidden(&item.entry.title)
-            };
-            self.push_toast(info(said));
-            return Some(Command::DismissUpNext { id: item.entry.id });
-        }
+        let home = &mut self.cursors.home;
         // Dropped from the screen before the write: the list answers immediately, and
         // the store catches up.
-        let home = &mut self.cursors.home;
         let entry = entries.remove(home.selected.min(entries.len() - 1));
         home.selected = home.selected.min(entries.len().saturating_sub(1));
         home.offset = home.offset.min(home.selected);
@@ -684,7 +638,7 @@ impl App {
         self.calendar_loading_ahead = false;
 
         let task = match self.nav.section() {
-            Section::Home => Command::LoadContinue,
+            Section::Home => Command::LoadHome { refresh: false },
             Section::Seasonal => Command::LoadSeasonal,
             Section::Calendar => Command::LoadCalendar,
             Section::Search if !self.search_query().is_blank() => {
@@ -711,9 +665,9 @@ impl App {
         // and acted on under its heading.
         self.content =
             if self.fetches_list() { ContentList::Loading } else { ContentList::Empty };
-        // The suggestions under Continue are asked for beside it, and arrive on their own.
+        // The Home the engine last sent stays on screen until the new one lands.
         if self.nav.section() == Section::Home {
-            self.commands.push(Command::LoadUpNext);
+            self.sync_home();
         }
         Some(task)
     }
@@ -915,7 +869,6 @@ pub fn cycle_search_filter(filter: &mut SearchQuery, row: usize, forward: bool, 
 #[cfg(test)]
 mod tests {
     use anistream_core::ids::AnilistId;
-    use anistream_model::progress::TitleProgress;
 
     use super::*;
     use crate::app::fixtures::*;
@@ -1107,20 +1060,41 @@ mod tests {
     }
 
     #[test]
-    fn enter_on_a_resumable_continue_row_plays_immediately() {
+    fn enter_on_a_resumable_home_row_plays_immediately() {
+        use anistream_model::home::{
+            HomeAction, HomeItem, HomeSection, HomeView, Playable, SectionKind,
+        };
         let mut a = app();
-        let mut e = Entry::new(AnilistId::new(5), "Hoshikuzu");
-        e.progress = Some(TitleProgress { done: 7, next: 8 });
-        e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
-        a.apply(a.content_here(ContentList::Entries(vec![e])));
+        let item = HomeItem {
+            entry: Entry::new(AnilistId::new(5), "Hoshikuzu"),
+            action: HomeAction::Resume,
+            line: None,
+            episode: Some(8),
+            resume: Some(ResumePoint { position: 600.0, fraction: Some(0.5) }),
+            progress: Some(0.5),
+            new: false,
+            airs_at: None,
+            day: None,
+            reason: None,
+            starts: None,
+            playable: Playable::Unknown,
+            because: None,
+        };
+        let section = HomeSection {
+            kind: SectionKind::Continue,
+            title: anistream_model::Msg::HomeContinue,
+            items: vec![item],
+            total: 1,
+            view_all: None,
+        };
+        a.apply(Event::Home(Box::new(HomeView {
+            sections: vec![section],
+            ..HomeView::default()
+        })));
         a.nav.focus_stage();
 
         let task = a.handle(Action::Open, 20).expect("enter must resume");
-        assert_eq!(
-            task,
-            Command::play(AnilistId::new(5), "8"),
-            "the section is named Continue; Enter continues"
-        );
+        assert_eq!(task, Command::play(AnilistId::new(5), "8"), "Enter continues");
         assert!(a.playing.is_some());
     }
 
@@ -1443,7 +1417,7 @@ mod tests {
     #[test]
     fn each_browsable_section_requests_its_own_data() {
         let mut a = app();
-        assert_eq!(a.go_to_section(Section::Home), Some(Command::LoadContinue));
+        assert_eq!(a.go_to_section(Section::Home), Some(Command::LoadHome { refresh: false }));
         assert_eq!(a.go_to_section(Section::Seasonal), Some(Command::LoadSeasonal));
         assert_eq!(a.go_to_section(Section::Calendar), Some(Command::LoadCalendar));
         // Search with no query has nothing to fetch yet.

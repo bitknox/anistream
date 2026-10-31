@@ -51,8 +51,6 @@ struct Page {
     /// The suggestions as last drawn, and whether Continue has answered at all.
     drawn_up: RefCell<Vec<UpNextItem>>,
     continue_in: Cell<bool>,
-    /// The group is Airing today, not suggestions, so its heading says so.
-    fallback: Rc<Cell<bool>>,
     /// The welcome's two sources: the calendar's rows with the instant they count from, and
     /// the season's titles. A source that has not answered holds the empty state back.
     calendar: RefCell<Vec<Entry>>,
@@ -76,15 +74,12 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     list.add_css_class("queue");
     list.set_selection_mode(gtk::SelectionMode::Browse);
     list.set_activate_on_single_click(false);
-    let fallback = Rc::new(Cell::new(false));
-    let heading_fallback = Rc::clone(&fallback);
     list.set_header_func(move |row, before| {
         let group = row.widget_name();
         let changed = before.is_none_or(|b| b.widget_name() != group);
         if changed {
             let text = match group.as_str() {
                 "new" => t::group_new_this_week(),
-                "up" if heading_fallback.get() => t::continue_airing_today(),
                 "up" => t::up_next_heading(),
                 _ => t::group_in_progress(),
             };
@@ -178,7 +173,6 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         up_on_screen: Cell::new(false),
         drawn_up: RefCell::default(),
         continue_in: Cell::new(false),
-        fallback,
         calendar: RefCell::default(),
         anchor: Cell::new(0),
         anchor_at: Cell::new(0),
@@ -419,7 +413,6 @@ impl Page {
                 self.list.append(&self.row(group, item));
             }
         }
-        self.fallback.set(up.first().is_some_and(|i| i.fallback));
         let arriving = !up.is_empty() && !self.up_on_screen.get();
         for item in &up {
             let row = self.up_row(item);
@@ -666,7 +659,7 @@ impl Page {
         title.set_wrap(false);
         title.set_ellipsize(gtk::pango::EllipsizeMode::End);
         text.append(&title);
-        let why = say::up_next_line(item, self.engine_now(), &calendar::time);
+        let why = say::up_next_line(item);
         let reason = widgets::haze(&why, "caption");
         reason.add_css_class("numeric");
         reason.set_wrap(false);
@@ -902,7 +895,7 @@ impl Page {
             meta.add_css_class("numeric");
             head.append(&meta);
         }
-        let why = say::up_next_line(item, self.engine_now(), &calendar::time);
+        let why = say::up_next_line(item);
         let why = gtk::Label::builder().label(&why).xalign(0.0).wrap(true).build();
         why.set_margin_top(6);
         let detail = match (item.reason, item.because.as_deref()) {
