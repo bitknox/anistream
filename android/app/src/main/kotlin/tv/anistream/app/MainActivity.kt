@@ -31,6 +31,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import tv.anistream.app.tv.CastService
 import tv.anistream.app.tv.TvRemoteService
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.ffi.FfiTvCommand
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
      * found and reached on the network this phone is on. The browse starts again once it is given.
      */
     private val askLocalNetwork = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        app.store.cast.localNetwork(granted)
         if (granted) {
             app.store.tv.browseAgain()
             app.store.tv.retryNow()
@@ -306,6 +308,11 @@ class MainActivity : ComponentActivity() {
             app.store.tv.openRemote()
             return true
         }
+        if (intent.getBooleanExtra(CastService.EXTRA_CAST, false)) {
+            intent.removeExtra(CastService.EXTRA_CAST)
+            app.store.cast.openCard()
+            return true
+        }
         val link = intent.data?.toString()?.takeIf { it.startsWith("${TvRemoteModel.SCHEME}://") } ?: return false
         intent.data = null
         return app.store.tv.open(link)
@@ -347,6 +354,12 @@ class MainActivity : ComponentActivity() {
         AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         // Back from Android's "Install unknown apps" page: the update goes on, if it may.
         app.store.updates.resumed()
+        // Back from the app's settings, where the local network may have been allowed.
+        if (Build.VERSION.SDK_INT >= LOCAL_NETWORK_SDK && app.store.cast.blocked.value &&
+            checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
+        ) {
+            app.store.cast.localNetwork(allowed = true)
+        }
     }
 
     /**

@@ -189,7 +189,11 @@ class TvRemoteModel(
         val sender = sender ?: return
         _rows.value = sender.rows()
         _paired.value = sender.paired()
+        changed?.invoke()
     }
+
+    /** Called after each refresh: casting reads its rows off the same sender's changes. */
+    internal var changed: (() -> Unit)? = null
 
     // Play on TV
 

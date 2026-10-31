@@ -1045,6 +1045,98 @@ object Strings {
     fun playerMoreDiscussionPauses(context: Context): String =
         context.getString(R.string.player_more_discussion_pauses)
 
+    /** Play on TV sheet: the heading over the TVs with Chromecast built in. */
+    fun castSheetGroup(context: Context): String =
+        context.getString(R.string.cast_sheet_group)
+
+    /** Play on TV sheet: the line under a Chromecast row when the stream goes out through this phone. */
+    fun castSheetThroughPhone(context: Context): String =
+        context.getString(R.string.cast_sheet_through_phone)
+
+    /** Play on TV sheet: the line under a Chromecast row when the stream goes out through this tablet. */
+    fun castSheetThroughTablet(context: Context): String =
+        context.getString(R.string.cast_sheet_through_tablet)
+
+    /** Play on TV sheet: the line under "No TVs found" after the check line. */
+    fun castSheetChromecastToo(context: Context): String =
+        context.getString(R.string.cast_sheet_chromecast_too)
+
+    /** Play on TV sheet: in place of the rows when the local network permission was turned down. Open settings follows it. */
+    fun castSheetLocalNetwork(context: Context): String =
+        context.getString(R.string.cast_sheet_local_network)
+
+    /** Casting card: over the next episode while the count runs to playing it by itself. */
+    fun castCardUpNextIn(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_card_up_next_in, seconds)
+
+    /** Casting card: over the next episode when auto-next is off and the card waits for Play now. */
+    fun castCardUpNext(context: Context): String =
+        context.getString(R.string.cast_card_up_next)
+
+    /** Casting card: cancels the count, so the next episode does not play by itself. */
+    fun castCardUpNextCancel(context: Context): String =
+        context.getString(R.string.cast_card_up_next_cancel)
+
+    /** Casting card: plays the next episode on the TV at once. */
+    fun castCardUpNextPlay(context: Context): String =
+        context.getString(R.string.cast_card_up_next_play)
+
+    /** Casting card: the note after the TV skipped an opening by itself, with Undo beside it. */
+    fun castCardSkippedOpening(context: Context): String =
+        context.getString(R.string.cast_card_skipped_opening)
+
+    /** Casting card: the note after the TV skipped an ending by itself, with Undo beside it. */
+    fun castCardSkippedEnding(context: Context): String =
+        context.getString(R.string.cast_card_skipped_ending)
+
+    /** Casting card: takes back an automatic skip. */
+    fun castCardUndo(context: Context): String =
+        context.getString(R.string.cast_card_undo)
+
+    /** Casting card: the line under the title when nothing played. */
+    fun castCardFailed(context: Context, name: String): String =
+        context.getString(R.string.cast_card_failed, name)
+
+    /** Casting card: the line under the title when the TV dropped off mid-cast. */
+    fun castCardStopped(context: Context): String =
+        context.getString(R.string.cast_card_stopped)
+
+    /** Casting card: what the TV volume row says when the TV's own volume is in charge. */
+    fun castCardVolumeFixed(context: Context): String =
+        context.getString(R.string.cast_card_volume_fixed)
+
+    /** Casting card: the button that mutes the TV. */
+    fun castCardMute(context: Context): String =
+        context.getString(R.string.cast_card_mute)
+
+    /** Casting card: the button that brings the TV's sound back. */
+    fun castCardUnmute(context: Context): String =
+        context.getString(R.string.cast_card_unmute)
+
+    /** Casting card: stops the TV and plays on in the player here, from where the TV was. */
+    fun castCardPlayHere(context: Context): String =
+        context.getString(R.string.cast_card_play_here)
+
+    /** Casting card and its notification: stops casting, and the app on the TV closes. */
+    fun castCardStop(context: Context): String =
+        context.getString(R.string.cast_card_stop)
+
+    /** Settings, Play on TV: whether the TV picker lists TVs with Chromecast built in. */
+    fun castSettingsTvs(context: Context): String =
+        context.getString(R.string.cast_settings_tvs)
+
+    /** Settings, Play on TV: under the row above. */
+    fun castSettingsTvsNote(context: Context): String =
+        context.getString(R.string.cast_settings_tvs_note)
+
+    /** Settings, Sources: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun castSettingsTorrents(context: Context): String =
+        context.getString(R.string.cast_settings_torrents)
+
+    /** Settings, Sources: under the row above. */
+    fun castSettingsTorrentsNote(context: Context): String =
+        context.getString(R.string.cast_settings_torrents_note)
+
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)

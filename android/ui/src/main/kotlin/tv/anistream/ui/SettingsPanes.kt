@@ -648,6 +648,9 @@ internal fun SourcesPane(actions: AppActions) {
                         onClick = { picked = null; sheet = TorrentSheetMode.EditProxy },
                     )
                 } else null,
+                if (torrents && store.cast.available) @Composable { place: Place ->
+                    SettingSwitch(place, SettingKey.TORRENTS_WHILE_CASTING, stringResource(R.string.cast_settings_torrents), note = stringResource(R.string.cast_settings_torrents_note))
+                } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
                 // Only where the device has a cellular radio to spare.

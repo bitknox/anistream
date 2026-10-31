@@ -19,6 +19,9 @@
 //             continue-wide, airing-small, airing-wide (the launcher asks before each); and the
 //             widgets' record made at once, with its art
 //   tv        a Play on TV scene, on the two fake TVs: paired, picker, code or remote (TvScene)
+//   cast      a casting scene, on Bedroom and the made-up TVs with Chromecast built in: picker,
+//             searching, none, blocked, starting, preparing, fixed, level, failed, never, network, codec,
+//             deeplink, upnext, undo, audio, lost, taken or bar (CastScene)
 //   discussion an episode number of the first fixture whose discussion opens in its sheet
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2); match, match-fix,
 //             match-found or match-empty open the match picker on the first fixture (unsure scene)
@@ -56,7 +59,12 @@ import tv.anistream.store.EngineHome
 import tv.anistream.store.NewEpisode
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.enginePlatform
+import tv.anistream.engine.ffi.FfiCastBrowser
+import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiTvBrowser
+import tv.anistream.store.CastScene
+import tv.anistream.store.FixtureCasts
+import tv.anistream.store.FixtureTvBrowser
 import tv.anistream.store.FixtureScene
 import tv.anistream.store.FixtureTvs
 import tv.anistream.store.TvPlayRequest
@@ -77,11 +85,16 @@ internal object Flavour {
 
     private var marked = false
 
+    /** The application, for what the casting scenes' made-up TVs say. */
+    private var appContext: Context? = null
+
     fun launch(context: Context, intent: Intent): EngineLaunch {
+        appContext = context.applicationContext
         val named = intent.getStringExtra("scene")
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(AnistreamApp.TAG, "no scene named $named")
         intent.getStringExtra("media")?.let { fixtureMedia = it }
+        FixtureCasts.scene = CastScene.named(intent.getStringExtra("cast"))
         if (intent.getStringExtra("downloads") != null) fixtureDownloadClip = downloadClip(context)
         return EngineLaunch.fixtures(scene, context.cacheDir).copy(platform = enginePlatform(context))
     }
@@ -160,8 +173,25 @@ internal object Flavour {
         }
     }
 
-    /** The fake TVs, Living room and Bedroom, on the loopback interface: never the real network. */
-    fun tvBrowser(context: Context, store: AppStore): FfiTvBrowser? = store.engine?.let(FixtureTvs::start)
+    /**
+     * The fake TVs, Living room and Bedroom, on the loopback interface: never the real network. A
+     * casting scene has Bedroom alone, as Living room is a TV with Chromecast built in there, and
+     * none at all when nothing is to answer.
+     */
+    fun tvBrowser(context: Context, store: AppStore): FfiTvBrowser? {
+        val engine = store.engine ?: return null
+        val scene = FixtureCasts.scene ?: return FixtureTvs.start(engine)
+        if (scene.empty) return FixtureTvBrowser(emptyList())
+        return try {
+            FixtureTvBrowser(listOf(engine.startFakeTv("Bedroom")))
+        } catch (e: FfiException) {
+            Log.w(AnistreamApp.TAG, "the fake TV did not start: ${e.message}")
+            null
+        }
+    }
+
+    /** The made-up TVs with Chromecast built in, which no network is asked for. */
+    fun castBrowser(context: Context): FfiCastBrowser = FixtureCasts.browser()
 
     /**
      * The TV scene the `tv` extra names, set up once Play on TV is, and true once it is on
@@ -178,6 +208,7 @@ internal object Flavour {
                 value.toUIntOrNull()?.let { reachedDiscussion(store, it) }
             }
         }
+        CastScene.named(intent.getStringExtra("cast"))?.let { return reachedCast(intent, store, it) }
         val scene = TvScene.named(intent.getStringExtra("tv")) ?: return true
         val browser = withTimeoutOrNull(60_000) {
             while (store.tv.attachedBrowser == null) delay(50)
@@ -190,6 +221,22 @@ internal object Flavour {
             while (!store.tv.reached(scene)) delay(50)
             // The sheet's own animation in.
             delay(700)
+            true
+        } ?: false
+    }
+
+    /** The casting scene [scene], set up once Play on TV is, and true once it is on screen. */
+    private suspend fun reachedCast(intent: Intent, store: AppStore, scene: CastScene): Boolean {
+        withTimeoutOrNull(60_000) { while (!store.cast.available) delay(50) } ?: return false
+        val id = 900001u
+        val title = withTimeoutOrNull(30_000) { store.titles.entries.first { id in it }[id]?.title }.orEmpty()
+        store.loadEpisodes(id)
+        withTimeoutOrNull(10_000) { store.titles.episodes.first { id in it } }
+        FixtureCasts.stage(appContext ?: return false, store, MainScope(), scene, title)
+        return withTimeoutOrNull(20_000) {
+            while (!FixtureCasts.reached(store, scene)) delay(50)
+            // The sheet's own animation in; the none scene waits out the picker's 10 s.
+            delay(if (scene == CastScene.NONE) 10_500 else 700)
             true
         } ?: false
     }
