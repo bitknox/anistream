@@ -338,6 +338,13 @@
     <string name="plugin_installed">Installed %1$s %2$s.</string>
     <!-- Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host. -->
     <string name="plugin_installed_not_loaded">Installed %1$s, but it didn\'t load. %2$s</string>
+    <!-- Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded. -->
+    <string name="plugin_installed_outdated">Installed %1$s, but it was built for an older version of anistream and needs updating. Ask its author for a new build.</string>
+    <!-- Note on the sources screen when plugins were skipped because they were built for an older plugin interface. -->
+    <plurals name="plugins_outdated">
+        <item quantity="one">One plugin was built for an older version of anistream and needs updating: %2$s.</item>
+        <item quantity="other">%1$d plugins were built for an older version of anistream and need updating: %2$s.</item>
+    </plurals>
     <!-- Toast at launch when joined plugin stores offer newer versions of installed plugins. -->
     <plurals name="plugin_updates_ready">
         <item quantity="one">Plugin update ready: %2$s.</item>

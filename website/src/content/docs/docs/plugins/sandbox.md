@@ -10,7 +10,7 @@ code of its own: it says what to request, and the host makes the request. Reques
 hosts the plugin declares, because the host checks the allowlist before each one. A plugin can
 still send what it is given, such as your search terms and its own settings, to those hosts, so
 `anistream --plugins` and a store's page show them before you rely on a plugin.
-Regex, AES-CBC (128/192/256 by key length) and per-plugin settings are lent for the same reason.
+Regex and per-plugin settings are lent for the same reason.
 
 ## The limits
 

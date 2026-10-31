@@ -66,6 +66,10 @@ impl Inspector for WasmInspector {
             anistream_plugin::PluginError::Trap { message, .. } => {
                 format!("the plugin failed while describing itself: {message}")
             }
+            anistream_plugin::PluginError::OutdatedAbi { .. } => {
+                "the plugin was built for an older plugin interface and needs updating"
+                    .to_owned()
+            }
             anistream_plugin::PluginError::Deadline { .. } => {
                 "the plugin took too long to describe itself".to_owned()
             }

@@ -112,6 +112,45 @@ pub enum PluginError {
     Deadline { plugin: String, limit: Duration },
     #[error("plugin {plugin} trapped: {message}")]
     Trap { plugin: String, message: String },
+    /// The plugin was built for another major version of the plugin ABI, so none of its imports
+    /// or exports line up with this host. It needs a new build from its author.
+    #[error(
+        "{path}: built for plugin ABI {found}, this app speaks {}; the plugin needs updating",
+        ABI_MAJOR
+    )]
+    OutdatedAbi { path: String, found: String },
+}
+
+/// The major version of the plugin ABI this host speaks: the major of the WIT package in
+/// `wit/anistream-provider.wit`. A guest built for another major is refused up front.
+pub const ABI_MAJOR: u64 = 2;
+
+/// The ABI version a component was built for, if it was built for another major than this host's.
+///
+/// Read from the names the component imports and exports (`anistream:provider/host@1.1.0`)
+/// before anything is linked, so an old plugin gets a clear answer instead of a linker error
+/// that names an interface nobody asked about.
+fn outdated_abi(
+    component: &wasmtime::component::Component,
+    engine: &wasmtime::Engine,
+) -> Option<String> {
+    let ty = component.component_type();
+    let names = ty
+        .imports(engine)
+        .map(|(name, _)| name.to_owned())
+        .chain(ty.exports(engine).map(|(name, _)| name.to_owned()));
+    for name in names {
+        let Some(rest) = name.strip_prefix("anistream:provider/") else { continue };
+        let version = rest.split_once('@').map_or("", |(_, v)| v);
+        if version.split('.').next().and_then(|m| m.parse::<u64>().ok()) != Some(ABI_MAJOR) {
+            return Some(if version.is_empty() {
+                "unknown".to_owned()
+            } else {
+                version.to_owned()
+            });
+        }
+    }
+    None
 }
 
 impl PluginError {
@@ -126,6 +165,7 @@ impl PluginError {
                 ProviderError::Parse(format!("plugin trapped: {message}"))
             }
             Self::Load { message, .. } => ProviderError::Other(message.clone()),
+            Self::OutdatedAbi { .. } => ProviderError::Other(self.to_string()),
         }
     }
 
@@ -254,15 +294,6 @@ impl anistream::provider::host::Host for PluginState {
             _ => tracing::info!(plugin, "{msg}"),
         }
         Ok(())
-    }
-
-    async fn aes_decrypt(
-        &mut self,
-        key: Vec<u8>,
-        iv: Vec<u8>,
-        data: Vec<u8>,
-    ) -> wasmtime::Result<Result<Vec<u8>, String>> {
-        Ok(host::aes_decrypt(&key, &iv, &data))
     }
 
     async fn regex_captures(
@@ -460,6 +491,10 @@ impl PluginHost {
         let component = wasmtime::component::Component::new(&self.engine, &bytes)
             .map_err(|e| fail(e.to_string()))?;
         tracing::info!(elapsed = ?started.elapsed(), plugin = %path.display(), "component compiled");
+
+        if let Some(found) = outdated_abi(&component, &self.engine) {
+            return Err(PluginError::OutdatedAbi { path: display, found });
+        }
 
         let mut linker = wasmtime::component::Linker::new(&self.engine);
         // The empty WASI floor first — a wasip2 component's standard library links against it in

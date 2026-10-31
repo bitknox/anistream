@@ -49,8 +49,8 @@ async fn main() {
     .ok()
     .flatten();
     println!("  providers    {:?}", registry.ids());
-    if let Some(reason) = &plugin_note {
-        println!("  plugins      ✕ {reason}");
+    if let Some(note) = &plugin_note {
+        println!("  plugins      ✕ {}", note.english());
     }
     println!("  vpn guard    {}", if guard.is_some() { "running" } else { "not running" });
     if let Some(note) = &note {

@@ -177,23 +177,26 @@ pub fn spawn_plugin_load(
     config: Config,
     http: HttpClient,
     paths: Paths,
-) -> tokio::task::JoinHandle<Option<String>> {
+) -> tokio::task::JoinHandle<Option<Msg>> {
     // Said before the task is spawned, so a play sent the moment the engine is up sees it.
     let arriving = plugins_enabled(&config).then(|| Arrivals::expected(&registry));
     tokio::spawn(async move {
         let _arriving = arriving?;
         let started = std::time::Instant::now();
         match load_plugins(&config, &http, &paths).await {
-            Ok(loaded) => {
+            Ok((loaded, outdated)) => {
                 let count = loaded.len();
                 registry.extend(loaded);
                 arrange(&registry, &config);
                 tracing::info!(count, elapsed = ?started.elapsed(), "plugins registered");
-                None
+                (!outdated.is_empty()).then(|| Msg::PluginsOutdated {
+                    count: outdated.len() as i64,
+                    names: outdated.join(", "),
+                })
             }
             Err(reason) => {
                 tracing::warn!(%reason, "plugin host not started");
-                Some(reason)
+                Some(Msg::PluginsLoadFailed { reason })
             }
         }
     })
@@ -267,15 +270,26 @@ pub fn plugins_enabled(config: &Config) -> bool {
         && !config.providers.disabled.iter().any(|id| id == "plugins")
 }
 
+/// Why a plugin file did not load.
+pub enum PluginLoadError {
+    /// Built for another major version of the plugin ABI; its author has to rebuild it.
+    Outdated,
+    /// Anything else, with the plugin host's own words.
+    Failed(String),
+}
+
 /// Load one plugin file as a provider, for a plugin installed while the app runs.
 pub async fn load_plugin(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
     path: &std::path::Path,
-) -> std::result::Result<Arc<dyn anistream_core::traits::Provider>, String> {
-    let host = plugin_host(config, http, paths)?;
-    let plugin = host.load(path).await.map_err(|e| e.to_string())?;
+) -> std::result::Result<Arc<dyn anistream_core::traits::Provider>, PluginLoadError> {
+    let host = plugin_host(config, http, paths).map_err(PluginLoadError::Failed)?;
+    let plugin = host.load(path).await.map_err(|e| match e {
+        anistream_plugin::PluginError::OutdatedAbi { .. } => PluginLoadError::Outdated,
+        e => PluginLoadError::Failed(e.to_string()),
+    })?;
     Ok(Arc::new(anistream_plugin::WasmProvider::new(plugin)))
 }
 
@@ -284,21 +298,26 @@ async fn load_plugins(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
-) -> std::result::Result<Vec<Arc<dyn anistream_core::traits::Provider>>, String> {
+) -> std::result::Result<(Vec<Arc<dyn anistream_core::traits::Provider>>, Vec<String>), String>
+{
     let host = plugin_host(config, http, paths)?;
 
     let dir = paths.plugin_dir();
-    let providers = anistream_plugin::load_providers(&host, &dir).await;
+    let loaded = anistream_plugin::load_providers_reporting(&host, &dir).await;
     tracing::info!(
         dir = %dir.display(),
-        count = providers.len(),
+        count = loaded.providers.len(),
         "plugins registered"
     );
 
-    Ok(providers
-        .into_iter()
-        .map(|p| Arc::new(p) as Arc<dyn anistream_core::traits::Provider>)
-        .collect())
+    Ok((
+        loaded
+            .providers
+            .into_iter()
+            .map(|p| Arc::new(p) as Arc<dyn anistream_core::traits::Provider>)
+            .collect(),
+        loaded.outdated,
+    ))
 }
 
 /// The torrent source, up: its provider, the guard it runs behind, and its session.

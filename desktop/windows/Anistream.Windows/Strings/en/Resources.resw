@@ -691,6 +691,18 @@
     <value>Installed {plugin}, but it didn't load. {reason}</value>
     <comment>Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.</comment>
   </data>
+  <data name="PluginInstalledOutdated" xml:space="preserve">
+    <value>Installed {plugin}, but it was built for an older version of anistream and needs updating. Ask its author for a new build.</value>
+    <comment>Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.</comment>
+  </data>
+  <data name="PluginsOutdated_one" xml:space="preserve">
+    <value>One plugin was built for an older version of anistream and needs updating: {names}.</value>
+    <comment>Note on the sources screen when plugins were skipped because they were built for an older plugin interface.</comment>
+  </data>
+  <data name="PluginsOutdated_other" xml:space="preserve">
+    <value>{count} plugins were built for an older version of anistream and need updating: {names}.</value>
+    <comment>Note on the sources screen when plugins were skipped because they were built for an older plugin interface.</comment>
+  </data>
   <data name="PluginUpdatesReady_one" xml:space="preserve">
     <value>Plugin update ready: {names}.</value>
     <comment>Toast at launch when joined plugin stores offer newer versions of installed plugins.</comment>

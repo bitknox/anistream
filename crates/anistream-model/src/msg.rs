@@ -291,6 +291,10 @@ pub enum Msg {
     PluginInstalled { plugin: String, version: String },
     /// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
     PluginInstalledNotLoaded { plugin: String, reason: String },
+    /// Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.
+    PluginInstalledOutdated { plugin: String },
+    /// Note on the sources screen when plugins were skipped because they were built for an older plugin interface.
+    PluginsOutdated { count: i64, names: String },
     /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
     PluginUpdatesReady { count: i64, names: String },
     /// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
@@ -645,6 +649,8 @@ impl Msg {
             Self::PluginInstalledNameClash { .. } => "plugin-installed-name-clash",
             Self::PluginInstalled { .. } => "plugin-installed",
             Self::PluginInstalledNotLoaded { .. } => "plugin-installed-not-loaded",
+            Self::PluginInstalledOutdated { .. } => "plugin-installed-outdated",
+            Self::PluginsOutdated { .. } => "plugins-outdated",
             Self::PluginUpdatesReady { .. } => "plugin-updates-ready",
             Self::PluginsLoadFailed { .. } => "plugins-load-failed",
             Self::StoreTokenMissing { .. } => "store-token-missing",
@@ -895,6 +901,8 @@ impl Msg {
             Self::PluginInstalledNameClash { plugin, id } => vec![("plugin", Value::Text(plugin.clone())), ("id", Value::Text(id.clone()))],
             Self::PluginInstalled { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
             Self::PluginInstalledNotLoaded { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginInstalledOutdated { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::PluginsOutdated { count, names } => vec![("count", Value::Int(*count)), ("names", Value::Text(names.clone()))],
             Self::PluginUpdatesReady { count, names } => vec![("count", Value::Int(*count)), ("names", Value::Text(names.clone()))],
             Self::PluginsLoadFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::StoreTokenMissing { store } => vec![("store", Value::Text(store.clone()))],
