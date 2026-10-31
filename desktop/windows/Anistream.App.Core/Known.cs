@@ -120,6 +120,14 @@ public sealed class Known
     /// <summary>What the form that starts a party opens with, once the engine has said.</summary>
     public PartyForm? PartyForm { get; set; }
 
+    /// <summary>The last ten rooms, kept on this device, newest first.</summary>
+    public PartyRecentRoom[] PartyRecent { get; private set; } = [];
+
+    /// <summary>What looking into a room found, or why it could not, for the room that was opened last.</summary>
+    public PartyGlimpse? PartyGlimpse { get; private set; }
+
+    public string? PartyLookFailure { get; private set; }
+
     /// <summary>The AniList account, when signed in.</summary>
     public SyncState? Anilist => Sync.TryGetValue("anilist", out var s) && s.Connected ? s : null;
 
@@ -277,6 +285,17 @@ public sealed class Known
                 break;
             case Event.PartyMembers m:
                 PartyMembers = m.V1;
+                break;
+            case Event.PartyRecent r:
+                PartyRecent = r.V1;
+                break;
+            case Event.PartyGlimpse g:
+                PartyGlimpse = g.V1;
+                PartyLookFailure = null;
+                break;
+            case Event.PartyLookFailed f:
+                PartyGlimpse = null;
+                PartyLookFailure = f.Reason.Text();
                 break;
             case Event.PartyLeft:
                 Party = null;

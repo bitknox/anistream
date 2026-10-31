@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window
         ["seasonal"] = typeof(SeasonalPage),
         ["library"] = typeof(LibraryPage),
         ["downloads"] = typeof(DownloadsPage),
+        ["together"] = typeof(TogetherPage),
         ["providers"] = typeof(ProvidersPage),
         ["stores"] = typeof(StoresPage),
         ["search"] = typeof(SearchPage),
