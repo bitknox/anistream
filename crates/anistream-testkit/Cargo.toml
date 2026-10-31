@@ -21,6 +21,8 @@ anistream-meta.workspace = true
 anistream-net.workspace = true
 anistream-providers.workspace = true
 anistream-store.workspace = true
+# The local day a Home world is dated by.
+jiff.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 

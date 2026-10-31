@@ -213,6 +213,11 @@ struct State {
     catalogue: Vec<AnilistId>,
     /// Broadcasts beside the fixtures' schedule: see [`FakeAniList::add_broadcasts`].
     broadcasts: Vec<Value>,
+    /// Titles of the season the real clock is in, beside [`fixtures::SEASONAL`]: see
+    /// [`FakeAniList::add_season`].
+    season: Vec<AnilistId>,
+    /// List entries beside the fixture library's: see [`FakeAniList::add_entries`].
+    entries: Vec<Value>,
     /// How long each operation's answers are held back: see [`FakeAniList::answer_slowly`].
     slow: HashMap<Operation, std::time::Duration>,
     /// Where image URLs point once the fake serves art: its own `/art/`.
@@ -256,6 +261,8 @@ impl FakeAniList {
             extra: HashMap::new(),
             catalogue: Vec::new(),
             broadcasts: Vec::new(),
+            season: Vec::new(),
+            entries: Vec::new(),
             slow: HashMap::new(),
             failing: HashMap::new(),
             art: None,
@@ -440,7 +447,8 @@ impl FakeAniList {
 
     /// Broadcasts beside the fixtures' schedule, as `(title, episode, airing_at)` with the time
     /// at [`FIXTURE_NOW`]'s clock: they move with [`Self::set_now`] as the fixtures do. For a
-    /// calendar with more than a page of rows in it. The title must be one the fixtures have.
+    /// calendar with more than a page of rows in it, or the airing titles of a world added with
+    /// [`Self::add_season`]. The title must be one the fake has: a fixture or an added title.
     pub fn add_broadcasts(&self, rows: impl IntoIterator<Item = (AnilistId, u32, i64)>) {
         let mut state = lock(&self.state);
         for (id, episode, airing_at) in rows {
@@ -470,6 +478,33 @@ impl FakeAniList {
                 state.catalogue.push(id);
             }
         }
+    }
+
+    /// [`Self::add_catalogue`], and the titles are this season's too: a browse of the season the
+    /// real clock is in, with no term, answers with them beside [`fixtures::SEASONAL`], each
+    /// filter and sort applied as AniList would. Each should say it is of that season, as
+    /// [`crate::home_world::HomeWorld`]'s are, so a browse that names the season finds them
+    /// either way.
+    pub fn add_season(&self, titles: impl IntoIterator<Item = Value>) {
+        let titles: Vec<Value> = titles.into_iter().collect();
+        let ids: Vec<AnilistId> = titles
+            .iter()
+            .map(|t| AnilistId::new(t["id"].as_u64().expect("a title has an id") as u32))
+            .collect();
+        self.add_catalogue(titles);
+        let mut state = lock(&self.state);
+        for id in ids {
+            if !state.season.contains(&id) {
+                state.season.push(id);
+            }
+        }
+    }
+
+    /// Entries on the viewer's list beside the fixture library's, each in its shape (`id`,
+    /// `mediaId`, `status`, `progress`, `score`, `updatedAt`), for titles the fake has. The
+    /// library answers with them, and a browse's `onList` counts them.
+    pub fn add_entries(&self, entries: impl IntoIterator<Item = Value>) {
+        lock(&self.state).entries.extend(entries);
     }
 }
 
@@ -743,7 +778,18 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         return Reply::errors(400, "Max query complexity of 500 exceeded", Value::Null);
     }
 
-    let (failure, (now, ahead), titles, viewer_language, extra, pool, rows, following) = {
+    let (
+        failure,
+        (now, ahead),
+        titles,
+        viewer_language,
+        extra,
+        pool,
+        rows,
+        following,
+        season,
+        listed,
+    ) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -771,13 +817,21 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             pool,
             rows,
             following,
+            state.season.clone(),
+            state.entries.clone(),
         )
     };
     match failure {
         Some(failure) => fail(failure),
         None => {
             let clock = Clock { shift: now - FIXTURE_NOW, now: now + ahead };
-            let catalogue = Catalogue { extra: &extra, added: &pool, broadcasts: &rows };
+            let catalogue = Catalogue {
+                extra: &extra,
+                added: &pool,
+                broadcasts: &rows,
+                season: &season,
+                entries: &listed,
+            };
             let authorized = head.authorization.is_some();
             let writes = matches!(
                 operation,
@@ -877,6 +931,10 @@ struct Catalogue<'a> {
     added: &'a [AnilistId],
     /// The broadcasts a test added to the schedule: see [`FakeAniList::add_broadcasts`].
     broadcasts: &'a [Value],
+    /// The added titles of the real clock's season: see [`FakeAniList::add_season`].
+    season: &'a [AnilistId],
+    /// The list entries a test added: see [`FakeAniList::add_entries`].
+    entries: &'a [Value],
 }
 
 impl<'a> Catalogue<'a> {
@@ -898,6 +956,16 @@ impl<'a> Catalogue<'a> {
             pool.extend(fixtures::ALL.get(n).into_iter().chain(self.added.get(n)));
         }
         pool
+    }
+
+    /// The viewer's list entries: the fixture library's, then those a test added.
+    fn entries(self) -> impl Iterator<Item = &'a Value> {
+        fixtures::library_wire()["entries"].as_array().into_iter().flatten().chain(self.entries)
+    }
+
+    /// Every broadcast row: the fixtures' schedule, then those a test added.
+    fn schedule(self) -> impl Iterator<Item = &'a Value> {
+        fixtures::schedule_wire().iter().chain(self.broadcasts)
     }
 
     /// `id` as the single-title query answers it.
@@ -1054,14 +1122,14 @@ fn respond(
                 .collect();
             Reply::ok(json!({ "Page": { "media": media } }))
         }
-        Operation::Schedule => Reply::ok(schedule(vars, clock, catalogue.broadcasts)),
-        Operation::LastAired => Reply::ok(last_aired(vars, clock)),
-        Operation::AiredSince => Reply::ok(aired_since(vars, clock)),
+        Operation::Schedule => Reply::ok(schedule(vars, clock, catalogue)),
+        Operation::LastAired => Reply::ok(last_aired(vars, clock, catalogue)),
+        Operation::AiredSince => Reply::ok(aired_since(vars, clock, catalogue)),
         Operation::Viewer => Reply::ok(json!({ "Viewer": fixtures::library_wire()["viewer"] })),
-        Operation::Library => Reply::ok(library(clock)),
-        Operation::SaveEntry => Reply::ok(save_entry(vars)),
+        Operation::Library => Reply::ok(library(clock, catalogue)),
+        Operation::SaveEntry => Reply::ok(save_entry(vars, catalogue)),
         Operation::DeleteEntry => {
-            let known = entries().any(|e| e["id"] == vars["id"]);
+            let known = catalogue.entries().any(|e| e["id"] == vars["id"]);
             Reply::ok(json!({ "DeleteMediaListEntry": { "deleted": known } }))
         }
         // Answered from the threads a test made up, before this is reached.
@@ -1172,15 +1240,19 @@ fn pages(vars: &Value) -> Vec<(String, Value)> {
 /// The titles a page finds, in the order asked for. A text search matches any title whose forms
 /// or synonyms contain the term, any case; no term browses the whole catalogue. A season asked
 /// with no term is answered with [`fixtures::SEASONAL`] when it is the one the real clock is in,
-/// as the app asks for that one and a test should not break when the season turns. Any other
+/// as the app asks for that one and a test should not break when the season turns, and with the
+/// titles [`FakeAniList::add_season`] added beside them. Any other
 /// season, and every other filter, is applied to the fixtures as AniList would apply it.
 fn search(vars: &Value, catalogue: Catalogue<'_>) -> Vec<AnilistId> {
     let term = vars["search"].as_str().unwrap_or_default().trim().to_lowercase();
     let this_season = term.is_empty()
         && vars["season"].as_str() == Some(real_season().0)
         && vars["seasonYear"].as_u64() == Some(real_season().1);
-    let pool: Vec<AnilistId> =
-        if this_season { fixtures::SEASONAL.to_vec() } else { catalogue.pool() };
+    let pool: Vec<AnilistId> = if this_season {
+        fixtures::SEASONAL.iter().chain(catalogue.season).copied().collect()
+    } else {
+        catalogue.pool()
+    };
     let mut found: Vec<AnilistId> = pool
         .into_iter()
         .filter(|id| {
@@ -1271,7 +1343,8 @@ fn filtered(id: AnilistId, vars: &Value, with_season: bool, catalogue: Catalogue
         .flatten()
         .map(|link| link["site"].clone())
         .collect();
-    let on_list = entries().any(|e| e["mediaId"].as_u64() == Some(u64::from(id.get())));
+    let on_list =
+        catalogue.entries().any(|e| e["mediaId"].as_u64() == Some(u64::from(id.get())));
 
     list("genre_in").iter().all(|g| genres.contains(g))
         && !list("genre_not_in").iter().any(|g| genres.contains(g))
@@ -1409,13 +1482,12 @@ fn ids(value: &Value) -> Vec<AnilistId> {
 
 /// Broadcasts strictly inside `from`..`to`, as `airingAt_greater` and `airingAt_lesser` have
 /// it, in the order `sort` asks for.
-fn schedule(vars: &Value, clock: Clock, added: &[Value]) -> Value {
+fn schedule(vars: &Value, clock: Clock, catalogue: Catalogue<'_>) -> Value {
     let from = vars["from"].as_i64().unwrap_or(i64::MIN);
     let to = vars["to"].as_i64().unwrap_or(i64::MAX);
     let newest_first = sort_is(vars, "TIME_DESC");
-    let mut rows: Vec<(i64, &Value)> = fixtures::schedule_wire()
-        .iter()
-        .chain(added)
+    let mut rows: Vec<(i64, &Value)> = catalogue
+        .schedule()
         .map(|row| (clock.at(&row["airingAt"]), row))
         .filter(|(at, _)| *at > from && *at < to)
         .collect();
@@ -1428,7 +1500,7 @@ fn schedule(vars: &Value, clock: Clock, added: &[Value]) -> Value {
             Some(json!({
                 "episode": row["episode"],
                 "airingAt": at,
-                "media": clock.media(fixtures::listed_wire(id)?),
+                "media": clock.media(catalogue.listed(id)?),
             }))
         })
         .collect();
@@ -1436,10 +1508,10 @@ fn schedule(vars: &Value, clock: Clock, added: &[Value]) -> Value {
 }
 
 /// The newest broadcasts already aired for these titles, newest first, `perPage` of them.
-fn last_aired(vars: &Value, clock: Clock) -> Value {
+fn last_aired(vars: &Value, clock: Clock, catalogue: Catalogue<'_>) -> Value {
     let asked = ids(&vars["ids"]);
-    let mut rows: Vec<(i64, &Value)> = fixtures::schedule_wire()
-        .iter()
+    let mut rows: Vec<(i64, &Value)> = catalogue
+        .schedule()
         .filter(|row| {
             row["mediaId"].as_u64().is_some_and(|id| asked.contains(&AnilistId::new(id as u32)))
         })
@@ -1459,12 +1531,12 @@ fn last_aired(vars: &Value, clock: Clock) -> Value {
 
 /// What aired for these titles strictly inside `from`..`to`, oldest first, a page of them: each
 /// with its title's forms and cover.
-fn aired_since(vars: &Value, clock: Clock) -> Value {
+fn aired_since(vars: &Value, clock: Clock, catalogue: Catalogue<'_>) -> Value {
     let asked = ids(&vars["ids"]);
     let from = vars["from"].as_i64().unwrap_or(i64::MIN);
     let to = vars["to"].as_i64().unwrap_or(i64::MAX);
-    let mut rows: Vec<(i64, &Value)> = fixtures::schedule_wire()
-        .iter()
+    let mut rows: Vec<(i64, &Value)> = catalogue
+        .schedule()
         .filter(|row| {
             row["mediaId"].as_u64().is_some_and(|id| asked.contains(&AnilistId::new(id as u32)))
         })
@@ -1477,7 +1549,7 @@ fn aired_since(vars: &Value, clock: Clock) -> Value {
         .into_iter()
         .filter_map(|(at, row)| {
             let id = AnilistId::new(row["mediaId"].as_u64()? as u32);
-            let media = fixtures::wire(id)?;
+            let media = catalogue.wire(id)?;
             Some(json!({
                 "episode": row["episode"],
                 "airingAt": at,
@@ -1500,16 +1572,12 @@ fn sort_is(vars: &Value, wanted: &str) -> bool {
     }
 }
 
-fn entries() -> impl Iterator<Item = &'static Value> {
-    fixtures::library_wire()["entries"].as_array().into_iter().flatten()
-}
-
 /// The viewer's list, one list per status as AniList groups it, whatever `userId` asked for.
-fn library(clock: Clock) -> Value {
+fn library(clock: Clock, catalogue: Catalogue<'_>) -> Value {
     let mut lists: Vec<(String, Vec<Value>)> = Vec::new();
-    for entry in entries() {
+    for entry in catalogue.entries() {
         let id = AnilistId::new(entry["mediaId"].as_u64().unwrap_or_default() as u32);
-        let Some(media) = fixtures::listed_wire(id) else { continue };
+        let Some(media) = catalogue.listed(id) else { continue };
         let status = entry["status"].as_str().unwrap_or("CURRENT").to_owned();
         let row = json!({
             "id": entry["id"],
@@ -1534,9 +1602,9 @@ fn library(clock: Clock) -> Value {
 ///
 /// Nothing is stored. The library answers the same afterwards, and a test asserts on what
 /// was sent through [`FakeAniList::requests_for`].
-fn save_entry(vars: &Value) -> Value {
+fn save_entry(vars: &Value, catalogue: Catalogue<'_>) -> Value {
     let media_id = vars["mediaId"].as_u64().unwrap_or_default();
-    let existing = entries().find(|e| e["mediaId"].as_u64() == Some(media_id));
+    let existing = catalogue.entries().find(|e| e["mediaId"].as_u64() == Some(media_id));
     let id = existing.map_or(json!(media_id + 1_000_000), |e| e["id"].clone());
     let field = |name: &str, otherwise: Value| {
         if vars[name].is_null() {

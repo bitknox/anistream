@@ -66,8 +66,9 @@ const CONTINUE_FRESH: i64 = 30 * 60;
 /// How many suggestions are found, beyond what is shown, so a dismissal or a title started
 /// since leaves the shelf full without asking again.
 const SUGGESTIONS_FOUND: usize = 24;
-/// The most recommendations asked for "Because you finished", before the shelf's filters.
-const BECAUSE_ASKED: u32 = 16;
+/// The most recommendations asked for "Because you finished", before the shelf's filters: the
+/// most whole titles one request can carry inside AniList's query complexity of 500.
+const BECAUSE_ASKED: u32 = 9;
 /// The score, out of 100, a finished title needs before "Because you finished" is about it.
 const BECAUSE_SCORE: u32 = 70;
 /// The finished titles a genre needs before it has a taste rail.
@@ -1375,4 +1376,19 @@ pub async fn hidden_titles(meta: &Meta, store: &Store, tx: &Outbox) {
         })
         .collect();
     let _ = tx.send(Event::HiddenTitles(rows));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn because_you_finished_asks_within_anilists_complexity() {
+        let variables = serde_json::json!({ "ids": [1], "perPage": 1, "each": BECAUSE_ASKED });
+        let cost = anistream_testkit::complexity(
+            &anistream_meta::anilist::query::recommended_titles(),
+            &variables,
+        );
+        assert!(cost <= anistream_testkit::COMPLEXITY_LIMIT, "{cost}");
+    }
 }

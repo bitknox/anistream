@@ -8,6 +8,7 @@
 //! - [`seed`]: history, progress, mappings and downloads written into a store.
 //! - [`sources`]: a provider registry that knows the fixture titles' episodes and streams.
 //! - [`assert_golden`]: compare text against a committed file, or rewrite it on request.
+//! - [`home_world`]: invented titles dated by a scene's clock, so every shelf of Home fills.
 //! - [`art`]: the fixture titles' cover, banner and still art, which the fake serves on request.
 //!
 //! Development-only by construction: `publish = false`, used only as a dev-dependency, and
@@ -17,6 +18,7 @@ pub mod anilist;
 pub mod art;
 pub mod fixtures;
 pub mod golden;
+pub mod home_world;
 pub mod seed;
 pub mod sources;
 

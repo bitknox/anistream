@@ -152,6 +152,19 @@ pub(crate) fn library_wire() -> &'static Value {
     &LIBRARY
 }
 
+/// The fixture library's titles and their statuses, as AniList words them (`COMPLETED`): what a
+/// sync of the viewer's list leaves in the store.
+pub fn library_statuses() -> Vec<(AnilistId, &'static str)> {
+    library_wire()["entries"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|e| {
+            Some((AnilistId::new(e["mediaId"].as_u64()? as u32), e["status"].as_str()?))
+        })
+        .collect()
+}
+
 /// The opt-in catalogue's ids, in the order [`catalogue_titles`] lists them: see there.
 pub const CATALOGUE: [AnilistId; 8] = [
     AnilistId::new(900_101),
@@ -549,7 +562,7 @@ pub fn runtime_secs(id: AnilistId) -> f64 {
     wire(id).and_then(|m| m["duration"].as_f64()).unwrap_or(24.0) * 60.0
 }
 
-fn decode(value: Value) -> Media {
+pub(crate) fn decode(value: Value) -> Media {
     serde_json::from_value(value).expect("a fixture decodes as the app's Media")
 }
 

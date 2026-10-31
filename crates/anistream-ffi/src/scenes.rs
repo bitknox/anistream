@@ -7,12 +7,14 @@ use std::sync::Arc;
 use anistream_core::media::Translation;
 use anistream_core::stream::{Stream, StreamKind};
 use anistream_engine::clock::Clock;
+use anistream_meta::Media;
 use anistream_model::Msg;
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::Store;
 use anistream_testkit::{
     Failure, FakeAniList, Operation,
     fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, ONA},
+    home_world::{HomeClock, HomeWorld},
     seed, sources,
 };
 use anistream_track::secret::{Backend, TokenStore};
@@ -30,6 +32,17 @@ use crate::{
 /// ([`fixtures::LONG_FRANCHISE_SEASONS`], twelve seasons of Cloudcutter Airship) and the short one
 /// ([`fixtures::FRANCHISE_SEASONS`], five seasons of Lantern Wood), in no list, search or
 /// schedule: their pages open by id.
+///
+/// With the environment variable [`HOME_WORLD_VAR`] set to `1` when a scene starts, the scene
+/// has Home's world too ([`HomeWorld`], ids 950001 to 950036): invented titles dated by the
+/// scene's clock, fourteen of them airing this season, so This season, Airing today, Search,
+/// Seasonal and the Calendar have a season's worth whatever the date. The signed-in scenes with
+/// a history ([`Self::Watching`], its kin and [`Self::Suggested`]) also have the world's
+/// history: four shows finished here and Completed on the list, The Forest Courier last, three
+/// caught up and Watching, and two on Planning. None of it is in Continue, so Home's shelves
+/// fill as the design board draws them and Continue is as it was. It is for Home's shots: the
+/// caught-up shows and what airs today change the new-episode notices and the widgets' record,
+/// which the apps' tests read from the scenes as they are without it.
 ///
 /// With the environment variable `ANISTREAM_FIXTURES_CATALOGUE` set to `1` when a scene starts,
 /// eight more invented titles ([`fixtures::catalogue_titles`], ids 900101 to 900108) join the
@@ -63,8 +76,9 @@ pub enum FfiScene {
     /// is a test pattern mpv must play through to the resume point.
     WatchingMedia { media: String },
     /// Home's second spotlight case: signed in, every episode of Hoshikuzu no Tabibito watched
-    /// and nothing under way, so Continue is empty and the spotlight is its next season, from
-    /// Up next for you.
+    /// and nothing under way, so Continue is empty and the spotlight is from Up next for you.
+    /// With the Home world on, that is The Ice Knight Season 2, a new season airing now of a
+    /// show finished here.
     Suggested,
     /// Signed out, with one show in Continue: Natsukaze Relay's episodes 1 to 7 watched and
     /// episode 8 out, the spotlight's first case. Once episode 8 is watched or marked so, the
@@ -91,6 +105,14 @@ pub enum FfiScene {
     Offline,
 }
 
+/// The environment variable that puts Home's world in a scene: see [`FfiScene`].
+pub const HOME_WORLD_VAR: &str = "ANISTREAM_FIXTURES_HOME_WORLD";
+
+/// Whether the environment asks for Home's world.
+fn home_world_asked() -> bool {
+    std::env::var(HOME_WORLD_VAR).is_ok_and(|v| v == "1")
+}
+
 /// How long [`FfiScene::Slow`]'s fake AniList holds each of Home's discovery answers: past the
 /// four seconds after which Home's activity line shows, within the five the engine's client
 /// waits for an answer.
@@ -109,6 +131,19 @@ const DISCOVERY: [Operation; 6] = [
 ];
 
 impl FfiScene {
+    /// Whether the scene has the Home world's history and list entries beside its own.
+    fn has_world_history(&self) -> bool {
+        matches!(
+            self,
+            Self::Watching
+                | Self::WatchingMedia { .. }
+                | Self::Sourceless
+                | Self::Suggested
+                | Self::Slow
+                | Self::Failed
+        )
+    }
+
     /// Whether the scene starts signed in to the fake AniList.
     fn signed_in(&self) -> bool {
         matches!(
@@ -140,7 +175,8 @@ impl FfiEngine {
         scene: FfiScene,
         start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
-        Self::start_scene_from(dirs, host, scene, &start, Clock::default())
+        let world = home_world_asked();
+        Self::start_scene_from(dirs, host, scene, &start, Clock::default(), world)
     }
 }
 
@@ -156,7 +192,19 @@ impl FfiEngine {
         scene: FfiScene,
         clock: Clock,
     ) -> Result<Arc<Self>, FfiError> {
-        Self::start_scene_from(dirs, host, scene, &FfiStart::default(), clock)
+        let world = home_world_asked();
+        Self::start_scene_from(dirs, host, scene, &FfiStart::default(), clock, world)
+    }
+
+    /// [`FfiEngine::start_scene_on`] with Home's world in the scene, whatever the environment
+    /// says: see [`FfiScene`]. For Home's own scene tests. Not in the bindings.
+    pub fn start_home_scene_on(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        scene: FfiScene,
+        clock: Clock,
+    ) -> Result<Arc<Self>, FfiError> {
+        Self::start_scene_from(dirs, host, scene, &FfiStart::default(), clock, true)
     }
 
     fn start_scene_from(
@@ -165,6 +213,7 @@ impl FfiEngine {
         scene: FfiScene,
         start: &FfiStart,
         clock: Clock,
+        home_world: bool,
     ) -> Result<Arc<Self>, FfiError> {
         if scene.signed_in() {
             sign_in_config(&dirs)?;
@@ -174,7 +223,12 @@ impl FfiEngine {
         }
         let opened = Opened::open(&dirs)?;
         let now = clock.now();
+        let world = home_world.then(|| HomeWorld::at(HomeClock::in_zone(now, &clock.zone())));
         seed_scene(&opened.store, &scene, now);
+        if let Some(world) = world.as_ref().filter(|_| scene.has_world_history()) {
+            world.seed_history(&opened.store, now);
+            library_statuses(&opened.store, world, now);
+        }
         if scene.signed_in() {
             // Where the testing engine keeps tokens: files under the data directory.
             TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
@@ -193,6 +247,20 @@ impl FfiEngine {
             // And the short one, five seasons with a film, an OVA and a web series beside them,
             // for a season row that fits across the page with Related beside it.
             server.add_titles(fixtures::franchise());
+            // Home's world: this season's titles, the rest in the browse, and their broadcasts.
+            if let Some(world) = &world {
+                let (season, rest): (Vec<_>, Vec<_>) = world
+                    .titles
+                    .iter()
+                    .cloned()
+                    .partition(|t| world.this_season.iter().any(|id| t["id"] == id.get()));
+                server.add_season(season);
+                server.add_catalogue(rest);
+                server.add_broadcasts(world.broadcasts.iter().copied());
+                if scene.has_world_history() {
+                    server.add_entries(world.entries.iter().cloned());
+                }
+            }
             // Eight more titles in the browse, for a grid of fourteen, only when asked for.
             if std::env::var("ANISTREAM_FIXTURES_CATALOGUE").is_ok_and(|v| v == "1") {
                 server.add_catalogue(fixtures::catalogue_titles());
@@ -210,7 +278,8 @@ impl FfiEngine {
                 }
                 _ => {}
             }
-            let sources = Some(scene_sources(&scene, &server.art_base()));
+            let provided = world.as_ref().map(HomeWorld::provided).unwrap_or_default();
+            let sources = Some(scene_sources(&scene, &server.art_base(), &provided));
             let testing = testing::Testing::new(server, clock);
             let options = testing::options(opened, &testing, start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
@@ -257,10 +326,11 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
 }
 
 /// The scene's sources: the test kit's fixture provider, its stills under `art`, with the long
-/// franchise's titles beside the six, which the scene's fake AniList has too. Every episode
+/// franchise's titles beside the six, which the scene's fake AniList has too, and `provided`,
+/// Home's world's titles with the episodes out of each, when the scene has it. Every episode
 /// streams the test kit's episode-long clip, or `media` in a scene that plays. None at all for
 /// [`FfiScene::Sourceless`].
-fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
+fn scene_sources(scene: &FfiScene, art: &str, provided: &[(Media, u32)]) -> ProviderRegistry {
     if *scene == FfiScene::Sourceless {
         return ProviderRegistry::new(Vec::new());
     }
@@ -270,14 +340,18 @@ fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
             MockProvider::new(sources::PROVIDER_ID).with_hits(Vec::new()).arc(),
         ]);
     }
-    let franchise = || sources::with_long_franchise(sources::provider_with_art(art));
+    let franchise =
+        || sources::with_long_franchise_and(sources::provider_with_art(art), provided);
     let (FfiScene::Playing { media } | FfiScene::WatchingMedia { media }) = scene else {
         let clip = sources::episode_clip();
         let mut provider = franchise();
         for id in fixtures::ALL {
             provider = provider.with_streams_for(sources::key(id), vec![clip.clone()]);
         }
-        for media in fixtures::long_franchise_media() {
+        let others = fixtures::long_franchise_media()
+            .into_iter()
+            .chain(provided.iter().map(|p| p.0.clone()));
+        for media in others {
             provider = provider.with_streams_for(sources::key(media.id), vec![clip.clone()]);
         }
         return ProviderRegistry::new(vec![provider.arc()]);
@@ -329,6 +403,17 @@ fn offer_skips(dirs: &FfiDirs) -> Result<(), FfiError> {
         })
 }
 
+/// The fake library's statuses as the last sync left them: the fixture library's and the Home
+/// world's. A scene starts with them, so what Home leaves out or suggests from the list is
+/// there from the first load rather than after the engine's first sync.
+fn library_statuses(store: &Store, world: &HomeWorld, now: i64) {
+    let mut statuses = fixtures::library_statuses();
+    statuses.extend(world.library_statuses());
+    store
+        .replace_library_statuses("anilist", &statuses, now)
+        .expect("seeding the list's statuses");
+}
+
 /// The history `scene` describes, the newest watch an hour before `now`.
 fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
     const HOUR: i64 = 3_600;
@@ -371,6 +456,28 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
 mod tests {
     use super::*;
 
+    /// Home's world at the tests' moment, read in UTC.
+    fn world() -> HomeWorld {
+        HomeWorld::at(HomeClock::in_zone(1_800_000_000, &jiff::tz::TimeZone::UTC))
+    }
+
+    #[test]
+    fn the_worlds_history_leaves_continue_as_it_was_and_the_list_in_the_store() {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let store = Store::open(dir.path().join("anistream.db")).expect("a database");
+        seed_scene(&store, &FfiScene::Watching, 1_800_000_000);
+        let world = world();
+        world.seed_history(&store, 1_800_000_000);
+        library_statuses(&store, &world, 1_800_000_000);
+        let continuing = store.continue_list(15).expect("the rail");
+        let ids: Vec<_> = continuing.iter().map(|p| p.anilist_id).collect();
+        assert_eq!(ids, [FINISHED, ONA, AIRING, AIRING_NO_MAL]);
+        assert_eq!(store.watched_titles(50).expect("the history").len(), 4 + 7);
+        let completed = store.library_with_status("COMPLETED").expect("the list");
+        assert_eq!(completed.len(), 1 + 4, "{completed:?}");
+        assert_eq!(store.library_with_status("PLANNING").expect("the list").len(), 1 + 2);
+    }
+
     #[test]
     fn watching_leaves_four_titles_to_continue_with_the_newest_first() {
         let dir = tempfile::tempdir().expect("a temporary directory");
@@ -395,7 +502,11 @@ mod tests {
         let store = Store::open(dir.path().join("anistream.db")).expect("a database");
         seed_scene(&store, &FfiScene::Sourceless, 1_800_000_000);
         assert_eq!(store.continue_list(15).expect("the rail").len(), 4);
-        let none = scene_sources(&FfiScene::Sourceless, "http://127.0.0.1:9/art/");
+        let none = scene_sources(
+            &FfiScene::Sourceless,
+            "http://127.0.0.1:9/art/",
+            &world().provided(),
+        );
         assert!(none.is_empty());
     }
 
@@ -416,7 +527,7 @@ mod tests {
         let continuing = store.continue_list(15).expect("the rail");
         assert_eq!(continuing.iter().map(|p| p.anilist_id).collect::<Vec<_>>(), [FINISHED]);
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), None);
-        let playing = scene_sources(&scene, "http://127.0.0.1:9/art/");
+        let playing = scene_sources(&scene, "http://127.0.0.1:9/art/", &world().provided());
         assert_eq!(playing.ids(), [sources::PROVIDER_ID]);
         // Watching on a file of its own: Watching's history, and the file for every episode.
         let file = FfiScene::WatchingMedia { media: "/tmp/episode.mp4".into() };
@@ -424,11 +535,12 @@ mod tests {
         seed_scene(&store, &file, 1_800_000_000);
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), Some(606.0));
         assert_eq!(
-            scene_sources(&file, "http://127.0.0.1:9/art/").ids(),
+            scene_sources(&file, "http://127.0.0.1:9/art/", &world().provided()).ids(),
             [sources::PROVIDER_ID]
         );
         // Every scene has the fixture provider, with the long franchise beside the six.
-        let watching = scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/");
+        let watching =
+            scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/", &world().provided());
         assert_eq!(watching.ids(), [sources::PROVIDER_ID]);
     }
 

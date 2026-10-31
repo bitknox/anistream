@@ -41,12 +41,13 @@ impl FfiHost for Quiet {
     }
 }
 
-/// The engine on `scene`, in a home of its own that lasts as long as the engine.
+/// The engine on `scene` with Home's world in it, in a home of its own that lasts as long as
+/// the engine.
 fn started(scene: FfiScene) -> (Arc<FfiEngine>, tempfile::TempDir) {
     let root = tempfile::tempdir().expect("a temporary directory");
     let dir = |name: &str| root.path().join(name).display().to_string();
     let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
-    let engine = FfiEngine::start_scene_on(
+    let engine = FfiEngine::start_home_scene_on(
         dirs,
         Arc::new(Quiet),
         scene,
@@ -106,12 +107,67 @@ fn case(home: &HomeView) -> Option<(SpotlightCase, AnilistId)> {
     home.spotlight.as_ref().map(|s| (s.case, s.entry.id))
 }
 
+/// The kinds of Home's sections in order, leaving out Starting, which shows only in the two
+/// weeks before a season.
+fn kinds(home: &HomeView) -> Vec<SectionKind> {
+    home.sections.iter().map(|s| s.kind).filter(|k| *k != SectionKind::Starting).collect()
+}
+
+/// The Home world's title `n`: see `anistream_testkit::home_world`.
+fn world(n: u32) -> AnilistId {
+    AnilistId::new(950_000 + n)
+}
+
+#[test]
+fn watching_fills_every_shelf_the_board_draws_from_the_first_load() {
+    let (engine, _home) = started(FfiScene::Watching);
+    let home = load(&engine).pop().unwrap();
+    assert_eq!(case(&home).map(|c| c.0), Some(SpotlightCase::Continuing), "{home:?}");
+    assert_eq!(
+        kinds(&home),
+        [
+            SectionKind::Continue,
+            SectionKind::ThisWeek,
+            SectionKind::UpNext,
+            SectionKind::ThisSeason,
+            SectionKind::Because,
+            SectionKind::MoreGenre,
+        ],
+        "{home:?}"
+    );
+    assert_eq!(home.section(SectionKind::Continue).map(|s| s.total), Some(4), "as it was");
+    for section in &home.sections {
+        assert!(section.items.len() >= 4, "{:?} is thin: {section:?}", section.kind);
+    }
+    let first = |kind| home.section(kind).and_then(|s| s.items.first()).map(|i| i.entry.id);
+    assert_eq!(first(SectionKind::UpNext), Some(world(12)), "The Ice Knight Season 2");
+    assert_eq!(first(SectionKind::ThisSeason), Some(world(1)), "the most popular first");
+    let because = home.section(SectionKind::Because).unwrap();
+    assert!(because.title.english().contains("The Forest Courier"), "{because:?}");
+    let genre = home.section(SectionKind::MoreGenre).unwrap();
+    assert!(genre.title.english().contains("slice of life"), "{genre:?}");
+}
+
 #[test]
 fn suggested_has_an_empty_continue_and_a_suggestion_in_the_spotlight() {
     let (engine, _home) = started(FfiScene::Suggested);
     let home = load(&engine).pop().unwrap();
     assert_eq!(case(&home).map(|c| c.0), Some(SpotlightCase::Suggested), "{home:?}");
+    assert_eq!(case(&home).map(|c| c.1), Some(world(12)), "The Ice Knight Season 2");
     assert!(home.section(SectionKind::Continue).is_none());
+    for kind in [SectionKind::UpNext, SectionKind::ThisSeason, SectionKind::Because] {
+        assert!(home.section(kind).is_some(), "{kind:?}: {home:?}");
+    }
+}
+
+#[test]
+fn fresh_has_the_popular_pick_what_airs_today_and_a_full_season() {
+    let (engine, _home) = started(FfiScene::Fresh);
+    let home = load(&engine).pop().unwrap();
+    assert_eq!(case(&home), Some((SpotlightCase::Popular, world(1))), "{home:?}");
+    assert_eq!(kinds(&home), [SectionKind::AiringToday, SectionKind::ThisSeason], "{home:?}");
+    assert!(home.section(SectionKind::AiringToday).unwrap().items.len() >= 3, "{home:?}");
+    assert!(home.section(SectionKind::ThisSeason).unwrap().items.len() >= 8, "{home:?}");
 }
 
 #[test]
