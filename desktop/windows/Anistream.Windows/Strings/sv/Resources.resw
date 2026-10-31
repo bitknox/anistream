@@ -4982,9 +4982,6 @@
   <data name="AccountsBringsLists" xml:space="preserve">
     <value>Hämtar dina listor och fyller Fortsätt titta med det du tittar på.</value>
   </data>
-  <data name="AccountsLibraryNeeds" xml:space="preserve">
-    <value>Bibliotek och synk kräver ett konto hos {tracker}</value>
-  </data>
   <data name="AccountsLibraryFrom" xml:space="preserve">
     <value>Bibliotek visar dina listor från {tracker}.</value>
   </data>

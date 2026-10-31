@@ -3143,9 +3143,6 @@ settings-label-calendar-mine = Kalendern visar bara min lista
 # Note under the titles row.
 settings-note-titles = AniLists val följer ditt AniList-konto och är engelska när du är utloggad.
 
-# Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = Apparna spelar trailers utan ljud i stället för bannern. Terminalen sparar inställningen men spelar ingen.
-
 # Note under the subtitles row.
 settings-note-subtitles = Tryck på Enter för att skriva en språkkod. Det finns för många värden att bläddra i.
 
@@ -6034,7 +6031,7 @@ settings-value-trailers-always = Alltid
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = Endast Wi-Fi
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Spela trailers
 
 # Option: use the tracker's own choice. The tracker is a name.
@@ -7449,9 +7446,6 @@ accounts-welcome-detail = Logga in på { $tracker } för att synka din lista och
 
 # Line under a tracker that brings in lists.
 accounts-brings-lists = Hämtar dina listor och fyller Fortsätt titta med det du tittar på.
-
-# Line under the accounts screen when the library needs a tracker.
-accounts-library-needs = Bibliotek och synk kräver ett konto hos { $tracker }
 
 # Line on the settings page: where the library gets its lists.
 accounts-library-from = Bibliotek visar dina listor från { $tracker }.

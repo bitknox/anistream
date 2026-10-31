@@ -644,8 +644,6 @@
     <plurals name="release_seeders">
         <item quantity="other">%1$d人が共有中</item>
     </plurals>
-    <string name="settings_trailers_label">予告編を再生</string>
-    <string name="settings_trailers_note">予告編はYouTubeからミュートで再生されます。YouTubeはIPアドレスを確認できます。データセーバーかバッテリーセーバーがオンのとき、アニメーションを削除しているとき、またはTalkBackの使用中は再生されません。</string>
     <string name="trailer_failed">予告編を開けませんでした</string>
     <string name="engine_down_title">anistreamが停止しました</string>
     <string name="engine_down_stopped">処理を行う部分が停止しました。もう一度試すか、アプリを終了してから開き直してください。</string>
@@ -1895,7 +1893,6 @@
     <string name="accounts_other_trackers_note">その他の連携サービスはアカウントにあります。</string>
     <string name="accounts_welcome_detail">%1$sにサインインすると、リストと視聴の位置を同期できます。</string>
     <string name="accounts_brings_lists">リストを読み込み、続きを見るに視聴中の作品を表示します。</string>
-    <string name="accounts_library_needs">ライブラリと同期には%1$sのアカウントが必要です</string>
     <string name="accounts_library_from">ライブラリには%1$sのリストが表示されます。</string>
     <string name="accounts_lists_come_from">リストは%1$sから取得されます。</string>
     <string name="accounts_status_empty">%1$sでこの状態に設定した作品がここに表示されます。</string>

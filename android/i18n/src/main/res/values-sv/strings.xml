@@ -676,8 +676,6 @@
         <item quantity="one">En seeder</item>
         <item quantity="other">%1$d seeders</item>
     </plurals>
-    <string name="settings_trailers_label">Spela trailers</string>
-    <string name="settings_trailers_note">Trailers spelas dämpat från YouTube, som ser din IP-adress. De spelas inte med Datasparläge eller Batterisparläge på, med animationer borttagna eller med TalkBack igång.</string>
     <string name="trailer_failed">Det gick inte att öppna trailern</string>
     <string name="engine_down_title">anistream har stannat</string>
     <string name="engine_down_stopped">Delen som gör jobbet har stannat. Försök igen, eller avsluta och öppna appen en gång till.</string>
@@ -1947,7 +1945,6 @@
     <string name="accounts_other_trackers_note">Övriga trackers finns under Konton.</string>
     <string name="accounts_welcome_detail">Logga in på %1$s för att synka din lista och var du slutade.</string>
     <string name="accounts_brings_lists">Hämtar dina listor och fyller Fortsätt titta med det du tittar på.</string>
-    <string name="accounts_library_needs">Bibliotek och synk kräver ett konto hos %1$s</string>
     <string name="accounts_library_from">Bibliotek visar dina listor från %1$s.</string>
     <string name="accounts_lists_come_from">Dina listor kommer från %1$s.</string>
     <string name="accounts_status_empty">Titlar du sätter till den här statusen på %1$s visas här.</string>

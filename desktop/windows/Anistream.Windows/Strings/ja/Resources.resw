@@ -4865,9 +4865,6 @@
   <data name="AccountsBringsLists" xml:space="preserve">
     <value>リストを読み込み、続きを見るに視聴中の作品を表示します。</value>
   </data>
-  <data name="AccountsLibraryNeeds" xml:space="preserve">
-    <value>ライブラリと同期には{tracker}のアカウントが必要です</value>
-  </data>
   <data name="AccountsLibraryFrom" xml:space="preserve">
     <value>ライブラリには{tracker}のリストが表示されます。</value>
   </data>

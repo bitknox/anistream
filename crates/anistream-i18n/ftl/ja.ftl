@@ -3108,9 +3108,6 @@ settings-label-calendar-mine = カレンダーに自分のリストの作品だ�
 # Note under the titles row.
 settings-note-titles = AniListの選択は、AniListアカウントの設定に従います。サインアウト中は英語になります。
 
-# Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = アプリでは、バナーの代わりに予告編をミュートで再生します。ターミナルでは設定を保持しますが、予告編は再生しません。
-
 # Note under the subtitles row.
 settings-note-subtitles = Enterキーを押すと言語コードを入力できます。選択肢が多いため、順に切り替えることはできません。
 
@@ -5979,7 +5976,7 @@ settings-value-trailers-always = 常に
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = Wi-Fiのみ
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = 予告編を再生
 
 # Option: use the tracker's own choice. The tracker is a name.
@@ -7385,9 +7382,6 @@ accounts-welcome-detail = { $tracker }にサインインすると、リストと
 
 # Line under a tracker that brings in lists.
 accounts-brings-lists = リストを読み込み、続きを見るに視聴中の作品を表示します。
-
-# Line under the accounts screen when the library needs a tracker.
-accounts-library-needs = ライブラリと同期には{ $tracker }のアカウントが必要です
 
 # Line on the settings page: where the library gets its lists.
 accounts-library-from = ライブラリには{ $tracker }のリストが表示されます。

@@ -1570,18 +1570,6 @@
             "state" : "translated",
             "value" : "Library and sync need your %1$@ account"
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライブラリと同期には%1$@のアカウントが必要です"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bibliotek och synk kräver ett konto hos %1$@"
-          }
         }
       }
     },
