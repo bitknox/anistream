@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,6 +70,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
@@ -394,24 +397,49 @@ private fun DestinationIcon(destination: Destination, selected: Boolean) {
     )
 }
 
-/** A navigation bar label on one line, shrinking to fit as the text grows. */
+/**
+ * A navigation bar label: one centred line, shrinking to fit as the text grows. A label that does
+ * not fit one line at the smallest size breaks at its spaces and the bar grows to hold it; a
+ * single word wider than the item still ends in an ellipsis.
+ */
 @Composable
-private fun BarLabel(text: String) {
+internal fun BarLabel(text: String) {
     val style = LocalTextStyle.current
-    Text(
-        text,
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        maxLines = 1,
-        softWrap = false,
-        // At the smallest size a longer label ends in an ellipsis rather than running off the bar.
-        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
-            minFontSize = 8.sp,
-            maxFontSize = if (style.fontSize.isSpecified) style.fontSize else 12.sp,
-        ),
-    )
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val centre = androidx.compose.ui.text.style.TextAlign.Center
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val available = constraints.maxWidth
+        val largest = if (style.fontSize.isSpecified) style.fontSize else 12.sp
+        val smallest = 8.sp
+        val plan = remember(text, available, style, density) {
+            fun width(candidate: String, size: androidx.compose.ui.unit.TextUnit) =
+                measurer.measure(candidate, style.copy(fontSize = size), softWrap = false, maxLines = 1).size.width
+            var size = largest
+            var chosen: androidx.compose.ui.unit.TextUnit? = null
+            while (size >= smallest) {
+                if (width(text, size) <= available) { chosen = size; break }
+                size = (size.value - 0.5f).sp
+            }
+            when {
+                chosen != null -> BarLabelPlan(chosen, wraps = false)
+                text.split(' ').all { width(it, smallest) <= available } -> BarLabelPlan(smallest, wraps = true)
+                else -> BarLabelPlan(smallest, wraps = false)
+            }
+        }
+        Text(
+            text,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = centre,
+            fontSize = plan.size,
+            maxLines = if (plan.wraps) Int.MAX_VALUE else 1,
+            softWrap = plan.wraps,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        )
+    }
 }
+
+private data class BarLabelPlan(val size: androidx.compose.ui.unit.TextUnit, val wraps: Boolean)
 
 /**
  * The phone's navigation bar: the Expressive short bar on surfaceContainer, the selected
@@ -429,8 +457,8 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
                 selected = selected,
                 onClick = { go(destination) },
                 icon = { DestinationIcon(destination, selected) },
-                // One line however large the text: five labels share the width, so each shrinks
-                // to fit before it would break mid-word.
+                // Five labels share the width: each shrinks to fit one line, then breaks at a
+                // space and the bar grows.
                 label = { BarLabel(stringResource(destination.label)) },
                 colors = ShortNavigationBarItemDefaults.colors(
                     selectedIconColor = colors.onPrimaryContainer,
