@@ -154,7 +154,6 @@ pub struct Spotlight {
     /// When it starts airing, for a title that has not.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub starts: Option<FuzzyDate>,
-    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub playable: Playable,
     /// The line under the title: the minutes left in the episode, or that it is out. Case 1
     /// only; "Not found in your sources" is the app's, from [`Self::playable`].
@@ -254,7 +253,6 @@ pub struct HomeItem {
     /// When it starts airing, for a title that has not.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub starts: Option<FuzzyDate>,
-    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub playable: Playable,
     /// For a recommendation, the finished show it is recommended from: the poster shows the
     /// short reason, the hover card and the accessibility label the full one.
