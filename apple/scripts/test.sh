@@ -45,11 +45,19 @@ if [[ "$developer" == */CommandLineTools ]]; then
   )
 fi
 
+# The player's tests play in real time, and their waits are only honest while the Mac is awake:
+# hold off idle sleep while they run. On battery with the display off, macOS sleeps however busy
+# the machine is, and a test that sleeps wakes with its deadlines gone. The display still sleeps.
+awake=()
+if command -v caffeinate >/dev/null; then
+  awake=(caffeinate -i)
+fi
+
 for package in "${packages[@]}"; do
   dir="$root/apple/Packages/$package"
   echo "test.sh: $package"
   if [[ -d "$dir/Tests" ]]; then
-    (cd "$dir" && swift test ${flags[@]+"${flags[@]}"})
+    (cd "$dir" && ${awake[@]+"${awake[@]}"} swift test ${flags[@]+"${flags[@]}"})
   else
     (cd "$dir" && swift build ${flags[@]+"${flags[@]}"})
   fi

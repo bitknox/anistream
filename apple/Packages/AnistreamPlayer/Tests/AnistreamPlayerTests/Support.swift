@@ -74,6 +74,11 @@ func play(_ client: MpvClient, _ file: String, options: [String: String] = [:]) 
 
 /// The first element of `stream` that `matches` within `timeout`, or nil. The stream is used up:
 /// open one per wait, before what it waits for.
+///
+/// The waits here count time on the suspending clock, the machine's time awake, which is the
+/// clock mpv and the engine time playback on. On the continuous clock a Mac that sleeps in the
+/// middle of a test wakes with every deadline long gone, and the first wait to look fails
+/// although mpv had no time at all to answer.
 func first<T: Sendable>(
     _ stream: AsyncStream<T>, within timeout: Duration = .seconds(15),
     where matches: @escaping @Sendable (T) -> Bool
@@ -84,7 +89,7 @@ func first<T: Sendable>(
             return nil
         }
         group.addTask {
-            try? await Task.sleep(for: timeout)
+            try? await Task.sleep(for: timeout, clock: .suspending)
             return nil
         }
         let result = await group.next() ?? nil
@@ -93,12 +98,12 @@ func first<T: Sendable>(
     }
 }
 
-/// `probe`'s first non-nil answer within `timeout`, asked every 100 ms.
+/// `probe`'s first non-nil answer within `timeout` awake, asked every 100 ms.
 func eventually<T: Sendable>(
     within timeout: Duration = .seconds(10), _ probe: @Sendable () async throws -> T?
 ) async rethrows -> T? {
-    let deadline = ContinuousClock.now + timeout
-    while ContinuousClock.now < deadline {
+    let deadline = SuspendingClock.now + timeout
+    while SuspendingClock.now < deadline {
         if let value = try await probe() { return value }
         try? await Task.sleep(for: .milliseconds(100))
     }

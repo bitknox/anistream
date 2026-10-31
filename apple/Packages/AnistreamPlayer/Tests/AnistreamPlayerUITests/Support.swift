@@ -302,14 +302,18 @@ func afterTurns(
 /// so a busy main actor delays both alike. Calls the model queues for mpv go off it and back
 /// once each, which a busy main actor can stretch past any timeout: `Rig.handedOver()` waits
 /// for those.
+///
+/// The two seconds are on the suspending clock, the machine's time awake, as the engine's and
+/// mpv's own timers are: a Mac that sleeps in the middle of a test would otherwise wake with the
+/// deadline passed, and fail the wait without the player having had a moment to get there.
 @MainActor
 func until(
     _ what: String, timeout: Duration = .seconds(2), _ condition: @MainActor () -> Bool,
     sourceLocation: SourceLocation = #_sourceLocation
 ) async throws {
-    let deadline = ContinuousClock.now + timeout
+    let deadline = SuspendingClock.now + timeout
     while !condition() {
-        guard ContinuousClock.now < deadline else {
+        guard SuspendingClock.now < deadline else {
             Issue.record("timed out waiting for \(what)", sourceLocation: sourceLocation)
             throw CancellationError()
         }
