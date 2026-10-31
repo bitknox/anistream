@@ -55,7 +55,7 @@ static class TrailerWindow
 
         var window = new Window { Title = $"{entry.Title} · {T.TitleTrailer}", Content = surface };
         Dark(window);
-        var stage = new TrailerStage(surface, EmbedStyle.Full, art);
+        var stage = new TrailerStage(surface, EmbedStyle.Full, art, Trailers.SubtitleLanguage(ctx.Known));
         var refused = false;
         // No spinner for the first 600 ms, then the system's, until the first frame.
         var spin = surface.DispatcherQueue.CreateTimer();

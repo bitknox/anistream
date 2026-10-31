@@ -249,7 +249,7 @@ static class HoverPreview
 
             if (TrailerHub.Available && Trailers.Embeddable(entry))
             {
-                stage = new TrailerStage(video, EmbedStyle.Banner, art);
+                stage = new TrailerStage(video, EmbedStyle.Banner, art, Trailers.SubtitleLanguage(ctx.Known));
                 stage.Size(video.Width, video.Height);
                 stage.Showing += shown =>
                 {

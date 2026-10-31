@@ -33,6 +33,8 @@ sealed class TrailerStage
     WebView2? view;
     DispatcherQueueTimer? timeout, ending;
     string? folder;
+    string id = "";
+    long started;
     int generation;
     double width, height;
     (double Width, double Height, Thickness Margin, HorizontalAlignment Side)? fixedPlace;
@@ -50,12 +52,12 @@ sealed class TrailerStage
     public event Action<uint>? Refused;
 
     /// <param name="art">What lies over the video's place and fades away when a frame plays (banner and preview only).</param>
-    public TrailerStage(Panel host, EmbedStyle style, UIElement? art = null, Func<Entry, string?>? pageFor = null)
+    public TrailerStage(Panel host, EmbedStyle style, UIElement? art = null, string subtitles = "", Func<Entry, string?>? pageFor = null)
     {
         this.host = host;
         this.style = style;
         this.art = art;
-        this.pageFor = pageFor ?? (entry => Trailers.Page(entry, style));
+        this.pageFor = pageFor ?? (entry => Trailers.Page(entry, style, subtitles));
     }
 
     public TrailerFlow Flow => flow;
@@ -120,6 +122,8 @@ sealed class TrailerStage
         if (page is null)
             return false;
         flow.Start();
+        id = entry.Trailer?.Id ?? "";
+        started = Environment.TickCount64;
         var mine = ++generation;
         // The view takes no input of its own: a pointer over it does nothing on the viewer's behalf.
         view = new WebView2
@@ -138,6 +142,7 @@ sealed class TrailerStage
         timeout.IsRepeating = false;
         timeout.Tick += (_, _) =>
         {
+            Log(FfiLogLevel.Warn, $"{id} gave up after {Environment.TickCount64 - started} ms, never playing");
             var effect = flow.GiveUp();
             if (effect != TrailerEffect.None && style == EmbedStyle.Full)
                 TimedOut?.Invoke();
@@ -169,6 +174,9 @@ sealed class TrailerStage
             settings.IsPasswordAutosaveEnabled = false;
             settings.IsGeneralAutofillEnabled = false;
             core.NewWindowRequested += (_, e) => e.Handled = true;
+            // In a preview YouTube's own controls are hidden in its frame; Play trailer keeps them.
+            if (style == EmbedStyle.Banner)
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(AnistreamFfiMethods.TrailerChromeScript());
             core.WebMessageReceived += (_, e) => Heard(token, e.TryGetWebMessageAsString());
             // The page is served from the app's own origin, so YouTube sees it as the Referer.
             folder = Path.Combine(Path.GetTempPath(), "anistream-windows", "trailers", Guid.NewGuid().ToString("N"));
@@ -177,10 +185,13 @@ sealed class TrailerStage
             core.SetVirtualHostNameToFolderMapping(Trailers.Host, folder, CoreWebView2HostResourceAccessKind.Allow);
             mine.CoreWebView2.Navigate($"{Trailers.Origin}/trailer.html");
         }
-        catch (Exception)
+        catch (Exception e)
         {
             if (token == generation)
+            {
+                Log(FfiLogLevel.Warn, $"the trailer's web view failed: {e.GetType().Name}");
                 Fail();
+            }
         }
     }
 
@@ -189,10 +200,18 @@ sealed class TrailerStage
         if (token != generation)
             return;
         var message = text is null ? null : AnistreamFfiMethods.TrailerMessage(text);
+        var ms = Environment.TickCount64 - started;
         if (message is TrailerMessage.Error error)
+        {
+            Log(FfiLogLevel.Warn, $"{id} failed after {ms} ms: error {error.Code}, {Trailers.Meaning(error.Code)}");
             Refused?.Invoke(error.Code);
+        }
+        else if (message is TrailerMessage.Playing)
+            Log(FfiLogLevel.Debug, $"{id} playing, shown after {ms} ms");
         Apply(flow.Heard(message));
     }
+
+    static void Log(FfiLogLevel level, string line) => AnistreamFfiMethods.LogLine(level, "trailer", line);
 
     void Fail()
     {

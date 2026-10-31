@@ -7,6 +7,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.net.Uri
+import android.os.SystemClock
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -18,7 +19,10 @@ import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import tv.anistream.engine.ffi.trailerBaseUrl
-import tv.anistream.engine.ffi.trailerEmbedPage
+import tv.anistream.engine.ffi.FfiLogLevel
+import tv.anistream.engine.ffi.logLine
+import tv.anistream.engine.ffi.trailerChromeScript
+import tv.anistream.engine.ffi.trailerPage
 import tv.anistream.engine.ffi.trailerMessage
 import tv.anistream.engine.ffi.trailerScript
 import tv.anistream.engine.model.AppIdentity
@@ -52,8 +56,16 @@ sealed interface TrailerSignal {
  *
  * Every call is made on the main thread.
  */
-class TrailerPlayer(context: Context, private val trailer: Trailer, private val style: EmbedStyle, private val onSignal: (TrailerSignal) -> Unit) {
+class TrailerPlayer(
+    context: Context,
+    private val trailer: Trailer,
+    private val style: EmbedStyle,
+    /** The playback setting's subtitle language, which the page's captions follow. */
+    subtitles: String,
+    private val onSignal: (TrailerSignal) -> Unit,
+) {
     private var released = false
+    private val started = SystemClock.elapsedRealtime()
 
     /** The view to put in the layout; transparent until the page has a picture to show. */
     val view: WebView = WebView(context)
@@ -63,7 +75,7 @@ class TrailerPlayer(context: Context, private val trailer: Trailer, private val 
 
     init {
         val app = AppIdentity(ORIGIN)
-        val page = trailerEmbedPage(trailer, style, app)
+        val page = trailerPage(trailer, style, app, subtitles)
         playable = page != null
         configure(app)
         if (page != null) view.loadDataWithBaseURL(trailerBaseUrl(app), page, "text/html", "utf-8", null)
@@ -103,9 +115,18 @@ class TrailerPlayer(context: Context, private val trailer: Trailer, private val 
             }
         } else {
             // No bridge to hear the page through: the banner stays and Play trailer opens the browser.
+            log(FfiLogLevel.WARN, "no web message bridge, so the page cannot be heard")
             onSignal(TrailerSignal.Failed(0))
         }
+        // In a preview YouTube's own controls are hidden in its frame; Play trailer keeps them.
+        if (style == EmbedStyle.BANNER && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(view, trailerChromeScript(), setOf("https://www.youtube-nocookie.com", "https://www.youtube.com"))
+        }
     }
+
+    private fun log(level: FfiLogLevel, line: String) = logLine(level, "trailer", "${trailer.id} $line")
+
+    private fun since() = SystemClock.elapsedRealtime() - started
 
     private fun heard(text: String) {
         if (released) return
@@ -114,10 +135,16 @@ class TrailerPlayer(context: Context, private val trailer: Trailer, private val 
             return
         }
         when (val message = trailerMessage(text)) {
-            TrailerMessage.Playing -> onSignal(TrailerSignal.Playing)
+            TrailerMessage.Playing -> {
+                log(FfiLogLevel.DEBUG, "playing, shown after ${since()} ms")
+                onSignal(TrailerSignal.Playing)
+            }
             TrailerMessage.Ready, TrailerMessage.Paused -> onSignal(TrailerSignal.Quiet)
             TrailerMessage.Ended -> onSignal(TrailerSignal.Ended)
-            is TrailerMessage.Error -> onSignal(TrailerSignal.Failed(message.code.toInt()))
+            is TrailerMessage.Error -> {
+                log(FfiLogLevel.WARN, "failed after ${since()} ms: error ${message.code}, ${meaning(message.code.toInt())}")
+                onSignal(TrailerSignal.Failed(message.code.toInt()))
+            }
             null -> {}
         }
     }
@@ -146,6 +173,18 @@ class TrailerPlayer(context: Context, private val trailer: Trailer, private val 
 
         /** What the engine's page posts half a second before the end, where it does. */
         const val ENDING = "ending"
+
+        /** What YouTube's error code says, for the log. */
+        fun meaning(code: Int): String = when (code) {
+            0 -> "the page or the player API did not load"
+            2 -> "a bad video id"
+            5 -> "the HTML5 player failed"
+            100 -> "the video is gone or private"
+            101, 150 -> "embedding not allowed, or YouTube's sign-in check (a flagged network, such as a VPN exit)"
+            152 -> "the embed's identity was refused"
+            153 -> "the embed sent no identity (Referer)"
+            else -> "an unknown code"
+        }
     }
 }
 

@@ -8,13 +8,13 @@
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use adw::prelude::*;
 use anistream_model::{
     catalog::Trailer,
-    trailer::{AppIdentity, EmbedStyle, TrailerControl, TrailerMessage, embed_page},
+    trailer::{AppIdentity, EmbedStyle, TrailerControl, TrailerMessage, page as engine_page},
 };
 use gtk::glib;
 
@@ -89,14 +89,19 @@ impl Stage {
 
     /// Load `trailer` under the banner, filling the stage. False when it cannot: no WebKitGTK, a trailer
     /// the player does not play, or one already held.
-    pub fn start(self: &Rc<Self>, trailer: &Trailer) -> bool {
+    /// Its captions follow `subtitles`, the playback setting's language.
+    pub fn start(self: &Rc<Self>, trailer: &Trailer, subtitles: &str) -> bool {
         if self.web.borrow().is_some() || self.state.get() == State::Done {
             return false;
         }
         let app = AppIdentity::new(AppIdentity::LINUX);
-        let Some(page) = page(trailer, &app) else { return false };
+        let Some(page) = page(trailer, &app, subtitles) else { return false };
         let weak = Rc::downgrade(self);
-        let web = Web::new(&page, &app.base_url(), false, false, move |signal| {
+        let id = trailer.id.clone();
+        let started = Instant::now();
+        // In a preview YouTube's own controls are hidden in its frame.
+        let web = Web::new(&page, &app.base_url(), false, false, true, move |signal| {
+            log(&id, started, &signal);
             if let Some(stage) = weak.upgrade() {
                 stage.heard(signal);
             }
@@ -112,11 +117,17 @@ impl Stage {
         self.web.replace(Some(web));
         self.state.set(State::Loading);
         let weak = Rc::downgrade(self);
+        let gave_up = (trailer.id.clone(), started);
         self.timeout.replace(Some(glib::timeout_add_local_once(GIVE_UP, move || {
             if let Some(stage) = weak.upgrade() {
                 // The source is the one running: it is gone once this returns.
                 stage.timeout.take();
                 if stage.state.get() == State::Loading {
+                    tracing::warn!(
+                        trailer = %gave_up.0,
+                        "gave up after {} ms, never playing",
+                        gave_up.1.elapsed().as_millis()
+                    );
                     stage.release(State::Idle);
                 }
             }
@@ -241,12 +252,31 @@ impl Drop for Stage {
 
 /// The page to load: the engine's, and in the test kit's scene a local stand-in that plays a
 /// made-up clip with no network.
-fn page(trailer: &Trailer, app: &AppIdentity) -> Option<String> {
+fn page(trailer: &Trailer, app: &AppIdentity, subtitles: &str) -> Option<String> {
     #[cfg(feature = "fixtures")]
     if crate::fixtures::active() {
         return Some(fixture_page());
     }
-    embed_page(trailer, EmbedStyle::Banner, app)
+    engine_page(Some(trailer), EmbedStyle::Banner, app, subtitles)
+}
+
+/// What the page said, for the log: a playing frame and every refusal.
+pub(super) fn log(id: &str, started: Instant, signal: &Signal) {
+    let ms = started.elapsed().as_millis();
+    match signal {
+        Signal::Message(TrailerMessage::Playing) => {
+            tracing::debug!(trailer = %id, "playing, shown after {ms} ms");
+        }
+        Signal::Message(TrailerMessage::Error { code }) => {
+            tracing::warn!(
+                trailer = %id,
+                "failed after {ms} ms: error {code}, {}",
+                super::meaning(*code)
+            );
+        }
+        Signal::Failed => tracing::warn!(trailer = %id, "the trailer's web view failed"),
+        _ => {}
+    }
 }
 
 /// A page that says what the real one would, for the shots and for trying the app offline: a

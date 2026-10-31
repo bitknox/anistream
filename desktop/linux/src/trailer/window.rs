@@ -8,7 +8,7 @@ use adw::prelude::*;
 use anistream_model::{
     catalog::Entry,
     command::Command,
-    trailer::{AppIdentity, EmbedStyle, TrailerMessage, embed_page},
+    trailer::{AppIdentity, EmbedStyle, TrailerMessage, page as engine_page},
 };
 use gtk::glib;
 
@@ -28,7 +28,7 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
         return false;
     };
     let app = AppIdentity::new(AppIdentity::LINUX);
-    let Some(page) = full_page(&trailer, &app) else {
+    let Some(page) = full_page(&trailer, &app, &super::subtitle_language(&ctx.hub)) else {
         browser(entry);
         return false;
     };
@@ -59,9 +59,14 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
     let web = {
         let give_up = Rc::clone(&give_up);
         let heard = Rc::clone(&heard);
-        Web::new(&page, &app.base_url(), true, true, move |signal| match signal {
-            Signal::Failed | Signal::Message(TrailerMessage::Error { .. }) => give_up(),
-            Signal::Ending | Signal::Message(_) => heard.set(true),
+        let id = trailer.id.clone();
+        let started = std::time::Instant::now();
+        Web::new(&page, &app.base_url(), true, true, false, move |signal| {
+            super::stage::log(&id, started, &signal);
+            match signal {
+                Signal::Failed | Signal::Message(TrailerMessage::Error { .. }) => give_up(),
+                Signal::Ending | Signal::Message(_) => heard.set(true),
+            }
         })
     };
     let Some(web) = web else {
@@ -117,6 +122,7 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
         let heard = Rc::clone(&heard);
         move || {
             if !heard.get() {
+                tracing::warn!("the trailer never reported in; opening the browser");
                 give_up();
             }
         }
@@ -125,10 +131,14 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
     true
 }
 
-fn full_page(trailer: &anistream_model::catalog::Trailer, app: &AppIdentity) -> Option<String> {
+fn full_page(
+    trailer: &anistream_model::catalog::Trailer,
+    app: &AppIdentity,
+    subtitles: &str,
+) -> Option<String> {
     #[cfg(feature = "fixtures")]
     if crate::fixtures::active() {
         return Some(super::stage::fixture_page());
     }
-    embed_page(trailer, EmbedStyle::Full, app)
+    engine_page(Some(trailer), EmbedStyle::Full, app, subtitles)
 }

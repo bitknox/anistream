@@ -20,7 +20,7 @@ use glib::{gobject_ffi, translate::*};
 use gtk::{gdk, glib, prelude::*};
 use libloading::Library;
 
-use anistream_model::trailer::{ENDING_MESSAGE, TrailerControl, TrailerMessage};
+use anistream_model::trailer::{CHROME_SCRIPT, ENDING_MESSAGE, TrailerControl, TrailerMessage};
 
 /// What WebKitGTK 6 and its JavaScript engine give, looked up once.
 struct Api {
@@ -47,6 +47,15 @@ struct Api {
     needs_gesture: unsafe extern "C" fn(*mut gobject_ffi::GObject, c_int),
     set_background: unsafe extern "C" fn(*mut gobject_ffi::GObject, *const gdk::ffi::GdkRGBA),
     value_string: unsafe extern "C" fn(*mut gobject_ffi::GObject) -> *mut c_char,
+    script_new: unsafe extern "C" fn(
+        *const c_char,
+        c_int,
+        c_int,
+        *const *const c_char,
+        *const *const c_char,
+    ) -> *mut c_void,
+    add_script: unsafe extern "C" fn(*mut gobject_ffi::GObject, *mut c_void),
+    script_unref: unsafe extern "C" fn(*mut c_void),
 }
 
 /// `WEBKIT_AUTOPLAY_ALLOW` and `WEBKIT_AUTOPLAY_ALLOW_WITHOUT_SOUND`.
@@ -83,6 +92,9 @@ impl Api {
                     .get(b"webkit_settings_set_media_playback_requires_user_gesture\0")
                     .ok()?,
                 set_background: *webkit.get(b"webkit_web_view_set_background_color\0").ok()?,
+                script_new: *webkit.get(b"webkit_user_script_new\0").ok()?,
+                add_script: *webkit.get(b"webkit_user_content_manager_add_script\0").ok()?,
+                script_unref: *webkit.get(b"webkit_user_script_unref\0").ok()?,
                 value_string: *jsc.get(b"jsc_value_to_string\0").ok()?,
                 _webkit: webkit,
                 _jsc: jsc,
@@ -143,12 +155,14 @@ pub struct Web {
 impl Web {
     /// A view that will load `page` under `base_url`, reporting through `sink`. `input` is
     /// whether the viewer may use it (Play trailer's window); `sound` whether it may start with
-    /// sound, which only Play trailer's does. `None` where WebKitGTK is not installed.
+    /// sound, which only Play trailer's does. `chrome` adds the engine's user script to every
+    /// frame, which hides YouTube's own controls in the preview. `None` where WebKitGTK is not installed.
     pub fn new(
         page: &str,
         base_url: &str,
         input: bool,
         sound: bool,
+        chrome: bool,
         sink: impl Fn(Signal) + 'static,
     ) -> Option<Rc<Self>> {
         if !available() {
@@ -163,6 +177,16 @@ impl Web {
             let name = c"anistream";
             if (api.register_handler)(content.as_ptr(), name.as_ptr(), std::ptr::null()) == 0 {
                 return None;
+            }
+            if chrome {
+                let source = CString::new(CHROME_SCRIPT).ok()?;
+                // WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES and WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_END.
+                let script =
+                    (api.script_new)(source.as_ptr(), 0, 1, std::ptr::null(), std::ptr::null());
+                if !script.is_null() {
+                    (api.add_script)(content.as_ptr(), script);
+                    (api.script_unref)(script);
+                }
             }
             let policies: glib::Object = from_glib_full((api.policies_new)(
                 c"autoplay".as_ptr(),

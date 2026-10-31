@@ -24,6 +24,27 @@ pub use window::play as play_window;
 
 use crate::{catalog, hub::Hub};
 
+/// The playback setting's subtitle language, which a trailer's captions follow.
+pub fn subtitle_language(hub: &Hub) -> String {
+    hub.known.borrow().setting(SettingKey::Subtitles).map(|row| row.value).unwrap_or_default()
+}
+
+/// What YouTube's error code says, for the log.
+pub fn meaning(code: u32) -> &'static str {
+    match code {
+        0 => "the page or the player API did not load",
+        2 => "a bad video id",
+        5 => "the HTML5 player failed",
+        100 => "the video is gone or private",
+        101 | 150 => {
+            "embedding not allowed, or YouTube's sign-in check (a flagged network, such as a VPN exit)"
+        }
+        152 => "the embed's identity was refused",
+        153 => "the embed sent no identity (Referer)",
+        _ => "an unknown code",
+    }
+}
+
 /// Whether this title's trailer may start by itself now: the engine allows trailers on this
 /// device and network, and the title is one it plays and the spoiler rule does not hold back.
 pub fn may_autoplay(hub: &Hub, entry: &Entry) -> bool {
