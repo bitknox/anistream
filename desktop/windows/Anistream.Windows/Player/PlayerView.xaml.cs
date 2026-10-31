@@ -411,8 +411,18 @@ public sealed partial class PlayerView : UserControl
         StartingLine.Text = Lines.Starting(startingEpisode);
         StartingRing.Visibility = Visibility.Visible;
         StartingChoices.Visibility = Visibility.Collapsed;
-        Motion.Set(Starting, true);
+        if (movingOn)
+        {
+            // Moving on to the next episode: the last frame fades to the ground over 0.25 s (T5).
+            movingOn = false;
+            Starting.Opacity = 0;
+            Motion.FadeIn(Starting, TimeSpan.FromMilliseconds(250));
+        }
+        else
+            Motion.Set(Starting, true);
     }
+
+    bool movingOn;
 
     void StartingClock()
     {
@@ -985,6 +995,7 @@ public sealed partial class PlayerView : UserControl
             upNext.Played = true;
         if (auto)
         {
+            movingOn = true;
             still.RollingOn();
             SendQuietly(new PlayerCommand.PlayNext());
         }
