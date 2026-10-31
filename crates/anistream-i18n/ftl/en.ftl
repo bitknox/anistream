@@ -2138,6 +2138,9 @@ keys-hint-play = Play
 # Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
 keys-hint-not-interested = Not interested
 
+# Status line hint after Not interested on a suggestion: the key brings the last hidden title back.
+keys-hint-undo = Undo
+
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-list = List
 
@@ -4964,6 +4967,9 @@ home-previous = Previous
 
 # Accessible name of the arrow that pages a shelf on.
 home-next = Next
+
+# Line in the header capsule while Home is up to date with the signed-in tracker.
+home-synced = AniList synced
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =

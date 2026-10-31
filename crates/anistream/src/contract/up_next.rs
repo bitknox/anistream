@@ -5,7 +5,6 @@
 //! are part way through, 9302xx a recommendation, 9303xx a title on the Planning list.
 
 use anistream_core::ids::AnilistId;
-use anistream_engine::clock::Clock;
 use anistream_model::{
     catalog::{AiringStatus, FuzzyDate},
     command::Command,
@@ -151,7 +150,8 @@ async fn new_seasons_come_first_then_planning_then_recommendations() {
     let items = load(&mut h).await;
 
     // Airing, then announced, for the new seasons; the same for Planning, where a title that
-    // finished airing is last; then what the finished show's fans rated highest.
+    // finished airing is last; then what the finished show's fans rated highest. The old cap of
+    // six is gone, so both recommendations show.
     assert_eq!(
         ids_of(&items),
         [
@@ -161,6 +161,7 @@ async fn new_seasons_come_first_then_planning_then_recommendations() {
             PLANNED_ANNOUNCED,
             PLANNED_FINISHED,
             RECOMMENDED_ONE,
+            RECOMMENDED_TWO,
         ]
     );
     let reasons: Vec<_> = items.iter().map(|i| i.reason).collect();
@@ -173,6 +174,7 @@ async fn new_seasons_come_first_then_planning_then_recommendations() {
             UpNextReason::Planning,
             UpNextReason::Planning,
             UpNextReason::Recommended,
+            UpNextReason::Recommended,
         ]
     );
     // What each does, and when the ones that have not started will.
@@ -184,6 +186,7 @@ async fn new_seasons_come_first_then_planning_then_recommendations() {
             UpNextAction::AddToPlanning,
             UpNextAction::PlayFirstEpisode,
             UpNextAction::Nothing,
+            UpNextAction::PlayFirstEpisode,
             UpNextAction::PlayFirstEpisode,
             UpNextAction::PlayFirstEpisode,
         ]
@@ -216,10 +219,11 @@ async fn never_a_title_whose_prequel_is_unfinished() {
 }
 
 #[tokio::test]
-async fn the_queue_leaves_room_for_eight_less_two_a_row_and_none_at_four() {
-    // Eight titles on Planning, all airing; queue rows are shows part watched.
+async fn the_queue_does_not_cut_the_suggestions() {
+    // Eight titles on Planning, all airing; queue rows are shows part watched. The suggestions
+    // are their own shelf on Home: a long Continue takes none of them away.
     let planned: Vec<u32> = (930_310..930_318).collect();
-    for (rows, room) in [(1usize, 6usize), (2, 4), (3, 2), (4, 0), (5, 0)] {
+    for rows in 1..=5usize {
         let mut h = Harness::with(signed_in()).await;
         h.server().add_titles(
             planned.iter().map(|n| invented(*n, "RELEASING", 12, (2026, 10, 4), &[], &[])),
@@ -232,7 +236,7 @@ async fn the_queue_leaves_room_for_eight_less_two_a_row_and_none_at_four() {
         list(&h, &statuses);
 
         let items = load(&mut h).await;
-        assert_eq!(items.len(), room, "with {rows} queue rows");
+        assert_eq!(items.len(), planned.len(), "with {rows} queue rows");
     }
 }
 
@@ -299,42 +303,16 @@ async fn a_title_completed_on_the_list_counts_as_finished() {
 }
 
 #[tokio::test]
-async fn with_nothing_of_their_own_it_falls_back_to_what_airs_today() {
-    // Days are read in a zone whose midnight is twenty hours before now, so the one broadcast
-    // the fixtures have near now (nineteen hours before it) is today whatever the hour.
-    let now = anistream_store::now();
-    let midnight = now - 20 * 3_600;
-    let east = (86_400 - midnight.rem_euclid(86_400)).rem_euclid(86_400);
-    let east = if east > 12 * 3_600 { east - 86_400 } else { east };
-    let zone = jiff::tz::TimeZone::fixed(jiff::tz::Offset::from_seconds(east as i32).unwrap());
-    let mut h =
-        Harness::with(Options { now, clock: Some(Clock::in_zone(zone)), ..Options::default() })
-            .await;
-    // One web series watched through: finished, with no sequel and nothing recommended.
-    seed::watched(h.store(), ONA, 10, now - 600);
+async fn with_nothing_of_their_own_nothing_is_suggested_and_today_is_not_asked() {
+    let mut h = Harness::new().await;
+    // One web series watched through: finished, with no sequel and nothing recommended. What
+    // airs today is Home's own section, and no longer stands in here.
+    seed::watched(h.store(), ONA, 10, anistream_store::now() - 600);
 
     let items = load(&mut h).await;
 
-    assert_eq!(ids_of(&items), [AIRING_NO_MAL.get()]);
-    assert_eq!(items[0].reason, UpNextReason::AiringToday);
-    assert_eq!(items[0].action, UpNextAction::PlayFirstEpisode);
-    // It says it is the fallback, and when the episode airs.
-    assert!(items[0].fallback);
-    let airs_at = items[0].airs_at.expect("the broadcast time");
-    assert!(airs_at > now - 20 * 3_600 && airs_at < now, "today: {airs_at}");
-}
-
-#[tokio::test]
-async fn personal_suggestions_are_not_the_fallback_and_carry_no_air_time() {
-    let mut h = Harness::with(signed_in()).await;
-    invent(&h);
-    watch(&h, FINISHED_ONE, 12, 600);
-    list(&h, &[(FINISHED_ONE, "COMPLETED")]);
-
-    let items = load(&mut h).await;
-
-    assert!(!items.is_empty());
-    assert!(items.iter().all(|i| !i.fallback && i.airs_at.is_none()), "{items:?}");
+    assert!(items.is_empty(), "{items:?}");
+    assert!(h.server().requests_for(Operation::Schedule).is_empty(), "today was asked for");
 }
 
 /// The suggestions an `Event::UpNext` among `updates` carries, the last of them.
@@ -365,7 +343,7 @@ async fn restoring_a_dismissed_title_brings_it_back_in_a_fresh_event() {
 }
 
 #[tokio::test]
-async fn a_change_to_the_queue_sends_up_next_again_cut_to_the_room() {
+async fn a_change_to_the_queue_sends_up_next_again() {
     let mut h = Harness::with(signed_in()).await;
     let planned: Vec<u32> = (930_310..930_318).collect();
     h.server().add_titles(
@@ -375,18 +353,18 @@ async fn a_change_to_the_queue_sends_up_next_again_cut_to_the_room() {
     list(&h, &statuses);
     seed::stopped_at(h.store(), AIRING, "1", 300.0, FIXTURE_NOW - 60);
     seed::stopped_at(h.store(), AIRING_NO_MAL, "1", 300.0, FIXTURE_NOW - 120);
-    assert_eq!(load(&mut h).await.len(), 4, "two rows leave room for four");
+    assert_eq!(load(&mut h).await.len(), 8);
 
-    // A row removed: one row leaves room for six, and nobody asked again.
+    // A row removed, and nobody asked again.
     h.send(Command::HideFromContinue { id: AIRING });
     let items = sent(h.settle().await).expect("sent without being asked");
-    assert_eq!(items.len(), 6);
+    assert_eq!(items.len(), 8);
 
-    // Another show started: back to four.
+    // Another show started.
     seed::stopped_at(h.store(), ONA, "1", 300.0, FIXTURE_NOW - 30);
     h.send(Command::HideFromContinue { id: id(930_999) });
     let items = sent(h.settle().await).expect("sent for a show that started");
-    assert_eq!(items.len(), 4);
+    assert_eq!(items.len(), 8);
 }
 
 #[tokio::test]

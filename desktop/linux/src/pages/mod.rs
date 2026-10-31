@@ -2,10 +2,10 @@
 
 pub mod accounts;
 pub mod calendar;
-pub mod continue_page;
 pub mod discussion;
 pub mod downloads;
 pub mod first_launch;
+pub mod home_page;
 pub mod join;
 pub mod library;
 pub mod more_about;
@@ -22,6 +22,7 @@ pub mod store_owner;
 pub mod stores;
 pub mod title;
 pub mod torrents;
+pub mod watching;
 
 use std::rc::Rc;
 
@@ -36,7 +37,7 @@ use crate::{
 /// The sidebar's destinations, in its order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dest {
-    Continue,
+    Home,
     Calendar,
     Seasonal,
     Search,
@@ -49,7 +50,7 @@ pub enum Dest {
 
 impl Dest {
     pub const ALL: [Self; 9] = [
-        Self::Continue,
+        Self::Home,
         Self::Calendar,
         Self::Seasonal,
         Self::Search,
@@ -62,7 +63,7 @@ impl Dest {
 
     pub fn name(self) -> &'static str {
         match self {
-            Self::Continue => "continue",
+            Self::Home => "home",
             Self::Calendar => "calendar",
             Self::Seasonal => "seasonal",
             Self::Search => "search",
@@ -80,7 +81,7 @@ impl Dest {
 
     pub fn title(self) -> String {
         match self {
-            Self::Continue => t::nav_continue(),
+            Self::Home => t::home_title(),
             Self::Calendar => t::nav_calendar(),
             Self::Seasonal => t::nav_seasonal(),
             Self::Search => t::nav_search(),
@@ -94,7 +95,7 @@ impl Dest {
 
     pub fn icon(self) -> &'static str {
         match self {
-            Self::Continue => "media-playback-start-symbolic",
+            Self::Home => "go-home-symbolic",
             Self::Calendar => "x-office-calendar-symbolic",
             Self::Seasonal => "view-grid-symbolic",
             Self::Search => "system-search-symbolic",

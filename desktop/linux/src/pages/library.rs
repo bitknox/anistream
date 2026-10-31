@@ -1,6 +1,7 @@
 //! Library: the tracker's five lists, each a poster grid with its count, picked with an inline
 //! view switcher under the header bar (a drop-down on narrow windows), the order in a header bar
-//! menu. Signed out, Nagare and one action, Sign In to AniList.
+//! menu. Watching is the local queue with its preview instead of a grid, so it works signed out
+//! too. Signed out with nothing under way, Nagare and one action, Sign In to AniList.
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -63,14 +64,35 @@ struct Page {
     entries: RefCell<HashMap<&'static str, Vec<Entry>>>,
     order: RefCell<Order>,
     body: gtk::Stack,
+    views: adw::ViewStack,
+    watching: adw::ViewStackPage,
     signed_in: RefCell<Option<bool>>,
+    /// How many rows the Watching queue has.
+    under_way: std::cell::Cell<usize>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let views = adw::ViewStack::new();
     views.set_vexpand(true);
     let mut lists = Vec::new();
+    let mut watching = None;
+    let tell: Rc<RefCell<Option<std::rc::Weak<Page>>>> = Rc::default();
     for segment in LibrarySegment::ALL {
+        if segment == LibrarySegment::Watching {
+            let queue = super::watching::build(ctx, {
+                let tell = Rc::clone(&tell);
+                move |rows| {
+                    if let Some(page) = tell.borrow().as_ref().and_then(std::rc::Weak::upgrade)
+                    {
+                        page.under_way.set(rows);
+                        page.arrange();
+                    }
+                }
+            });
+            watching =
+                Some(views.add_titled(&queue, Some(segment.label()), &segment_title(segment)));
+            continue;
+        }
         let grid = PosterGrid::with_caption(&ctx.hub, say::progress_caption);
         let scroll = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never)
@@ -190,8 +212,12 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         entries: RefCell::default(),
         order: RefCell::new(Order::Updated),
         body,
+        views: views.clone(),
+        watching: watching.expect("Watching is one of the segments"),
         signed_in: RefCell::default(),
+        under_way: std::cell::Cell::new(0),
     });
+    *tell.borrow_mut() = Some(Rc::downgrade(&page));
 
     let order = gio::SimpleAction::new_stateful(
         "order",
@@ -273,14 +299,35 @@ impl Page {
         if self.signed_in.replace(Some(signed_in)) == Some(signed_in) {
             return;
         }
-        self.body.set_visible_child_name(if signed_in { "lists" } else { "signed-out" });
+        self.arrange();
         if signed_in {
             self.load();
         }
     }
 
+    /// The lists when signed in; signed out, only Watching, and only with something in it.
+    fn arrange(&self) {
+        let signed_in = self.signed_in.borrow().unwrap_or(false);
+        // The queue's own count is in the page's title.
+        let rows = self.under_way.get();
+        self.watching.set_title(Some(&t::library_linux_list_count(
+            &segment_title(LibrarySegment::Watching),
+            &rows.to_string(),
+        )));
+        for (_, _, page, _) in &self.lists {
+            page.set_visible(signed_in);
+        }
+        if !signed_in {
+            self.views.set_visible_child_name(LibrarySegment::Watching.label());
+        }
+        let show = signed_in || rows > 0;
+        self.body.set_visible_child_name(if show { "lists" } else { "signed-out" });
+    }
+
     fn load(&self) {
-        for segment in LibrarySegment::ALL {
+        for segment in
+            LibrarySegment::ALL.into_iter().filter(|s| *s != LibrarySegment::Watching)
+        {
             if let Some(list) = self.list(segment) {
                 list.loading(Some(t::library_loading()));
             }

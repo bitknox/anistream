@@ -1,6 +1,6 @@
 anistream                                                   torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Tracker         State             Queued    Token
+  ▸  Home                   │  Tracker         State             Queued    Token
   ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
   ▦  Seasonal               │    AniList       ● Connected       3         OS keychain
   /  Search                 │  ▌ Kitsu         ○ Not connected   0         0600 file

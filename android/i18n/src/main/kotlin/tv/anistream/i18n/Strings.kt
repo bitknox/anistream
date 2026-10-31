@@ -3985,6 +3985,10 @@ object Strings {
     fun homeNext(context: Context): String =
         context.getString(R.string.home_next)
 
+    /** Line in the header capsule while Home is up to date with the signed-in tracker. */
+    fun homeSynced(context: Context): String =
+        context.getString(R.string.home_synced)
+
     /** Continue row subtitle. The show's title is cut first when the row is short. */
     fun queueEpisodesLeft(context: Context, count: Int, title: String): String =
         context.resources.getQuantityString(R.plurals.queue_episodes_left, count, count, title)

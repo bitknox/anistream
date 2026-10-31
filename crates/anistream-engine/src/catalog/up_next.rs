@@ -2,10 +2,9 @@
 //! their tracker list, and only then from outside.
 //!
 //! In this order: new seasons (sequels of what they finished, not started), Planning, AniList's
-//! recommendations from what they finished, and, when none of those leaves anything, what airs
-//! today. Never a title whose prequel is unfinished, never one already in the queue or started,
-//! never one dismissed with Not interested. The queue leaves room for [`room_for`] of them, so
-//! every app shows the same count.
+//! recommendations from what they finished. What airs today is Home's own section. Never a title whose prequel is unfinished, never one already in the queue or started,
+//! never one dismissed with Not interested. At most [`SUGGESTIONS_SHOWN`] are sent, whatever the
+//! length of the queue.
 //!
 //! Asked of AniList by id, in batches, and kept as ids for half an hour like Search's rails.
 
@@ -19,7 +18,8 @@ use anistream_meta::Meta;
 use anistream_model::{
     catalog::{AiringStatus, Entry, LibrarySegment},
     event::Event,
-    up_next::{UpNextAction, UpNextItem, UpNextReason, room_for},
+    home::SUGGESTIONS_SHOWN,
+    up_next::{UpNextAction, UpNextItem, UpNextReason},
 };
 use anistream_store::Store;
 use serde::{Deserialize, Serialize};
@@ -42,8 +42,6 @@ const SEQUELS_LOOKED_UP: usize = 30;
 const PLANNING_LOOKED_UP: usize = 20;
 /// Recommended titles looked up, enough to fill the room after the ones that are filtered out.
 const RECOMMENDED_LOOKED_UP: usize = 18;
-/// One broadcast page of today.
-const TODAY_PER_PAGE: u32 = 50;
 
 /// What was found, as kept: the ids and why, and what they were found from.
 #[derive(Serialize, Deserialize)]
@@ -63,9 +61,6 @@ pub(crate) struct Pick {
     /// The viewer's list has it as Planning.
     #[serde(default)]
     pub planned: bool,
-    /// When today's episode airs, for a broadcast.
-    #[serde(default)]
-    pub airs_at: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -73,7 +68,6 @@ pub(crate) enum Why {
     NewSeason,
     Planning,
     Recommended,
-    AiringToday,
 }
 
 impl From<Why> for UpNextReason {
@@ -82,7 +76,6 @@ impl From<Why> for UpNextReason {
             Why::NewSeason => Self::NewSeason,
             Why::Planning => Self::Planning,
             Why::Recommended => Self::Recommended,
-            Why::AiringToday => Self::AiringToday,
         }
     }
 }
@@ -103,9 +96,9 @@ pub struct Ask {
 pub async fn load_up_next(lent: Lent, ask: Ask) {
     let Lent { meta, store, tx, .. } = lent;
     let queue = queue(&store);
-    let room = room_for(queue.len().min(anistream_model::present::QUEUE_ROWS));
-    // Nothing watched yet is the welcome's, and a full queue leaves no room.
-    if room == 0 || store.stats().is_ok_and(|s| s.titles == 0) {
+    let room = SUGGESTIONS_SHOWN;
+    // Nothing watched yet has nothing to suggest from.
+    if store.stats().is_ok_and(|s| s.titles == 0) {
         let _ = tx.send(Event::UpNext(Vec::new()));
         return;
     }
@@ -119,7 +112,7 @@ pub async fn load_up_next(lent: Lent, ask: Ask) {
         let _ = tx.send(Event::UpNext(items));
         return;
     }
-    let picks = match find(&meta, &store, &queue, &dismissed, &ask, room, true).await {
+    let picks = match find(&meta, &store, &queue, &dismissed, &ask, room).await {
         Ok(found) => found.picks,
         Err(e) => {
             tracing::warn!(error = %e, "Up next could not be found");
@@ -151,7 +144,10 @@ pub async fn dismiss(lent: Lent, id: AnilistId) {
     });
     let mut all = dismissed(&store);
     all.retain(|d| d.id != id.get());
-    all.push(Dismissed { id: id.get(), waiting });
+    let at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(0));
+    all.push(Dismissed { id: id.get(), waiting, at });
     match serde_json::to_string(&all) {
         Ok(json) => {
             if let Err(e) = store.set_meta_text(DISMISSED_KEY, &json) {
@@ -262,8 +258,6 @@ pub(crate) fn item(pick: &Pick, entry: Entry) -> UpNextItem {
         because: pick.because.clone(),
         starts,
         action,
-        airs_at: pick.airs_at,
-        fallback: pick.reason == Why::AiringToday,
         entry,
     }
 }
@@ -279,8 +273,7 @@ pub(crate) struct Found {
 }
 
 /// The suggestions, in order, and as many as the room, with the groups that cannot fill it
-/// followed by the ones that can. With `fallback`, what airs today stands in when nothing of the
-/// viewer's own is left; Home has a section of its own for that instead.
+/// followed by the ones that can.
 pub(crate) async fn find(
     meta: &Meta,
     store: &Store,
@@ -288,7 +281,6 @@ pub(crate) async fn find(
     dismissed: &[Dismissed],
     ask: &Ask,
     room: usize,
-    fallback: bool,
 ) -> Result<Found, String> {
     let queue: HashSet<AnilistId> = queue.iter().copied().collect();
     let status_of = |id: AnilistId| -> Option<String> {
@@ -360,11 +352,6 @@ pub(crate) async fn find(
     };
     planning_ids.retain(|id| !sequel_ids.contains(id) && !queue.contains(id) && !started(*id));
     planning_ids.truncate(PLANNING_LOOKED_UP);
-    let planned_all: HashSet<AnilistId> = if ask.listed {
-        store.library_with_status("PLANNING").unwrap_or_default().into_iter().collect()
-    } else {
-        HashSet::new()
-    };
     let wanted: Vec<AnilistId> = sequel_ids.iter().chain(&planning_ids).copied().collect();
     let found = if wanted.is_empty() {
         Vec::new()
@@ -393,7 +380,6 @@ pub(crate) async fn find(
                     because: None,
                     unaired: false,
                     planned: status_of(entry.id).as_deref() == Some("PLANNING"),
-                    airs_at: None,
                 },
                 entry.clone(),
             ));
@@ -449,7 +435,6 @@ pub(crate) async fn find(
                                         because,
                                         unaired: false,
                                         planned: false,
-                                        airs_at: None,
                                     },
                                     entry,
                                 ));
@@ -463,14 +448,6 @@ pub(crate) async fn find(
         }
     }
 
-    // Nothing of their own: what airs today, so a new viewer is not left with a bare screen.
-    if picks.is_empty() && fallback {
-        for (pick, entry) in airing_today(meta, store, ask, &planned_all).await? {
-            if suggestible(&entry) {
-                picks.push((pick, entry));
-            }
-        }
-    }
     Ok(Found { picks, finished: finished_entries, finished_ids: finished })
 }
 
@@ -482,47 +459,4 @@ fn rank(entry: &Entry) -> u8 {
         Some(AiringStatus::NotYetReleased) => 3,
         _ => 2,
     }
-}
-
-/// The titles with a broadcast today in the viewer's zone, in the order they air.
-pub(crate) async fn airing_today(
-    meta: &Meta,
-    store: &Store,
-    ask: &Ask,
-    planned: &HashSet<AnilistId>,
-) -> Result<Vec<(Pick, Entry)>, String> {
-    let day = jiff::Timestamp::from_second(ask.now)
-        .map_err(|e| e.to_string())?
-        .to_zoned(ask.zone.clone());
-    let start = day.start_of_day().map_err(|e| e.to_string())?;
-    let end = start.checked_add(jiff::Span::new().days(1)).map_err(|e| e.to_string())?;
-    let page = meta
-        .airing_between(
-            start.timestamp().as_second(),
-            end.timestamp().as_second(),
-            1,
-            TODAY_PER_PAGE,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-    let mut seen = HashSet::new();
-    let mut out = Vec::new();
-    for airing in &page.items {
-        if !seen.insert(airing.media.id) {
-            continue;
-        }
-        out.push((
-            Pick {
-                id: airing.media.id.get(),
-                reason: Why::AiringToday,
-                because: None,
-                // Its first episode is the one airing, and not yet.
-                unaired: airing.episode == 1 && airing.airing_at > ask.now,
-                planned: planned.contains(&airing.media.id),
-                airs_at: Some(airing.airing_at),
-            },
-            data::entry_from(&airing.media, Some(store)),
-        ));
-    }
-    Ok(out)
 }

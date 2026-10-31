@@ -2107,6 +2107,8 @@
     <string name="home_previous">Previous</string>
     <!-- Accessible name of the arrow that pages a shelf on. -->
     <string name="home_next">Next</string>
+    <!-- Line in the header capsule while Home is up to date with the signed-in tracker. -->
+    <string name="home_synced">AniList synced</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>

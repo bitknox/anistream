@@ -149,3 +149,7 @@ home-previous = Previous
 # Accessible name of the arrow that pages a shelf on.
 # @max 16
 home-next = Next
+
+# Line in the header capsule while Home is up to date with the signed-in tracker.
+# @max 24
+home-synced = AniList synced

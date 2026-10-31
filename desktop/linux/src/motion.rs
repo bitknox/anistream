@@ -67,6 +67,45 @@ pub fn fade_out(widget: &impl IsA<gtk::Widget>) -> adw::TimedAnimation {
     animation
 }
 
+/// Fade `widget` out on the fade-out token and leave it clear, then run `done`: for a card whose
+/// place closes after it, so it keeps its room until then.
+pub fn fade_away(
+    widget: &impl IsA<gtk::Widget>,
+    done: impl Fn() + 'static,
+) -> adw::TimedAnimation {
+    let from = widget.opacity();
+    let animation = adw::TimedAnimation::new(widget, from, 0.0, 300, opacity(widget));
+    animation.set_easing(adw::Easing::EaseInCubic);
+    animation.connect_done(move |_| done());
+    animation.play();
+    animation
+}
+
+/// Run `start` once `widget` is on screen: libadwaita skips an animation straight to its end
+/// when its widget is not mapped, so one started on a widget just made would only jump.
+pub fn once_mapped(widget: &impl IsA<gtk::Widget>, start: impl FnOnce() + 'static) {
+    let widget = widget.as_ref();
+    if widget.is_mapped() {
+        start();
+        return;
+    }
+    let start = std::cell::Cell::new(Some(start));
+    let handler: std::rc::Rc<std::cell::Cell<Option<gtk::glib::SignalHandlerId>>> =
+        std::rc::Rc::default();
+    let id = widget.connect_map({
+        let handler = std::rc::Rc::clone(&handler);
+        move |widget| {
+            if let Some(id) = handler.take() {
+                widget.disconnect(id);
+            }
+            if let Some(start) = start.take() {
+                start();
+            }
+        }
+    });
+    handler.set(Some(id));
+}
+
 /// Bring `widget` in with the standard spring on its opacity.
 pub fn crossfade_in(widget: &impl IsA<gtk::Widget>) -> adw::SpringAnimation {
     widget.set_opacity(0.0);

@@ -40,8 +40,13 @@ use anistream_model::{
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::{EpisodeKind, EpisodeRow},
     event::Event,
+    home::{
+        HomeAction, HomeEnd, HomeItem, HomeSection, HomeView, Playable, SectionKind, Spotlight,
+        SpotlightCase,
+    },
     jobs::JobId,
     playback::SkipKind,
+    present::SeasonYear,
     progress::TitleProgress,
     settings::{self, SettingsView},
     sources::{MatchCandidate, MatchQuestion, MetaSourceRow, ProviderRow},
@@ -225,6 +230,7 @@ impl Screen {
 fn key(spec: &str) -> KeyEvent {
     let code = match spec {
         "esc" => KeyCode::Esc,
+        "tab" => KeyCode::Tab,
         "enter" => KeyCode::Enter,
         "down" => KeyCode::Down,
         "up" => KeyCode::Up,
@@ -446,9 +452,14 @@ macro_rules! scenarios {
 }
 
 scenarios! {
-    continue_watching,
-    continue_native,
-    continue_up_next,
+    home_watching,
+    home_native,
+    home_long,
+    home_first_run,
+    home_offline,
+    home_next_section,
+    home_not_found,
+    home_undo,
     continue_loading,
     calendar,
     seasonal,
@@ -781,58 +792,298 @@ fn settled_on(s: &mut Screen, section: u8) -> Option<Command> {
 
 // ── Sections ───────────────────────────────────────────────────────────────────────────────────
 
-/// Continue, the first screen: a resumable episode on top, a show you are behind on, one you are
-/// caught up with, and one finished airing — each row's trailing text a different answer.
-fn continue_watching(s: &mut Screen) {
-    settled_on(s, 1);
-    s.list(vec![hoshikuzu(), kaze(), yoru(), tsuki()]);
+/// Home's items, from the made-up titles: `(entry, action, line, reason, because, starts)` rows.
+fn home_item(entry: Entry, action: HomeAction, line: Option<Msg>) -> HomeItem {
+    HomeItem {
+        entry,
+        action,
+        line,
+        episode: None,
+        resume: None,
+        progress: None,
+        new: false,
+        airs_at: None,
+        day: None,
+        reason: None,
+        starts: None,
+        playable: Playable::Unknown,
+        because: None,
+    }
 }
 
-/// Continue with titles in Japanese script, two cells a character: each is cut at its column,
-/// never running into the trailing text, and the long one ends in an ellipsis.
-fn continue_native(s: &mut Screen) {
+fn home_section(kind: SectionKind, title: Msg, items: Vec<HomeItem>) -> HomeSection {
+    HomeSection { kind, title, total: items.len() as u32, items, view_all: None }
+}
+
+/// A suggestion: the engine's short reason in `line`, and the finished title for a recommendation.
+fn suggestion(
+    entry: Entry,
+    reason: anistream_model::up_next::UpNextReason,
+    line: Msg,
+    because: Option<&str>,
+) -> HomeItem {
+    HomeItem {
+        reason: Some(reason),
+        because: because.map(Into::into),
+        episode: Some(1),
+        ..home_item(entry, HomeAction::Play, Some(line))
+    }
+}
+
+/// A week entry: the day counted from today, and when the episode airs.
+fn broadcast(entry: Entry, day: u32, episode: u32, at: i64) -> HomeItem {
+    HomeItem {
+        episode: Some(episode),
+        day: Some(day),
+        airs_at: Some(at),
+        ..home_item(entry, HomeAction::Nothing, None)
+    }
+}
+
+fn home_view(
+    spotlight: Option<Spotlight>,
+    sections: Vec<HomeSection>,
+    end: HomeEnd,
+) -> HomeView {
+    HomeView {
+        spotlight,
+        sections,
+        pending: Vec::new(),
+        end: Some(end),
+        offline: false,
+        offline_since: None,
+        failed: false,
+        season: Some(SeasonYear { season: Season::Fall, year: 2026 }),
+    }
+}
+
+fn continuing(entry: Entry, episode: u32, minutes: i64) -> Spotlight {
+    Spotlight {
+        case: SpotlightCase::Continuing,
+        label: Msg::HomeSpotlightContinuing,
+        entry,
+        episode,
+        action: HomeAction::Resume,
+        reason: None,
+        resume: None,
+        starts: None,
+        playable: Playable::Unknown,
+        line: Some(Msg::HomeTimeLeft { episode: i64::from(episode), minutes }),
+        because: None,
+    }
+}
+
+/// Home in the first case, as on the board: the spotlight is the show being watched, Continue,
+/// the week, the suggestions, the season and a taste shelf.
+fn watching_view() -> HomeView {
+    use anistream_model::up_next::UpNextReason::{NewSeason, Planning, Recommended};
+    let pick = |at: usize| catalogue(24).swap_remove(at);
+    let progress = |entry: Entry, line: Msg| HomeItem {
+        episode: Some(5),
+        ..home_item(entry, HomeAction::Resume, Some(line))
+    };
+    let continue_ = home_section(
+        SectionKind::Continue,
+        Msg::HomeContinue,
+        vec![
+            HomeItem { new: true, ..progress(kaze(), Msg::HomeEpisodeOutToday { episode: 5 }) },
+            progress(pick(5), Msg::HomeTimeLeft { episode: 9, minutes: 21 }),
+            progress(pick(8), Msg::HomeEpisodeOut { episode: 2 }),
+            progress(yoru(), Msg::HomeTimeLeft { episode: 8, minutes: 3 }),
+        ],
+    );
+    let week = home_section(
+        SectionKind::ThisWeek,
+        Msg::HomeThisWeek,
+        vec![
+            broadcast(pick(4), 0, 8, NOW + 5 * HOUR),
+            broadcast(hoshikuzu(), 1, 9, NOW + DAY + 9 * HOUR),
+            broadcast(pick(6), 3, 11, NOW + 3 * DAY + 2 * HOUR),
+        ],
+    );
+    let up_next = home_section(
+        SectionKind::UpNext,
+        Msg::HomeUpNext,
+        vec![
+            suggestion(pick(9), NewSeason, Msg::HomeReasonNewSeason, None),
+            suggestion(tsuki(), Planning, Msg::HomeReasonPlanning, None),
+            suggestion(
+                pick(10),
+                Recommended,
+                Msg::HomeReasonRecommended,
+                Some("Kumo no Ue no Toshokan"),
+            ),
+        ],
+    );
+    let season = home_section(
+        SectionKind::ThisSeason,
+        Msg::HomeThisSeason,
+        vec![
+            HomeItem {
+                episode: Some(5),
+                ..home_item(
+                    pick(11),
+                    HomeAction::Play,
+                    Some(Msg::HomeEpisodeOutShort { episode: 5 }),
+                )
+            },
+            HomeItem {
+                episode: Some(4),
+                ..home_item(
+                    pick(12),
+                    HomeAction::Play,
+                    Some(Msg::HomeEpisodeOutShort { episode: 4 }),
+                )
+            },
+        ],
+    );
+    let because = home_section(
+        SectionKind::Because,
+        Msg::HomeBecause { title: "Kumo no Ue no Toshokan".into() },
+        vec![suggestion(
+            pick(13),
+            Recommended,
+            Msg::HomeReasonRecommended,
+            Some("Kumo no Ue no Toshokan"),
+        )],
+    );
+    home_view(
+        Some(continuing(hoshikuzu(), 3, 12)),
+        vec![continue_, week, up_next, season, because],
+        HomeEnd::Everything,
+    )
+}
+
+/// Home, the first screen: a resumable episode on top, then Continue, the week, suggestions, the
+/// season and a taste shelf, each a ruled heading with one line per title.
+fn home_watching(s: &mut Screen) {
+    settled_on(s, 1);
+    s.apply(Event::Home(Box::new(watching_view())));
+}
+
+/// Home with titles in Japanese script, two cells a character: each is cut at its column, never
+/// running into the trailing text, and the long one ends in an ellipsis.
+fn home_native(s: &mut Screen) {
     settled_on(s, 1);
     let named = |entry: Entry, title: &str| Entry { title: title.into(), ..entry };
-    s.list(vec![
-        named(hoshikuzu(), "星屑の旅人"),
-        named(kaze(), "風の手紙"),
-        named(yoru(), "夜の図書館と眠らない司書たちの長い長い夜の物語"),
-        named(tsuki(), "月と鯨の歌"),
-    ]);
+    let mut view = watching_view();
+    view.spotlight = Some(continuing(named(hoshikuzu(), "星屑の旅人"), 3, 12));
+    let names = ["風の手紙", "夜の図書館と眠らない司書たちの長い長い夜の物語", "月と鯨の歌"];
+    for (item, name) in view.sections[0].items.iter_mut().zip(names) {
+        item.entry = named(item.entry.clone(), name);
+    }
+    s.apply(Event::Home(Box::new(view)));
 }
 
-/// Continue longer than the screen with Up next under it, the cursor on the last suggestion:
-/// the window follows it down, and a reason too long for the row cuts the title it names
-/// rather than running over the rail.
-fn continue_up_next(s: &mut Screen) {
-    use anistream_model::up_next::{UpNextAction, UpNextItem, UpNextReason};
+/// Continue at its limit with the shelves under it, the cursor on the last suggestion: the window
+/// follows it down and keeps the heading of the group it enters.
+fn home_long(s: &mut Screen) {
     settled_on(s, 1);
-    let continuing = catalogue(16);
-    let suggestions = catalogue(20).split_off(16);
-    let item = |entry: Entry, reason: UpNextReason, because: Option<&str>| UpNextItem {
-        entry,
-        reason,
-        because: because.map(Into::into),
-        starts: None,
-        action: UpNextAction::PlayFirstEpisode,
-        airs_at: None,
-        fallback: false,
+    let mut view = watching_view();
+    let cards = catalogue(16);
+    let mut shown: Vec<HomeItem> = cards
+        .iter()
+        .map(|entry| HomeItem {
+            episode: Some(2),
+            ..home_item(
+                entry.clone(),
+                HomeAction::Resume,
+                Some(Msg::HomeTimeLeft { episode: 2, minutes: 11 }),
+            )
+        })
+        .collect();
+    shown.truncate(12);
+    view.sections[0].total = 16;
+    view.sections[0].items = shown;
+    let rows: usize =
+        view.sections.iter().map(|section| section.items.len()).sum::<usize>() + 1;
+    s.apply(Event::Home(Box::new(view)));
+    s.press(&vec!["j"; rows - 4]);
+}
+
+/// A first run, signed out: nothing watched, so the spotlight is a popular pick and what airs
+/// today stands in for the week; the closing line asks for a tracker.
+fn home_first_run(s: &mut Screen) {
+    settled_on(s, 1);
+    let pick = |at: usize| catalogue(24).swap_remove(at);
+    let spotlight = Spotlight {
+        case: SpotlightCase::Popular,
+        label: Msg::HomeSpotlightPopular,
+        action: HomeAction::Play,
+        line: None,
+        ..continuing(pick(11), 1, 0)
     };
-    let mut rail = suggestions.into_iter();
-    let mut next = || rail.next().expect("four suggestions");
-    let items = vec![
-        item(next(), UpNextReason::NewSeason, None),
-        item(next(), UpNextReason::Planning, None),
-        item(
-            next(),
-            UpNextReason::Recommended,
-            Some("Ame Furu Machi no Robotto to Chiisana Hoshi no Yakusoku"),
-        ),
-        item(next(), UpNextReason::Recommended, Some("Kumo no Ue no Gakkou")),
-    ];
-    s.list(continuing);
-    s.apply(Event::UpNext(items));
-    s.press(&["j"; 19]);
+    let today = home_section(
+        SectionKind::AiringToday,
+        Msg::HomeAiringToday,
+        vec![
+            HomeItem {
+                airs_at: Some(NOW + 3 * HOUR),
+                episode: Some(8),
+                ..home_item(
+                    kaze(),
+                    HomeAction::Play,
+                    Some(Msg::HomeEpisodeOutShort { episode: 8 }),
+                )
+            },
+            HomeItem {
+                airs_at: Some(NOW + 6 * HOUR),
+                episode: Some(4),
+                ..home_item(
+                    pick(6),
+                    HomeAction::Play,
+                    Some(Msg::HomeEpisodeOutShort { episode: 4 }),
+                )
+            },
+        ],
+    );
+    let season = home_section(
+        SectionKind::ThisSeason,
+        Msg::HomeThisSeason,
+        vec![home_item(
+            pick(12),
+            HomeAction::Play,
+            Some(Msg::HomeEpisodeOutShort { episode: 4 }),
+        )],
+    );
+    s.apply(Event::Home(Box::new(home_view(
+        Some(spotlight),
+        vec![today, season],
+        HomeEnd::SignIn,
+    ))));
+}
+
+/// Offline with a kept Home: the line at the top says when the oldest part was loaded.
+fn home_offline(s: &mut Screen) {
+    settled_on(s, 1);
+    let mut view = watching_view();
+    view.offline = true;
+    view.offline_since = Some(NOW - 23 * MINUTE);
+    s.apply(Event::Home(Box::new(view)));
+}
+
+/// Tab on Home jumps to the first row of the next group.
+fn home_next_section(s: &mut Screen) {
+    settled_on(s, 1);
+    s.apply(Event::Home(Box::new(watching_view())));
+    s.press(&["tab"]);
+}
+
+/// The sources check found nothing for the highlighted suggestion: the row says so.
+fn home_not_found(s: &mut Screen) {
+    settled_on(s, 1);
+    let view = watching_view();
+    let id = view.section(SectionKind::UpNext).expect("up next").items[0].entry.id;
+    s.apply(Event::Home(Box::new(view)));
+    s.press(&["tab", "tab", "tab"]);
+    s.apply(Event::TitlePlayable { id, playable: Playable::NotFound });
+}
+
+/// After Not interested the first suggestion is gone and the status line offers Undo.
+fn home_undo(s: &mut Screen) {
+    settled_on(s, 1);
+    s.apply(Event::Home(Box::new(watching_view())));
+    s.press(&["tab", "tab", "tab", "x"]);
 }
 
 /// The first frame after launch: Continue asked for, nothing back yet, the skeleton's shimmer a
@@ -1388,7 +1639,7 @@ fn activity_and_toasts(s: &mut Screen) {
 
 /// The key reference over Continue: at 80×24 it pages, and says so.
 fn help(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     s.press(&["?"]);
 }
 
@@ -1400,7 +1651,7 @@ fn help_last_page(s: &mut Screen) {
 
 /// The palette with a query typed and the highlight moved off the top match.
 fn command_palette(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     s.press(&[":"]);
     s.type_text("go to");
     s.press(&["down", "down"]);
@@ -1438,7 +1689,7 @@ fn three_trackers(s: &mut Screen) {
 /// The Accounts overlay. No key opens it any more — Accounts became a section — so it is
 /// opened the one way left, on the navigation itself, over Continue.
 fn accounts_overlay(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     three_trackers(s);
     s.app.nav.open_overlay(Overlay::Accounts);
     s.press(&["j"]);
@@ -1446,7 +1697,7 @@ fn accounts_overlay(s: &mut Screen) {
 
 /// Disagreements a library pull refused to guess at, announced and then opened.
 fn conflicts(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     let conflict = |n: u32, title: &str, field: &str, local: &str, remote: &str| ConflictRow {
         anilist_id: id(n),
         title: title.into(),
@@ -1479,7 +1730,7 @@ fn list_status(s: &mut Screen) {
 
 /// The rating picker from a Continue row, two steps down.
 fn rate(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     s.press(&["*", "j", "j"]);
 }
 
@@ -1494,7 +1745,7 @@ fn search_filters(s: &mut Screen) {
 
 /// The log, with repeats folded into counts and alerts marked, the highlight one line down.
 fn logs(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     for toast in [
         anistream_tui::app::info("saved upscaling"),
         anistream_tui::app::alert("cover unavailable"),
@@ -2164,6 +2415,6 @@ fn members_loading(s: &mut Screen) {
 }
 
 fn logs_empty(s: &mut Screen) {
-    continue_watching(s);
+    home_watching(s);
     s.act(Action::ShowLogs);
 }

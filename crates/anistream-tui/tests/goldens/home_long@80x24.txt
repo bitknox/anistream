@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌▸ │    Yoru no Toshokan                                                  90%
- ▤ │    Tsuki to Kujira no Uta                                            89%
- ▦ │    Hanabi Shoutengai                                                 88%
- / │    Kitsune Ekiben                                                    87%
- ▥ │    Umibe no Kissaten                                                 86%
- ↓ │    Mori no Kajiya                                                    85%
- ◇ │    Ginga Yuubinkyoku                                                 84%
- ◎ │    Komorebi Ryokan                                                   83%
- ≡ │    Tetsu no Hanazono                                                 82%
-   │    Ame Furu Machi no Robotto                                         81%
-   │    Kumo no Ue no Gakkou                                              80%
-   │    Shiosai Radio Kyoku                                               79%
-   │    Fuyu no Shika to Tabi                                             78%
-   │    Natsukusa Tanteisha                                               77%
+▌▸ │    Yoru no Toshokan                              Episode 2 · 11 min left
+ ▤ │    Tsuki to Kujira no Uta                        Episode 2 · 11 min left
+ ▦ │    Hanabi Shoutengai                             Episode 2 · 11 min left
+ / │    Kitsune Ekiben                                Episode 2 · 11 min left
+ ▥ │    Umibe no Kissaten                             Episode 2 · 11 min left
+ ↓ │    Mori no Kajiya                                Episode 2 · 11 min left
+ ◇ │    Ginga Yuubinkyoku                             Episode 2 · 11 min left
+ ◎ │    Komorebi Ryokan                               Episode 2 · 11 min left
+ ≡ │    Tetsu no Hanazono                             Episode 2 · 11 min left
+   │    Ame Furu Machi no Robotto                     Episode 2 · 11 min left
+   │
+   │    This week  ──────────────────────────────────────────────────────────
+   │    Today   Hanabi Shoutengai                                  E8 · 02:37
+   │    Wed 21  Hoshikuzu no Tabibito                              E9 · 06:37
+   │    Thu 22  Umibe no Kissaten                                 E11 · 23:37
    │
    │    Up next for you  ────────────────────────────────────────────────────
-   │    Hotaru Line Kaisoku                                        New season
-   │    Kagami Kissa Ruri                               On your Planning list
-   │    Sakanaya no… Because you finished Ame Furu Machi no Robotto to Chiis…
-   │  ▌ Tanuki Densha Monogatari    Because you finished Kumo no Ue no Gakkou
+   │    Komorebi Ryokan                                            New season
+   │    Tsuki to Kujira no Uta                          On your Planning list
+   │  ▌ Tetsu no Hanazono         Because you finished Kumo no Ue no Toshokan
 ────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                      x not interested   ↵ open   ? keys
 === styles ===
@@ -36,71 +36,69 @@ r02 c00-00 fg=text-dim
 r02 c01-01 fg=text mod=BOLD
 r02 c03-03 fg=rule
 r02 c08-23 fg=text-dim
-r02 c74-76 fg=text-dim
+r02 c54-76 fg=text-dim
 r03 c01-01 fg=text-dim
 r03 c03-03 fg=rule
 r03 c08-29 fg=text-dim
-r03 c74-76 fg=text-dim
+r03 c54-76 fg=text-dim
 r04 c01-01 fg=text-dim
 r04 c03-03 fg=rule
 r04 c08-24 fg=text-dim
-r04 c74-76 fg=text-dim
+r04 c54-76 fg=text-dim
 r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
 r05 c08-21 fg=text-dim
-r05 c74-76 fg=text-dim
+r05 c54-76 fg=text-dim
 r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
 r06 c08-24 fg=text-dim
-r06 c74-76 fg=text-dim
+r06 c54-76 fg=text-dim
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r07 c08-21 fg=text-dim
-r07 c74-76 fg=text-dim
+r07 c54-76 fg=text-dim
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r08 c08-24 fg=text-dim
-r08 c74-76 fg=text-dim
+r08 c54-76 fg=text-dim
 r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
 r09 c08-22 fg=text-dim
-r09 c74-76 fg=text-dim
+r09 c54-76 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-24 fg=text-dim
-r10 c74-76 fg=text-dim
+r10 c54-76 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-32 fg=text-dim
-r11 c74-76 fg=text-dim
+r11 c54-76 fg=text-dim
 r12 c03-03 fg=rule
-r12 c08-27 fg=text-dim
-r12 c74-76 fg=text-dim
 r13 c03-03 fg=rule
-r13 c08-26 fg=text-dim
-r13 c74-76 fg=text-dim
+r13 c08-16 fg=text-dim
+r13 c19-76 fg=rule
 r14 c03-03 fg=rule
-r14 c08-28 fg=text-dim
-r14 c74-76 fg=text-dim
+r14 c08-32 fg=text-dim
+r14 c67-76 fg=text-dim
 r15 c03-03 fg=rule
-r15 c08-26 fg=text-dim
-r15 c74-76 fg=text-dim
+r15 c08-36 fg=text-dim
+r15 c67-76 fg=text-dim
 r16 c03-03 fg=rule
+r16 c08-32 fg=text-dim
+r16 c66-76 fg=text-dim
 r17 c03-03 fg=rule
-r17 c08-22 fg=text-dim
-r17 c25-76 fg=rule
 r18 c03-03 fg=rule
-r18 c08-26 fg=text-dim
-r18 c67-76 fg=text-dim
+r18 c08-22 fg=text-dim
+r18 c25-76 fg=rule
 r19 c03-03 fg=rule
-r19 c08-24 fg=text-dim
-r19 c56-76 fg=text-dim
+r19 c08-22 fg=text-dim
+r19 c67-76 fg=text-dim
 r20 c03-03 fg=rule
-r20 c08-19 fg=text-dim
-r20 c21-76 fg=text-dim
+r20 c08-29 fg=text-dim
+r20 c56-76 fg=text-dim
 r21 c03-03 fg=rule
 r21 c06-06 fg=obi
-r21 c08-31 fg=text mod=BOLD
-r21 c36-76 fg=text-dim
+r21 c08-24 fg=text mod=BOLD
+r21 c34-76 fg=text-dim
 r22 c00-79 fg=rule
 r23 c00-23 fg=text-dim
 r23 c46-46 fg=text

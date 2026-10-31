@@ -98,6 +98,15 @@ pub fn failure(content: &ContentList) -> &str {
 #[track_caller]
 pub fn ends(updates: &[Event], job: Option<JobId>) {
     let job = job.expect("work someone waits on starts a job");
+    // The terminal asks the sources about a highlighted Home title by itself. Its answer, and
+    // the Home the engine sends after it, come whenever the check finishes, not with the job
+    // that showed the title, so they may follow the job's end.
+    let own: Vec<usize> = updates
+        .iter()
+        .enumerate()
+        .filter(|(_, update)| !matches!(update, Event::TitlePlayable { .. } | Event::Home(_)))
+        .map(|(at, _)| at)
+        .collect();
     let done: Vec<usize> = updates
         .iter()
         .enumerate()
@@ -106,7 +115,7 @@ pub fn ends(updates: &[Event], job: Option<JobId>) {
         .collect();
     assert_eq!(
         done,
-        [updates.len() - 1],
+        own.last().copied().into_iter().collect::<Vec<_>>(),
         "the job ends once, after the rest: {:?}",
         names(updates)
     );

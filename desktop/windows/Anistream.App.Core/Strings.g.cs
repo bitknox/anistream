@@ -2421,6 +2421,9 @@ public static partial class T
     /// <summary>Accessible name of the arrow that pages a shelf on.</summary>
     public static string HomeNext => Get("HomeNext");
 
+    /// <summary>Line in the header capsule while Home is up to date with the signed-in tracker.</summary>
+    public static string HomeSynced => Get("HomeSynced");
+
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
@@ -6686,6 +6689,7 @@ public static partial class T
         ["SettingsHiddenEmpty"] = "Nothing hidden. Titles you mark Not interested appear here.",
         ["HomePrevious"] = "Previous",
         ["HomeNext"] = "Next",
+        ["HomeSynced"] = "AniList synced",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",

@@ -3375,6 +3375,11 @@ pub fn keys_hint_not_interested() -> String {
     text("keys-hint-not-interested", &[])
 }
 
+/// Status line hint after Not interested on a suggestion: the key brings the last hidden title back.
+pub fn keys_hint_undo() -> String {
+    text("keys-hint-undo", &[])
+}
+
 /// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 pub fn keys_hint_list() -> String {
     text("keys-hint-list", &[])
@@ -7938,6 +7943,11 @@ pub fn home_previous() -> String {
 /// Accessible name of the arrow that pages a shelf on.
 pub fn home_next() -> String {
     text("home-next", &[])
+}
+
+/// Line in the header capsule while Home is up to date with the signed-in tracker.
+pub fn home_synced() -> String {
+    text("home-synced", &[])
 }
 
 /// Continue row subtitle. The show's title is cut first when the row is short.

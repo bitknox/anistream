@@ -313,6 +313,10 @@ keys-hint-play = Play
 # @max 20
 keys-hint-not-interested = Not interested
 
+# Status line hint after Not interested on a suggestion: the key brings the last hidden title back.
+# @max 12
+keys-hint-undo = Undo
+
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 # @max 20
 keys-hint-list = List

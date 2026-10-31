@@ -37273,6 +37273,18 @@
         }
       }
     },
+    "home-synced" : {
+      "comment" : "Line in the header capsule while Home is up to date with the signed-in tracker.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList synced"
+          }
+        }
+      }
+    },
     "home-this-season" : {
       "comment" : "Heading over this season's most popular titles.",
       "extractionState" : "manual",

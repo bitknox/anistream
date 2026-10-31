@@ -1,0 +1,172 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  Home                   │    Offline. Showing Home from 21:14.                ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │                                                     ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Continue watching  ───────────────────────────   ░░░░░░░░░░░░░░░░░
+  /  Search                 │  ▌ Hoshikuzu no Tabibito  Episode 3 · 12 min left   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                                     ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │    Continue  ────────────────────────────────────   ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │    Kaze no Tegami         ● Episode 5 · out today   ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │    Kitsune Ekiben         Episode 9 · 21 min left   ░░░░░░░░░░░░░░░░░
+  ≡  Settings               │    Ginga Yuubinkyoku             Episode 2 is out   ░░░░░░░░░░░░░░░░░
+                            │    Yoru no Toshokan        Episode 8 · 3 min left   ░░░░░░░░░░░░░░░░░
+                            │                                                     ░░░░░░░░░░░░░░░░░
+                            │    This week  ───────────────────────────────────   ░░░░░░░░░░░░░░░░░
+                            │    Today   Hanabi Shoutengai           E8 · 02:37   ░░░░░░░░░░░░░░░░░
+                            │    Wed 21  Hoshikuzu no Tabibito       E9 · 06:37
+                            │    Thu 22  Umibe no Kissaten          E11 · 23:37   Hoshikuzu no Tabibito
+                            │                                                     The Stardust Traveller
+                            │    Up next for you  ─────────────────────────────
+                            │    Komorebi Ryokan                     New season   TV  ·  12 episodes  ·  2026  ·  8…
+                            │    Tsuki to Kujira no Uta   On your Planning list   Adventure  ·  Fantasy  ·  Slice o…
+                            │    Tetsu no Ha… Because you finished Kumo no Ue …
+                            │                                                     ▏ Continue E4 at 13:32 (57%)
+                            │    This season · Autumn 2026  ───────────────────   █████████████▋░░░░░░░░░░
+                            │    Ame Furu Machi no Robotto        Episode 5 out
+                            │    Kumo no Ue no Gakkou             Episode 4 out   E4 out 2 d 3 h ago  ·  E5 in 4 d …
+                            │
+                            │    Because you finished Kumo no Ue no Toshokan  ─   A lamplighter on a dying comet
+                            │    Shiosai Rad… Because you finished Kumo no Ue …   rides the last mail coach between
+                            │                                                     the stars, delivering letters to…
+                            │    That's everything for now. Seasonal and
+                            │    Calendar have the full lists.                    ████░░░░░░░░░░░░  3 of 12 episodes
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · Subbed · 1080p                                                                    ↵ play   e episodes   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c00-00 fg=text-dim
+r02 c02-02 fg=text
+r02 c05-08 fg=text mod=BOLD
+r02 c28-28 fg=rule
+r02 c33-65 fg=text-dim
+r02 c82-98 fg=rule
+r03 c02-02 fg=text-dim
+r03 c05-12 fg=text-dim
+r03 c28-28 fg=rule
+r03 c82-98 fg=rule
+r04 c02-02 fg=text-dim
+r04 c05-12 fg=text-dim
+r04 c28-28 fg=rule
+r04 c33-49 fg=text-dim
+r04 c52-78 fg=rule
+r04 c82-98 fg=rule
+r05 c02-02 fg=text-dim
+r05 c05-10 fg=text-dim
+r05 c28-28 fg=rule
+r05 c31-31 fg=obi
+r05 c33-53 fg=text mod=BOLD
+r05 c56-78 fg=text-dim
+r05 c82-98 fg=rule
+r06 c02-02 fg=text-dim
+r06 c05-11 fg=text-dim
+r06 c28-28 fg=rule
+r06 c82-98 fg=rule
+r07 c02-02 fg=text-dim
+r07 c05-13 fg=text-dim
+r07 c28-28 fg=rule
+r07 c33-40 fg=text-dim
+r07 c43-78 fg=rule
+r07 c82-98 fg=rule
+r08 c02-02 fg=text-dim
+r08 c05-11 fg=text-dim
+r08 c28-28 fg=rule
+r08 c33-46 fg=text-dim
+r08 c56-78 fg=state
+r08 c82-98 fg=rule
+r09 c02-02 fg=text-dim
+r09 c05-12 fg=text-dim
+r09 c28-28 fg=rule
+r09 c33-46 fg=text-dim
+r09 c56-78 fg=text-dim
+r09 c82-98 fg=rule
+r10 c02-02 fg=text-dim
+r10 c05-12 fg=text-dim
+r10 c28-28 fg=rule
+r10 c33-49 fg=text-dim
+r10 c63-78 fg=text-dim
+r10 c82-98 fg=rule
+r11 c28-28 fg=rule
+r11 c33-48 fg=text-dim
+r11 c57-78 fg=text-dim
+r11 c82-98 fg=rule
+r12 c28-28 fg=rule
+r12 c82-98 fg=rule
+r13 c28-28 fg=rule
+r13 c33-41 fg=text-dim
+r13 c44-78 fg=rule
+r13 c82-98 fg=rule
+r14 c28-28 fg=rule
+r14 c33-57 fg=text-dim
+r14 c69-78 fg=text-dim
+r14 c82-98 fg=rule
+r15 c28-28 fg=rule
+r15 c33-61 fg=text-dim
+r15 c69-78 fg=text-dim
+r16 c28-28 fg=rule
+r16 c33-57 fg=text-dim
+r16 c68-78 fg=text-dim
+r16 c82-102 fg=text mod=BOLD
+r17 c28-28 fg=rule
+r17 c82-103 fg=text-dim
+r18 c28-28 fg=rule
+r18 c33-47 fg=text-dim
+r18 c50-78 fg=rule
+r19 c28-28 fg=rule
+r19 c33-47 fg=text-dim
+r19 c69-78 fg=text-dim
+r19 c82-115 fg=text-dim
+r20 c28-28 fg=rule
+r20 c33-54 fg=text-dim
+r20 c58-78 fg=text-dim
+r20 c82-115 fg=text-dim
+r21 c28-28 fg=rule
+r21 c33-44 fg=text-dim
+r21 c46-78 fg=text-dim
+r22 c28-28 fg=rule
+r22 c82-109 fg=text mod=BOLD
+r23 c28-28 fg=rule
+r23 c33-57 fg=text-dim
+r23 c60-78 fg=rule
+r23 c82-95 fg=text
+r23 c96-105 fg=rule
+r24 c28-28 fg=rule
+r24 c33-57 fg=text-dim
+r24 c66-78 fg=text-dim
+r25 c28-28 fg=rule
+r25 c33-52 fg=text-dim
+r25 c66-78 fg=text-dim
+r25 c82-115 fg=state
+r26 c28-28 fg=rule
+r27 c28-28 fg=rule
+r27 c33-75 fg=text-dim
+r27 c78-78 fg=rule
+r27 c82-111 fg=text-dim
+r28 c28-28 fg=rule
+r28 c33-44 fg=text-dim
+r28 c46-78 fg=text-dim
+r28 c82-114 fg=text-dim
+r29 c28-28 fg=rule
+r29 c82-114 fg=text-dim
+r30 c28-28 fg=rule
+r30 c33-71 fg=text-dim
+r31 c28-28 fg=rule
+r31 c33-61 fg=text-dim
+r31 c82-85 fg=text
+r31 c86-97 fg=rule
+r31 c100-115 fg=text-dim
+r32 c00-119 fg=rule
+r33 c00-23 fg=text-dim
+r33 c92-92 fg=text
+r33 c93-100 fg=text-dim
+r33 c101-101 fg=text
+r33 c102-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim
