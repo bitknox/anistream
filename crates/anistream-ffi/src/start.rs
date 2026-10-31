@@ -159,6 +159,11 @@ pub struct FfiStart {
     /// [`SecretsMode::Host`].
     #[uniffi(default = None)]
     pub secrets: Option<SecretsMode>,
+    /// The language the app speaks, as a tag such as `da` or `pt-BR`, for what the engine
+    /// writes where the app can't render it: the episode line a TV shows while casting. `None`
+    /// for English.
+    #[uniffi(default = None)]
+    pub language: Option<String>,
 }
 
 impl FfiStart {
@@ -197,6 +202,11 @@ pub enum FfiPlatform {
 }
 
 impl FfiPlatform {
+    /// A phone or a tablet, which a cast's torrent would keep busy for a whole episode.
+    pub fn handheld(self) -> bool {
+        matches!(self, Self::Ios | Self::IpadOs | Self::Android | Self::AndroidTablet)
+    }
+
     /// What a plugin store calls a device of this kind that joins with an invite, unless the
     /// person joining names it otherwise. The kind of device, never its own name, which is
     /// often its owner's.

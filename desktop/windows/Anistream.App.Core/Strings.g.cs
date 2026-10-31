@@ -21,38 +21,50 @@ public static partial class T
     /// <summary>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</summary>
     public static string CastEpisodeTitled(string episode, string title) => Fill(Get("CastEpisodeTitled"), ("episode", episode), ("title", title));
 
-    /// <summary>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</summary>
-    public static string NoticeCastVideoCodec(string codec) => Fill(Get("NoticeCastVideoCodec"), ("codec", codec));
+    /// <summary>The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.</summary>
+    public static string NoticeCastVideoCodec(string name, string codec) => Fill(Get("NoticeCastVideoCodec"), ("name", name), ("codec", codec));
 
-    /// <summary>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</summary>
-    public static string NoticeCastAudioCodec(string codec) => Fill(Get("NoticeCastAudioCodec"), ("codec", codec));
+    /// <summary>The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.</summary>
+    public static string NoticeCastAudioCodec(string name, string codec) => Fill(Get("NoticeCastAudioCodec"), ("name", name), ("codec", codec));
 
-    /// <summary>The stream comes in a kind of file the TV can't read.</summary>
-    public static string NoticeCastContainer => Get("NoticeCastContainer");
+    /// <summary>The stream comes in a kind of file the TV can't read. The name is the TV's own.</summary>
+    public static string NoticeCastContainer(string name) => Fill(Get("NoticeCastContainer"), ("name", name));
 
     /// <summary>The episode opens in another app, which this device can't cast.</summary>
     public static string NoticeCastDeepLink => Get("NoticeCastDeepLink");
 
-    /// <summary>The TV accepted the stream but never started reading it.</summary>
-    public static string NoticeCastNeverFetches => Get("NoticeCastNeverFetches");
+    /// <summary>The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.</summary>
+    public static string NoticeCastNeverFetches(string name) => Fill(Get("NoticeCastNeverFetches"), ("name", name));
 
-    /// <summary>The TV tried every way of playing the stream and played none of them.</summary>
-    public static string NoticeCastRefused => Get("NoticeCastRefused");
+    /// <summary>The TV tried every way of playing the stream and played none of them. The name is the TV's own.</summary>
+    public static string NoticeCastRefused(string name) => Fill(Get("NoticeCastRefused"), ("name", name));
 
-    /// <summary>Someone started something else on the TV, which ends the cast.</summary>
-    public static string NoticeCastTakenOver => Get("NoticeCastTakenOver");
+    /// <summary>Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.</summary>
+    public static string NoticeCastTakenOver(string name) => Fill(Get("NoticeCastTakenOver"), ("name", name));
 
-    /// <summary>This device isn't on the TV's network, or reaches it through a VPN.</summary>
-    public static string NoticeCastNotSameNetwork => Get("NoticeCastNotSameNetwork");
+    /// <summary>This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.</summary>
+    public static string NoticeCastNotSameNetwork(string name) => Fill(Get("NoticeCastNotSameNetwork"), ("name", name));
 
-    /// <summary>The TV stopped answering mid-cast.</summary>
-    public static string NoticeCastLost => Get("NoticeCastLost");
+    /// <summary>The TV stopped answering mid-cast. The name is the TV's own.</summary>
+    public static string NoticeCastLost(string name) => Fill(Get("NoticeCastLost"), ("name", name));
 
     /// <summary>The TV picked to cast to has left the network.</summary>
     public static string NoticeCastNoDevice => Get("NoticeCastNoDevice");
 
     /// <summary>This build of the app has no casting.</summary>
     public static string NoticeCastUnavailable => Get("NoticeCastUnavailable");
+
+    /// <summary>The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.</summary>
+    public static string CastPhaseStarting(string name) => Fill(Get("CastPhaseStarting"), ("name", name));
+
+    /// <summary>The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.</summary>
+    public static string CastPhaseStartingFor(string name, long seconds) => Fill(Get("CastPhaseStartingFor"), ("name", name), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.</summary>
+    public static string CastPhaseWaiting(string name, long seconds) => Fill(Get("CastPhaseWaiting"), ("name", name), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.</summary>
+    public static string CastPhasePreparing(long seconds) => Fill(Get("CastPhasePreparing"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>A comment's age, beside its author, when it was written under a minute ago.</summary>
     public static string DiscussionAgeNow => Get("DiscussionAgeNow");
@@ -5553,17 +5565,21 @@ public static partial class T
     {
         ["CastEpisode"] = "Episode {episode}",
         ["CastEpisodeTitled"] = "Episode {episode} · {title}",
-        ["NoticeCastVideoCodec"] = "The TV can't play this video ({codec}). Try another source.",
-        ["NoticeCastAudioCodec"] = "The TV can't play this audio ({codec}), and this device can't convert it. Try another source.",
-        ["NoticeCastContainer"] = "The TV can't play this kind of file. Try another source.",
+        ["NoticeCastVideoCodec"] = "{name} can't play this video ({codec}). Try another source.",
+        ["NoticeCastAudioCodec"] = "{name} can't play this audio ({codec}), and this device can't convert it. Try another source.",
+        ["NoticeCastContainer"] = "{name} can't play this kind of file. Try another source.",
         ["NoticeCastDeepLink"] = "This episode opens in another app, so it can't be cast.",
-        ["NoticeCastNeverFetches"] = "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.",
-        ["NoticeCastRefused"] = "The TV couldn't play this stream. Try another source.",
-        ["NoticeCastTakenOver"] = "Another device started something on the TV, so casting stopped.",
-        ["NoticeCastNotSameNetwork"] = "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.",
-        ["NoticeCastLost"] = "Lost the TV, so casting stopped.",
+        ["NoticeCastNeverFetches"] = "{name} didn't start reading the stream. A VPN or a firewall on this device may be in the way.",
+        ["NoticeCastRefused"] = "{name} couldn't play this stream. Try another source.",
+        ["NoticeCastTakenOver"] = "Another device started something on {name}, so casting stopped.",
+        ["NoticeCastNotSameNetwork"] = "This device isn't on the network {name} is on, or reaches it through a VPN. Casting needs both on the same network.",
+        ["NoticeCastLost"] = "Lost {name}, so casting stopped.",
         ["NoticeCastNoDevice"] = "That TV is no longer on the network.",
         ["NoticeCastUnavailable"] = "This version of anistream can't cast to TVs.",
+        ["CastPhaseStarting"] = "Starting on {name}",
+        ["CastPhaseStartingFor"] = "Starting on {name} · {seconds} s",
+        ["CastPhaseWaiting"] = "Waiting for {name} · {seconds} s",
+        ["CastPhasePreparing"] = "Preparing the stream · {seconds} s",
         ["DiscussionAgeNow"] = "now",
         ["DiscussionAgeMinutes"] = "{minutes} min",
         ["DiscussionAgeHours"] = "{hours} h",

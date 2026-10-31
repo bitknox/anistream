@@ -211,6 +211,8 @@ impl App {
             | S::ControllerInput
             | S::SwapFaceButtons
             | S::CalendarMine
+            | S::CastTvs
+            | S::TorrentsWhileCasting
             | S::HoverCards => return None,
         })
     }
@@ -322,6 +324,8 @@ fn label_text(key: SettingKey) -> String {
         S::ControllerInput => t::settings_label_controller_input(),
         S::SwapFaceButtons => t::settings_label_swap_face_buttons(),
         S::CalendarMine => t::settings_label_calendar_mine(),
+        S::CastTvs => t::settings_label_cast_tvs(),
+        S::TorrentsWhileCasting => t::settings_label_torrents_while_casting(),
         S::HoverCards => t::settings_label_hover_cards(),
     }
 }

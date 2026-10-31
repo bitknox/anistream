@@ -115,6 +115,10 @@ pub struct RemoteSender {
 /// A sender whose commands a test reads back, with no engine behind it.
 #[cfg(all(test, feature = "cast"))]
 impl RemoteSender {
+    #[allow(
+        irrefutable_let_patterns,
+        reason = "Message has more variants with the testing feature"
+    )]
     pub(crate) fn recording() -> (Self, impl FnMut() -> Vec<Command>) {
         let (commands, mut rx) = mpsc::unbounded_channel();
         let read = move || {
@@ -206,6 +210,8 @@ impl Engine {
             every_play_a_party,
             app_clients,
             device_label,
+            handheld,
+            language,
             sources: given,
             background,
             set_aside,
@@ -316,6 +322,14 @@ impl Engine {
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
+        state.config.set_handheld(handheld);
+        #[cfg(feature = "cast")]
+        {
+            casts.set_language(language);
+            casts.set_show_tvs(state.config.effective().cast.show_tvs);
+        }
+        #[cfg(not(feature = "cast"))]
+        let _ = language;
         // With the counts of shows that set each setting for themselves, which the rows say.
         crate::show_settings::count(&mut state, &services.store);
         #[cfg(feature = "testing")]

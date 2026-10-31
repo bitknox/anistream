@@ -499,6 +499,12 @@ settings-label-comment-images = Load images in comments
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = Calendar shows only my list
 
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = Show TVs with Chromecast built in
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = Torrents while casting
+
 ## Settings: the note under the selected row
 
 # Note under the titles row.

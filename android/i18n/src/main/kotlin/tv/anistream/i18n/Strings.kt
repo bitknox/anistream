@@ -17,41 +17,41 @@ object Strings {
     fun castEpisodeTitled(context: Context, episode: String, title: String): String =
         context.getString(R.string.cast_episode_titled, episode, title)
 
-    /** The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. */
-    fun noticeCastVideoCodec(context: Context, codec: String): String =
-        context.getString(R.string.notice_cast_video_codec, codec)
+    /** The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10. */
+    fun noticeCastVideoCodec(context: Context, name: String, codec: String): String =
+        context.getString(R.string.notice_cast_video_codec, name, codec)
 
-    /** The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. */
-    fun noticeCastAudioCodec(context: Context, codec: String): String =
-        context.getString(R.string.notice_cast_audio_codec, codec)
+    /** The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS. */
+    fun noticeCastAudioCodec(context: Context, name: String, codec: String): String =
+        context.getString(R.string.notice_cast_audio_codec, name, codec)
 
-    /** The stream comes in a kind of file the TV can't read. */
-    fun noticeCastContainer(context: Context): String =
-        context.getString(R.string.notice_cast_container)
+    /** The stream comes in a kind of file the TV can't read. The name is the TV's own. */
+    fun noticeCastContainer(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_container, name)
 
     /** The episode opens in another app, which this device can't cast. */
     fun noticeCastDeepLink(context: Context): String =
         context.getString(R.string.notice_cast_deep_link)
 
-    /** The TV accepted the stream but never started reading it. */
-    fun noticeCastNeverFetches(context: Context): String =
-        context.getString(R.string.notice_cast_never_fetches)
+    /** The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own. */
+    fun noticeCastNeverFetches(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_never_fetches, name)
 
-    /** The TV tried every way of playing the stream and played none of them. */
-    fun noticeCastRefused(context: Context): String =
-        context.getString(R.string.notice_cast_refused)
+    /** The TV tried every way of playing the stream and played none of them. The name is the TV's own. */
+    fun noticeCastRefused(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_refused, name)
 
-    /** Someone started something else on the TV, which ends the cast. */
-    fun noticeCastTakenOver(context: Context): String =
-        context.getString(R.string.notice_cast_taken_over)
+    /** Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own. */
+    fun noticeCastTakenOver(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_taken_over, name)
 
-    /** This device isn't on the TV's network, or reaches it through a VPN. */
-    fun noticeCastNotSameNetwork(context: Context): String =
-        context.getString(R.string.notice_cast_not_same_network)
+    /** This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own. */
+    fun noticeCastNotSameNetwork(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_not_same_network, name)
 
-    /** The TV stopped answering mid-cast. */
-    fun noticeCastLost(context: Context): String =
-        context.getString(R.string.notice_cast_lost)
+    /** The TV stopped answering mid-cast. The name is the TV's own. */
+    fun noticeCastLost(context: Context, name: String): String =
+        context.getString(R.string.notice_cast_lost, name)
 
     /** The TV picked to cast to has left the network. */
     fun noticeCastNoDevice(context: Context): String =
@@ -60,6 +60,22 @@ object Strings {
     /** This build of the app has no casting. */
     fun noticeCastUnavailable(context: Context): String =
         context.getString(R.string.notice_cast_unavailable)
+
+    /** The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room. */
+    fun castPhaseStarting(context: Context, name: String): String =
+        context.getString(R.string.cast_phase_starting, name)
+
+    /** The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap. */
+    fun castPhaseStartingFor(context: Context, name: String, seconds: Int): String =
+        context.getString(R.string.cast_phase_starting_for, name, seconds)
+
+    /** The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start. */
+    fun castPhaseWaiting(context: Context, name: String, seconds: Int): String =
+        context.getString(R.string.cast_phase_waiting, name, seconds)
+
+    /** The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start. */
+    fun castPhasePreparing(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_phase_preparing, seconds)
 
     /** A comment's age, beside its author, when it was written under a minute ago. */
     fun discussionAgeNow(context: Context): String =

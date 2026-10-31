@@ -15,28 +15,36 @@ pub enum Msg {
     CastEpisode { episode: String },
     /// What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
     CastEpisodeTitled { episode: String, title: String },
-    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-    NoticeCastVideoCodec { codec: String },
-    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-    NoticeCastAudioCodec { codec: String },
-    /// The stream comes in a kind of file the TV can't read.
-    NoticeCastContainer,
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+    NoticeCastVideoCodec { name: String, codec: String },
+    /// The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+    NoticeCastAudioCodec { name: String, codec: String },
+    /// The stream comes in a kind of file the TV can't read. The name is the TV's own.
+    NoticeCastContainer { name: String },
     /// The episode opens in another app, which this device can't cast.
     NoticeCastDeepLink,
-    /// The TV accepted the stream but never started reading it.
-    NoticeCastNeverFetches,
-    /// The TV tried every way of playing the stream and played none of them.
-    NoticeCastRefused,
-    /// Someone started something else on the TV, which ends the cast.
-    NoticeCastTakenOver,
-    /// This device isn't on the TV's network, or reaches it through a VPN.
-    NoticeCastNotSameNetwork,
-    /// The TV stopped answering mid-cast.
-    NoticeCastLost,
+    /// The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+    NoticeCastNeverFetches { name: String },
+    /// The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+    NoticeCastRefused { name: String },
+    /// Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+    NoticeCastTakenOver { name: String },
+    /// This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+    NoticeCastNotSameNetwork { name: String },
+    /// The TV stopped answering mid-cast. The name is the TV's own.
+    NoticeCastLost { name: String },
     /// The TV picked to cast to has left the network.
     NoticeCastNoDevice,
     /// This build of the app has no casting.
     NoticeCastUnavailable,
+    /// The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+    CastPhaseStarting { name: String },
+    /// The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+    CastPhaseStartingFor { name: String, seconds: i64 },
+    /// The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+    CastPhaseWaiting { name: String, seconds: i64 },
+    /// The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+    CastPhasePreparing { seconds: i64 },
     /// A comment's age, beside its author, when it was written under a minute ago.
     DiscussionAgeNow,
     /// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
@@ -451,15 +459,19 @@ impl Msg {
             Self::CastEpisodeTitled { .. } => "cast-episode-titled",
             Self::NoticeCastVideoCodec { .. } => "notice-cast-video-codec",
             Self::NoticeCastAudioCodec { .. } => "notice-cast-audio-codec",
-            Self::NoticeCastContainer => "notice-cast-container",
+            Self::NoticeCastContainer { .. } => "notice-cast-container",
             Self::NoticeCastDeepLink => "notice-cast-deep-link",
-            Self::NoticeCastNeverFetches => "notice-cast-never-fetches",
-            Self::NoticeCastRefused => "notice-cast-refused",
-            Self::NoticeCastTakenOver => "notice-cast-taken-over",
-            Self::NoticeCastNotSameNetwork => "notice-cast-not-same-network",
-            Self::NoticeCastLost => "notice-cast-lost",
+            Self::NoticeCastNeverFetches { .. } => "notice-cast-never-fetches",
+            Self::NoticeCastRefused { .. } => "notice-cast-refused",
+            Self::NoticeCastTakenOver { .. } => "notice-cast-taken-over",
+            Self::NoticeCastNotSameNetwork { .. } => "notice-cast-not-same-network",
+            Self::NoticeCastLost { .. } => "notice-cast-lost",
             Self::NoticeCastNoDevice => "notice-cast-no-device",
             Self::NoticeCastUnavailable => "notice-cast-unavailable",
+            Self::CastPhaseStarting { .. } => "cast-phase-starting",
+            Self::CastPhaseStartingFor { .. } => "cast-phase-starting-for",
+            Self::CastPhaseWaiting { .. } => "cast-phase-waiting",
+            Self::CastPhasePreparing { .. } => "cast-phase-preparing",
             Self::DiscussionAgeNow => "discussion-age-now",
             Self::DiscussionAgeMinutes { .. } => "discussion-age-minutes",
             Self::DiscussionAgeHours { .. } => "discussion-age-hours",
@@ -670,17 +682,21 @@ impl Msg {
         match self {
             Self::CastEpisode { episode } => vec![("episode", Value::Text(episode.clone()))],
             Self::CastEpisodeTitled { episode, title } => vec![("episode", Value::Text(episode.clone())), ("title", Value::Text(title.clone()))],
-            Self::NoticeCastVideoCodec { codec } => vec![("codec", Value::Text(codec.clone()))],
-            Self::NoticeCastAudioCodec { codec } => vec![("codec", Value::Text(codec.clone()))],
-            Self::NoticeCastContainer => Vec::new(),
+            Self::NoticeCastVideoCodec { name, codec } => vec![("name", Value::Text(name.clone())), ("codec", Value::Text(codec.clone()))],
+            Self::NoticeCastAudioCodec { name, codec } => vec![("name", Value::Text(name.clone())), ("codec", Value::Text(codec.clone()))],
+            Self::NoticeCastContainer { name } => vec![("name", Value::Text(name.clone()))],
             Self::NoticeCastDeepLink => Vec::new(),
-            Self::NoticeCastNeverFetches => Vec::new(),
-            Self::NoticeCastRefused => Vec::new(),
-            Self::NoticeCastTakenOver => Vec::new(),
-            Self::NoticeCastNotSameNetwork => Vec::new(),
-            Self::NoticeCastLost => Vec::new(),
+            Self::NoticeCastNeverFetches { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastRefused { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastTakenOver { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastNotSameNetwork { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeCastLost { name } => vec![("name", Value::Text(name.clone()))],
             Self::NoticeCastNoDevice => Vec::new(),
             Self::NoticeCastUnavailable => Vec::new(),
+            Self::CastPhaseStarting { name } => vec![("name", Value::Text(name.clone()))],
+            Self::CastPhaseStartingFor { name, seconds } => vec![("name", Value::Text(name.clone())), ("seconds", Value::Int(*seconds))],
+            Self::CastPhaseWaiting { name, seconds } => vec![("name", Value::Text(name.clone())), ("seconds", Value::Int(*seconds))],
+            Self::CastPhasePreparing { seconds } => vec![("seconds", Value::Int(*seconds))],
             Self::DiscussionAgeNow => Vec::new(),
             Self::DiscussionAgeMinutes { minutes } => vec![("minutes", Value::Int(*minutes))],
             Self::DiscussionAgeHours { hours } => vec![("hours", Value::Int(*hours))],

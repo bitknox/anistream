@@ -292,7 +292,9 @@ impl Opened {
         // What a store joined with an invite calls this device: the kind of device it is.
         if let Some(platform) = start.platform {
             platform.device_label().clone_into(&mut options.device_label);
+            options.handheld = platform.handheld();
         }
+        options.language.clone_from(&start.language);
         // Nothing changes the config for one session here, as the terminal's flags can, so the
         // file's is the one in effect.
         options.saved = Some(config);

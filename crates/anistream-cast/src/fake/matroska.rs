@@ -10,6 +10,8 @@ pub struct Fixture {
     /// `V_MPEG4/ISO/AVC` or another codec id.
     pub video: &'static str,
     pub audio: Option<FixtureAudio>,
+    /// Audio tracks after the first, as a file with a dub has.
+    pub more_audio: Vec<FixtureAudio>,
     /// Without cues, the remuxer can't plan segments.
     pub cues: bool,
     /// The picture's size the track header says.
@@ -34,6 +36,7 @@ impl Default for Fixture {
             seconds: 20,
             video: "V_MPEG4/ISO/AVC",
             audio: Some(FixtureAudio::ac3()),
+            more_audio: Vec::new(),
             cues: true,
             width: 640,
             height: 360,
@@ -128,10 +131,18 @@ pub fn matroska(fixture: &Fixture) -> Vec<u8> {
         ]
         .concat(),
     );
-    if let Some(audio) = &fixture.audio {
+    let audio: Vec<(u8, &FixtureAudio)> = fixture
+        .audio
+        .iter()
+        .chain(&fixture.more_audio)
+        .zip(2u8..)
+        .map(|(a, n)| (n, a))
+        .collect();
+    for (number, audio) in &audio {
+        let number = u64::from(*number);
         let mut entry = vec![
-            uint(0xD7, 2),
-            uint(0x73C5, 2),
+            uint(0xD7, number),
+            uint(0x73C5, number),
             uint(0x83, 2),
             text(0x86, audio.codec),
             text(0x22_B59C, audio.language),
@@ -167,17 +178,17 @@ pub fn matroska(fixture: &Fixture) -> Vec<u8> {
                 ),
             ));
         }
-        if let Some(audio) = &fixture.audio {
+        for (number, audio) in &audio {
             let first = at.div_ceil(audio.frame_ms) * audio.frame_ms;
             for ms in (first..end).step_by(audio.frame_ms as usize) {
                 blocks.push((
                     ms,
-                    2,
+                    *number,
                     simple_block(
-                        2,
+                        *number,
                         i16::try_from(ms - at).unwrap_or(0),
                         true,
-                        &frame(2, ms, 60),
+                        &frame(*number, ms, 60),
                     ),
                 ));
             }

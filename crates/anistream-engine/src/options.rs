@@ -44,6 +44,13 @@ pub struct EngineOptions {
     ///
     /// [`COMPUTER`]: anistream_model::stores::COMPUTER
     pub device_label: String,
+    /// The engine runs on a phone or a tablet, for the defaults that depend on the device:
+    /// torrents while casting is off there. `false` for a computer and the terminal.
+    pub handheld: bool,
+    /// The language the front end speaks, as a tag from `anistream_i18n::languages()`, for what
+    /// the engine writes where the front end can't render it: a TV's episode line while casting.
+    /// `None` for English.
+    pub language: Option<String>,
     /// The source chain, whole, for an engine that is not to build its own: a still frame
     /// waits for every source before it starts, and a test brings sources of its own.
     ///
@@ -90,6 +97,8 @@ impl EngineOptions {
             every_play_a_party: false,
             app_clients: AppClients::default(),
             device_label: anistream_model::stores::COMPUTER.to_owned(),
+            handheld: false,
+            language: None,
             sources: None,
             background: Background::default(),
             set_aside: None,

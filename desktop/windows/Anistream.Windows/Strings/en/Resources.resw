@@ -44,40 +44,40 @@
     <comment>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</comment>
   </data>
   <data name="NoticeCastVideoCodec" xml:space="preserve">
-    <value>The TV can't play this video ({codec}). Try another source.</value>
-    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</comment>
+    <value>{name} can't play this video ({codec}). Try another source.</value>
+    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.</comment>
   </data>
   <data name="NoticeCastAudioCodec" xml:space="preserve">
-    <value>The TV can't play this audio ({codec}), and this device can't convert it. Try another source.</value>
-    <comment>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</comment>
+    <value>{name} can't play this audio ({codec}), and this device can't convert it. Try another source.</value>
+    <comment>The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.</comment>
   </data>
   <data name="NoticeCastContainer" xml:space="preserve">
-    <value>The TV can't play this kind of file. Try another source.</value>
-    <comment>The stream comes in a kind of file the TV can't read.</comment>
+    <value>{name} can't play this kind of file. Try another source.</value>
+    <comment>The stream comes in a kind of file the TV can't read. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastDeepLink" xml:space="preserve">
     <value>This episode opens in another app, so it can't be cast.</value>
     <comment>The episode opens in another app, which this device can't cast.</comment>
   </data>
   <data name="NoticeCastNeverFetches" xml:space="preserve">
-    <value>The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.</value>
-    <comment>The TV accepted the stream but never started reading it.</comment>
+    <value>{name} didn't start reading the stream. A VPN or a firewall on this device may be in the way.</value>
+    <comment>The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastRefused" xml:space="preserve">
-    <value>The TV couldn't play this stream. Try another source.</value>
-    <comment>The TV tried every way of playing the stream and played none of them.</comment>
+    <value>{name} couldn't play this stream. Try another source.</value>
+    <comment>The TV tried every way of playing the stream and played none of them. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastTakenOver" xml:space="preserve">
-    <value>Another device started something on the TV, so casting stopped.</value>
-    <comment>Someone started something else on the TV, which ends the cast.</comment>
+    <value>Another device started something on {name}, so casting stopped.</value>
+    <comment>Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastNotSameNetwork" xml:space="preserve">
-    <value>This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.</value>
-    <comment>This device isn't on the TV's network, or reaches it through a VPN.</comment>
+    <value>This device isn't on the network {name} is on, or reaches it through a VPN. Casting needs both on the same network.</value>
+    <comment>This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastLost" xml:space="preserve">
-    <value>Lost the TV, so casting stopped.</value>
-    <comment>The TV stopped answering mid-cast.</comment>
+    <value>Lost {name}, so casting stopped.</value>
+    <comment>The TV stopped answering mid-cast. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastNoDevice" xml:space="preserve">
     <value>That TV is no longer on the network.</value>
@@ -86,6 +86,22 @@
   <data name="NoticeCastUnavailable" xml:space="preserve">
     <value>This version of anistream can't cast to TVs.</value>
     <comment>This build of the app has no casting.</comment>
+  </data>
+  <data name="CastPhaseStarting" xml:space="preserve">
+    <value>Starting on {name}</value>
+    <comment>The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.</comment>
+  </data>
+  <data name="CastPhaseStartingFor" xml:space="preserve">
+    <value>Starting on {name} · {seconds} s</value>
+    <comment>The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.</comment>
+  </data>
+  <data name="CastPhaseWaiting" xml:space="preserve">
+    <value>Waiting for {name} · {seconds} s</value>
+    <comment>The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.</comment>
+  </data>
+  <data name="CastPhasePreparing" xml:space="preserve">
+    <value>Preparing the stream · {seconds} s</value>
+    <comment>The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.</comment>
   </data>
   <data name="DiscussionAgeNow" xml:space="preserve">
     <value>now</value>
