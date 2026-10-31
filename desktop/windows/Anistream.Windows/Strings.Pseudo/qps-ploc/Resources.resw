@@ -7971,4 +7971,20 @@
     <value>[Åñðŕöîð àšķš ţĥîš öñçé. Îƒ îţš þàĝé ðöéšñ'ţ öþéñ, ţĥé šŵîţçĥ îš üñðéŕ {path}.~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Line the first time. The path is the Android settings path.</comment>
   </data>
+  <data name="UpdatesBeta" xml:space="preserve">
+    <value>[Ɓéţà üþðàţéš~~~~]</value>
+    <comment>Switch in the Updates section of Settings. Off by default.</comment>
+  </data>
+  <data name="UpdatesBetaDetail" xml:space="preserve">
+    <value>[Ĝéţ éàçĥ ñéŵ ṽéŕšîöñ àš šööñ àš îţ'š ƀüîļţ. Ŵîţĥöüţ ţĥîš, üþðàţéš çöɱé öñçé à ŵééķ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the switch.</comment>
+  </data>
+  <data name="UpdatesStableBehind" xml:space="preserve">
+    <value>[Ýöü ĥàṽé {version}, à ƀéţà. Ûþðàţéš ŕéšüɱé ŵĥéñ à ñéŵéŕ šţàƀļé ṽéŕšîöñ îš öüţ.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Status line on a beta build when beta updates are off: no stable version is newer yet.</comment>
+  </data>
+  <data name="UpdatesVersionBeta" xml:space="preserve">
+    <value>[{version} ƀéţà~~~]</value>
+    <comment>The version in About when the running build is a beta.</comment>
+  </data>
 </root>

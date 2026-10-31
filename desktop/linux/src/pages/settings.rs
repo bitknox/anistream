@@ -150,7 +150,7 @@ const PANES: [Pane; 9] = [
             (Group::WatchParty, &[K::Syncplay, K::SyncplayServer, K::SyncplayRoom]),
             (Group::Discord, &[K::Presence, K::PresenceTitle]),
             (Group::Discussions, &[K::EpisodeDiscussions, K::CommentImages]),
-            (Group::Updates, &[K::UpdateCheck]),
+            (Group::Updates, &[K::UpdateCheck, K::UpdateBeta]),
         ],
     },
     Pane {

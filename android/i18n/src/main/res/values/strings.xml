@@ -4437,4 +4437,12 @@
     <string name="updates_allow_waiting">Waiting for the switch. If Android\'s page didn\'t open, find it under %1$s.</string>
     <!-- Line the first time. The path is the Android settings path. -->
     <string name="updates_allow_once">Android asks this once. If its page doesn\'t open, the switch is under %1$s.</string>
+    <!-- Switch in the Updates section of Settings. Off by default. -->
+    <string name="updates_beta">Beta updates</string>
+    <!-- Line under the switch. -->
+    <string name="updates_beta_detail">Get each new version as soon as it\'s built. Without this, updates come once a week.</string>
+    <!-- Status line on a beta build when beta updates are off: no stable version is newer yet. -->
+    <string name="updates_stable_behind">You have %1$s, a beta. Updates resume when a newer stable version is out.</string>
+    <!-- The version in About when the running build is a beta. -->
+    <string name="updates_version_beta">%1$s beta</string>
 </resources>

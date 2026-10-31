@@ -68,6 +68,11 @@ struct Cli {
     #[arg(long)]
     update: bool,
 
+    /// With `--update`, take the newest beta as well as the stable releases, for this run. The
+    /// `[updates] beta` setting does it every time.
+    #[arg(long, requires = "update")]
+    beta: bool,
+
     /// Refresh the mapping datasets and exit.
     #[arg(long)]
     refresh_data: bool,
@@ -281,7 +286,7 @@ async fn main() -> Result<()> {
         Store::open_or_set_aside(paths.database()).context("opening the local database")?;
 
     if args.update {
-        return cli::update::self_update(&http).await;
+        return cli::update::self_update(&http, args.beta || config.updates.beta).await;
     }
     if args.doctor {
         return doctor(&config, &paths, &store, !args.no_images).await;
