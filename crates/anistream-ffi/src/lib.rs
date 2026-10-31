@@ -389,10 +389,12 @@ mod tests {
             windows_arm64: Some(file("anistream-2.0.3-windows-arm64-setup.exe", 68_000_000)),
             linux_x86_64: Some(file("anistream-2.0.3-linux-x86_64.AppImage", 90_000_000)),
             linux_aarch64: None,
+            beta: true,
         };
         for status in [
             UpdateStatus::Checking,
-            UpdateStatus::UpToDate,
+            UpdateStatus::UpToDate { stable_behind: None, running_beta: false },
+            UpdateStatus::UpToDate { stable_behind: Some("2.3.4".into()), running_beta: true },
             UpdateStatus::Available { release: Box::new(release.clone()), notify: true },
             UpdateStatus::Failed { reason: "GitHub could not be reached".into() },
         ] {

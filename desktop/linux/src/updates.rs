@@ -28,7 +28,7 @@ pub fn flatpak() -> bool {
 pub fn words(status: Option<&UpdateStatus>, offline: bool, flatpak: bool) -> String {
     match status {
         Some(UpdateStatus::Checking) => t::updates_checking(),
-        Some(UpdateStatus::UpToDate) => t::updates_up_to_date(),
+        Some(UpdateStatus::UpToDate { .. }) => t::updates_up_to_date(),
         Some(UpdateStatus::Available { release, .. }) if flatpak => {
             t::updates_version_out_software(&release.version)
         }
@@ -396,6 +396,7 @@ mod tests {
                 windows_arm64: None,
                 linux_x86_64: None,
                 linux_aarch64: None,
+                beta: false,
             }),
             notify: true,
         }
@@ -410,7 +411,10 @@ mod tests {
             "Version 1.4.0 is out. Software installs it."
         );
         assert_eq!(page(Some(&status)), Some("https://example.test/releases/v1.4.0"));
-        assert_eq!(page(Some(&UpdateStatus::UpToDate)), None);
+        assert_eq!(
+            page(Some(&UpdateStatus::UpToDate { stable_behind: None, running_beta: false })),
+            None
+        );
     }
 
     #[test]

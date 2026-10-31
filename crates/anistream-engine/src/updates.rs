@@ -1,14 +1,17 @@
 //! The update check: a quiet daily look for a newer release, and one whenever the viewer asks.
 //!
 //! The check is a request to GitHub's releases API, at most once a day, kept on disk, and for a
-//! newer release one more for each app's checksum file. It only ever *says* a version exists, with
+//! newer release one more for each app's checksum file. The stable channel asks for the latest
+//! release, which GitHub never takes from the pre-releases. The beta channel lists the recent
+//! releases and takes the highest version among them, a stable one included. It only ever *says* a version exists, with
 //! [`Event::Update`]: what it is, the file each app installs it from and that file's SHA-256.
 //! Nothing downloads until the viewer chooses to update: the terminal with `anistream --update`,
 //! which finds the release through [`latest_tag`] and [`is_newer`] here, and an app with its own
 //! installer.
 //!
-//! Every push to main is a release, most of them a new patch, so the notice does not name each
-//! one as it comes: see [`should_tell`]. Settings offers the newest whenever there is one.
+//! Every push to main is a beta, most of them a new patch, so on the beta channel the notice does
+//! not name each one as it comes: see [`should_tell`]. Settings offers the newest whenever there
+//! is one.
 
 use std::{
     collections::BTreeMap,
@@ -52,14 +55,53 @@ pub fn is_newer(candidate: &str, current: &str) -> bool {
     }
 }
 
-/// Ask GitHub for the newest release tag.
-pub async fn latest_tag(http: &HttpClient) -> Option<String> {
-    let latest = get_json(http, &latest_url(API)).await.ok()?;
+/// Ask GitHub for the newest release tag on a channel: the latest stable release, or with `beta`
+/// the highest version among the recent releases, betas included.
+pub async fn latest_tag(http: &HttpClient, beta: bool) -> Option<String> {
+    let latest = newest(http, API, beta).await.ok()?;
     latest.get("tag_name")?.as_str().map(str::to_owned)
 }
 
 fn latest_url(api: &str) -> String {
     format!("{api}/repos/{REPO}/releases/latest")
+}
+
+fn list_url(api: &str) -> String {
+    format!("{api}/repos/{REPO}/releases?per_page=30")
+}
+
+/// GitHub's newest release on a channel, as it answers.
+async fn newest(http: &HttpClient, api: &str, beta: bool) -> Result<Value, String> {
+    if !beta {
+        return get_json(http, &latest_url(api)).await;
+    }
+    let list = get_json(http, &list_url(api)).await?;
+    let (newest, _) =
+        highest(&list).ok_or_else(|| "GitHub's answer could not be read".to_owned())?;
+    Ok(newest.clone())
+}
+
+/// The release with the highest version in a list of releases, and the list's flag for whether
+/// the build `current` is among them as a pre-release. Drafts and tags that are not plain
+/// versions are dropped: that leaves out the suffixed pre-releases and the libraries' releases.
+fn highest(list: &Value) -> Option<(&Value, [u32; 3])> {
+    list.as_array()?
+        .iter()
+        .filter(|release| !release.get("draft").and_then(Value::as_bool).unwrap_or(false))
+        .filter_map(|release| {
+            let version = parse_semver(release.get("tag_name")?.as_str()?)?;
+            Some((release, version))
+        })
+        .max_by_key(|(_, version)| *version)
+}
+
+/// Whether the release of `current`, in a list of releases, is still a pre-release.
+fn running_beta_in(list: &Value, current: &str) -> bool {
+    let Some(current) = parse_semver(current) else { return false };
+    list.as_array().into_iter().flatten().any(|release| {
+        release.get("tag_name").and_then(Value::as_str).and_then(parse_semver) == Some(current)
+            && release.get("prerelease").and_then(Value::as_bool).unwrap_or(false)
+    })
 }
 
 /// How long a newer patch waits before it is told again.
@@ -72,11 +114,18 @@ const NOTES_MAX: usize = 500;
 /// Whether the notice should say that `latest` is out, given `told`, the last notice's time and
 /// tag, if there has been one.
 ///
-/// A newer release is told the first time it is found. After that a new patch waits a week from
-/// the last notice, which keeps it to one a week while releases come with most merges. A new
-/// minor or major, which the version in Cargo.toml is raised for, is told the first time it is
-/// found, whenever the last notice was.
-fn should_tell(latest: &str, current: &str, told: Option<(i64, &str)>, now: i64) -> bool {
+/// A newer release is told the first time it is found. On the stable channel each new stable is
+/// told at once, since one comes about weekly. On the beta channel a new patch waits a week from
+/// the last notice, which keeps it to one a week while betas come with most merges. A new minor
+/// or major, which the version in Cargo.toml is raised for, is told the first time it is found,
+/// whenever the last notice was.
+fn should_tell(
+    latest: &str,
+    current: &str,
+    told: Option<(i64, &str)>,
+    now: i64,
+    beta: bool,
+) -> bool {
     if !is_newer(latest, current) {
         return false;
     }
@@ -84,6 +133,9 @@ fn should_tell(latest: &str, current: &str, told: Option<(i64, &str)>, now: i64)
     let (Some(new), Some(old)) = (parse_semver(latest), parse_semver(told_tag)) else {
         return true;
     };
+    if !beta {
+        return new > old;
+    }
     new[..2] > old[..2] || now.saturating_sub(at) >= RETELL_SECS
 }
 
@@ -126,6 +178,12 @@ struct Answer {
     /// The version of the build that asked. A new build asks again rather than go by an answer
     /// an older one was given.
     asked_by: String,
+    /// Whether the beta channel asked. Turning beta updates on or off asks again at once,
+    /// rather than go by the other channel's answer.
+    beta: bool,
+    /// Whether the build that asked is a beta: on the beta channel, its release is still a
+    /// pre-release; on the stable channel, it is newer than the newest stable.
+    running_beta: bool,
     /// GitHub's newest release, the fields read here.
     latest: Value,
     /// The SHA-256 of each app's file of a release newer than the build that asked, by name.
@@ -137,9 +195,11 @@ impl Answer {
         self.latest.get("tag_name").and_then(Value::as_str).unwrap_or_default()
     }
 
-    /// Whether this can be gone by at `now`, for the build `current`, without asking again.
-    fn fresh(&self, current: &str, now: i64) -> bool {
+    /// Whether this can be gone by at `now`, for the build `current` on a channel, without
+    /// asking again.
+    fn fresh(&self, current: &str, beta: bool, now: i64) -> bool {
         self.asked_by == current
+            && self.beta == beta
             && (0..ANSWER_SECS).contains(&now.saturating_sub(self.checked_at))
     }
 
@@ -154,6 +214,8 @@ impl Answer {
         Some(Self {
             checked_at: kept.get("checked_at")?.as_i64()?,
             asked_by: kept.get("asked_by")?.as_str()?.to_owned(),
+            beta: kept.get("beta").and_then(Value::as_bool).unwrap_or(false),
+            running_beta: kept.get("running_beta").and_then(Value::as_bool).unwrap_or(false),
             latest: kept.get("latest")?.clone(),
             checksums,
         })
@@ -164,6 +226,8 @@ impl Answer {
         let kept = json!({
             "checked_at": self.checked_at,
             "asked_by": self.asked_by,
+            "beta": self.beta,
+            "running_beta": self.running_beta,
             "latest": self.latest,
             "checksums": self.checksums,
         });
@@ -171,12 +235,14 @@ impl Answer {
     }
 
     /// The newer release this answer names for the build `current`, or `None` when it names
-    /// none: the same version or an older one, a draft or a pre-release, or a tag that does not
-    /// read as a version.
+    /// none: the same version or an older one, a draft, a pre-release on the stable channel, or
+    /// a tag that does not read as a version. Never an older version than `current`, on any
+    /// channel, so turning beta updates off does not offer a downgrade.
     fn newer(&self, current: &str) -> Option<Release> {
         let latest = &self.latest;
         let flag = |key: &str| latest.get(key).and_then(Value::as_bool).unwrap_or(false);
-        if flag("draft") || flag("prerelease") || !is_newer(self.tag(), current) {
+        if flag("draft") || (flag("prerelease") && !self.beta) || !is_newer(self.tag(), current)
+        {
             return None;
         }
         let version = self.tag().trim_start_matches('v').to_owned();
@@ -201,6 +267,7 @@ impl Answer {
             windows_arm64: file(format!("anistream-{version}-windows-arm64-setup.exe")),
             linux_x86_64: file(format!("anistream-{version}-linux-x86_64.AppImage")),
             linux_aarch64: file(format!("anistream-{version}-linux-aarch64.AppImage")),
+            beta: flag("prerelease"),
             version,
         })
     }
@@ -223,7 +290,13 @@ impl Answer {
             Some(release) => {
                 UpdateStatus::Available { release: Box::new(release), notify: false }
             }
-            None => UpdateStatus::UpToDate,
+            None => UpdateStatus::UpToDate {
+                // On the stable channel, a build ahead of the newest stable is a beta waiting for
+                // the next promotion.
+                stable_behind: (!self.beta && is_newer(current, self.tag()))
+                    .then(|| current.to_owned()),
+                running_beta: self.running_beta,
+            },
         }
     }
 }
@@ -347,8 +420,21 @@ async fn get_json(http: &HttpClient, url: &str) -> Result<Value, String> {
 /// Ask GitHub for its newest release, and when it is newer than `current`, the checksum of each
 /// app's file. A checksum file that is missing or does not read leaves its file out, and the
 /// rest of the answer stands.
-async fn ask(http: &HttpClient, api: &str, current: &str, now: i64) -> Result<Answer, String> {
-    let full = get_json(http, &latest_url(api)).await?;
+async fn ask(
+    http: &HttpClient,
+    api: &str,
+    current: &str,
+    beta: bool,
+    now: i64,
+) -> Result<Answer, String> {
+    let (full, running_beta) = if beta {
+        let list = get_json(http, &list_url(api)).await?;
+        let (newest, _) =
+            highest(&list).ok_or_else(|| "GitHub's answer could not be read".to_owned())?;
+        (newest.clone(), running_beta_in(&list, current))
+    } else {
+        (get_json(http, &latest_url(api)).await?, false)
+    };
     if full.get("tag_name").and_then(Value::as_str).is_none() {
         return Err("GitHub's answer could not be read".to_owned());
     }
@@ -379,6 +465,9 @@ async fn ask(http: &HttpClient, api: &str, current: &str, now: i64) -> Result<An
     let mut answer = Answer {
         checked_at: now,
         asked_by: current.to_owned(),
+        beta,
+        // On the stable channel, a build newer than the newest stable can only be a beta.
+        running_beta: running_beta || (!beta && is_newer(current, tag_of(&latest))),
         latest,
         checksums: BTreeMap::new(),
     };
@@ -408,6 +497,10 @@ async fn ask(http: &HttpClient, api: &str, current: &str, now: i64) -> Result<An
     Ok(answer)
 }
 
+fn tag_of(release: &Value) -> &str {
+    release.get("tag_name").and_then(Value::as_str).unwrap_or_default()
+}
+
 fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -421,6 +514,7 @@ fn now() -> i64 {
 /// with a toast: its words say to run `anistream --update`, which an app has no use for.
 pub fn spawn_check(
     enabled: bool,
+    beta: bool,
     terminal: bool,
     cache_dir: &Path,
     http: &HttpClient,
@@ -430,13 +524,17 @@ pub fn spawn_check(
         return;
     }
     let (files, http, tx) = (Files::in_dir(cache_dir), http.clone(), tx.clone());
-    tokio::spawn(async move { daily(&http, API, CURRENT, &files, now(), terminal, &tx).await });
+    tokio::spawn(async move {
+        daily(&http, API, CURRENT, beta, &files, now(), terminal, &tx).await
+    });
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn daily(
     http: &HttpClient,
     api: &str,
     current: &str,
+    beta: bool,
     files: &Files,
     now: i64,
     terminal: bool,
@@ -444,16 +542,16 @@ async fn daily(
 ) {
     let kept = Answer::read(&files.answer);
     let answer = match kept {
-        Some(kept) if kept.fresh(current, now) => kept,
-        kept => match ask(http, api, current, now).await {
+        Some(kept) if kept.fresh(current, beta, now) => kept,
+        kept => match ask(http, api, current, beta, now).await {
             Ok(answer) => {
                 answer.write(&files.answer);
                 answer
             }
-            // Offline, a newer release found before is still the newest known; anything else
-            // the check cannot vouch for today.
+            // Offline, a newer release found before on this channel is still the newest known;
+            // anything else the check cannot vouch for today.
             Err(_) => match kept {
-                Some(kept) if kept.newer(current).is_some() => kept,
+                Some(kept) if kept.beta == beta && kept.newer(current).is_some() => kept,
                 _ => return,
             },
         },
@@ -468,6 +566,7 @@ async fn daily(
                 current,
                 last.as_ref().map(|(at, tag)| (*at, tag.as_str())),
                 now,
+                beta,
             );
             if notify {
                 let _ = std::fs::write(&files.told, format!("{now} {tag}"));
@@ -485,21 +584,22 @@ async fn daily(
 
 /// [`Command::CheckForUpdates`](anistream_model::command::Command::CheckForUpdates): ask now,
 /// whatever the daily check's setting, and keep the answer for the daily check.
-pub fn check_now(cache_dir: &Path, http: &HttpClient, tx: &Outbox) {
+pub fn check_now(cache_dir: &Path, beta: bool, http: &HttpClient, tx: &Outbox) {
     let (files, http, tx) = (Files::in_dir(cache_dir), http.clone(), tx.clone());
-    tokio::spawn(async move { asked(&http, API, CURRENT, &files, now(), &tx).await });
+    tokio::spawn(async move { asked(&http, API, CURRENT, beta, &files, now(), &tx).await });
 }
 
 async fn asked(
     http: &HttpClient,
     api: &str,
     current: &str,
+    beta: bool,
     files: &Files,
     now: i64,
     tx: &Outbox,
 ) {
     let _ = tx.send(Event::Update(UpdateStatus::Checking));
-    let status = match ask(http, api, current, now).await {
+    let status = match ask(http, api, current, beta, now).await {
         Ok(answer) => {
             answer.write(&files.answer);
             let status = answer.status(current);
@@ -552,34 +652,45 @@ mod tests {
 
     #[test]
     fn a_newer_release_is_told_the_first_time_it_is_found() {
-        assert!(should_tell("v2.0.1", "2.0.0", None, NOW));
+        assert!(should_tell("v2.0.1", "2.0.0", None, NOW, true));
         // Nothing newer, nothing to tell.
-        assert!(!should_tell("v2.0.0", "2.0.0", None, NOW));
-        assert!(!should_tell("v1.9.0", "2.0.0", None, NOW));
+        assert!(!should_tell("v2.0.0", "2.0.0", None, NOW, true));
+        assert!(!should_tell("v1.9.0", "2.0.0", None, NOW, true));
         // A last notice that does not read is no reason to stay quiet.
-        assert!(should_tell("v2.0.1", "2.0.0", Some((NOW, "garbage")), NOW));
+        assert!(should_tell("v2.0.1", "2.0.0", Some((NOW, "garbage")), NOW, true));
     }
 
     #[test]
     fn a_newer_patch_is_told_at_most_once_a_week() {
         let told = Some((NOW - DAY, "v2.0.1"));
         // The same patch, and the next ones as main releases them, wait out the week.
-        assert!(!should_tell("v2.0.1", "2.0.0", told, NOW));
-        assert!(!should_tell("v2.0.2", "2.0.0", told, NOW));
-        assert!(!should_tell("v2.0.9", "2.0.0", told, NOW + 5 * DAY));
+        assert!(!should_tell("v2.0.1", "2.0.0", told, NOW, true));
+        assert!(!should_tell("v2.0.2", "2.0.0", told, NOW, true));
+        assert!(!should_tell("v2.0.9", "2.0.0", told, NOW + 5 * DAY, true));
         // A week after the last notice, the newest is told.
-        assert!(should_tell("v2.0.9", "2.0.0", told, NOW + 6 * DAY));
+        assert!(should_tell("v2.0.9", "2.0.0", told, NOW + 6 * DAY, true));
         // Taken in between: a newer patch still waits for the week.
-        assert!(!should_tell("v2.0.4", "2.0.3", Some((NOW, "v2.0.3")), NOW + 2 * DAY));
+        assert!(!should_tell("v2.0.4", "2.0.3", Some((NOW, "v2.0.3")), NOW + 2 * DAY, true));
     }
 
     #[test]
     fn a_new_minor_or_major_is_told_at_once() {
         let told = Some((NOW - DAY, "v2.0.5"));
-        assert!(should_tell("v2.1.0", "2.0.0", told, NOW));
-        assert!(should_tell("v3.0.0", "2.0.0", told, NOW));
+        assert!(should_tell("v2.1.0", "2.0.0", told, NOW, true));
+        assert!(should_tell("v3.0.0", "2.0.0", told, NOW, true));
         // Its own patches are patches again.
-        assert!(!should_tell("v2.1.1", "2.0.0", Some((NOW - DAY, "v2.1.0")), NOW));
+        assert!(!should_tell("v2.1.1", "2.0.0", Some((NOW - DAY, "v2.1.0")), NOW, true));
+    }
+
+    #[test]
+    fn a_stable_release_is_told_at_once_however_soon_after_the_last() {
+        let told = Some((NOW - DAY, "v2.0.1"));
+        // A stable comes about weekly, so each is told as it is found, patch or not.
+        assert!(should_tell("v2.0.2", "2.0.0", told, NOW, false));
+        assert!(should_tell("v2.1.0", "2.0.0", told, NOW, false));
+        // But not again once told, and not when there is nothing newer.
+        assert!(!should_tell("v2.0.1", "2.0.0", told, NOW, false));
+        assert!(!should_tell("v2.0.0", "2.0.0", None, NOW, false));
     }
 
     #[test]
@@ -677,8 +788,35 @@ mod tests {
             format!("/repos/{REPO}/releases/latest")
         }
 
+        fn list_path() -> String {
+            format!("/repos/{REPO}/releases?per_page=30")
+        }
+
         /// Release `tag` as `releases/latest`, with each app's file and a checksum beside it.
         fn release(&self, tag: &str, prerelease: bool) {
+            let latest = self.release_json(tag, prerelease);
+            self.route(&Self::latest_path(), Ok(latest.to_string()));
+            self.route(&Self::list_path(), Ok(Value::Array(vec![latest]).to_string()));
+        }
+
+        /// The releases list the beta channel reads, as `(tag, pre-release)` in the order GitHub
+        /// lists them: newest created first. The stable channel's `releases/latest` is the
+        /// newest of them that is not a pre-release and not a draft, as GitHub's is.
+        fn releases(&self, list: &[(&str, bool)]) {
+            let all: Vec<Value> =
+                list.iter().map(|(tag, pre)| self.release_json(tag, *pre)).collect();
+            self.route(&Self::list_path(), Ok(Value::Array(all.clone()).to_string()));
+            let stable = list
+                .iter()
+                .zip(all)
+                .find(|((tag, pre), _)| !pre && parse_semver(tag).is_some());
+            if let Some((_, latest)) = stable {
+                self.route(&Self::latest_path(), Ok(latest.to_string()));
+            }
+        }
+
+        /// A release with each app's file and a checksum beside it, whose checksums are served.
+        fn release_json(&self, tag: &str, prerelease: bool) -> Value {
             let version = tag.trim_start_matches('v');
             let mut assets = Vec::new();
             for (i, suffix) in [
@@ -709,7 +847,7 @@ mod tests {
                     "browser_download_url": format!("{}/download/{name}.sha256", self.base),
                 }));
             }
-            let latest = json!({
+            json!({
                 "tag_name": tag,
                 "html_url": format!("https://github.com/{REPO}/releases/tag/{tag}"),
                 "published_at": "2026-10-22T10:23:59Z",
@@ -717,12 +855,12 @@ mod tests {
                 "prerelease": prerelease,
                 "body": "## Smoother calendar\n\nThe calendar scrolls without dropping frames.\n\n## Terminal\n\nInstallers.",
                 "assets": assets,
-            });
-            self.route(&Self::latest_path(), Ok(latest.to_string()));
+            })
         }
 
         fn api_hits(&self) -> usize {
-            self.hits.lock().unwrap().iter().filter(|p| **p == Self::latest_path()).count()
+            let asks = [Self::latest_path(), Self::list_path()];
+            self.hits.lock().unwrap().iter().filter(|p| asks.contains(p)).count()
         }
     }
 
@@ -732,6 +870,8 @@ mod tests {
         dir: tempfile::TempDir,
         /// A client that resolves no host name: only the stand-in, on an address, answers.
         http: HttpClient,
+        /// The channel the checks follow. Tests turn it on and off as the setting is.
+        beta: bool,
     }
 
     impl Run {
@@ -743,7 +883,7 @@ mod tests {
                 ..NetworkConfig::default()
             })
             .unwrap();
-            Self { github: FakeGitHub::start().await, files, dir, http }
+            Self { github: FakeGitHub::start().await, files, dir, http, beta: false }
         }
 
         /// The terminal's check.
@@ -754,13 +894,24 @@ mod tests {
         async fn daily_for(&self, terminal: bool, current: &str, now: i64) -> Vec<Event> {
             let (tx, mut rx) = mpsc::unbounded_channel();
             let (base, files) = (&self.github.base, &self.files);
-            daily(&self.http, base, current, files, now, terminal, &Outbox::from(tx)).await;
+            daily(
+                &self.http,
+                base,
+                current,
+                self.beta,
+                files,
+                now,
+                terminal,
+                &Outbox::from(tx),
+            )
+            .await;
             drain(&mut rx)
         }
 
         async fn asked(&self, current: &str, now: i64) -> Vec<Event> {
             let (tx, mut rx) = mpsc::unbounded_channel();
-            asked(&self.http, &self.github.base, current, &self.files, now, &Outbox::from(tx))
+            let github = &self.github.base;
+            asked(&self.http, github, current, self.beta, &self.files, now, &Outbox::from(tx))
                 .await;
             drain(&mut rx)
         }
@@ -786,6 +937,10 @@ mod tests {
             }
         }
         (found, toast)
+    }
+
+    fn up_to_date() -> UpdateStatus {
+        UpdateStatus::UpToDate { stable_behind: None, running_beta: false }
     }
 
     fn available(status: Option<UpdateStatus>) -> (Release, bool) {
@@ -852,22 +1007,28 @@ mod tests {
         let run = Run::new().await;
         run.github.release("v2.0.3", false);
         let (status_now, toast) = status(&run.daily("2.0.3", NOW).await);
-        assert_eq!(status_now, Some(UpdateStatus::UpToDate));
+        assert_eq!(status_now, Some(up_to_date()));
         assert!(!toast);
         assert_eq!(run.github.hits.lock().unwrap().len(), 1, "only the API was asked");
         // An older release, as when a build of main is ahead of the newest, is no update either.
         let (status_now, _) = status(&run.asked("2.0.4", NOW).await[1..]);
-        assert_eq!(status_now, Some(UpdateStatus::UpToDate));
+        assert_eq!(
+            status_now,
+            Some(UpdateStatus::UpToDate {
+                stable_behind: Some("2.0.4".into()),
+                running_beta: true
+            })
+        );
     }
 
     #[tokio::test]
     async fn a_pre_release_or_a_draft_is_never_an_update() {
         let run = Run::new().await;
         run.github.release("v2.1.0", true);
-        assert_eq!(status(&run.daily("2.0.3", NOW).await).0, Some(UpdateStatus::UpToDate));
+        assert_eq!(status(&run.daily("2.0.3", NOW).await).0, Some(up_to_date()));
         // Nor a tag a pre-release is named by.
         run.github.release("v2.1.0-rc.1", false);
-        assert_eq!(status(&run.asked("2.0.3", NOW).await[1..]).0, Some(UpdateStatus::UpToDate));
+        assert_eq!(status(&run.asked("2.0.3", NOW).await[1..]).0, Some(up_to_date()));
     }
 
     #[tokio::test]
@@ -901,10 +1062,11 @@ mod tests {
         let run = Run::new().await;
         // GitHub's own address, which the test's client cannot resolve.
         let (tx, mut rx) = mpsc::unbounded_channel();
-        daily(&run.http, API, "2.0.2", &run.files, NOW, true, &Outbox::from(tx.clone())).await;
+        daily(&run.http, API, "2.0.2", false, &run.files, NOW, true, &Outbox::from(tx.clone()))
+            .await;
         assert!(drain(&mut rx).is_empty(), "a failed daily check says nothing");
 
-        asked(&run.http, API, "2.0.2", &run.files, NOW, &Outbox::from(tx)).await;
+        asked(&run.http, API, "2.0.2", false, &run.files, NOW, &Outbox::from(tx)).await;
         let events = drain(&mut rx);
         assert_eq!(events.len(), 2, "{events:?}");
         assert!(matches!(events[0], Event::Update(UpdateStatus::Checking)), "{events:?}");
@@ -955,13 +1117,15 @@ mod tests {
         // old one was told, and it is up to date.
         run.github.release("v2.0.3", false);
         let (now_says, _) = status(&run.daily("2.0.3", NOW + DAY + 2).await);
-        assert_eq!(now_says, Some(UpdateStatus::UpToDate));
+        assert_eq!(now_says, Some(up_to_date()));
         assert_eq!(run.github.api_hits(), 3);
     }
 
     #[tokio::test]
     async fn notices_follow_the_rules_while_settings_always_has_the_release() {
-        let run = Run::new().await;
+        // The beta channel's rules: patches come with most merges.
+        let mut run = Run::new().await;
+        run.beta = true;
         run.github.release("v2.0.3", false);
         assert!(available(status(&run.daily("2.0.2", NOW).await).0).1);
         // The next patch, a day later: offered, not told.
@@ -1001,9 +1165,108 @@ mod tests {
         let run = Run::new().await;
         run.github.release("v2.0.3", false);
         let (tx, mut rx) = mpsc::unbounded_channel();
-        spawn_check(false, true, run.dir.path(), &run.http, &Outbox::from(tx));
+        spawn_check(false, false, true, run.dir.path(), &run.http, &Outbox::from(tx));
         tokio::task::yield_now().await;
         assert!(drain(&mut rx).is_empty());
         assert_eq!(run.github.hits.lock().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn the_beta_channel_finds_a_pre_release_and_the_stable_channel_does_not() {
+        let mut run = Run::new().await;
+        // Newest first, as GitHub lists them: a beta ahead of the stable, and a library's
+        // pre-release and a suffixed one, which are never versions to offer.
+        run.github.releases(&[
+            ("v2.3.4", true),
+            ("deps-libmpv", true),
+            ("v2.3.5-rc.1", true),
+            ("v2.3.1", false),
+        ]);
+
+        let (release, notify) = available(status(&run.daily("2.3.0", NOW).await).0);
+        assert_eq!((release.version.as_str(), release.beta, notify), ("2.3.1", false, true));
+        assert_eq!(run.github.hits.lock().unwrap()[0], FakeGitHub::latest_path());
+
+        run.beta = true;
+        run.github.hits.lock().unwrap().clear();
+        let (release, _) = available(status(&run.daily("2.3.0", NOW + 60).await).0);
+        assert_eq!((release.version.as_str(), release.beta), ("2.3.4", true));
+        assert!(release.macos.is_some(), "the beta's files come with their checksums");
+        assert_eq!(run.github.hits.lock().unwrap()[0], FakeGitHub::list_path());
+    }
+
+    #[tokio::test]
+    async fn the_beta_channel_also_gets_every_stable() {
+        let mut run = Run::new().await;
+        run.beta = true;
+        run.github.releases(&[("v2.3.1", false), ("v2.3.0", true), ("v2.2.0", false)]);
+        let (release, _) = available(status(&run.daily("2.2.0", NOW).await).0);
+        assert_eq!((release.version.as_str(), release.beta), ("2.3.1", false));
+    }
+
+    #[tokio::test]
+    async fn pre_releases_that_are_not_versions_are_dropped_from_the_beta_list() {
+        let mut run = Run::new().await;
+        run.beta = true;
+        run.github.releases(&[("deps-libmpv", true), ("v2.4.0-rc.1", true), ("nightly", true)]);
+        let events = run.asked("2.3.0", NOW).await;
+        assert_eq!(
+            status(&events[1..]).0,
+            Some(UpdateStatus::Failed { reason: "GitHub's answer could not be read".into() })
+        );
+    }
+
+    #[tokio::test]
+    async fn turning_beta_off_never_offers_a_downgrade_and_says_why() {
+        let mut run = Run::new().await;
+        run.github.releases(&[("v2.3.4", true), ("v2.3.1", false)]);
+        // A beta user on 2.3.4 turns it off: the newest stable is older, so nothing is offered.
+        run.beta = true;
+        assert_eq!(available(status(&run.daily("2.3.1", NOW).await).0).0.version, "2.3.4");
+        run.beta = false;
+        let status_now = status(&run.daily("2.3.4", NOW + 60).await).0;
+        assert_eq!(
+            status_now,
+            Some(UpdateStatus::UpToDate {
+                stable_behind: Some("2.3.4".into()),
+                running_beta: true
+            })
+        );
+        // And once a stable catches up, the next one is offered as usual.
+        run.github.releases(&[("v2.3.6", true), ("v2.3.5", false), ("v2.3.4", true)]);
+        let (release, notify) = available(status(&run.asked("2.3.4", NOW + 120).await[1..]).0);
+        assert_eq!((release.version.as_str(), notify), ("2.3.5", false));
+    }
+
+    #[tokio::test]
+    async fn flipping_the_channel_asks_again_at_once_rather_than_wait_a_day() {
+        let mut run = Run::new().await;
+        run.github.releases(&[("v2.3.4", true), ("v2.3.1", false)]);
+        let _ = run.daily("2.3.0", NOW).await;
+        let _ = run.daily("2.3.0", NOW + 60).await;
+        assert_eq!(run.github.api_hits(), 1, "the day's answer is kept on one channel");
+        run.beta = true;
+        let (release, _) = available(status(&run.daily("2.3.0", NOW + 120).await).0);
+        assert_eq!(release.version, "2.3.4");
+        assert_eq!(run.github.api_hits(), 2, "the other channel's answer is not reused");
+        run.beta = false;
+        let _ = run.daily("2.3.0", NOW + 180).await;
+        assert_eq!(run.github.api_hits(), 3, "and turning it off asks again too");
+    }
+
+    #[tokio::test]
+    async fn a_beta_build_on_the_beta_channel_knows_it_is_one() {
+        let mut run = Run::new().await;
+        run.beta = true;
+        run.github.releases(&[("v2.3.4", true), ("v2.3.1", false)]);
+        let status_now = status(&run.daily("2.3.4", NOW).await).0;
+        assert_eq!(
+            status_now,
+            Some(UpdateStatus::UpToDate { stable_behind: None, running_beta: true })
+        );
+        // Once it is promoted, the same build is a stable one.
+        run.github.releases(&[("v2.3.4", false), ("v2.3.1", false)]);
+        let status_now = status(&run.asked("2.3.4", NOW + 60).await[1..]).0;
+        assert_eq!(status_now, Some(up_to_date()));
     }
 }

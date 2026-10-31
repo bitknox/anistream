@@ -374,6 +374,7 @@ impl Engine {
             // The daily update check: one cached request, one quiet toast when a release exists.
             updates::spawn_check(
                 state.config.effective().updates.check,
+                state.config.effective().updates.beta,
                 !services.hosted_player,
                 &services.paths.cache_dir,
                 &services.http,
