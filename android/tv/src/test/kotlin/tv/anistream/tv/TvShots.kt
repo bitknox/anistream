@@ -395,6 +395,8 @@ class TvShots {
     fun sign_in_kitsu() = shoot("tv-sign-in-kitsu", start = Destination.Settings, pageHost = "192.0.2.10") {
         compose.runOnUiThread { nav.openSignIn("kitsu") }
         compose.mainClock.advanceTimeBy(3_000)
+        // The page's server starts on an IO thread, in real time the test clock does not hold.
+        compose.waitUntil(timeoutMillis = 15_000) { compose.onAllNodesWithText("#k=", substring = true).fetchSemanticsNodes().isNotEmpty() }
         compose.waitForIdle()
         compose.onNodeWithText("#k=", substring = true).assertExists()
     }
