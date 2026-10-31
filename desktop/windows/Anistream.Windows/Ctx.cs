@@ -84,6 +84,71 @@ sealed class Ctx
             leave();
     }
 
+#if ANISTREAM_TESTING
+    static readonly LibraryChoice[] ShowcaseLibraries =
+    [
+        new LibraryChoice("l1", "Shows", true, "shows"),
+        new LibraryChoice("l2", "Films", true, "movies"),
+        new LibraryChoice("l3", "Home videos", false, "other"),
+    ];
+
+    const string ShowcaseFolder = @"D:\Shows";
+
+    /// <summary>The folder and server pages' shots: invented folders, matches and a signed-in server in place of the empty fixtures.</summary>
+    Event[]? LawfulPages(Command command)
+    {
+        var show = Options.Show;
+        if (command is Command.Local { V1: LocalCommand.Load } && show?.StartsWith("lawful-folder", StringComparison.Ordinal) == true)
+        {
+            var groups = new[]
+            {
+                new LocalGroup("g1", "Lantern Street", 12, GroupState.Matched, null, "Lantern Street", null),
+                new LocalGroup("g2", "Moon Laundry S2", 8, GroupState.NeedsLook, null, null, null),
+                new LocalGroup("g3", "dust_and_fireworks_batch", 3, GroupState.NotMatched, null, null, NotMatchedReason.NoResult),
+            };
+            return [new Event.Local(new LocalEvent.View(new LocalView(Folders: [new FolderRow(ShowcaseFolder, 23, true)], Groups: groups, Scanning: show == "lawful-folder-scanning")))];
+        }
+        if (command is Command.Licensed { V1: LicensedCommand.LoadAvailability ask } && show?.StartsWith("lawful-title-", StringComparison.Ordinal) == true)
+        {
+            var main = new ServiceLink("Lumen Plus", "https://lumen.example/watch/1", null);
+            var other = new ServiceLink("Harbor Stream", "https://harbor.example/watch/1", null);
+            var found = show switch
+            {
+                "lawful-title-a" => new TitleAvailability(Id: ask.Id, Case: AvailabilityCase.PlaysAlsoOn, Main: null, AlsoOn: [main, other], Yours: [], Others: [], Episodes: [], ChooseServices: false),
+                "lawful-title-b" => new TitleAvailability(Id: ask.Id, Case: AvailabilityCase.OnService, Main: main, AlsoOn: [other], Yours: [], Others: [], Episodes: [], ChooseServices: false),
+                _ => new TitleAvailability(Id: ask.Id, Case: AvailabilityCase.NotInSources, Main: null, AlsoOn: [], Yours: [], Others: ["Lumen Plus", "Harbor Stream"], Episodes: [], ChooseServices: true),
+            };
+            return [new Event.Availability(found)];
+        }
+        if (command is Command.Server { V1: ServerCommand.Load } && show == "lawful-server-page")
+            return [new Event.Server(new ServerEvent.Servers([new ServerRow(Id: "s1", Name: "Hotaru media", Address: "http://media.example:8096", Version: "10.10.3", User: "ada", Libraries: ShowcaseLibraries, Series: 31, Matched: 27, Report: true, SignedOut: false)]))];
+        return null;
+    }
+
+    Event[]? LawfulServer(ServerCommand command)
+    {
+        const string address = "http://media.example:8096";
+        var show = Options.Show;
+        switch (command)
+        {
+            case ServerCommand.Discover:
+                return show == "lawful-server-none" ? [new Event.Server(new ServerEvent.DiscoveryDone())]
+                    : [new Event.Server(new ServerEvent.Found(new FoundServer("s1", "Hotaru media", address))), new Event.Server(new ServerEvent.DiscoveryDone())];
+            case ServerCommand.Check:
+                return show == "lawful-server-unreachable" ? [new Event.Server(new ServerEvent.Failed(ServerStep.Address, new ServerFailure.Unreachable(address)))]
+                    : [new Event.Server(new ServerEvent.Checked(new CheckedServer(Id: "s1", Name: "Hotaru media", Version: "10.10.3", Address: address, QuickConnect: true)))];
+            case ServerCommand.SignIn:
+                return show == "lawful-server-credentials" ? [new Event.Server(new ServerEvent.Failed(ServerStep.SignIn, new ServerFailure.Credentials()))]
+                    : [new Event.Server(new ServerEvent.SignedIn("s1")), new Event.Server(new ServerEvent.Libraries("s1", ShowcaseLibraries))];
+            case ServerCommand.StartQuickConnect:
+                return [new Event.Server(new ServerEvent.QuickConnectCode("482913"))];
+            case ServerCommand.LoadLibraries:
+                return [new Event.Server(new ServerEvent.Libraries("s1", ShowcaseLibraries))];
+        }
+        return null;
+    }
+#endif
+
     public ulong? Send(Command command)
     {
 #if ANISTREAM_TESTING
@@ -97,6 +162,27 @@ sealed class Ctx
                     Session.Known.Take(events[0]);
                     Heard(events);
                 });
+            return null;
+        }
+        if (LawfulPages(command) is { } pages)
+        {
+            Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                foreach (var e in pages)
+                    Session.Known.Take(e);
+                Heard(pages);
+            });
+            return null;
+        }
+        // The media server flow's shots: the fixture engine reaches no server, so the steps are answered with an invented one.
+        if (Options.Show?.StartsWith("lawful-", StringComparison.Ordinal) == true && command is Command.Server server && LawfulServer(server.V1) is { } answer)
+        {
+            _ = Task.Delay(350).ContinueWith(_ => Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                foreach (var e in answer)
+                    Session.Known.Take(e);
+                Heard(answer);
+            }));
             return null;
         }
         // A discussion's shots: the fixture engine has no AniList forum, so the pane is answered with the invented thread.

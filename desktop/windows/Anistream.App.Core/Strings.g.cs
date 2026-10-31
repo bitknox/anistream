@@ -168,6 +168,12 @@ public static partial class T
     /// <summary>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</summary>
     public static string HomeMoreGenre(string genre) => Fill(Get("HomeMoreGenre"), ("genre", genre));
 
+    /// <summary>Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.</summary>
+    public static string LicensedReturn(long episode, string service) => Fill(Get("LicensedReturn"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("service", service));
+
+    /// <summary>Notice after Mark as watched on the return notice. It holds Undo.</summary>
+    public static string LicensedMarked(long episode) => Fill(Get("LicensedMarked"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -2628,6 +2634,165 @@ public static partial class T
     /// <summary>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</summary>
     public static string UpNextOut(string ago) => Fill(Get("UpNextOut"), ("ago", ago));
 
+    /// <summary>Line of a folder row while it counts files.</summary>
+    public static string LibraryRowScanning(long files) => Fill(GetPlural("LibraryRowScanning", files), ("files", files.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line of a folder row while it matches series.</summary>
+    public static string LibraryRowMatching(long done, long total) => Fill(Get("LibraryRowMatching"), ("done", done.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("total", total.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Added to the matching line while the limiter holds requests back.</summary>
+    public static string LibraryRowWaiting(long seconds) => Fill(Get("LibraryRowWaiting"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line of a folder row when it is done, such as "214 episodes of 18 series". Both parts are worded already by library-episodes and library-series.</summary>
+    public static string LibraryRowSummary(string episodes, string series) => Fill(Get("LibraryRowSummary"), ("episodes", episodes), ("series", series));
+
+    /// <summary>The episodes part of a folder's summary line.</summary>
+    public static string LibraryEpisodes(long count) => Fill(GetPlural("LibraryEpisodes", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The series part of a folder's summary line.</summary>
+    public static string LibrarySeries(long count) => Fill(GetPlural("LibrarySeries", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Ends the summary line when some series need a look.</summary>
+    public static string LibraryRowNeedsLook(long count) => Fill(Get("LibraryRowNeedsLook"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line of a folder on a drive that is not connected.</summary>
+    public static string LibraryRowDriveOffline => Get("LibraryRowDriveOffline");
+
+    /// <summary>Line of a folder that was removed or renamed.</summary>
+    public static string LibraryRowMissing => Get("LibraryRowMissing");
+
+    /// <summary>Line of a folder the app lost permission to read.</summary>
+    public static string LibraryRowNoAccess => Get("LibraryRowNoAccess");
+
+    /// <summary>Button on a missing folder: choose where it went.</summary>
+    public static string LibraryLocate => Get("LibraryLocate");
+
+    /// <summary>Button on a folder that lost permission.</summary>
+    public static string LibraryChooseAgain => Get("LibraryChooseAgain");
+
+    /// <summary>Line on a folder's page while it is watched for changes.</summary>
+    public static string LibraryPageWatching(string time) => Fill(Get("LibraryPageWatching"), ("time", time));
+
+    /// <summary>Line on a folder's page when it is only rescanned at start.</summary>
+    public static string LibraryPageNoWatch(string time) => Fill(Get("LibraryPageNoWatch"), ("time", time));
+
+    /// <summary>Button on a folder's page.</summary>
+    public static string LibraryRescan => Get("LibraryRescan");
+
+    /// <summary>Button on a folder's page: show the folder in the file manager.</summary>
+    public static string LibraryShowExplorer => Get("LibraryShowExplorer");
+
+    /// <summary>Button on a folder's page. What it does is said under it on the page.</summary>
+    public static string LibraryRemoveFolder => Get("LibraryRemoveFolder");
+
+    /// <summary>Heading of the list of folders whose match is uncertain.</summary>
+    public static string LibraryNeedsLook => Get("LibraryNeedsLook");
+
+    /// <summary>Heading of the list of files that could not be matched.</summary>
+    public static string LibraryNotMatched => Get("LibraryNotMatched");
+
+    /// <summary>Row that opens the list of matched series.</summary>
+    public static string LibraryMatched(long count) => Fill(Get("LibraryMatched"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under a row in Needs a look.</summary>
+    public static string LibraryBestGuess(string title, long percent) => Fill(Get("LibraryBestGuess"), ("title", title), ("percent", percent.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Count of files in a group.</summary>
+    public static string LibraryFiles(long count) => Fill(GetPlural("LibraryFiles", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Why a file group is not matched.</summary>
+    public static string LibraryReasonNoEpisode => Get("LibraryReasonNoEpisode");
+
+    /// <summary>Why a file group is not matched.</summary>
+    public static string LibraryReasonNoTitle => Get("LibraryReasonNoTitle");
+
+    /// <summary>Why a file group is not matched.</summary>
+    public static string LibraryReasonNotVideo => Get("LibraryReasonNotVideo");
+
+    /// <summary>Button on a not matched row.</summary>
+    public static string LibrarySetEpisode => Get("LibrarySetEpisode");
+
+    /// <summary>Item in a not matched row's menu.</summary>
+    public static string LibraryKeepUnmatched => Get("LibraryKeepUnmatched");
+
+    /// <summary>Title of the dialog that fixes a match.</summary>
+    public static string LibraryFixTitle => Get("LibraryFixTitle");
+
+    /// <summary>Under a result whose episode count does not fit the files.</summary>
+    public static string LibraryFixCountMismatch(long titleEpisodes, long files) => Fill(Get("LibraryFixCountMismatch"), ("titleEpisodes", titleEpisodes.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("files", files.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Text button under the results of the match dialog.</summary>
+    public static string LibraryLeaveUnmatched => Get("LibraryLeaveUnmatched");
+
+    /// <summary>Title of the dialog that sets one file's episode.</summary>
+    public static string LibraryEpisodeTitle => Get("LibraryEpisodeTitle");
+
+    /// <summary>Stepper label.</summary>
+    public static string LibrarySeason => Get("LibrarySeason");
+
+    /// <summary>Stepper label.</summary>
+    public static string LibraryEpisode => Get("LibraryEpisode");
+
+    /// <summary>Default button of the episode dialog.</summary>
+    public static string LibraryApply => Get("LibraryApply");
+
+    /// <summary>Section on Library for titles kept unmatched.</summary>
+    public static string LibraryFromFiles => Get("LibraryFromFiles");
+
+    /// <summary>Disabled main action on a title whose drive is not connected.</summary>
+    public static string TitleConnectDrive => Get("TitleConnectDrive");
+
+    /// <summary>Title of the picker that adds a folder.</summary>
+    public static string LibraryPickerTitle => Get("LibraryPickerTitle");
+
+    /// <summary>Line on a folder's page, under Remove folder.</summary>
+    public static string LibraryRemoveDetail => Get("LibraryRemoveDetail");
+
+    /// <summary>Title of the page.</summary>
+    public static string LicensedTitle => Get("LicensedTitle");
+
+    /// <summary>Line under the title.</summary>
+    public static string LicensedBody => Get("LicensedBody");
+
+    /// <summary>Label of the region menu.</summary>
+    public static string LicensedRegion => Get("LicensedRegion");
+
+    /// <summary>Line under the region menu.</summary>
+    public static string LicensedRegionLine => Get("LicensedRegionLine");
+
+    /// <summary>Heading of the list of services.</summary>
+    public static string LicensedYours => Get("LicensedYours");
+
+    /// <summary>Row that shows the rest of the services.</summary>
+    public static string LicensedShowAll(long count) => Fill(Get("LicensedShowAll"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Switch label.</summary>
+    public static string LicensedShowOthers => Get("LicensedShowOthers");
+
+    /// <summary>Line under that switch.</summary>
+    public static string LicensedShowOthersLine => Get("LicensedShowOthersLine");
+
+    /// <summary>Line of the Licensed services row on Your sources.</summary>
+    public static string LicensedRowLine(string services, string region) => Fill(Get("LicensedRowLine"), ("services", services), ("region", region));
+
+    /// <summary>Line of that row before any service is chosen.</summary>
+    public static string LicensedRowNone => Get("LicensedRowNone");
+
+    /// <summary>Main action on a title that plays only on a service the viewer uses.</summary>
+    public static string TitleWatchOn(string service) => Fill(Get("TitleWatchOn"), ("service", service));
+
+    /// <summary>Line under the actions of a title that plays here and on a service.</summary>
+    public static string TitleAlsoOnServices(string services) => Fill(Get("TitleAlsoOnServices"), ("services", services));
+
+    /// <summary>Line on a title found in none of the viewer's services.</summary>
+    public static string TitleListedOn(string services) => Fill(Get("TitleListedOn"), ("services", services));
+
+    /// <summary>Link at the end of that line.</summary>
+    public static string TitleChooseServices => Get("TitleChooseServices");
+
+    /// <summary>Button on the return notice.</summary>
+    public static string LicensedMarkWatched => Get("LicensedMarkWatched");
+
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
 
@@ -2960,6 +3125,18 @@ public static partial class T
 
     /// <summary>Hint inside the invite field on the welcome page.</summary>
     public static string OnboardingInviteHint => Get("OnboardingInviteHint");
+
+    /// <summary>Heading of the page about where episodes come from.</summary>
+    public static string OnboardingWhereTitle => Get("OnboardingWhereTitle");
+
+    /// <summary>Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.</summary>
+    public static string OnboardingWhereHosts => Get("OnboardingWhereHosts");
+
+    /// <summary>Heading of the group that adds the viewer's own media.</summary>
+    public static string OnboardingOwnHeading => Get("OnboardingOwnHeading");
+
+    /// <summary>Heading of the group that joins a store with an invite.</summary>
+    public static string OnboardingInviteHeading => Get("OnboardingInviteHeading");
 
     /// <summary>Button on the title page and in the player that opens the watch party form.</summary>
     public static string PartyOpen => Get("PartyOpen");
@@ -3684,6 +3861,156 @@ public static partial class T
     /// <summary>Search: sort by what is popular right now.</summary>
     public static string SearchSortTrending => Get("SearchSortTrending");
 
+    /// <summary>Title of the dialog that adds a media server.</summary>
+    public static string ServersAddTitle => Get("ServersAddTitle");
+
+    /// <summary>Heading of the servers found on the network.</summary>
+    public static string ServersOnNetwork => Get("ServersOnNetwork");
+
+    /// <summary>Row shown while the app looks for servers.</summary>
+    public static string ServersLooking => Get("ServersLooking");
+
+    /// <summary>Row shown when nothing answered.</summary>
+    public static string ServersNoneFound => Get("ServersNoneFound");
+
+    /// <summary>Label of the address field.</summary>
+    public static string ServersAddress => Get("ServersAddress");
+
+    /// <summary>Placeholder of the address field.</summary>
+    public static string ServersAddressHint => Get("ServersAddressHint");
+
+    /// <summary>Button that goes to the next step.</summary>
+    public static string ServersContinue => Get("ServersContinue");
+
+    /// <summary>Title of the sign-in step.</summary>
+    public static string ServersSignInTitle(string server) => Fill(Get("ServersSignInTitle"), ("server", server));
+
+    /// <summary>Label of the user name field.</summary>
+    public static string ServersUser => Get("ServersUser");
+
+    /// <summary>Label of the password field.</summary>
+    public static string ServersPassword => Get("ServersPassword");
+
+    /// <summary>Link that switches to Quick Connect.</summary>
+    public static string ServersUseQuickConnect => Get("ServersUseQuickConnect");
+
+    /// <summary>Link that switches back to a password.</summary>
+    public static string ServersUsePassword => Get("ServersUsePassword");
+
+    /// <summary>Line under the sign-in fields. The store is where the token is kept, such as Credential Manager.</summary>
+    public static string ServersTokenNote(string store) => Fill(Get("ServersTokenNote"), ("store", store));
+
+    /// <summary>Where Windows keeps the sign-in token, for the line above.</summary>
+    public static string SecureStoreWindows => Get("SecureStoreWindows");
+
+    /// <summary>Sign in button.</summary>
+    public static string ServersSignIn => Get("ServersSignIn");
+
+    /// <summary>Title of the Quick Connect step.</summary>
+    public static string ServersQcTitle => Get("ServersQcTitle");
+
+    /// <summary>Steps under the Quick Connect code.</summary>
+    public static string ServersQcSteps => Get("ServersQcSteps");
+
+    /// <summary>Under the code while it waits.</summary>
+    public static string ServersQcWaiting => Get("ServersQcWaiting");
+
+    /// <summary>Error when the code ran out.</summary>
+    public static string ServersQcExpired => Get("ServersQcExpired");
+
+    /// <summary>Button that asks for another code.</summary>
+    public static string ServersQcNewCode => Get("ServersQcNewCode");
+
+    /// <summary>Title of the step that picks libraries.</summary>
+    public static string ServersLibrariesTitle => Get("ServersLibrariesTitle");
+
+    /// <summary>Line under it.</summary>
+    public static string ServersLibrariesBody => Get("ServersLibrariesBody");
+
+    /// <summary>Line of one library: its kind and how many series.</summary>
+    public static string ServersLibraryLine(string kind, long count) => Fill(Get("ServersLibraryLine"), ("kind", kind), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Switch: tell Jellyfin what was watched.</summary>
+    public static string ServersReport => Get("ServersReport");
+
+    /// <summary>Line under that switch.</summary>
+    public static string ServersReportLine => Get("ServersReportLine");
+
+    /// <summary>Button that finishes the dialog.</summary>
+    public static string ServersAdd => Get("ServersAdd");
+
+    /// <summary>Line of a server row while it matches series.</summary>
+    public static string ServersRowMatching(long done, long total) => Fill(Get("ServersRowMatching"), ("done", done.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("total", total.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line of a server row when it is done.</summary>
+    public static string ServersRowSummary(long libraries, long series) => Fill(GetPlural("ServersRowSummary", libraries), ("libraries", libraries.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("series", series.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line at the top of a server's page.</summary>
+    public static string ServersPageLine(string address, string version, string user) => Fill(Get("ServersPageLine"), ("address", address), ("version", version), ("user", user));
+
+    /// <summary>Button on a server's page.</summary>
+    public static string ServersSignOut => Get("ServersSignOut");
+
+    /// <summary>Button on a server's page.</summary>
+    public static string ServersRemove => Get("ServersRemove");
+
+    /// <summary>Error under the address field.</summary>
+    public static string ServersErrorUnreachable(string address) => Fill(Get("ServersErrorUnreachable"), ("address", address));
+
+    /// <summary>Error under the address field.</summary>
+    public static string ServersErrorNotJellyfin => Get("ServersErrorNotJellyfin");
+
+    /// <summary>Error under the address field.</summary>
+    public static string ServersErrorTooOld(string version) => Fill(Get("ServersErrorTooOld"), ("version", version));
+
+    /// <summary>Error under the password field.</summary>
+    public static string ServersErrorCredentials => Get("ServersErrorCredentials");
+
+    /// <summary>Error that replaces the Quick Connect link.</summary>
+    public static string ServersErrorQcOff => Get("ServersErrorQcOff");
+
+    /// <summary>Error under the address field.</summary>
+    public static string ServersErrorPlainHttp => Get("ServersErrorPlainHttp");
+
+    /// <summary>Error under the address field when the address cannot be read.</summary>
+    public static string ServersErrorBadAddress => Get("ServersErrorBadAddress");
+
+    /// <summary>Error when something else went wrong.</summary>
+    public static string ServersErrorOther => Get("ServersErrorOther");
+
+    /// <summary>Title of the step that asks about a certificate.</summary>
+    public static string ServersCertTitle => Get("ServersCertTitle");
+
+    /// <summary>Text of that step.</summary>
+    public static string ServersCertBody(string host) => Fill(Get("ServersCertBody"), ("host", host));
+
+    /// <summary>Button on that step.</summary>
+    public static string ServersCertAllow => Get("ServersCertAllow");
+
+    /// <summary>Line of a server row when the server signed the viewer out.</summary>
+    public static string ServersRowSignedOut => Get("ServersRowSignedOut");
+
+    /// <summary>Button on that row.</summary>
+    public static string ServersSignInAgain => Get("ServersSignInAgain");
+
+    /// <summary>Line of a server row that does not answer.</summary>
+    public static string ServersRowNotAnswering(string time) => Fill(Get("ServersRowNotAnswering"), ("time", time));
+
+    /// <summary>Line on a title page when its server does not answer.</summary>
+    public static string TitleServerNotAnswering(string server) => Fill(Get("TitleServerNotAnswering"), ("server", server));
+
+    /// <summary>Kind of a Jellyfin library that holds shows, in a library's line.</summary>
+    public static string ServersKindShows => Get("ServersKindShows");
+
+    /// <summary>Kind of a Jellyfin library that holds movies, in a library's line.</summary>
+    public static string ServersKindMovies => Get("ServersKindMovies");
+
+    /// <summary>Kind of any other Jellyfin library, in a library's line.</summary>
+    public static string ServersKindOther => Get("ServersKindOther");
+
+    /// <summary>Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.</summary>
+    public static string ServersQuickConnect => Get("ServersQuickConnect");
+
     /// <summary>Settings group and row title for choosing a language.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
 
@@ -4385,6 +4712,54 @@ public static partial class T
 
     /// <summary>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</summary>
     public static string MatchRowLabel(string title, string facts, string closeness) => Fill(Get("MatchRowLabel"), ("title", title), ("facts", facts), ("closeness", closeness));
+
+    /// <summary>Section heading on Your sources: folders on this device.</summary>
+    public static string SourcesSectionMedia => Get("SourcesSectionMedia");
+
+    /// <summary>Section heading on Your sources: Jellyfin servers.</summary>
+    public static string SourcesSectionServers => Get("SourcesSectionServers");
+
+    /// <summary>Section heading on Your sources: the streaming services the viewer pays for.</summary>
+    public static string SourcesSectionLicensed => Get("SourcesSectionLicensed");
+
+    /// <summary>Section heading on Your sources: the plugins of one store.</summary>
+    public static string SourcesSectionStore(string store) => Fill(Get("SourcesSectionStore"), ("store", store));
+
+    /// <summary>Section heading on Your sources: what ships with the app.</summary>
+    public static string SourcesSectionBuiltin => Get("SourcesSectionBuiltin");
+
+    /// <summary>The Add button on Your sources.</summary>
+    public static string SourcesAdd => Get("SourcesAdd");
+
+    /// <summary>Item in the Add menu: choose a folder with episodes.</summary>
+    public static string SourcesAddFolder => Get("SourcesAddFolder");
+
+    /// <summary>Item in the Add menu: add a Jellyfin server.</summary>
+    public static string SourcesAddServer => Get("SourcesAddServer");
+
+    /// <summary>Item in the Add menu: join a plugin store.</summary>
+    public static string SourcesAddStore => Get("SourcesAddStore");
+
+    /// <summary>Line under the empty state's title on a computer.</summary>
+    public static string SourcesEmptyBody => Get("SourcesEmptyBody");
+
+    /// <summary>Line under the empty state's buttons. The link is "join a plugin store".</summary>
+    public static string SourcesEmptyMore(string join) => Fill(Get("SourcesEmptyMore"), ("join", join));
+
+    /// <summary>Link in the empty state's last line.</summary>
+    public static string SourcesEmptyJoinLink => Get("SourcesEmptyJoinLink");
+
+    /// <summary>Primary button of the empty state on a computer.</summary>
+    public static string SourcesAddFolderButton => Get("SourcesAddFolderButton");
+
+    /// <summary>Second button of the empty state.</summary>
+    public static string SourcesAddServerButton => Get("SourcesAddServerButton");
+
+    /// <summary>Notice after a source is removed. It holds Undo.</summary>
+    public static string SourcesRemoved(string name) => Fill(Get("SourcesRemoved"), ("name", name));
+
+    /// <summary>Line of the notice after a folder is removed.</summary>
+    public static string SourcesRemovedFilesStay => Get("SourcesRemovedFilesStay");
 
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
@@ -5909,6 +6284,8 @@ public static partial class T
         ["HomeThisSeason"] = "This season",
         ["HomeBecause"] = "Because you finished {title}",
         ["HomeMoreGenre"] = "More {genre}",
+        ["LicensedReturn"] = "Watched episode {episode} on {service}?",
+        ["LicensedMarked"] = "Episode {episode} marked as watched.",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",
@@ -6758,6 +7135,63 @@ public static partial class T
         ["UpNextHiddenUntilAirs"] = "{title} is hidden until it airs",
         ["UpNextBroadcast"] = "Episode {episode} · {when}",
         ["UpNextOut"] = "out {ago}",
+        ["LibraryRowScanning_one"] = "Scanning · 1 file found",
+        ["LibraryRowScanning_other"] = "Scanning · {files} files found",
+        ["LibraryRowMatching"] = "Matching · {done} of {total} series",
+        ["LibraryRowWaiting"] = "Waiting for AniList · {seconds} s",
+        ["LibraryRowSummary"] = "{episodes} of {series}",
+        ["LibraryEpisodes_one"] = "1 episode",
+        ["LibraryEpisodes_other"] = "{count} episodes",
+        ["LibrarySeries_one"] = "1 series",
+        ["LibrarySeries_other"] = "{count} series",
+        ["LibraryRowNeedsLook"] = "{count} need a look",
+        ["LibraryRowDriveOffline"] = "Drive not connected",
+        ["LibraryRowMissing"] = "Folder not found",
+        ["LibraryRowNoAccess"] = "anistream can't open this folder any more",
+        ["LibraryLocate"] = "Locate…",
+        ["LibraryChooseAgain"] = "Choose again",
+        ["LibraryPageWatching"] = "Watched for changes · last scan {time}",
+        ["LibraryPageNoWatch"] = "Rescans when anistream starts · last scan {time}",
+        ["LibraryRescan"] = "Rescan",
+        ["LibraryShowExplorer"] = "Show in Explorer",
+        ["LibraryRemoveFolder"] = "Remove folder",
+        ["LibraryNeedsLook"] = "Needs a look",
+        ["LibraryNotMatched"] = "Not matched",
+        ["LibraryMatched"] = "{count} series matched",
+        ["LibraryBestGuess"] = "Best guess: {title} · {percent}% match",
+        ["LibraryFiles_one"] = "1 file",
+        ["LibraryFiles_other"] = "{count} files",
+        ["LibraryReasonNoEpisode"] = "No episode number in the name",
+        ["LibraryReasonNoTitle"] = "No AniList title found",
+        ["LibraryReasonNotVideo"] = "Not a video file anistream plays",
+        ["LibrarySetEpisode"] = "Set episode…",
+        ["LibraryKeepUnmatched"] = "Keep unmatched",
+        ["LibraryFixTitle"] = "Which title is this folder?",
+        ["LibraryFixCountMismatch"] = "Has {titleEpisodes} episodes, this folder has {files}",
+        ["LibraryLeaveUnmatched"] = "Leave unmatched",
+        ["LibraryEpisodeTitle"] = "Which episode is this file?",
+        ["LibrarySeason"] = "Season",
+        ["LibraryEpisode"] = "Episode",
+        ["LibraryApply"] = "Apply",
+        ["LibraryFromFiles"] = "From your files",
+        ["TitleConnectDrive"] = "Connect the drive to play",
+        ["LibraryPickerTitle"] = "Choose a folder with your episodes.",
+        ["LibraryRemoveDetail"] = "Your files stay where they are.",
+        ["LicensedTitle"] = "Licensed services",
+        ["LicensedBody"] = "anistream can open titles in streaming services you pay for. It never plays them itself. Links come from AniList.",
+        ["LicensedRegion"] = "Region",
+        ["LicensedRegionLine"] = "Hides links AniList marks for other countries. Most links name no country, so choose your services too.",
+        ["LicensedYours"] = "Your services",
+        ["LicensedShowAll"] = "Show all {count}",
+        ["LicensedShowOthers"] = "Show other services on title pages",
+        ["LicensedShowOthersLine"] = "A line under the buttons names services you don't use.",
+        ["LicensedRowLine"] = "{services} · {region}",
+        ["LicensedRowNone"] = "Choose the services you pay for",
+        ["TitleWatchOn"] = "Watch on {service}",
+        ["TitleAlsoOnServices"] = "Also on {services}",
+        ["TitleListedOn"] = "Not found in your sources. Listed on {services}.",
+        ["TitleChooseServices"] = "Choose your services",
+        ["LicensedMarkWatched"] = "Mark watched",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",
@@ -6869,6 +7303,10 @@ public static partial class T
         ["OnboardingSourcesDetail"] = "Sources are plugins, shared through plugin stores by invite.",
         ["OnboardingJoin"] = "Join",
         ["OnboardingInviteHint"] = "Invite link",
+        ["OnboardingWhereTitle"] = "Where episodes come from",
+        ["OnboardingWhereHosts"] = "It plays what you already have: files on this device, your Jellyfin server, and plugins from stores you join.",
+        ["OnboardingOwnHeading"] = "Have your own media?",
+        ["OnboardingInviteHeading"] = "Have an invite link?",
         ["PartyOpen"] = "Watch party…",
         ["PartyTitle"] = "Watch party",
         ["PartyJoinTitle"] = "Join the watch party?",
@@ -7112,6 +7550,57 @@ public static partial class T
         ["SearchSortOldest"] = "Oldest",
         ["SearchSortTitle"] = "Title",
         ["SearchSortTrending"] = "Trending",
+        ["ServersAddTitle"] = "Add a media server",
+        ["ServersOnNetwork"] = "On your network",
+        ["ServersLooking"] = "Looking for servers…",
+        ["ServersNoneFound"] = "No servers found on this network. Type the address instead.",
+        ["ServersAddress"] = "Server address",
+        ["ServersAddressHint"] = "jellyfin.home.example or 192.168.1.20:8096",
+        ["ServersContinue"] = "Continue",
+        ["ServersSignInTitle"] = "Sign in to {server}",
+        ["ServersUser"] = "User name",
+        ["ServersPassword"] = "Password",
+        ["ServersUseQuickConnect"] = "Use Quick Connect instead",
+        ["ServersUsePassword"] = "Sign in with a password instead",
+        ["ServersTokenNote"] = "Your password isn't saved. anistream keeps a sign-in token in {store}.",
+        ["SecureStoreWindows"] = "Credential Manager",
+        ["ServersSignIn"] = "Sign in",
+        ["ServersQcTitle"] = "Enter this code in Jellyfin",
+        ["ServersQcSteps"] = "On a device that's signed in, open Jellyfin, go to your profile, choose Quick Connect and enter this code.",
+        ["ServersQcWaiting"] = "Waiting for you to approve it",
+        ["ServersQcExpired"] = "That code has run out.",
+        ["ServersQcNewCode"] = "Get a new code",
+        ["ServersLibrariesTitle"] = "Choose libraries",
+        ["ServersLibrariesBody"] = "Shows are matched to AniList so they join Home, your lists and Search.",
+        ["ServersLibraryLine"] = "{kind} · {count} series",
+        ["ServersReport"] = "Report what you watch to Jellyfin",
+        ["ServersReportLine"] = "Resume points and watched marks follow what you play here.",
+        ["ServersAdd"] = "Add server",
+        ["ServersRowMatching"] = "Matching · {done} of {total} series",
+        ["ServersRowSummary_one"] = "1 library · {series} series",
+        ["ServersRowSummary_other"] = "{libraries} libraries · {series} series",
+        ["ServersPageLine"] = "{address} · Jellyfin {version} · signed in as {user}",
+        ["ServersSignOut"] = "Sign out",
+        ["ServersRemove"] = "Remove server",
+        ["ServersErrorUnreachable"] = "Can't reach {address}. Check the address and that the server is on.",
+        ["ServersErrorNotJellyfin"] = "That address answers, but it isn't a Jellyfin server.",
+        ["ServersErrorTooOld"] = "This server runs Jellyfin {version}. anistream needs 10.8 or later.",
+        ["ServersErrorCredentials"] = "Wrong user name or password.",
+        ["ServersErrorQcOff"] = "Quick Connect is off on this server. Sign in with a password, or turn it on in Jellyfin's dashboard.",
+        ["ServersErrorPlainHttp"] = "This address isn't on your network and doesn't use HTTPS, so your password would travel unprotected. Use an https:// address.",
+        ["ServersErrorBadAddress"] = "That doesn't look like an address. Type it the way you open Jellyfin in a browser.",
+        ["ServersErrorOther"] = "Something went wrong. Try again.",
+        ["ServersCertTitle"] = "Check this server",
+        ["ServersCertBody"] = "{host} uses a certificate this device doesn't trust. That's normal for a server at home. Allow it only if this fingerprint matches the one your server shows.",
+        ["ServersCertAllow"] = "Allow this certificate",
+        ["ServersRowSignedOut"] = "Signed out by the server",
+        ["ServersSignInAgain"] = "Sign in again",
+        ["ServersRowNotAnswering"] = "Not answering · last seen {time}",
+        ["TitleServerNotAnswering"] = "{server} isn't answering. Episodes you downloaded still play.",
+        ["ServersKindShows"] = "Shows",
+        ["ServersKindMovies"] = "Movies",
+        ["ServersKindOther"] = "Videos",
+        ["ServersQuickConnect"] = "Quick Connect",
         ["SettingsLanguage"] = "Language",
         ["SettingsLanguageApp"] = "App language",
         ["LanguageFollowSystem"] = "Follow system language",
@@ -7352,6 +7841,22 @@ public static partial class T
         ["MatchAutomaticDetail"] = "Forget your choice and let anistream match this title again.",
         ["MatchCleared"] = "Matching automatically again.",
         ["MatchRowLabel"] = "{title}, {facts}, {closeness}",
+        ["SourcesSectionMedia"] = "Your media",
+        ["SourcesSectionServers"] = "Media servers",
+        ["SourcesSectionLicensed"] = "Licensed services",
+        ["SourcesSectionStore"] = "From {store}",
+        ["SourcesSectionBuiltin"] = "Built in",
+        ["SourcesAdd"] = "Add",
+        ["SourcesAddFolder"] = "Folder…",
+        ["SourcesAddServer"] = "Media server…",
+        ["SourcesAddStore"] = "Join a plugin store…",
+        ["SourcesEmptyBody"] = "Sources are where episodes come from: folders on this device, your media server, and plugins from stores you join.",
+        ["SourcesEmptyMore"] = "Or {join}.",
+        ["SourcesEmptyJoinLink"] = "join a plugin store",
+        ["SourcesAddFolderButton"] = "Add a folder",
+        ["SourcesAddServerButton"] = "Add a media server",
+        ["SourcesRemoved"] = "{name} removed",
+        ["SourcesRemovedFilesStay"] = "Your files stay where they are.",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",

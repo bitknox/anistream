@@ -239,6 +239,14 @@
     <value>[Ṁöŕé {genre}~~~]</value>
     <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
   </data>
+  <data name="LicensedReturn" xml:space="preserve">
+    <value>[Ŵàţçĥéð éþîšöðé {episode} öñ {service}?~~~~~~~~~]</value>
+    <comment>Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.</comment>
+  </data>
+  <data name="LicensedMarked" xml:space="preserve">
+    <value>[Éþîšöðé {episode} ɱàŕķéð àš ŵàţçĥéð.~~~~~~~~~]</value>
+    <comment>Notice after Mark as watched on the return notice. It holds Undo.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>[{reason}~]</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -3635,6 +3643,234 @@
     <value>[öüţ {ago}~~~]</value>
     <comment>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</comment>
   </data>
+  <data name="LibraryRowScanning_one" xml:space="preserve">
+    <value>[Šçàññîñĝ · 1 ƒîļé ƒöüñð~~~~~~~]</value>
+    <comment>Line of a folder row while it counts files.</comment>
+  </data>
+  <data name="LibraryRowScanning_other" xml:space="preserve">
+    <value>[Šçàññîñĝ · {files} ƒîļéš ƒöüñð~~~~~~~~]</value>
+    <comment>Line of a folder row while it counts files.</comment>
+  </data>
+  <data name="LibraryRowMatching" xml:space="preserve">
+    <value>[Ṁàţçĥîñĝ · {done} öƒ {total} šéŕîéš~~~~~~~~~]</value>
+    <comment>Line of a folder row while it matches series.</comment>
+  </data>
+  <data name="LibraryRowWaiting" xml:space="preserve">
+    <value>[Ŵàîţîñĝ ƒöŕ ÅñîĻîšţ · {seconds} š~~~~~~~~~]</value>
+    <comment>Added to the matching line while the limiter holds requests back.</comment>
+  </data>
+  <data name="LibraryRowSummary" xml:space="preserve">
+    <value>[{episodes} öƒ {series}~~~]</value>
+    <comment>Line of a folder row when it is done, such as "214 episodes of 18 series". Both parts are worded already by library-episodes and library-series.</comment>
+  </data>
+  <data name="LibraryEpisodes_one" xml:space="preserve">
+    <value>[1 éþîšöðé~~~]</value>
+    <comment>The episodes part of a folder's summary line.</comment>
+  </data>
+  <data name="LibraryEpisodes_other" xml:space="preserve">
+    <value>[{count} éþîšöðéš~~~~]</value>
+    <comment>The episodes part of a folder's summary line.</comment>
+  </data>
+  <data name="LibrarySeries_one" xml:space="preserve">
+    <value>[1 šéŕîéš~~~]</value>
+    <comment>The series part of a folder's summary line.</comment>
+  </data>
+  <data name="LibrarySeries_other" xml:space="preserve">
+    <value>[{count} šéŕîéš~~~]</value>
+    <comment>The series part of a folder's summary line.</comment>
+  </data>
+  <data name="LibraryRowNeedsLook" xml:space="preserve">
+    <value>[{count} ñééð à ļööķ~~~~~]</value>
+    <comment>Ends the summary line when some series need a look.</comment>
+  </data>
+  <data name="LibraryRowDriveOffline" xml:space="preserve">
+    <value>[Ðŕîṽé ñöţ çöññéçţéð~~~~~~]</value>
+    <comment>Line of a folder on a drive that is not connected.</comment>
+  </data>
+  <data name="LibraryRowMissing" xml:space="preserve">
+    <value>[Ƒöļðéŕ ñöţ ƒöüñð~~~~~]</value>
+    <comment>Line of a folder that was removed or renamed.</comment>
+  </data>
+  <data name="LibraryRowNoAccess" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çàñ'ţ öþéñ ţĥîš ƒöļðéŕ àñý ɱöŕé~~~~~~~~~~~~~]</value>
+    <comment>Line of a folder the app lost permission to read.</comment>
+  </data>
+  <data name="LibraryLocate" xml:space="preserve">
+    <value>[Ļöçàţé…~~~]</value>
+    <comment>Button on a missing folder: choose where it went.</comment>
+  </data>
+  <data name="LibraryChooseAgain" xml:space="preserve">
+    <value>[Çĥööšé àĝàîñ~~~~]</value>
+    <comment>Button on a folder that lost permission.</comment>
+  </data>
+  <data name="LibraryPageWatching" xml:space="preserve">
+    <value>[Ŵàţçĥéð ƒöŕ çĥàñĝéš · ļàšţ šçàñ {time}~~~~~~~~~~~]</value>
+    <comment>Line on a folder's page while it is watched for changes.</comment>
+  </data>
+  <data name="LibraryPageNoWatch" xml:space="preserve">
+    <value>[Ŕéšçàñš ŵĥéñ àñîšţŕéàɱ šţàŕţš · ļàšţ šçàñ {time}~~~~~~~~~~~~~~]</value>
+    <comment>Line on a folder's page when it is only rescanned at start.</comment>
+  </data>
+  <data name="LibraryRescan" xml:space="preserve">
+    <value>[Ŕéšçàñ~~]</value>
+    <comment>Button on a folder's page.</comment>
+  </data>
+  <data name="LibraryShowExplorer" xml:space="preserve">
+    <value>[Šĥöŵ îñ Éẋþļöŕéŕ~~~~~]</value>
+    <comment>Button on a folder's page: show the folder in the file manager.</comment>
+  </data>
+  <data name="LibraryRemoveFolder" xml:space="preserve">
+    <value>[Ŕéɱöṽé ƒöļðéŕ~~~~]</value>
+    <comment>Button on a folder's page. What it does is said under it on the page.</comment>
+  </data>
+  <data name="LibraryNeedsLook" xml:space="preserve">
+    <value>[Ñééðš à ļööķ~~~~]</value>
+    <comment>Heading of the list of folders whose match is uncertain.</comment>
+  </data>
+  <data name="LibraryNotMatched" xml:space="preserve">
+    <value>[Ñöţ ɱàţçĥéð~~~~]</value>
+    <comment>Heading of the list of files that could not be matched.</comment>
+  </data>
+  <data name="LibraryMatched" xml:space="preserve">
+    <value>[{count} šéŕîéš ɱàţçĥéð~~~~~~]</value>
+    <comment>Row that opens the list of matched series.</comment>
+  </data>
+  <data name="LibraryBestGuess" xml:space="preserve">
+    <value>[Ɓéšţ ĝüéšš: {title} · {percent}% ɱàţçĥ~~~~~~~~~]</value>
+    <comment>Line under a row in Needs a look.</comment>
+  </data>
+  <data name="LibraryFiles_one" xml:space="preserve">
+    <value>[1 ƒîļé~~]</value>
+    <comment>Count of files in a group.</comment>
+  </data>
+  <data name="LibraryFiles_other" xml:space="preserve">
+    <value>[{count} ƒîļéš~~~]</value>
+    <comment>Count of files in a group.</comment>
+  </data>
+  <data name="LibraryReasonNoEpisode" xml:space="preserve">
+    <value>[Ñö éþîšöðé ñüɱƀéŕ îñ ţĥé ñàɱé~~~~~~~~~]</value>
+    <comment>Why a file group is not matched.</comment>
+  </data>
+  <data name="LibraryReasonNoTitle" xml:space="preserve">
+    <value>[Ñö ÅñîĻîšţ ţîţļé ƒöüñð~~~~~~~]</value>
+    <comment>Why a file group is not matched.</comment>
+  </data>
+  <data name="LibraryReasonNotVideo" xml:space="preserve">
+    <value>[Ñöţ à ṽîðéö ƒîļé àñîšţŕéàɱ þļàýš~~~~~~~~~~]</value>
+    <comment>Why a file group is not matched.</comment>
+  </data>
+  <data name="LibrarySetEpisode" xml:space="preserve">
+    <value>[Šéţ éþîšöðé…~~~~]</value>
+    <comment>Button on a not matched row.</comment>
+  </data>
+  <data name="LibraryKeepUnmatched" xml:space="preserve">
+    <value>[Ķééþ üñɱàţçĥéð~~~~~]</value>
+    <comment>Item in a not matched row's menu.</comment>
+  </data>
+  <data name="LibraryFixTitle" xml:space="preserve">
+    <value>[Ŵĥîçĥ ţîţļé îš ţĥîš ƒöļðéŕ?~~~~~~~~~]</value>
+    <comment>Title of the dialog that fixes a match.</comment>
+  </data>
+  <data name="LibraryFixCountMismatch" xml:space="preserve">
+    <value>[Ĥàš {titleEpisodes} éþîšöðéš, ţĥîš ƒöļðéŕ ĥàš {files}~~~~~~~~~~~~]</value>
+    <comment>Under a result whose episode count does not fit the files.</comment>
+  </data>
+  <data name="LibraryLeaveUnmatched" xml:space="preserve">
+    <value>[Ļéàṽé üñɱàţçĥéð~~~~~]</value>
+    <comment>Text button under the results of the match dialog.</comment>
+  </data>
+  <data name="LibraryEpisodeTitle" xml:space="preserve">
+    <value>[Ŵĥîçĥ éþîšöðé îš ţĥîš ƒîļé?~~~~~~~~~]</value>
+    <comment>Title of the dialog that sets one file's episode.</comment>
+  </data>
+  <data name="LibrarySeason" xml:space="preserve">
+    <value>[Šéàšöñ~~]</value>
+    <comment>Stepper label.</comment>
+  </data>
+  <data name="LibraryEpisode" xml:space="preserve">
+    <value>[Éþîšöðé~~~]</value>
+    <comment>Stepper label.</comment>
+  </data>
+  <data name="LibraryApply" xml:space="preserve">
+    <value>[Åþþļý~~]</value>
+    <comment>Default button of the episode dialog.</comment>
+  </data>
+  <data name="LibraryFromFiles" xml:space="preserve">
+    <value>[Ƒŕöɱ ýöüŕ ƒîļéš~~~~~]</value>
+    <comment>Section on Library for titles kept unmatched.</comment>
+  </data>
+  <data name="TitleConnectDrive" xml:space="preserve">
+    <value>[Çöññéçţ ţĥé ðŕîṽé ţö þļàý~~~~~~~~]</value>
+    <comment>Disabled main action on a title whose drive is not connected.</comment>
+  </data>
+  <data name="LibraryPickerTitle" xml:space="preserve">
+    <value>[Çĥööšé à ƒöļðéŕ ŵîţĥ ýöüŕ éþîšöðéš.~~~~~~~~~~~]</value>
+    <comment>Title of the picker that adds a folder.</comment>
+  </data>
+  <data name="LibraryRemoveDetail" xml:space="preserve">
+    <value>[Ýöüŕ ƒîļéš šţàý ŵĥéŕé ţĥéý àŕé.~~~~~~~~~~]</value>
+    <comment>Line on a folder's page, under Remove folder.</comment>
+  </data>
+  <data name="LicensedTitle" xml:space="preserve">
+    <value>[Ļîçéñšéð šéŕṽîçéš~~~~~~]</value>
+    <comment>Title of the page.</comment>
+  </data>
+  <data name="LicensedBody" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çàñ öþéñ ţîţļéš îñ šţŕéàɱîñĝ šéŕṽîçéš ýöü þàý ƒöŕ. Îţ ñéṽéŕ þļàýš ţĥéɱ îţšéļƒ. Ļîñķš çöɱé ƒŕöɱ ÅñîĻîšţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the title.</comment>
+  </data>
+  <data name="LicensedRegion" xml:space="preserve">
+    <value>[Ŕéĝîöñ~~]</value>
+    <comment>Label of the region menu.</comment>
+  </data>
+  <data name="LicensedRegionLine" xml:space="preserve">
+    <value>[Ĥîðéš ļîñķš ÅñîĻîšţ ɱàŕķš ƒöŕ öţĥéŕ çöüñţŕîéš. Ṁöšţ ļîñķš ñàɱé ñö çöüñţŕý, šö çĥööšé ýöüŕ šéŕṽîçéš ţöö.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the region menu.</comment>
+  </data>
+  <data name="LicensedYours" xml:space="preserve">
+    <value>[Ýöüŕ šéŕṽîçéš~~~~]</value>
+    <comment>Heading of the list of services.</comment>
+  </data>
+  <data name="LicensedShowAll" xml:space="preserve">
+    <value>[Šĥöŵ àļļ {count}~~~~]</value>
+    <comment>Row that shows the rest of the services.</comment>
+  </data>
+  <data name="LicensedShowOthers" xml:space="preserve">
+    <value>[Šĥöŵ öţĥéŕ šéŕṽîçéš öñ ţîţļé þàĝéš~~~~~~~~~~~]</value>
+    <comment>Switch label.</comment>
+  </data>
+  <data name="LicensedShowOthersLine" xml:space="preserve">
+    <value>[Å ļîñé üñðéŕ ţĥé ƀüţţöñš ñàɱéš šéŕṽîçéš ýöü ðöñ'ţ üšé.~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="LicensedRowLine" xml:space="preserve">
+    <value>[{services} · {region}~~~]</value>
+    <comment>Line of the Licensed services row on Your sources.</comment>
+  </data>
+  <data name="LicensedRowNone" xml:space="preserve">
+    <value>[Çĥööšé ţĥé šéŕṽîçéš ýöü þàý ƒöŕ~~~~~~~~~~]</value>
+    <comment>Line of that row before any service is chosen.</comment>
+  </data>
+  <data name="TitleWatchOn" xml:space="preserve">
+    <value>[Ŵàţçĥ öñ {service}~~~~]</value>
+    <comment>Main action on a title that plays only on a service the viewer uses.</comment>
+  </data>
+  <data name="TitleAlsoOnServices" xml:space="preserve">
+    <value>[Åļšö öñ {services}~~~~]</value>
+    <comment>Line under the actions of a title that plays here and on a service.</comment>
+  </data>
+  <data name="TitleListedOn" xml:space="preserve">
+    <value>[Ñöţ ƒöüñð îñ ýöüŕ šöüŕçéš. Ļîšţéð öñ {services}.~~~~~~~~~~~~~]</value>
+    <comment>Line on a title found in none of the viewer's services.</comment>
+  </data>
+  <data name="TitleChooseServices" xml:space="preserve">
+    <value>[Çĥööšé ýöüŕ šéŕṽîçéš~~~~~~]</value>
+    <comment>Link at the end of that line.</comment>
+  </data>
+  <data name="LicensedMarkWatched" xml:space="preserve">
+    <value>[Ṁàŕķ ŵàţçĥéð~~~~]</value>
+    <comment>Button on the return notice.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>
     <comment>Format of a show: broadcast on television.</comment>
@@ -4078,6 +4314,22 @@
   <data name="OnboardingInviteHint" xml:space="preserve">
     <value>[Îñṽîţé ļîñķ~~~~]</value>
     <comment>Hint inside the invite field on the welcome page.</comment>
+  </data>
+  <data name="OnboardingWhereTitle" xml:space="preserve">
+    <value>[Ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ~~~~~~~~]</value>
+    <comment>Heading of the page about where episodes come from.</comment>
+  </data>
+  <data name="OnboardingWhereHosts" xml:space="preserve">
+    <value>[Îţ þļàýš ŵĥàţ ýöü àļŕéàðý ĥàṽé: ƒîļéš öñ ţĥîš ðéṽîçé, ýöüŕ Ĵéļļýƒîñ šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under it on a computer, after the legal line (legal-hosts-no-content) as its own line.</comment>
+  </data>
+  <data name="OnboardingOwnHeading" xml:space="preserve">
+    <value>[Ĥàṽé ýöüŕ öŵñ ɱéðîà?~~~~~~]</value>
+    <comment>Heading of the group that adds the viewer's own media.</comment>
+  </data>
+  <data name="OnboardingInviteHeading" xml:space="preserve">
+    <value>[Ĥàṽé àñ îñṽîţé ļîñķ?~~~~~~]</value>
+    <comment>Heading of the group that joins a store with an invite.</comment>
   </data>
   <data name="PartyOpen" xml:space="preserve">
     <value>[Ŵàţçĥ þàŕţý…~~~~]</value>
@@ -5051,6 +5303,210 @@
     <value>[Ţŕéñðîñĝ~~~]</value>
     <comment>Search: sort by what is popular right now.</comment>
   </data>
+  <data name="ServersAddTitle" xml:space="preserve">
+    <value>[Åðð à ɱéðîà šéŕṽéŕ~~~~~~]</value>
+    <comment>Title of the dialog that adds a media server.</comment>
+  </data>
+  <data name="ServersOnNetwork" xml:space="preserve">
+    <value>[Öñ ýöüŕ ñéţŵöŕķ~~~~~]</value>
+    <comment>Heading of the servers found on the network.</comment>
+  </data>
+  <data name="ServersLooking" xml:space="preserve">
+    <value>[Ļööķîñĝ ƒöŕ šéŕṽéŕš…~~~~~~]</value>
+    <comment>Row shown while the app looks for servers.</comment>
+  </data>
+  <data name="ServersNoneFound" xml:space="preserve">
+    <value>[Ñö šéŕṽéŕš ƒöüñð öñ ţĥîš ñéţŵöŕķ. Ţýþé ţĥé àððŕéšš îñšţéàð.~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Row shown when nothing answered.</comment>
+  </data>
+  <data name="ServersAddress" xml:space="preserve">
+    <value>[Šéŕṽéŕ àððŕéšš~~~~~]</value>
+    <comment>Label of the address field.</comment>
+  </data>
+  <data name="ServersAddressHint" xml:space="preserve">
+    <value>[ĵéļļýƒîñ.ĥöɱé.éẋàɱþļé öŕ 192.168.1.20:8096~~~~~~~~~~~~~]</value>
+    <comment>Placeholder of the address field.</comment>
+  </data>
+  <data name="ServersContinue" xml:space="preserve">
+    <value>[Çöñţîñüé~~~]</value>
+    <comment>Button that goes to the next step.</comment>
+  </data>
+  <data name="ServersSignInTitle" xml:space="preserve">
+    <value>[Šîĝñ îñ ţö {server}~~~~~]</value>
+    <comment>Title of the sign-in step.</comment>
+  </data>
+  <data name="ServersUser" xml:space="preserve">
+    <value>[Ûšéŕ ñàɱé~~~]</value>
+    <comment>Label of the user name field.</comment>
+  </data>
+  <data name="ServersPassword" xml:space="preserve">
+    <value>[Þàššŵöŕð~~~]</value>
+    <comment>Label of the password field.</comment>
+  </data>
+  <data name="ServersUseQuickConnect" xml:space="preserve">
+    <value>[Ûšé Ǫüîçķ Çöññéçţ îñšţéàð~~~~~~~~]</value>
+    <comment>Link that switches to Quick Connect.</comment>
+  </data>
+  <data name="ServersUsePassword" xml:space="preserve">
+    <value>[Šîĝñ îñ ŵîţĥ à þàššŵöŕð îñšţéàð~~~~~~~~~~]</value>
+    <comment>Link that switches back to a password.</comment>
+  </data>
+  <data name="ServersTokenNote" xml:space="preserve">
+    <value>[Ýöüŕ þàššŵöŕð îšñ'ţ šàṽéð. àñîšţŕéàɱ ķééþš à šîĝñ-îñ ţöķéñ îñ {store}.~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the sign-in fields. The store is where the token is kept, such as Credential Manager.</comment>
+  </data>
+  <data name="SecureStoreWindows" xml:space="preserve">
+    <value>[Çŕéðéñţîàļ Ṁàñàĝéŕ~~~~~~]</value>
+    <comment>Where Windows keeps the sign-in token, for the line above.</comment>
+  </data>
+  <data name="ServersSignIn" xml:space="preserve">
+    <value>[Šîĝñ îñ~~~]</value>
+    <comment>Sign in button.</comment>
+  </data>
+  <data name="ServersQcTitle" xml:space="preserve">
+    <value>[Éñţéŕ ţĥîš çöðé îñ Ĵéļļýƒîñ~~~~~~~~~]</value>
+    <comment>Title of the Quick Connect step.</comment>
+  </data>
+  <data name="ServersQcSteps" xml:space="preserve">
+    <value>[Öñ à ðéṽîçé ţĥàţ'š šîĝñéð îñ, öþéñ Ĵéļļýƒîñ, ĝö ţö ýöüŕ þŕöƒîļé, çĥööšé Ǫüîçķ Çöññéçţ àñð éñţéŕ ţĥîš çöðé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Steps under the Quick Connect code.</comment>
+  </data>
+  <data name="ServersQcWaiting" xml:space="preserve">
+    <value>[Ŵàîţîñĝ ƒöŕ ýöü ţö àþþŕöṽé îţ~~~~~~~~~]</value>
+    <comment>Under the code while it waits.</comment>
+  </data>
+  <data name="ServersQcExpired" xml:space="preserve">
+    <value>[Ţĥàţ çöðé ĥàš ŕüñ öüţ.~~~~~~~]</value>
+    <comment>Error when the code ran out.</comment>
+  </data>
+  <data name="ServersQcNewCode" xml:space="preserve">
+    <value>[Ĝéţ à ñéŵ çöðé~~~~~]</value>
+    <comment>Button that asks for another code.</comment>
+  </data>
+  <data name="ServersLibrariesTitle" xml:space="preserve">
+    <value>[Çĥööšé ļîƀŕàŕîéš~~~~~]</value>
+    <comment>Title of the step that picks libraries.</comment>
+  </data>
+  <data name="ServersLibrariesBody" xml:space="preserve">
+    <value>[Šĥöŵš àŕé ɱàţçĥéð ţö ÅñîĻîšţ šö ţĥéý ĵöîñ Ĥöɱé, ýöüŕ ļîšţš àñð Šéàŕçĥ.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under it.</comment>
+  </data>
+  <data name="ServersLibraryLine" xml:space="preserve">
+    <value>[{kind} · {count} šéŕîéš~~~~~]</value>
+    <comment>Line of one library: its kind and how many series.</comment>
+  </data>
+  <data name="ServersReport" xml:space="preserve">
+    <value>[Ŕéþöŕţ ŵĥàţ ýöü ŵàţçĥ ţö Ĵéļļýƒîñ~~~~~~~~~~]</value>
+    <comment>Switch: tell Jellyfin what was watched.</comment>
+  </data>
+  <data name="ServersReportLine" xml:space="preserve">
+    <value>[Ŕéšüɱé þöîñţš àñð ŵàţçĥéð ɱàŕķš ƒöļļöŵ ŵĥàţ ýöü þļàý ĥéŕé.~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="ServersAdd" xml:space="preserve">
+    <value>[Åðð šéŕṽéŕ~~~]</value>
+    <comment>Button that finishes the dialog.</comment>
+  </data>
+  <data name="ServersRowMatching" xml:space="preserve">
+    <value>[Ṁàţçĥîñĝ · {done} öƒ {total} šéŕîéš~~~~~~~~~]</value>
+    <comment>Line of a server row while it matches series.</comment>
+  </data>
+  <data name="ServersRowSummary_one" xml:space="preserve">
+    <value>[1 ļîƀŕàŕý · {series} šéŕîéš~~~~~~~]</value>
+    <comment>Line of a server row when it is done.</comment>
+  </data>
+  <data name="ServersRowSummary_other" xml:space="preserve">
+    <value>[{libraries} ļîƀŕàŕîéš · {series} šéŕîéš~~~~~~~~]</value>
+    <comment>Line of a server row when it is done.</comment>
+  </data>
+  <data name="ServersPageLine" xml:space="preserve">
+    <value>[{address} · Ĵéļļýƒîñ {version} · šîĝñéð îñ àš {user}~~~~~~~~~~~~]</value>
+    <comment>Line at the top of a server's page.</comment>
+  </data>
+  <data name="ServersSignOut" xml:space="preserve">
+    <value>[Šîĝñ öüţ~~~]</value>
+    <comment>Button on a server's page.</comment>
+  </data>
+  <data name="ServersRemove" xml:space="preserve">
+    <value>[Ŕéɱöṽé šéŕṽéŕ~~~~]</value>
+    <comment>Button on a server's page.</comment>
+  </data>
+  <data name="ServersErrorUnreachable" xml:space="preserve">
+    <value>[Çàñ'ţ ŕéàçĥ {address}. Çĥéçķ ţĥé àððŕéšš àñð ţĥàţ ţĥé šéŕṽéŕ îš öñ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error under the address field.</comment>
+  </data>
+  <data name="ServersErrorNotJellyfin" xml:space="preserve">
+    <value>[Ţĥàţ àððŕéšš àñšŵéŕš, ƀüţ îţ îšñ'ţ à Ĵéļļýƒîñ šéŕṽéŕ.~~~~~~~~~~~~~~~~]</value>
+    <comment>Error under the address field.</comment>
+  </data>
+  <data name="ServersErrorTooOld" xml:space="preserve">
+    <value>[Ţĥîš šéŕṽéŕ ŕüñš Ĵéļļýƒîñ {version}. àñîšţŕéàɱ ñééðš 10.8 öŕ ļàţéŕ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error under the address field.</comment>
+  </data>
+  <data name="ServersErrorCredentials" xml:space="preserve">
+    <value>[Ŵŕöñĝ üšéŕ ñàɱé öŕ þàššŵöŕð.~~~~~~~~~]</value>
+    <comment>Error under the password field.</comment>
+  </data>
+  <data name="ServersErrorQcOff" xml:space="preserve">
+    <value>[Ǫüîçķ Çöññéçţ îš öƒƒ öñ ţĥîš šéŕṽéŕ. Šîĝñ îñ ŵîţĥ à þàššŵöŕð, öŕ ţüŕñ îţ öñ îñ Ĵéļļýƒîñ'š ðàšĥƀöàŕð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error that replaces the Quick Connect link.</comment>
+  </data>
+  <data name="ServersErrorPlainHttp" xml:space="preserve">
+    <value>[Ţĥîš àððŕéšš îšñ'ţ öñ ýöüŕ ñéţŵöŕķ àñð ðöéšñ'ţ üšé ĤŢŢÞŠ, šö ýöüŕ þàššŵöŕð ŵöüļð ţŕàṽéļ üñþŕöţéçţéð. Ûšé àñ ĥţţþš:// àððŕéšš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error under the address field.</comment>
+  </data>
+  <data name="ServersErrorBadAddress" xml:space="preserve">
+    <value>[Ţĥàţ ðöéšñ'ţ ļööķ ļîķé àñ àððŕéšš. Ţýþé îţ ţĥé ŵàý ýöü öþéñ Ĵéļļýƒîñ îñ à ƀŕöŵšéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Error under the address field when the address cannot be read.</comment>
+  </data>
+  <data name="ServersErrorOther" xml:space="preserve">
+    <value>[Šöɱéţĥîñĝ ŵéñţ ŵŕöñĝ. Ţŕý àĝàîñ.~~~~~~~~~~]</value>
+    <comment>Error when something else went wrong.</comment>
+  </data>
+  <data name="ServersCertTitle" xml:space="preserve">
+    <value>[Çĥéçķ ţĥîš šéŕṽéŕ~~~~~~]</value>
+    <comment>Title of the step that asks about a certificate.</comment>
+  </data>
+  <data name="ServersCertBody" xml:space="preserve">
+    <value>[{host} üšéš à çéŕţîƒîçàţé ţĥîš ðéṽîçé ðöéšñ'ţ ţŕüšţ. Ţĥàţ'š ñöŕɱàļ ƒöŕ à šéŕṽéŕ àţ ĥöɱé. Åļļöŵ îţ öñļý îƒ ţĥîš ƒîñĝéŕþŕîñţ ɱàţçĥéš ţĥé öñé ýöüŕ šéŕṽéŕ šĥöŵš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Text of that step.</comment>
+  </data>
+  <data name="ServersCertAllow" xml:space="preserve">
+    <value>[Åļļöŵ ţĥîš çéŕţîƒîçàţé~~~~~~~]</value>
+    <comment>Button on that step.</comment>
+  </data>
+  <data name="ServersRowSignedOut" xml:space="preserve">
+    <value>[Šîĝñéð öüţ ƀý ţĥé šéŕṽéŕ~~~~~~~~]</value>
+    <comment>Line of a server row when the server signed the viewer out.</comment>
+  </data>
+  <data name="ServersSignInAgain" xml:space="preserve">
+    <value>[Šîĝñ îñ àĝàîñ~~~~]</value>
+    <comment>Button on that row.</comment>
+  </data>
+  <data name="ServersRowNotAnswering" xml:space="preserve">
+    <value>[Ñöţ àñšŵéŕîñĝ · ļàšţ šééñ {time}~~~~~~~~~]</value>
+    <comment>Line of a server row that does not answer.</comment>
+  </data>
+  <data name="TitleServerNotAnswering" xml:space="preserve">
+    <value>[{server} îšñ'ţ àñšŵéŕîñĝ. Éþîšöðéš ýöü ðöŵñļöàðéð šţîļļ þļàý.~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line on a title page when its server does not answer.</comment>
+  </data>
+  <data name="ServersKindShows" xml:space="preserve">
+    <value>[Šĥöŵš~~]</value>
+    <comment>Kind of a Jellyfin library that holds shows, in a library's line.</comment>
+  </data>
+  <data name="ServersKindMovies" xml:space="preserve">
+    <value>[Ṁöṽîéš~~]</value>
+    <comment>Kind of a Jellyfin library that holds movies, in a library's line.</comment>
+  </data>
+  <data name="ServersKindOther" xml:space="preserve">
+    <value>[Ṽîðéöš~~]</value>
+    <comment>Kind of any other Jellyfin library, in a library's line.</comment>
+  </data>
+  <data name="ServersQuickConnect" xml:space="preserve">
+    <value>[Ǫüîçķ Çöññéçţ~~~~]</value>
+    <comment>Link under the sign-in fields of a server that cannot use Quick Connect, and the name of the step it opens.</comment>
+  </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>[Ļàñĝüàĝé~~~]</value>
     <comment>Settings group and row title for choosing a language.</comment>
@@ -6010,6 +6466,70 @@
   <data name="MatchRowLabel" xml:space="preserve">
     <value>[{title}, {facts}, {closeness}~~~~]</value>
     <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
+  </data>
+  <data name="SourcesSectionMedia" xml:space="preserve">
+    <value>[Ýöüŕ ɱéðîà~~~]</value>
+    <comment>Section heading on Your sources: folders on this device.</comment>
+  </data>
+  <data name="SourcesSectionServers" xml:space="preserve">
+    <value>[Ṁéðîà šéŕṽéŕš~~~~]</value>
+    <comment>Section heading on Your sources: Jellyfin servers.</comment>
+  </data>
+  <data name="SourcesSectionLicensed" xml:space="preserve">
+    <value>[Ļîçéñšéð šéŕṽîçéš~~~~~~]</value>
+    <comment>Section heading on Your sources: the streaming services the viewer pays for.</comment>
+  </data>
+  <data name="SourcesSectionStore" xml:space="preserve">
+    <value>[Ƒŕöɱ {store}~~~]</value>
+    <comment>Section heading on Your sources: the plugins of one store.</comment>
+  </data>
+  <data name="SourcesSectionBuiltin" xml:space="preserve">
+    <value>[Ɓüîļţ îñ~~~]</value>
+    <comment>Section heading on Your sources: what ships with the app.</comment>
+  </data>
+  <data name="SourcesAdd" xml:space="preserve">
+    <value>[Åðð~]</value>
+    <comment>The Add button on Your sources.</comment>
+  </data>
+  <data name="SourcesAddFolder" xml:space="preserve">
+    <value>[Ƒöļðéŕ…~~~]</value>
+    <comment>Item in the Add menu: choose a folder with episodes.</comment>
+  </data>
+  <data name="SourcesAddServer" xml:space="preserve">
+    <value>[Ṁéðîà šéŕṽéŕ…~~~~]</value>
+    <comment>Item in the Add menu: add a Jellyfin server.</comment>
+  </data>
+  <data name="SourcesAddStore" xml:space="preserve">
+    <value>[Ĵöîñ à þļüĝîñ šţöŕé…~~~~~~]</value>
+    <comment>Item in the Add menu: join a plugin store.</comment>
+  </data>
+  <data name="SourcesEmptyBody" xml:space="preserve">
+    <value>[Šöüŕçéš àŕé ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ: ƒöļðéŕš öñ ţĥîš ðéṽîçé, ýöüŕ ɱéðîà šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the empty state's title on a computer.</comment>
+  </data>
+  <data name="SourcesEmptyMore" xml:space="preserve">
+    <value>[Öŕ {join}.~~~]</value>
+    <comment>Line under the empty state's buttons. The link is "join a plugin store".</comment>
+  </data>
+  <data name="SourcesEmptyJoinLink" xml:space="preserve">
+    <value>[ĵöîñ à þļüĝîñ šţöŕé~~~~~~]</value>
+    <comment>Link in the empty state's last line.</comment>
+  </data>
+  <data name="SourcesAddFolderButton" xml:space="preserve">
+    <value>[Åðð à ƒöļðéŕ~~~~]</value>
+    <comment>Primary button of the empty state on a computer.</comment>
+  </data>
+  <data name="SourcesAddServerButton" xml:space="preserve">
+    <value>[Åðð à ɱéðîà šéŕṽéŕ~~~~~~]</value>
+    <comment>Second button of the empty state.</comment>
+  </data>
+  <data name="SourcesRemoved" xml:space="preserve">
+    <value>[{name} ŕéɱöṽéð~~~~]</value>
+    <comment>Notice after a source is removed. It holds Undo.</comment>
+  </data>
+  <data name="SourcesRemovedFilesStay" xml:space="preserve">
+    <value>[Ýöüŕ ƒîļéš šţàý ŵĥéŕé ţĥéý àŕé.~~~~~~~~~~]</value>
+    <comment>Line of the notice after a folder is removed.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>[Ĵöîñéð~~]</value>

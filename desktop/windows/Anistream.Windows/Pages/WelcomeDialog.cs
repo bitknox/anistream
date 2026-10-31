@@ -26,6 +26,9 @@ sealed class WelcomeDialog
     /// <summary>An invite link to join once the dialog has closed: the join dialog takes it from there.</summary>
     public string? Invite { get; private set; }
 
+    /// <summary>"folder" or "server" when the viewer chose to add their own media: that dialog opens once this closes.</summary>
+    public string? Then { get; private set; }
+
     public WelcomeDialog(Ctx ctx, XamlRoot root)
     {
         this.ctx = ctx;
@@ -82,17 +85,36 @@ sealed class WelcomeDialog
                 dialog.SecondaryButtonText = T.OnboardingNotNow;
                 break;
             default:
-                dialog.Title = T.OnboardingSourcesTitle;
-                body.Children.Add(Ui.Text(T.OnboardingSourcesDetail, "BodyTextBlockStyle"));
+                dialog.Title = T.OnboardingWhereTitle;
+                body.Children.Add(Ui.Text(T.LegalHostsNoContent, "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Haze(T.OnboardingWhereHosts));
+                var own = Ui.Text(T.OnboardingOwnHeading, "BodyStrongTextBlockStyle");
+                own.Margin = new Thickness(0, 8, 0, 0);
+                AutomationProperties.SetHeadingLevel(own, AutomationHeadingLevel.Level2);
+                body.Children.Add(own);
+                var own2 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                own2.Children.Add(Ui.Label(T.SourcesAddFolderButton, (_, _) => Leave("folder")));
+                own2.Children.Add(Ui.Label(T.SourcesAddServerButton, (_, _) => Leave("server")));
+                body.Children.Add(own2);
+                var link = Ui.Text(T.OnboardingInviteHeading, "BodyStrongTextBlockStyle");
+                link.Margin = new Thickness(0, 8, 0, 0);
+                AutomationProperties.SetHeadingLevel(link, AutomationHeadingLevel.Level2);
+                body.Children.Add(link);
                 body.Children.Add(invite);
                 body.Children.Add(problem);
                 body.Children.Add(Ui.Haze(T.PluginRiskWarning));
                 dialog.PrimaryButtonText = T.OnboardingJoin;
                 dialog.CloseButtonText = T.OnboardingSkipForNow;
-                dialog.DefaultButton = ContentDialogButton.Primary;
+                dialog.DefaultButton = ContentDialogButton.None;
                 Check();
                 break;
         }
+    }
+
+    void Leave(string then)
+    {
+        Then = then;
+        dialog.Hide();
     }
 
     void Check()

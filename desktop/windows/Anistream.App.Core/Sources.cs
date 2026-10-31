@@ -1,3 +1,4 @@
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 
 namespace Anistream.App;
@@ -11,56 +12,54 @@ public static class SourceOrder
     /// <summary>
     /// <paramref name="order"/> with the source <paramref name="id"/> moved one place up the chain
     /// (<paramref name="step"/> below zero) or down it, or null when it is already at that end or
-    /// has no row. An entry with no row (<c>plugins</c>, torrents while they are off, a plugin
-    /// named but not installed) is stepped over and kept; <c>plugins</c> is first spelled out as
-    /// the plugins on screen and stays right after them.
+    /// has no row. The engine's rule: an entry with no row is stepped over and kept, and a kind's
+    /// group entry is first spelled out as the sources on screen it stands for.
     /// </summary>
-    public static List<string>? Moved(IReadOnlyList<string> order, IReadOnlyList<ProviderRow> rows, string id, int step)
-    {
-        var result = order.ToList();
-        var unnamed = rows.Where(r => r.Kind == "plugin" && !result.Contains(r.Id)).Select(r => r.Id).ToList();
-        var at = result.IndexOf("plugins");
-        result.InsertRange(at < 0 ? result.Count : at, unnamed);
+    public static List<string>? Moved(IReadOnlyList<string> order, IReadOnlyList<ProviderRow> rows, string id, int step) =>
+        AnistreamFfiMethods.MoveSource([.. order], [.. rows], id, step) is { } moved ? [.. moved] : null;
 
-        var from = result.IndexOf(id);
-        if (from < 0)
-            return null;
-        bool Shown(string entry) => entry != "plugins" && rows.Any(r => r.Id == entry);
-        int to;
-        if (step < 0)
-        {
-            to = result.Take(from).ToList().FindLastIndex(Shown);
-            if (to < 0)
-                return null;
-        }
-        else
-        {
-            var after = result.Skip(from + 1).ToList().FindIndex(Shown);
-            if (after < 0)
-                return null;
-            to = from + 1 + after;
-        }
-        var entry = result[from];
-        result.RemoveAt(from);
-        result.Insert(to, entry);
-        return result;
+    /// <summary>
+    /// <paramref name="order"/> with the source <paramref name="id"/> dropped at place
+    /// <paramref name="index"/> among the rows on screen, for a drag, or null when it has no row.
+    /// </summary>
+    public static List<string>? Placed(IReadOnlyList<string> order, IReadOnlyList<ProviderRow> rows, string id, int index) =>
+        AnistreamFfiMethods.PlaceSource([.. order], [.. rows], id, (uint)index) is { } placed ? [.. placed] : null;
+
+    /// <summary>
+    /// Where a source dropped among its section's rows lands among all the rows on screen. The
+    /// section keeps the places its rows had; <paramref name="before"/> is the section as it was,
+    /// <paramref name="after"/> as it is now, and <paramref name="id"/> the row dropped.
+    /// </summary>
+    public static int DropIndex(IReadOnlyList<string> everything, IReadOnlyList<string> before, IReadOnlyList<string> after, string id)
+    {
+        var slots = before.Select(b => everything.ToList().IndexOf(b)).OrderBy(i => i).ToList();
+        var to = after.ToList().IndexOf(id);
+        return slots.Count == 0 || to < 0 ? everything.ToList().IndexOf(id) : slots[Math.Min(to, slots.Count - 1)];
     }
 
-    /// <summary>The rows in the order failover tries them: a plugin the order does not name stands where <c>plugins</c> does, or last.</summary>
+    /// <summary>The entry in the order that stands for every source of a kind the order does not name by id.</summary>
+    static string? GroupEntry(string kind) => kind switch
+    {
+        "plugin" => "plugins",
+        "library" => "library",
+        "server" => "servers",
+        "catalogue" => "catalogues",
+        "demo" => "demo",
+        _ => null,
+    };
+
+    /// <summary>The rows in the order failover tries them: a source the order does not name stands where its kind's group entry does, or last.</summary>
     public static ProviderRow[] Sorted(IReadOnlyList<ProviderRow> rows, IReadOnlyList<string> order)
     {
         int Rank(ProviderRow row)
         {
-            var at = order.ToList().IndexOf(row.Id);
+            var list = order.ToList();
+            var at = list.IndexOf(row.Id);
             if (at >= 0)
                 return at;
-            if (row.Kind == "plugin")
-            {
-                var plugins = order.ToList().IndexOf("plugins");
-                if (plugins >= 0)
-                    return plugins;
-            }
-            return order.Count;
+            if (GroupEntry(row.Kind) is { } group && list.IndexOf(group) is >= 0 and var place)
+                return place;
+            return row.Kind is "library" or "server" or "catalogue" ? -1 : order.Count;
         }
         return [.. rows.Select((row, i) => (row, i)).OrderBy(x => Rank(x.row)).ThenBy(x => x.i).Select(x => x.row)];
     }

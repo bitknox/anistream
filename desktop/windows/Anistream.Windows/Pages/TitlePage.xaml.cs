@@ -319,6 +319,9 @@ public sealed partial class TitlePage : Page, IPageKeys
                         DubLine.Text = line;
                     DubLine.Opacity = line is null ? 0 : 1;
                     break;
+                case Event.Availability av when av.V1.Id == id:
+                    ShowAction(Current()!);
+                    break;
                 case Event.Episodes ep when ep.Id == id:
                     ShowEpisodes();
                     // The button plays the first episode after the next that a source lists.
@@ -417,9 +420,74 @@ public sealed partial class TitlePage : Page, IPageKeys
         SynopsisMore.Visibility = Visibility.Collapsed;
     }
 
+    TitleAvailability? Avail => ctx.Known.Availability.GetValueOrDefault(id);
+    bool? askedPlaysHere;
+
+    /// <summary>
+    /// Which licensed services have the title, once the sources have answered. The engine decides the
+    /// case; this only asks again when whether it plays here changes.
+    /// </summary>
+    void AskAvailability(bool playsHere)
+    {
+        if (askedPlaysHere == playsHere)
+            return;
+        askedPlaysHere = playsHere;
+        ctx.Send(new Command.Licensed(new LicensedCommand.LoadAvailability(id, playsHere)));
+    }
+
+    void OpenService(ServiceLink link, uint? episode = null) =>
+        ctx.Send(new Command.Licensed(new LicensedCommand.Open(id, link.Service, link.Url, episode)));
+
+    /// <summary>Case A and C lines, the Case B action and the More menu's Watch on items.</summary>
+    void ShowAvailability()
+    {
+        AvailLine.Children.Clear();
+        AvailLine.Visibility = Visibility.Collapsed;
+        foreach (var old in MoreMenu.Items.Where(i => i.Tag as string == "avail").ToList())
+            MoreMenu.Items.Remove(old);
+        if (Avail is not { } a)
+            return;
+        var at = 0;
+        foreach (var link in a.Yours ?? [])
+        {
+            var item = new MenuFlyoutItem { Text = T.TitleWatchOn(link.Service), Tag = "avail", Icon = new FontIcon { Glyph = "\uE8A7" } };
+            item.Click += (_, _) => OpenService(link);
+            MoreMenu.Items.Insert(at++, item);
+        }
+        if (at > 0)
+            MoreMenu.Items.Insert(at, new MenuFlyoutSeparator { Tag = "avail" });
+
+        void Text(string text) => AvailLine.Children.Add(new TextBlock { Text = text, Style = Ui.Res<Style>("HazeBodyStyle"), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.WrapWholeWords });
+        HyperlinkButton Link(string text, Action go)
+        {
+            var b = new HyperlinkButton { Content = text, Padding = new Thickness(4, 0, 4, 0) };
+            b.Click += (_, _) => go();
+            AvailLine.Children.Add(b);
+            return b;
+        }
+        // The not-found line is a sentence and a link: stacked, so a narrow window wraps the sentence instead of clipping the link.
+        AvailLine.Orientation = a.Case == AvailabilityCase.NotInSources ? Orientation.Vertical : Orientation.Horizontal;
+        switch (a.Case)
+        {
+            case AvailabilityCase.PlaysAlsoOn or AvailabilityCase.OnService when (a.AlsoOn ?? []).Length > 0:
+                Text(T.TitleAlsoOnServices("").TrimEnd());
+                foreach (var link in a.AlsoOn!)
+                    Link(link.Service, () => OpenService(link));
+                break;
+            case AvailabilityCase.NotInSources when (a.Others ?? []).Length > 0:
+                Text(T.TitleListedOn(string.Join(", ", a.Others!)));
+                if (a.ChooseServices)
+                    Link(T.TitleChooseServices, () => ctx.Window.Push(typeof(LicensedPage), null));
+                break;
+        }
+        AvailLine.Visibility = AvailLine.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     void ShowAction(Entry entry)
     {
         action = PlayableNext.Item(entry, ctx.Known.Episodes.GetValueOrDefault(id), Casing.Sentence);
+        if (ctx.Known.Episodes.ContainsKey(id))
+            AskAvailability(action is { Playable: true });
         PrimaryAction.Content = action.Button;
         PrimaryAction.Visibility = action.Button is not null ? Visibility.Visible : Visibility.Collapsed;
         WaitingLine.Text = action.Waiting ?? "";
@@ -427,6 +495,25 @@ public sealed partial class TitlePage : Page, IPageKeys
         // A party plays the episode the primary action would.
         PartyItem.IsEnabled = action is { Playable: true };
         TvAction.Visibility = action is { Playable: true } && ctx.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
+        // Case B: it does not play here, so the amber action opens the service that has it.
+        if (Avail is { Case: AvailabilityCase.OnService, Main: { } main } && action is not { Playable: true })
+        {
+            PrimaryAction.Content = ExternalLabel(T.TitleWatchOn(main.Service));
+            PrimaryAction.Visibility = Visibility.Visible;
+            WaitingLine.Visibility = Visibility.Collapsed;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PrimaryAction, T.TitleWatchOn(main.Service));
+        }
+        else
+            PrimaryAction.ClearValue(Microsoft.UI.Xaml.Automation.AutomationProperties.NameProperty);
+        ShowAvailability();
+    }
+
+    static StackPanel ExternalLabel(string text)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(new TextBlock { Text = text });
+        row.Children.Add(new FontIcon { Glyph = "\uE8A7", FontSize = 12 });
+        return row;
     }
 
     IReadOnlyList<Anistream.App.TitleSeasons.Choice> seasons = [];
@@ -627,12 +714,21 @@ public sealed partial class TitlePage : Page, IPageKeys
     {
         if (action is { Playable: true })
             ctx.Play(id, action.Episode.ToString());
+        else if (Avail is { Case: AvailabilityCase.OnService, Main: { } main })
+            OpenService(main);
     }
 
     void OnEpisodeClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is EpisodeItem { Playable: true } item)
             ctx.Play(id, item.Row.Number);
+        else if (e.ClickedItem is EpisodeItem off && Avail is { Case: AvailabilityCase.OnService, Main: { } main } a
+                 && uint.TryParse(off.Row.Number, out var n))
+        {
+            // An episode with its own page opens there; any other opens the title's link.
+            var own = a.Episodes?.FirstOrDefault(l => l.Episode == n);
+            OpenService(own is null ? main : new ServiceLink(own.Service, own.Url), n);
+        }
     }
 
     void OnWatchedToggle(object sender, RoutedEventArgs e)

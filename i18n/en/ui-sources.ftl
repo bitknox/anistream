@@ -351,3 +351,59 @@ match-cleared = Matching automatically again.
 # @arg facts: text
 # @arg closeness: text
 match-row-label = { $title }, { $facts }, { $closeness }
+
+## Your sources: the page of sources split into sections, and the menu that adds one.
+
+# Section heading on Your sources: folders on this device.
+sources-section-media = Your media
+
+# Section heading on Your sources: Jellyfin servers.
+sources-section-servers = Media servers
+
+# Section heading on Your sources: the streaming services the viewer pays for.
+sources-section-licensed = Licensed services
+
+# Section heading on Your sources: the plugins of one store.
+# @arg store: text
+sources-section-store = From { $store }
+
+# Section heading on Your sources: what ships with the app.
+sources-section-builtin = Built in
+
+# The Add button on Your sources.
+# @max 16
+sources-add = Add
+
+# Item in the Add menu: choose a folder with episodes.
+sources-add-folder = Folder…
+
+# Item in the Add menu: add a Jellyfin server.
+sources-add-server = Media server…
+
+# Item in the Add menu: join a plugin store.
+sources-add-store = Join a { -plugin-store }…
+
+# Line under the empty state's title on a computer.
+sources-empty-body = { -source-cap-pl } are where episodes come from: folders on this { -device }, your media server, and { -plugin-pl } from stores you join.
+
+# Line under the empty state's buttons. The link is "join a plugin store".
+# @arg join: text
+sources-empty-more = Or { $join }.
+
+# Link in the empty state's last line.
+sources-empty-join-link = join a { -plugin-store }
+
+# Primary button of the empty state on a computer.
+# @max 24
+sources-add-folder-button = Add a folder
+
+# Second button of the empty state.
+# @max 24
+sources-add-server-button = Add a media server
+
+# Notice after a source is removed. It holds Undo.
+# @arg name: text
+sources-removed = { $name } removed
+
+# Line of the notice after a folder is removed.
+sources-removed-files-stay = Your files stay where they are.

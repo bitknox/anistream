@@ -274,7 +274,15 @@ impl Engine {
                 let (power, hosted) = crate::services::players(&paths);
                 #[cfg(feature = "cast")]
                 let casts = Arc::new(crate::cast::CastHub::in_memory(http.clone()));
+                let servers = crate::servers::Servers::new(
+                    anistream_track::TokenStore::over(crate::host::file_secrets(&paths)),
+                    store.clone(),
+                    http.clone(),
+                );
+                let local = crate::local::Local::new(store.clone());
                 Services {
+                    servers,
+                    local,
                     power,
                     hosted,
                     hosted_player,
@@ -314,6 +322,8 @@ impl Engine {
         let stores = services.stores.labelled(&device_label);
         let services =
             Services { hosted_player, every_play_a_party, app_clients, stores, ..services };
+        services.servers.join_chain(&services.registry, &config);
+        services.local.put_source(&services.registry, &config.providers.order);
         let hosted = Arc::clone(&services.hosted);
         #[cfg(feature = "cast")]
         let casts = Arc::clone(&services.casts);

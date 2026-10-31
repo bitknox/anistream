@@ -432,6 +432,12 @@ pub enum Command {
     HideFromContinue {
         id: AnilistId,
     },
+    /// The licensed services page and the links to them. See [`LicensedCommand`].
+    Licensed(LicensedCommand),
+    // Media servers; see `ServerCommand`. A plain comment: variant docs fill uniffi's buffer.
+    Server(crate::servers::ServerCommand),
+    // Your media on this computer; see `LocalCommand`.
+    Local(crate::local::LocalCommand),
     /// Open a URL in the system browser.
     OpenExternal {
         url: String,
@@ -850,6 +856,52 @@ pub enum Command {
     /// then what it found, never with a job. Asks whether or not the daily check is switched on,
     /// and keeps what it found for the daily check to go by.
     CheckForUpdates,
+}
+
+/// What the viewer does with licensed services: the page, the title's availability, the links
+/// out, and the return. Each is answered with an [`Event`](crate::event::Event) named in its
+/// comment. It is its own enum because `Command` has nearly filled uniffi's metadata buffer.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum LicensedCommand {
+    /// Read the Licensed services page: the viewer's choices and the services AniList lists,
+    /// answered with [`Event::Licensed`](crate::event::Event::Licensed). `system_region` is the
+    /// device's country code, which Region follows until the viewer chooses one. The services
+    /// list is kept for 7 days.
+    Load {
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        system_region: Option<String>,
+    },
+    /// Set the services the viewer pays for. Answered with
+    /// [`Event::Licensed`](crate::event::Event::Licensed).
+    SetServices { services: Vec<String> },
+    /// Choose the region links are hidden by, or `None` to follow the system. Answered with
+    /// [`Event::Licensed`](crate::event::Event::Licensed).
+    SetRegion {
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        region: Option<String>,
+    },
+    /// Turn the line that names services the viewer does not use on or off. Answered with
+    /// [`Event::Licensed`](crate::event::Event::Licensed).
+    SetShowOthers { show: bool },
+    /// Work out what title `id`'s page says about licensed services, answered with
+    /// [`Event::Availability`](crate::event::Event::Availability). `plays_here` is whether the
+    /// title has episodes in a source, which the page knows from its episode list.
+    LoadAvailability { id: AnilistId, plays_here: bool },
+    /// Open a title or an episode in a licensed service, in the system's browser or app, and
+    /// remember that the viewer left for it. `episode` is the episode the link is for, or `None`
+    /// for the title's link, which stands for the next one. See [`Command::ReturnedFromLicensed`].
+    Open {
+        id: AnilistId,
+        service: String,
+        url: String,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        episode: Option<u32>,
+    },
+    /// The app came back to the front. If the viewer opened a licensed link at least 10 minutes
+    /// ago, answers with [`Event::LicensedReturn`](crate::event::Event::LicensedReturn); either
+    /// way the remembered link is forgotten. Mark as watched is [`Command::SetWatched`].
+    Returned,
 }
 
 /// A control sent to whatever is currently playing.
