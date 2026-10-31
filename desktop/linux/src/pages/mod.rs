@@ -8,6 +8,7 @@ pub mod downloads;
 pub mod first_launch;
 pub mod join;
 pub mod library;
+pub mod match_picker;
 pub mod more_about;
 pub mod plugin;
 pub mod providers;

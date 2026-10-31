@@ -82,6 +82,9 @@
                       <MenuFlyoutItem x:Name="SourceItem" Click="OnPickSource">
                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8FD;" /></MenuFlyoutItem.Icon>
                       </MenuFlyoutItem>
+                      <MenuFlyoutItem x:Name="FixMatchItem" Text="{x:Bind s:T.MatchFix}" Click="OnFixMatch">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE721;" /></MenuFlyoutItem.Icon>
+                      </MenuFlyoutItem>
                       <MenuFlyoutSeparator />
                       <MenuFlyoutItem Text="{x:Bind s:T.EpisodeMarkPreviousWatched}" Click="OnMarkPrevious">
                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>

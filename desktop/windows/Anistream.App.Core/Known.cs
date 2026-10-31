@@ -48,6 +48,9 @@ public sealed class Known
     /// <summary>The source picker's listings per title, and which pins have been said to be unavailable.</summary>
     public SourceChoices SourceChoices { get; } = new();
 
+    /// <summary>The match picker's state per title: the questions sources asked, searches by hand and what each title is matched to.</summary>
+    public MatchBook Matches { get; } = new();
+
     /// <summary>The sources, as the engine last said them, in the order it lists them.</summary>
     public ProviderRow[] Providers { get; private set; } = [];
     public bool ProvidersLoaded { get; private set; }
@@ -190,6 +193,9 @@ public sealed class Known
                 break;
             case Event.SourceOptions:
                 SourceChoices.Take(e);
+                break;
+            case Event.MatchChoices or Event.MatchSearchFailed or Event.MatchFixFailed or Event.TitleMatch:
+                Matches.Take(e);
                 break;
             case Event.DiscussionFound found:
                 Discussions[(found.Media, found.Episode)] = found.Comments;

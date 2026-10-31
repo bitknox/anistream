@@ -21,7 +21,7 @@ use anistream_model::{
 use gtk::{gio, glib};
 
 use crate::{
-    catalog, choices, motion, say,
+    catalog, choices, matching, motion, say,
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
@@ -73,6 +73,10 @@ struct Page {
     status: gio::SimpleAction,
     /// How far the dub goes, from the source a play would use: "Dub to episode 6".
     dubbed_to: RefCell<Option<String>>,
+    /// The serial of the newest pick whose notice was said.
+    said_match: Cell<u32>,
+    /// Fix this match, enabled while there is a source to match on.
+    fix_match: RefCell<Option<gio::SimpleAction>>,
     listening: RefCell<Option<u64>>,
     sized: RefCell<Size>,
     /// The page's own heading, and the header bar that shows the title once it scrolls away.
@@ -229,6 +233,8 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
             &String::new().to_variant(),
         ),
         dubbed_to: RefCell::default(),
+        fix_match: RefCell::default(),
+        said_match: Cell::new(ctx.hub.known.borrow().matches.settled().map_or(0, |s| s.serial)),
         heading: RefCell::default(),
         header,
         tv_button,
@@ -309,9 +315,30 @@ impl Page {
                 }
             }
             // The candidates come first, then AniList's table until a match is picked.
-            Event::MatchChoices { id, .. } if *id == self.id => {
-                self.listed.set(true);
-                self.episodes_state.empty();
+            Event::MatchChoices { id, answers, .. } if *id == self.id => {
+                // A search by hand answers the sheet, not the page.
+                if matches!(answers, anistream_model::sources::MatchQuestion::Ladder) {
+                    self.listed.set(true);
+                    self.episodes_state.empty();
+                }
+                self.redress();
+            }
+            // What the title is matched to now: the question answered, or a pick settled.
+            Event::TitleMatch { id, .. } if *id == self.id => {
+                self.redress();
+                let settled = self
+                    .ctx
+                    .hub
+                    .known
+                    .borrow()
+                    .matches
+                    .settled()
+                    .filter(|s| s.id == self.id && s.serial > self.said_match.get())
+                    .cloned();
+                if let Some(settled) = settled {
+                    self.said_match.set(settled.serial);
+                    self.ctx.toast(&t::match_picked(&settled.title, &settled.source));
+                }
             }
             // The source pinned for this title is off, gone or resting, so its episodes come
             // from the others. Said once, until a source is chosen again.
@@ -446,6 +473,28 @@ impl Page {
             }
         });
         group.add_action(&source);
+        // Choose the match is the page's own question; Fix this match searches for the title.
+        for (name, from_menu) in [("choose-match", false), ("fix-match", true)] {
+            let action = gio::SimpleAction::new(name, None);
+            action.connect_activate({
+                let ctx = Rc::downgrade(&self.ctx);
+                move |_, _| {
+                    let Some(ctx) = ctx.upgrade() else { return };
+                    let from_menu = from_menu && !ctx.hub.known.borrow().matches.asks(id);
+                    let _ = crate::pages::match_picker::open(
+                        &ctx,
+                        &ctx.window,
+                        id,
+                        from_menu,
+                        None,
+                    );
+                }
+            });
+            group.add_action(&action);
+            if from_menu {
+                self.fix_match.replace(Some(action));
+            }
+        }
         let watched = gio::SimpleAction::new(
             "watched",
             Some(&glib::VariantType::new("(sb)").expect("a type")),
@@ -459,6 +508,13 @@ impl Page {
         group.add_action(&watched);
         if let Some(navigation) = self.navigation.upgrade() {
             navigation.insert_action_group("title", Some(&group));
+        }
+    }
+
+    /// The header block again, when what the title is matched to changed what it offers.
+    fn redress(&self) {
+        if let Some(entry) = self.ctx.hub.entry(self.id) {
+            self.fill(&entry);
         }
     }
 
@@ -497,7 +553,18 @@ impl Page {
         };
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         actions.set_margin_top(10);
-        match item.button.clone() {
+        // The source could not choose between its titles: choosing is the way on, in Play's place.
+        let asked = hub.known.borrow().matches.asked(entry.id).cloned();
+        if asked.is_some() {
+            let button = gtk::Button::builder().label(t::match_choose()).build();
+            button.add_css_class("pill");
+            button.add_css_class("suggested-action");
+            button.add_css_class("first-focus");
+            button.set_action_name(Some("title.choose-match"));
+            button.set_hexpand(narrow);
+            actions.append(&button);
+        }
+        match item.button.clone().filter(|_| asked.is_none()) {
             Some(label) => {
                 // A longer translation is cut at the end, never wider than the window.
                 let text = gtk::Label::new(Some(&label));
@@ -523,6 +590,7 @@ impl Page {
                     });
                 }
             }
+            None if asked.is_some() => {}
             None => {
                 if let Some(waiting) = item.waiting.clone() {
                     actions.append(&widgets::haze(&waiting, ""));
@@ -559,7 +627,8 @@ impl Page {
                 choices::next(entry, Some(rows.as_slice())).unsourced,
             )
         };
-        let on_tv = playable && item.button.is_some() && self.ctx.tv.available();
+        let on_tv =
+            playable && item.button.is_some() && asked.is_none() && self.ctx.tv.available();
         self.tv_button.set_visible(on_tv);
         if on_tv {
             let from = item.resume.as_ref().map_or(0.0, |r| r.position);
@@ -571,7 +640,7 @@ impl Page {
             self.tv_button.set_action_name(Some("win.play-on-tv"));
         }
         // A party plays the episode the primary action would.
-        if item.button.is_some() {
+        if item.button.is_some() && asked.is_none() {
             first.append(
                 Some(&t::party_open()),
                 Some(&format!("win.watch-together((uint32 {id}, '{}'))", item.episode)), // i18n-skip
@@ -604,6 +673,11 @@ impl Page {
         more_menu.append_section(None, &second);
         let third = gio::Menu::new();
         third.append(Some(&t::source_picker_title()), Some("title.source-picker"));
+        third.append(Some(&t::match_fix()), Some("title.fix-match"));
+        // Fixing a match needs a source to match on.
+        if let Some(action) = self.fix_match.borrow().as_ref() {
+            action.set_enabled(hub.known.borrow().can_fix_match());
+        }
         third.append(Some(&t::show_settings_title()), Some("title.show-settings"));
         more_menu.append_section(None, &third);
         let more = gtk::MenuButton::builder()
@@ -618,6 +692,10 @@ impl Page {
             actions.append(&more);
         }
         text.append(&actions);
+        if let Some(asked) = &asked {
+            // How many titles could be it, under the action.
+            text.append(&widgets::haze(&matching::uncertain(asked), ""));
+        }
         if narrow {
             let menus = gtk::Box::new(gtk::Orientation::Horizontal, 8);
             menus.append(&status);

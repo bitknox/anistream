@@ -79,6 +79,9 @@ pub struct Known {
     /// What each source has of a title, as the engine last listed them for the source picker, in
     /// the order they are tried.
     pub source_options: HashMap<u32, Vec<SourceOption>>,
+    /// The match picker's state per title: the questions sources asked, the searches by hand and
+    /// what each title is matched to.
+    pub matches: crate::matching::MatchBook,
     /// The pins the engine could not use that were said, by title and source, so each is told
     /// once until the title's source is chosen again.
     pin_said: std::collections::HashSet<(u32, String)>,
@@ -186,7 +189,13 @@ impl Known {
         self.pin_said.retain(|(at, _)| *at != id.get());
     }
 
+    /// Whether there is a source to match a title on, for Fix this match.
+    pub fn can_fix_match(&self) -> bool {
+        self.providers.iter().any(|p| p.usable)
+    }
+
     fn take(&mut self, event: &Event) {
+        self.matches.take(event);
         match event {
             Event::Content { view, content } => {
                 // Continue's list carries the local watch history. The other views' rows may
@@ -330,6 +339,23 @@ pub struct Hub {
     /// For a shot: a title and the episodes of it, first to last, that no source lists.
     #[cfg(feature = "fixtures")]
     pub unsourced: Cell<Option<(u32, u32, u32)>>,
+    /// For a shot: a search by hand that fails, or a pick that never comes back.
+    #[cfg(feature = "fixtures")]
+    pub match_hold: Cell<MatchHold>,
+}
+
+/// What a match picker shot holds still in place of the engine's answer.
+#[cfg(feature = "fixtures")]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MatchHold {
+    #[default]
+    Nothing,
+    /// A search by hand fails as if the source timed out.
+    SearchFails,
+    /// A pick is never answered, so its row keeps saying Matching.
+    PickWaits,
+    /// A search by hand is never answered.
+    SearchWaits,
 }
 
 impl Hub {
@@ -350,6 +376,8 @@ impl Hub {
             listing: RefCell::default(),
             #[cfg(feature = "fixtures")]
             unsourced: Cell::default(),
+            #[cfg(feature = "fixtures")]
+            match_hold: Cell::default(),
         })
     }
 
@@ -410,6 +438,28 @@ impl Hub {
                 );
             }
             return None;
+        }
+        #[cfg(feature = "fixtures")]
+        match (&command, self.match_hold.get()) {
+            (Command::ManualSearch { id, query, .. }, MatchHold::SearchFails) => {
+                let (me, id, query) = (self.me.clone(), *id, query.clone());
+                glib::timeout_add_local_once(
+                    std::time::Duration::from_millis(300),
+                    move || {
+                        if let Some(hub) = me.upgrade() {
+                            hub.take(vec![Event::MatchSearchFailed {
+                                id,
+                                query,
+                                reason: anistream_model::Msg::MatchSearchTimedOut,
+                            }]);
+                        }
+                    },
+                );
+                return None;
+            }
+            (Command::ManualSearch { .. }, MatchHold::SearchWaits)
+            | (Command::FixMatch { .. }, MatchHold::PickWaits) => return None,
+            _ => {}
         }
         #[cfg(feature = "fixtures")]
         if matches!(command, Command::CheckTorrentProtection { .. })

@@ -153,6 +153,22 @@ pub const SOURCES: [&str; 7] = [
     "source-unsourced-none",
 ];
 
+/// The match picker's shots, on the unsure scene (`--unsure`), where the finished title's source
+/// cannot choose its match: `--shot match` takes them.
+pub const MATCH: [&str; 11] = [
+    "match-page",
+    "match",
+    "match-picking",
+    "match-source-picker",
+    "match-fix-menu",
+    "match-menu",
+    "match-failed",
+    "match-empty",
+    "match-results",
+    "match-picked",
+    "match-cleared",
+];
+
 /// The game controller's shots: the screens as a controller leaves them, with the focus ring
 /// showing. `--shot pad` takes them.
 pub const PAD: [&str; 7] = [
@@ -804,6 +820,9 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         party if party.starts_with("party-") => party_stage(shell, party),
         source if source.starts_with("source-") => source_stage(shell, source),
+        matched if matched == "match" || matched.starts_with("match-") => {
+            match_stage(shell, matched)
+        }
         tv if tv.starts_with("tv-") => tv_stage(shell, tv),
         other => {
             tracing::warn!(shot = other, "no such shot");
@@ -917,6 +936,7 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         }
         party if party.starts_with("party-") => party_unstage(shell, party),
         source if source.starts_with("source-") => source_unstage(shell),
+        matched if matched == "match" || matched.starts_with("match-") => match_unstage(shell),
         tv if tv.starts_with("tv-") => tv_unstage(shell, tv),
         _ => {}
     }
@@ -1265,7 +1285,9 @@ async fn painted(shell: &Rc<Shell>, path: &std::path::Path, shot: &str) -> Resul
             let over = match shot.as_str() {
                 "player-marks" => player.shot_popover(),
                 "player-tracks" => player.shot_tracks_popover(),
-                "party-title-menu" | "store-menu" => title_menu_popover(&window),
+                "party-title-menu" | "store-menu" | "match-fix-menu" => {
+                    title_menu_popover(&window)
+                }
                 "trailer-preview" => crate::trailer::shot_preview(window.upcast_ref()),
                 party if party.starts_with("party-") => player.shot_party_popover(),
                 _ => None,
@@ -1314,6 +1336,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
                 "pad" => PAD.iter().map(|p| (*p).to_owned()).collect(),
                 "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
                 "tv" => TV.iter().map(|p| (*p).to_owned()).collect(),
+                "match" => MATCH.iter().map(|p| (*p).to_owned()).collect(),
                 one => vec![one.to_owned()],
             })
             .collect(),
@@ -2157,6 +2180,176 @@ fn source_unstage(shell: &Rc<Shell>) {
     shell.ctx.toasts.dismiss_all();
     let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
 }
+
+/// The match picker's scenes, on the unsure scene: the title's page asking for its match, then
+/// the picker over it in each of its states.
+#[cfg(feature = "fixtures")]
+fn match_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use crate::hub::MatchHold;
+
+    let hub = Rc::clone(&shell.ctx.hub);
+    shell.ctx.toasts.dismiss_all();
+    hub.known.borrow_mut().source_options.clear();
+    hub.listing.replace(Some((source_options(None, None), false)));
+    hub.match_hold.set(match shot {
+        "match-menu" => MatchHold::SearchWaits,
+        "match-failed" => MatchHold::SearchFails,
+        "match-picking" => MatchHold::PickWaits,
+        _ => MatchHold::Nothing,
+    });
+    shell.go(Dest::Continue);
+    // The last scene's page is still leaving; opening the title again waits for it to go.
+    let (ctx, name) = (Rc::clone(&shell.ctx), shot.to_owned());
+    glib::timeout_add_local_once(Duration::from_millis(900), move || {
+        let _ = WidgetExt::activate_action(
+            &ctx.window,
+            "win.open-title",
+            Some(&TITLE.to_variant()),
+        );
+        match_wait(Rc::clone(&ctx), name, 0);
+    });
+    match shot {
+        "match-cleared" => 13.0,
+        "match-picked" => 9.0,
+        _ => 7.0,
+    }
+}
+
+/// Wait until the engine has said what the title is matched to, or 20 s, then stage `shot`.
+#[cfg(feature = "fixtures")]
+fn match_wait(ctx: Rc<crate::window::Ctx>, shot: String, tries: u32) {
+    use anistream_core::ids::AnilistId;
+    let id = AnilistId::new(TITLE);
+    // At least 2.5 s, so the page has opened under the picker.
+    let pushed = ctx.nav().is_some_and(|nav| nav.navigation_stack().n_items() > 1);
+    if (!ctx.hub.known.borrow().matches.is_known(id) || !pushed || tries < 10) && tries < 80 {
+        glib::timeout_add_local_once(Duration::from_millis(250), move || {
+            match_wait(ctx, shot, tries + 1)
+        });
+        return;
+    }
+    match_run(&ctx, &shot);
+}
+
+/// A match in place from the source, as the menu's states show the picker.
+#[cfg(feature = "fixtures")]
+fn match_in_place(ctx: &Rc<crate::window::Ctx>, by_you: bool) {
+    use anistream_core::ids::AnilistId;
+    use anistream_model::{event::Event, sources::CurrentMatch};
+    ctx.hub.take(vec![Event::TitleMatch {
+        id: AnilistId::new(TITLE),
+        current: Some(CurrentMatch {
+            provider_id: crate::fixtures::UNSURE_SOURCE.into(),
+            source: "Hotaru Open Archive".into(),
+            title: Some("Hoshi Tabi Diaries".into()),
+            chosen_by_you: by_you,
+        }),
+    }]);
+}
+
+#[cfg(feature = "fixtures")]
+fn match_open(
+    ctx: &Rc<crate::window::Ctx>,
+    from_menu: bool,
+    query: Option<&str>,
+) -> adw::Dialog {
+    use anistream_core::ids::AnilistId;
+    crate::pages::match_picker::open(ctx, &ctx.window, AnilistId::new(TITLE), from_menu, query)
+}
+
+/// Pick the first row of the picker `dialog` shows.
+#[cfg(feature = "fixtures")]
+fn match_pick_first(dialog: &adw::Dialog) {
+    if let Some(row) = first::<adw::ActionRow>(dialog.upcast_ref()) {
+        ActionRowExt::activate(&row);
+    }
+}
+
+#[cfg(feature = "fixtures")]
+fn match_run(ctx: &Rc<crate::window::Ctx>, shot: &str) {
+    use anistream_i18n::t;
+    match shot {
+        "match" => {
+            match_open(ctx, false, None);
+        }
+        "match-picking" => {
+            // The best row picked, with no answer to come.
+            let dialog = match_open(ctx, false, None);
+            glib::timeout_add_local_once(Duration::from_millis(600), move || {
+                match_pick_first(&dialog)
+            });
+        }
+        "match-source-picker" => {
+            if let Some(page) = ctx.nav().and_then(|nav| nav.visible_page()) {
+                let _ = WidgetExt::activate_action(&page, "title.source-picker", None);
+            }
+        }
+        "match-fix-menu" => {
+            if let Some(more) = more_button(&ctx.window) {
+                more.popup();
+            }
+        }
+        "match-menu" | "match-failed" => {
+            match_in_place(ctx, false);
+            match_open(ctx, true, None);
+        }
+        "match-empty" => {
+            match_in_place(ctx, false);
+            match_open(ctx, true, Some("hoshikuzu tabibto"));
+        }
+        "match-results" => {
+            match_in_place(ctx, true);
+            match_open(ctx, true, Some("Stardust Wayfarer"));
+        }
+        "match-picked" | "match-cleared" => {
+            let dialog = match_open(ctx, true, Some("Stardust Wayfarer"));
+            let (ctx, cleared) = (Rc::clone(ctx), shot == "match-cleared");
+            glib::timeout_add_local_once(Duration::from_millis(1500), move || {
+                match_pick_first(&dialog);
+                if !cleared {
+                    return;
+                }
+                // Reopened over the page as a person's choice stands, to forget it.
+                glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                    match_open(&ctx, true, None);
+                    glib::timeout_add_local_once(Duration::from_millis(1200), move || {
+                        let label = t::match_automatic();
+                        if let Some(dialog) = ctx.window.visible_dialog()
+                            && let Some(button) = button_labelled(dialog.upcast_ref(), &label)
+                        {
+                            button.emit_clicked();
+                        }
+                    });
+                });
+            });
+        }
+        _ => {}
+    }
+}
+
+/// Leave the match picker's scene: the dialogs closed, the title's page left, and the engine
+/// asked to match the title again so the next scene starts with its question.
+#[cfg(feature = "fixtures")]
+fn match_unstage(shell: &Rc<Shell>) {
+    use crate::hub::MatchHold;
+    use anistream_core::ids::AnilistId;
+    let id = AnilistId::new(TITLE);
+    close_dialogs(&shell.ctx.window);
+    shell.ctx.hub.match_hold.set(MatchHold::Nothing);
+    shell.ctx.hub.listing.replace(None);
+    shell.ctx.toasts.dismiss_all();
+    shell.ctx.hub.known.borrow_mut().matches.cleared(id);
+    shell.ctx.hub.send(anistream_model::command::Command::ClearMatch { id });
+    let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn match_stage(_: &Rc<Shell>, _: &str) -> f64 {
+    0.0
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn match_unstage(_: &Rc<Shell>) {}
 
 #[cfg(not(feature = "fixtures"))]
 fn source_stage(_: &Rc<Shell>, _: &str) -> f64 {

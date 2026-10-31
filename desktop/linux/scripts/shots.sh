@@ -6,7 +6,8 @@
 #   OUT=/some/dir desktop/linux/scripts/docker.sh desktop/linux/scripts/shots.sh
 #
 # SHOTS picks every run's shots (comma-separated; the wide run takes all by default), and SIZES
-# picks the runs.
+# picks the runs. The match picker's run, on a scene where a source cannot choose a match, is
+# SIZES=match.
 set -euo pipefail
 mkdir -p "$HOME/.config/gtk-4.0" /out/media
 printf '[Settings]\ngtk-font-name=Inter 11\n' \
@@ -39,6 +40,7 @@ export GTK_A11Y=none DISPLAY=:99 GDK_BACKEND=x11 GSK_RENDERER=ngl LIBGL_ALWAYS_S
 runs=(
   "wide 1280x800 ${SHOTS:-all}"
   "medium 900x720 ${SHOTS:-home,calendar,title,downloads,providers,store,settings,settings-upscaling}"
+  "match 1280x800 match"
   "narrow 400x780 ${SHOTS:-home,calendar,title,show-settings,library,downloads,providers,store,join,settings}"
 )
 for run in "${runs[@]}"; do
@@ -48,6 +50,8 @@ for run in "${runs[@]}"; do
   rm -rf "$data"
   extra=(--showcase)
   case ",$shots," in *,downloads,*|*,all,*) extra+=(--downloading) ;; esac
+  # The match picker's shots need the finished title's source to be unsure of its match.
+  [ "$name" = match ] && extra+=(--unsure)
   echo "run: $name at $size: $shots"
   dbus-run-session -- timeout 240 "$bin" --fixtures --data "$data" --media "$media" "${extra[@]}" \
     --hwdec no --ao null --size "$size" --shots /out --prefix "$name-" --shot "$shots" \

@@ -36,6 +36,9 @@ struct Picker {
     chosen: RefCell<Option<adw::ActionRow>>,
     /// Whether the listing has come, so a spinner shows only while it is awaited.
     listed: Cell<bool>,
+    /// The last row, Wrong title? Fix this match, which stays the page's last group.
+    fix: Option<adw::PreferencesGroup>,
+    fix_added: Cell<bool>,
 }
 
 /// Open the picker for title `id`, over `parent`'s window.
@@ -83,6 +86,8 @@ pub fn open(ctx: &Rc<Ctx>, parent: &impl IsA<gtk::Widget>, id: AnilistId) -> adw
         groups: RefCell::default(),
         chosen: RefCell::default(),
         listed: Cell::new(false),
+        fix: fix_group(ctx, &dialog, id),
+        fix_added: Cell::new(false),
     });
     picker.automatic_row.connect_activated({
         let weak = Rc::downgrade(&picker);
@@ -129,6 +134,43 @@ pub fn open(ctx: &Rc<Ctx>, parent: &impl IsA<gtk::Widget>, id: AnilistId) -> adw
     dialog.present(Some(parent));
     picker.focus_chosen();
     dialog
+}
+
+/// The last row of the picker: Wrong title? Fix this match. It closes the picker and opens the
+/// match picker in its place, once the first has gone down. `None` with no source to match on.
+fn fix_group(
+    ctx: &Rc<Ctx>,
+    dialog: &adw::Dialog,
+    id: AnilistId,
+) -> Option<adw::PreferencesGroup> {
+    if !ctx.hub.known.borrow().can_fix_match() {
+        return None;
+    }
+    let row = adw::ActionRow::builder()
+        .use_markup(false)
+        .title(t::match_source_picker_row())
+        .activatable(true)
+        .build();
+    row.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    row.connect_activated({
+        let ctx = Rc::downgrade(ctx);
+        let dialog = dialog.downgrade();
+        move |_| {
+            let Some(dialog) = dialog.upgrade() else { return };
+            let parent = ctx.upgrade();
+            dialog.close();
+            // The picker goes down first, so the one that takes its place can come up.
+            glib::timeout_add_local_once(std::time::Duration::from_millis(350), move || {
+                if let Some(ctx) = parent {
+                    let from_menu = !ctx.hub.known.borrow().matches.asks(id);
+                    let _ = super::match_picker::open(&ctx, &ctx.window, id, from_menu, None);
+                }
+            });
+        }
+    });
+    let group = adw::PreferencesGroup::new();
+    group.add(&row);
+    Some(group)
 }
 
 /// The check on the chosen row.
@@ -190,7 +232,17 @@ impl Picker {
             shown.push(group);
         }
         self.groups.replace(shown);
+        self.show_fix();
         self.focus_chosen();
+    }
+
+    /// The Fix this match group at the page's end, when there is a source to match on.
+    fn show_fix(&self) {
+        let Some(fix) = &self.fix else { return };
+        if self.fix_added.replace(true) {
+            self.page.remove(fix);
+        }
+        self.page.add(fix);
     }
 
     /// Focus the chosen row, so the keyboard starts where the choice is and a long list scrolls
@@ -220,6 +272,7 @@ impl Picker {
         group.add(&spinner);
         self.page.add(&group);
         self.groups.borrow_mut().push(group);
+        self.show_fix();
     }
 
     /// One source or release as a row: its words, its check when chosen, dimmed when the source

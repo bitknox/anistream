@@ -7,7 +7,7 @@ use std::{path::Path, sync::Arc};
 
 use anistream_core::{
     config::NetworkConfig,
-    media::Translation,
+    media::{Episode, MediaFormat, SearchHit, Translation},
     stream::{Stream, StreamKind},
 };
 use anistream_engine::{
@@ -19,7 +19,7 @@ use anistream_engine::{
 };
 use anistream_meta::Meta;
 use anistream_net::HttpClient;
-use anistream_providers::ProviderRegistry;
+use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::{DownloadState, Store, WatchEvent};
 use anistream_testkit::{
     FakeAniList,
@@ -142,6 +142,9 @@ pub struct Scene {
     pub media: Option<String>,
     /// An episode downloading, so closing the window asks first.
     pub downloading: bool,
+    /// A source ahead of the fixture one that cannot choose the finished title's match, so its
+    /// page asks for the match: the match picker's scene.
+    pub unsure: bool,
 }
 
 /// Start the engine on the scene, its files under `root`.
@@ -187,7 +190,7 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     options.saved = Some(config);
     options.hosted_player = true;
     options.background = Background::none();
-    let chain = registry(&server.art_base(), scene.media.as_deref());
+    let chain = registry(&server.art_base(), scene.media.as_deref(), scene.unsure);
     // A setting that changes which sources exist rebuilds the chain from the config, and the
     // scene's own source would be gone for every shot after it: it goes back in place.
     let (kept, providers) = (chain.clone(), chain.all());
@@ -207,7 +210,7 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
 }
 
 /// The fixture provider, its stills from the fake, every episode streaming `media` when given.
-fn registry(art: &str, media: Option<&str>) -> ProviderRegistry {
+fn registry(art: &str, media: Option<&str>, unsure: bool) -> ProviderRegistry {
     let mut provider = sources::with_long_franchise(sources::provider_with_art(art));
     if let Some(media) = media {
         let stream = Stream {
@@ -218,7 +221,65 @@ fn registry(art: &str, media: Option<&str>) -> ProviderRegistry {
             provider = provider.with_streams_for(sources::key(id), vec![stream.clone()]);
         }
     }
+    if unsure {
+        let clip = match media {
+            Some(media) => Stream::new(media, StreamKind::Mp4),
+            None => sources::episode_clip(),
+        };
+        return ProviderRegistry::new(vec![unsure_source(art, &clip).arc(), provider.arc()]);
+    }
     ProviderRegistry::new(vec![provider.arc()])
+}
+
+/// The id of the source the unsure scene puts first.
+pub const UNSURE_SOURCE: &str = "hotaru-open-archive";
+
+/// The source the unsure scene puts first: an invented archive that lists four titles for
+/// Hoshikuzu no Tabibito, two that could be it and two ruled out (one by its year, one by its
+/// format), and the show itself for a search by its English title.
+fn unsure_source(art: &str, clip: &Stream) -> MockProvider {
+    let hit =
+        |key: &str, title: &str, episodes: u32, year: u16, format: MediaFormat| SearchHit {
+            episode_count: Some(episodes),
+            year: Some(year),
+            format: Some(format),
+            ..SearchHit::new(format!("{UNSURE_SOURCE}:{key}"), title)
+        };
+    let show = format!("{UNSURE_SOURCE}:stardust-wayfarer");
+    let episodes = sources::episodes(FINISHED)
+        .into_iter()
+        .map(|e| Episode {
+            thumbnail: e.thumbnail.map(|t| t.replacen(fixtures::ART_HOST, art, 1)),
+            ..e
+        })
+        .collect();
+    let clip = Stream { provider_id: UNSURE_SOURCE.into(), ..clip.clone() };
+    MockProvider::new(UNSURE_SOURCE)
+        .named("Hotaru Open Archive")
+        .with_hits_for(
+            "Hoshikuzu no Tabibito",
+            vec![
+                hit("hoshi-tabi", "Hoshi Tabi Diaries", 12, 2024, MediaFormat::Tv),
+                hit("tabibito-hoshikuzu", "Tabibito to Hoshikuzu", 13, 2025, MediaFormat::Tv),
+                hit("hoshikuzu-2019", "Hoshikuzu no Tabibito", 10, 2019, MediaFormat::Tv),
+                hit("hoshikuzu-ova", "Hoshikuzu no Tabibito: Yoru", 1, 2024, MediaFormat::Ova),
+            ],
+        )
+        .with_hits_for(
+            "Stardust Wayfarer",
+            vec![
+                hit("stardust-wayfarer", "Stardust Wayfarer", 12, 2024, MediaFormat::Tv),
+                hit(
+                    "stardust-specials",
+                    "Stardust Wayfarer Specials",
+                    2,
+                    2024,
+                    MediaFormat::Special,
+                ),
+            ],
+        )
+        .with_episodes_for(show.clone(), episodes)
+        .with_streams_for(show, vec![clip])
 }
 
 /// AniList on, as a signed-in user has it, tokens in files, and skips offered rather than taken.

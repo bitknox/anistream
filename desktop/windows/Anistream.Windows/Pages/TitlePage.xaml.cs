@@ -258,6 +258,8 @@ public sealed partial class TitlePage : Page, IPageKeys
             }));
         if (ctx.Options.Show is "source-picker" or "source-picker-pinned" or "source-picker-releases" or "source-picker-loading" && ctx.Options.Title == id)
             _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(OpenSourcePicker));
+        if (ctx.Options.Show is { } matchShow && matchShow.StartsWith("match", StringComparison.Ordinal) && ctx.Options.Title == id)
+            _ = StageMatch(matchShow);
         // --show=source-unsourced-end: the table scrolled to its end, where the last unsourced rows are.
         if (ctx.Options.Show == "source-unsourced-end")
             _ = Task.Delay(2500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => Scroll.ChangeView(null, Scroll.ScrollableHeight, null, true)));
@@ -295,6 +297,74 @@ public sealed partial class TitlePage : Page, IPageKeys
 #endif
     }
 
+#if ANISTREAM_TESTING
+    /// <summary>
+    /// --show=match, match-menu, match-failed, match-empty, match-results, match-picking,
+    /// match-picked, match-cleared and match-source-picker, on --scene=unsure: the picker in each
+    /// of its states, once the engine has said what the title is matched to.
+    /// </summary>
+    async Task StageMatch(string show)
+    {
+        for (var tries = 0; !ctx.Known.Matches.IsKnown(id) && tries < 80; tries++)
+            await Task.Delay(250);
+        // The menu's states show the picker as a match is in place: the Matched now row.
+        void InPlace(bool byYou) => ctx.Inject(new Event.TitleMatch(id, new CurrentMatch("hotaru-open-archive", "Hotaru Open Archive", "Hoshi Tabi Diaries", byYou)));
+        switch (show)
+        {
+            case "match":
+            case "match-picking":
+                OpenMatchPicker(fromMenu: false);
+                if (show == "match-picking")
+                {
+                    await Task.Delay(800);
+                    if (ctx.Known.Matches.Asked(id)?.Candidates.FirstOrDefault() is { } best)
+                    {
+                        ctx.Known.Matches.Pick(id, best, "Hotaru Open Archive");
+                        ctx.Send(new Command.FixMatch(id, "hotaru-open-archive", best.Key, best.Title));
+                    }
+                }
+                break;
+            case "match-source-picker":
+                OpenSourcePicker();
+                break;
+            case "match-menu":
+            case "match-failed":
+                InPlace(false);
+                OpenMatchPicker(fromMenu: true);
+                break;
+            case "match-empty":
+                InPlace(false);
+                OpenMatchPicker(fromMenu: true, "hoshikuzu tabibto");
+                break;
+            case "match-results":
+                InPlace(true);
+                OpenMatchPicker(fromMenu: true, "Stardust Wayfarer");
+                break;
+            case "match-picked":
+            case "match-cleared":
+                // Picked for real: the show itself, which the source finds by its English title.
+                OpenMatchPicker(fromMenu: true, "Stardust Wayfarer");
+                await Task.Delay(1500);
+                if (ctx.Known.Matches.Search(id) is MatchSearch.Found { Candidates: [var show1, ..], ProviderId: var provider, Source: var source })
+                {
+                    ctx.Known.Matches.Pick(id, show1, source);
+                    ctx.Send(new Command.FixMatch(id, provider, show1.Key, show1.Title));
+                }
+                if (show == "match-cleared")
+                {
+                    await Task.Delay(2500);
+                    OpenMatchPicker(fromMenu: true);
+                    await Task.Delay(1200);
+                    ctx.Known.Matches.Cleared(id);
+                    ctx.Window.Say(T.MatchCleared);
+                    ctx.Send(new Command.ClearMatch(id));
+                    Dialogs.HideOpen();
+                }
+                break;
+        }
+    }
+#endif
+
     void Heard(IReadOnlyList<Event> batch)
     {
         foreach (var e in batch)
@@ -318,6 +388,12 @@ public sealed partial class TitlePage : Page, IPageKeys
                     if (line is not null)
                         DubLine.Text = line;
                     DubLine.Opacity = line is null ? 0 : 1;
+                    break;
+                case Event.MatchChoices m when m.Id == id:
+                case Event.TitleMatch tm when tm.Id == id:
+                    // The source could not choose, or a pick settled: the main action follows.
+                    if (ctx.Known.Entry(id) is { } matched)
+                        ShowAction(matched);
                     break;
                 case Event.Episodes ep when ep.Id == id:
                     ShowEpisodes();
@@ -420,6 +496,18 @@ public sealed partial class TitlePage : Page, IPageKeys
     void ShowAction(Entry entry)
     {
         action = PlayableNext.Item(entry, ctx.Known.Episodes.GetValueOrDefault(id), Casing.Sentence);
+        FixMatchItem.IsEnabled = MatchBook.CanFix(ctx.Known.Providers);
+        if (ctx.Known.Matches.Asked(id) is { } asked)
+        {
+            // The source could not choose between its titles: choosing is the way on, in Play's place.
+            PrimaryAction.Content = T.MatchChoose;
+            PrimaryAction.Visibility = Visibility.Visible;
+            WaitingLine.Text = MatchWords.Uncertain(asked);
+            WaitingLine.Visibility = Visibility.Visible;
+            PartyItem.IsEnabled = false;
+            TvAction.Visibility = Visibility.Collapsed;
+            return;
+        }
         PrimaryAction.Content = action.Button;
         PrimaryAction.Visibility = action.Button is not null ? Visibility.Visible : Visibility.Collapsed;
         WaitingLine.Text = action.Waiting ?? "";
@@ -625,6 +713,11 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     void OnPrimary(object sender, RoutedEventArgs e)
     {
+        if (ctx.Known.Matches.Asks(id))
+        {
+            OpenMatchPicker(fromMenu: false);
+            return;
+        }
         if (action is { Playable: true })
             ctx.Play(id, action.Episode.ToString());
     }
@@ -771,6 +864,15 @@ public sealed partial class TitlePage : Page, IPageKeys
     void OnShowSettings(object sender, RoutedEventArgs e) => OpenShowSettings();
 
     void OnPickSource(object sender, RoutedEventArgs e) => OpenSourcePicker();
+
+    void OnFixMatch(object sender, RoutedEventArgs e) => OpenMatchPicker(fromMenu: true);
+
+    /// <summary>The match picker: the question when the page asks one, else (Fix this match) the title searched at once.</summary>
+    void OpenMatchPicker(bool fromMenu, string? query = null)
+    {
+        if (ctx.Known.Entry(id) is { } entry && XamlRoot is { } root)
+            _ = MatchPickerDialog.Open(ctx, id, entry.Title, root, fromMenu && !ctx.Known.Matches.Asks(id), query);
+    }
 
     void OpenSourcePicker()
     {

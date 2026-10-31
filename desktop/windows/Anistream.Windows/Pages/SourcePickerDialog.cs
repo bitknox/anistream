@@ -35,6 +35,7 @@ sealed class SourcePickerDialog
     readonly TextBlock empty = Ui.Text(T.SourcesEmpty, "HazeBodyStyle");
     readonly DispatcherQueueTimer silence;
     bool picked;
+    bool fixMatch;
 
     SourcePickerDialog(Ctx ctx, uint id, string show, XamlRoot root)
     {
@@ -66,6 +67,17 @@ sealed class SourcePickerDialog
         body.Children.Add(list);
         body.Children.Add(plates);
         body.Children.Add(empty);
+        // The last row: Wrong title? Fix this match. It closes the picker and opens the match picker in its place.
+        if (MatchBook.CanFix(ctx.Known.Providers))
+        {
+            var fix = new Button { Content = T.MatchSourcePickerRow, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, MinHeight = 44, Margin = new Thickness(0, 8, 0, 0) };
+            fix.Click += (_, _) =>
+            {
+                fixMatch = true;
+                dialog.Hide();
+            };
+            body.Children.Add(fix);
+        }
 
         var queue = DispatcherQueue.GetForCurrentThread();
         silence = queue.CreateTimer();
@@ -108,6 +120,8 @@ sealed class SourcePickerDialog
             picker.silence.Stop();
             ctx.Known.SourceChoices.GiveUp(id);
         }
+        if (picker.fixMatch)
+            await MatchPickerDialog.Open(ctx, id, show, root, fromMenu: !ctx.Known.Matches.Asks(id));
     }
 
     void Heard(IReadOnlyList<Event> batch)

@@ -3,7 +3,7 @@
 //! over a channel; the window only ever queues commands, so nothing on the loop waits for it.
 //!
 //!   anistream-desktop [--hwdec <mode>] [--ao <output>] [anistream://…]
-//!   anistream-desktop --fixtures [--data <dir>] [--media <file>] [--downloading] [--showcase]
+//!   anistream-desktop --fixtures [--data <dir>] [--media <file>] [--downloading] [--unsure] [--showcase]
 //!                     [--shots <dir> [--shot <a,b,...>] [--prefix <name>]] [--size <w>x<h>]
 
 mod catalog;
@@ -14,6 +14,7 @@ mod fit;
 mod fixtures;
 mod flags;
 mod hub;
+mod matching;
 mod motion;
 mod mpris;
 mod nagare;
@@ -57,6 +58,8 @@ struct Args {
     data: Option<PathBuf>,
     media: Option<String>,
     downloading: bool,
+    /// The match picker's scene: a source that cannot choose the finished title's match.
+    unsure: bool,
     /// Plugin stores, their providers and episodes seeding, which the fixture engine has none of.
     showcase: bool,
     shots: Option<PathBuf>,
@@ -78,6 +81,7 @@ fn args() -> Args {
             "--data" => args.data = it.next().map(PathBuf::from),
             "--media" => args.media = it.next(),
             "--downloading" => args.downloading = true,
+            "--unsure" => args.unsure = true,
             "--showcase" => args.showcase = true,
             "--shots" => args.shots = it.next().map(PathBuf::from),
             "--shot" => args.shot = it.next(),
@@ -304,7 +308,11 @@ fn start_fixtures(
     let root = args.data.clone().unwrap_or_else(|| {
         std::env::temp_dir().join(format!("anistream-scene-{}", std::process::id()))
     });
-    let scene = fixtures::Scene { media: args.media.clone(), downloading: args.downloading };
+    let scene = fixtures::Scene {
+        media: args.media.clone(),
+        downloading: args.downloading,
+        unsure: args.unsure,
+    };
     let paths = engine::paths_under(&root);
     fixtures::keep_runtime(runtime.handle().clone());
     let started = runtime.block_on(fixtures::start(&root, &scene, host))?;

@@ -44,6 +44,8 @@ public sealed partial class MainWindow : Window
     };
 
     readonly Options options;
+    /// <summary>The serial of the newest pick whose notice was said.</summary>
+    int matchSaid;
     readonly DispatcherQueue ui;
     readonly EngineSession session;
     readonly FfiPlayer? player;
@@ -269,6 +271,7 @@ public sealed partial class MainWindow : Window
             {
                 "fresh" => new FfiScene.Fresh(),
                 "sourceless" => new FfiScene.Sourceless(),
+                "unsure" => new FfiScene.Unsure(),
                 "playing" => new FfiScene.Playing(options.Media ?? @"C:\setup\sdr-testsrc.mp4"),
                 _ => new FfiScene.Watching(),
             };
@@ -436,6 +439,11 @@ public sealed partial class MainWindow : Window
                     // The source kept for a title is off, removed or resting: said once, and the order is used.
                     ShowToast(InfoBarSeverity.Informational, T.SourcePinUnavailable(pin.Name));
                     break;
+                case Event.TitleMatch when ctx.Known.Matches.Settled is { } settled && settled.Serial > matchSaid:
+                    // A pick settled: said once, wherever the person is by then.
+                    matchSaid = settled.Serial;
+                    ShowToast(InfoBarSeverity.Informational, T.MatchPicked(settled.Title, settled.Source));
+                    break;
                 case Event.DeviceCode code:
                     Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
                     break;
@@ -518,6 +526,9 @@ public sealed partial class MainWindow : Window
     /// <summary>A notice from a page, with one button when it has something to undo.</summary>
     public void Say(string text, string? button = null, Action? act = null) =>
         ShowToast(InfoBarSeverity.Informational, text, button, act);
+
+    /// <summary>A plain notice of the app's own: Matching automatically again.</summary>
+    public void Say(string text) => ShowToast(InfoBarSeverity.Informational, text);
 
     void ShowToast(Notice notice)
     {

@@ -84,9 +84,30 @@ sealed class Ctx
             leave();
     }
 
+#if ANISTREAM_TESTING
+    /// <summary>An event a shot makes up, taken in and heard as the engine's own.</summary>
+    public void Inject(Event e)
+    {
+        Session.Known.Take(e);
+        Heard([e]);
+    }
+#endif
+
     public ulong? Send(Command command)
     {
 #if ANISTREAM_TESTING
+        // The match picker's shots: a search by hand that fails or never comes back, and a pick that is never answered.
+        if (command is Command.ManualSearch failing && Options.Show == "match-failed")
+        {
+            Window.DispatcherQueue.TryEnqueue(async () =>
+            {
+                await Task.Delay(300);
+                Inject(new Event.MatchSearchFailed(failing.Id, failing.Query, new Msg.MatchSearchTimedOut()));
+            });
+            return null;
+        }
+        if ((command is Command.ManualSearch && Options.Show == "match-menu") || (command is Command.FixMatch && Options.Show == "match-picking"))
+            return null;
         // The source picker's shots: the listing is the one the showcase invented, or none at all.
         if (command is Command.LoadSourceOptions listing && Options.Show?.StartsWith("source-picker", StringComparison.Ordinal) == true)
         {
