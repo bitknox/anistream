@@ -17,7 +17,8 @@
 //! rather than an argument.
 //!
 //! The suite skips what has not been built rather than failing — `cargo test` on a fresh clone
-//! should not require a wasm toolchain and an npm install.
+//! should not require a wasm toolchain and an npm install. CI sets `ANISTREAM_REQUIRE_PLUGINS=1`,
+//! and then a missing component fails the test, so the sandbox tests cannot pass by not running.
 //!
 //! ```sh
 //! cargo build --release --target wasm32-wasip2 --manifest-path plugins/example-rust/Cargo.toml
@@ -38,9 +39,16 @@ fn plugins_dir() -> PathBuf {
 }
 
 /// A built component, or `None` with the command that would build it.
+///
+/// With `ANISTREAM_REQUIRE_PLUGINS` set, a component that is missing fails the test instead.
 fn built(path: PathBuf, how: &str) -> Option<PathBuf> {
     if path.exists() {
         Some(path)
+    } else if std::env::var_os("ANISTREAM_REQUIRE_PLUGINS").is_some() {
+        panic!(
+            "{} is not built, and ANISTREAM_REQUIRE_PLUGINS is set.\n  {how}",
+            path.display()
+        );
     } else {
         eprintln!("skipping: {} is not built.\n  {how}", path.display());
         None
@@ -435,20 +443,12 @@ async fn granted_settings_reach_the_guest_and_only_the_guest_they_name() {
 // is a sandbox nobody has tried.
 
 fn hostile() -> Option<PathBuf> {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
-        "../../plugins/test-hostile/target/wasm32-wasip2/release/anistream_hostile_plugin.wasm",
-    );
-    if path.exists() {
-        Some(path)
-    } else {
-        eprintln!(
-            "skipping adversarial test: {} is not built.\n  \
-             cargo build --release --target wasm32-wasip2 \
-             --manifest-path plugins/test-hostile/Cargo.toml",
-            path.display()
-        );
-        None
-    }
+    built(
+        plugins_dir()
+            .join("test-hostile/target/wasm32-wasip2/release/anistream_hostile_plugin.wasm"),
+        "cargo build --release --target wasm32-wasip2 \
+         --manifest-path plugins/test-hostile/Cargo.toml",
+    )
 }
 
 #[tokio::test]

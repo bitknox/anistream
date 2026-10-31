@@ -8,10 +8,11 @@ anistream                                                                       
   ↓  Downloads              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◇  Sources                │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◎  Accounts               │
-  ⚙  Settings               │  Kaze no Tegami
+  ≡  Settings               │  Kaze no Tegami
                             │  Letters on the Wind
                             │
-                            │  TV  ·  24 episodes  ·  2026  ·  79  ·  Atelier Hotaru
+                            │  TV  ·  24 episodes  ·  Summer 2026  ·  79%  ·  Atelier Hotaru
+                            │  Airing  ·  Since 3 Jul 2026
                             │
                             │  Available on Hikari Stream
                             │
@@ -24,7 +25,6 @@ anistream                                                                       
                             │  Drama  ·  Romance
                             │
                             │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
-                            │
                             │
                             │
                             │
@@ -82,30 +82,31 @@ r11 c28-28 fg=rule
 r11 c31-49 fg=text-dim
 r12 c28-28 fg=rule
 r13 c28-28 fg=rule
-r13 c31-83 fg=text-dim
+r13 c31-91 fg=text-dim
 r14 c28-28 fg=rule
+r14 c31-57 fg=text-dim
 r15 c28-28 fg=rule
-r15 c31-56 fg=state
 r16 c28-28 fg=rule
+r16 c31-56 fg=text-dim
 r17 c28-28 fg=rule
-r17 c31-113 fg=text-dim
 r18 c28-28 fg=rule
-r18 c31-115 fg=text-dim
+r18 c31-113 fg=text-dim
 r19 c28-28 fg=rule
-r19 c31-114 fg=text-dim
+r19 c31-115 fg=text-dim
 r20 c28-28 fg=rule
-r20 c31-112 fg=text-dim
+r20 c31-114 fg=text-dim
 r21 c28-28 fg=rule
-r21 c31-71 fg=text-dim
+r21 c31-112 fg=text-dim
 r22 c28-28 fg=rule
+r22 c31-71 fg=text-dim
 r23 c28-28 fg=rule
-r23 c31-47 fg=text-dim
 r24 c28-28 fg=rule
+r24 c31-47 fg=text-dim
 r25 c28-28 fg=rule
-r25 c31-35 fg=obi
-r25 c36-50 fg=rule
-r25 c53-89 fg=text-dim
 r26 c28-28 fg=rule
+r26 c31-35 fg=text
+r26 c36-50 fg=rule
+r26 c53-89 fg=text-dim
 r27 c28-28 fg=rule
 r28 c28-28 fg=rule
 r29 c28-28 fg=rule

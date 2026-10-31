@@ -79,6 +79,16 @@ impl FfiEngine {
         }
     }
 
+    /// The host names the engine tried to reach and was refused, oldest first: every request
+    /// for a name, rather than for the fake on loopback. A fixture build must never aim at a real
+    /// host, so a test reads this after a flow to see that nothing did. Empty on an engine that is
+    /// not on the fake. Only in a build with the `testing` feature.
+    pub fn testing_refused_hosts(&self) -> Vec<String> {
+        self.kept::<Testing>()
+            .and_then(|kept| kept.http.get().map(HttpClient::refused_names))
+            .unwrap_or_default()
+    }
+
     /// Serve the fixtures' art badly from now on, as a busy CDN would: every second image is
     /// answered `503` its first `fail_first` times, and every image waits `delay_ms` before it
     /// is answered. For a test or the dev harness that art on screen still arrives. Does nothing
@@ -95,6 +105,14 @@ impl FfiEngine {
 pub(crate) struct Testing {
     pub(crate) server: FakeAniList,
     pub(crate) clock: Clock,
+    /// The engine's one client, which resolves no name, once [`options`] has made it.
+    pub(crate) http: std::sync::OnceLock<HttpClient>,
+}
+
+impl Testing {
+    pub(crate) fn new(server: FakeAniList, clock: Clock) -> Self {
+        Self { server, clock, http: std::sync::OnceLock::new() }
+    }
 }
 
 impl FfiEngine {
@@ -122,8 +140,7 @@ impl FfiEngine {
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             // The fake answers on the engine's runtime, for as long as the engine holds it.
-            let testing =
-                Testing { server: FakeAniList::start().await, clock: Clock::default() };
+            let testing = Testing::new(FakeAniList::start().await, Clock::default());
             let options = options(opened, &testing, &start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
@@ -162,7 +179,9 @@ pub(crate) fn options(
     let tokens = TokenStore::with_backend(paths.data_dir.join("tokens"), Backend::File);
     // The trackers as the app's own sign-in clients turn them on, as the engine builds them.
     let tracked = tracking::native::with_app_clients(&config, &start.app_clients());
-    let mut sync = tracking::Sync::with_tokens(&tracked, &store, &http, tokens.clone());
+    let mut sync = tracking::Sync::with_tokens(&tracked, &store, &http, tokens.clone())
+        // Kitsu on the fake as well: a password typed into a fixture build goes nowhere else.
+        .with_kitsu_at(anistream_track::kitsu::Site::at(&server.kitsu_base()));
     // AniList's on the fake rather than AniList itself, signed in or not: a scene can leave it
     // signed in, so the Library is the fake's, and a sign-in from the app reaches the fake.
     if let Some(at) = sync.trackers.iter().position(|t| t.id() == "anilist") {
@@ -171,6 +190,7 @@ pub(crate) fn options(
         sync.trackers[at] = tracker.clone();
         sync.anilist = Some(tracker);
     }
+    let _ = testing.http.set(http.clone());
     let stores = plugin_stores::Stores::with_offline_tokens(&config, &paths, tokens)
         .map_err(|reason| FfiError::engine(Msg::StartFailed { reason: reason.english() }))?;
 

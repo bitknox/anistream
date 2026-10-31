@@ -3,18 +3,18 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Keys
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Global                              Lists and grids                     Downloads
+  Global                              Lists                               Downloads
     Show keys                      ?    Open                           ↵    Clear finished downloads       c
     Run a command         : / ctrl+k    Play next unwatched        space    Delete download and its file   X
     Quit                  Q / ctrl+c    Set list status                a  Sources
     Back                     q / esc    Rate this title                *    Move source up                 K
     Toggle rail width            tab    Expand synopsis                i    Move source down               J
-    Refresh this view              r    Hide from Continue             x  Now playing
+    Refresh this view              r    Remove, or not interested      x  Now playing
     Force a full resync            R    Search filters            ctrl+f    Play or pause              space
     Subbed or dubbed               t  Title                                 Back 5 seconds                 ←
     Go to section                1–9    Episodes                       e    Forward 5 seconds              →
     Search                         /    Sources                        s    Back 30 seconds                H
-    Recent messages                L    Source for this title          P    Forward 30 seconds             L
+    Recent messages                !    Source for this title          P    Forward 30 seconds             L
   Movement                              Fix this match                 m    Next episode                   n
     Move up                    k / ↑    Download                       d    Previous episode               N
     Move down                  j / ↓    Watch order                    w    Skip opening                   S

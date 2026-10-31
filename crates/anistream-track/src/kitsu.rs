@@ -32,6 +32,36 @@ use crate::{
 
 const TOKEN: &str = "https://kitsu.io/api/oauth/token";
 const API: &str = "https://kitsu.io/api/edge";
+
+/// Where Kitsu answers: its token endpoint and its API. Kitsu's own, or a stand-in for a build
+/// that must not reach it, such as a fixture build's fake.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Site {
+    token: String,
+    api: String,
+}
+
+impl Default for Site {
+    fn default() -> Self {
+        Self { token: TOKEN.to_owned(), api: API.to_owned() }
+    }
+}
+
+impl Site {
+    /// A stand-in at `base`, laid out as Kitsu is: `{base}/api/oauth/token` and `{base}/api/edge`.
+    pub fn at(base: &str) -> Self {
+        let base = base.trim_end_matches('/');
+        Self { token: format!("{base}/api/oauth/token"), api: format!("{base}/api/edge") }
+    }
+
+    pub fn token(&self) -> &str {
+        &self.token
+    }
+
+    pub fn api(&self) -> &str {
+        &self.api
+    }
+}
 const JSON_API: &str = "application/vnd.api+json";
 
 /// Library pages to follow before deciding the server is not counting down.
@@ -44,34 +74,37 @@ const MAX_LIBRARY_PAGES: u32 = 40;
 /// and the caller should drop it the moment this returns.
 pub async fn login(
     http: &reqwest::Client,
+    site: &Site,
     username: &str,
     password: &str,
     now: i64,
 ) -> Result<TokenPair, crate::auth::AuthError> {
     let form =
         [("grant_type", "password"), ("username", username.trim()), ("password", password)];
-    post_token(http, &form, now).await
+    post_token(http, site, &form, now).await
 }
 
 /// Renew an access token.
 pub async fn refresh(
     http: &reqwest::Client,
+    site: &Site,
     refresh_token: &str,
     now: i64,
 ) -> Result<TokenPair, crate::auth::AuthError> {
     let form = [("grant_type", "refresh_token"), ("refresh_token", refresh_token.trim())];
-    post_token(http, &form, now).await
+    post_token(http, site, &form, now).await
 }
 
 async fn post_token(
     http: &reqwest::Client,
+    site: &Site,
     form: &[(&str, &str)],
     now: i64,
 ) -> Result<TokenPair, crate::auth::AuthError> {
     use crate::auth::AuthError;
 
     let response = http
-        .post(TOKEN)
+        .post(site.token())
         .form(form)
         .send()
         .await
@@ -89,7 +122,13 @@ async fn post_token(
         });
     }
 
-    Err(AuthError::Exchange(crate::said(status, &body)))
+    // OAuth's own code goes with the reason, so a front end can tell credentials Kitsu refused
+    // (`invalid_grant`) from Kitsu failing, whatever words the description uses.
+    let said = crate::said(status, &body);
+    Err(AuthError::Exchange(match parsed["error"].as_str() {
+        Some(code) if !code.is_empty() && !said.contains(code) => format!("{said} ({code})"),
+        _ => said,
+    }))
 }
 
 /// Kitsu's `status` values.
@@ -135,6 +174,7 @@ pub trait IdMapping: Send + Sync {
 /// The Kitsu tracker.
 pub struct KitsuTracker {
     http: reqwest::Client,
+    site: Site,
     mapping: std::sync::Arc<dyn IdMapping>,
     /// The pair, renewed before it runs out and kept in step with other processes: see
     /// [`crate::held`].
@@ -145,7 +185,7 @@ pub struct KitsuTracker {
 
 impl Renews for KitsuTracker {
     async fn renew(&self, refresh_token: &str, now: i64) -> Result<TokenPair, String> {
-        refresh(&self.http, refresh_token, now).await.map_err(|e| e.to_string())
+        refresh(&self.http, &self.site, refresh_token, now).await.map_err(|e| e.to_string())
     }
 }
 
@@ -157,10 +197,23 @@ impl KitsuTracker {
     ) -> Self {
         Self {
             http,
+            site: Site::default(),
             mapping,
             held: Held::new("kitsu", "kitsu", tokens),
             user_id: tokio::sync::RwLock::new(None),
         }
+    }
+
+    /// On `site` rather than Kitsu itself.
+    #[must_use]
+    pub fn at(mut self, site: Site) -> Self {
+        self.site = site;
+        self
+    }
+
+    /// Where this tracker reaches Kitsu, which a sign-in goes to as well.
+    pub fn site(&self) -> &Site {
+        &self.site
     }
 
     /// Kept in step with the other processes signed in through `store`, as MAL's is.
@@ -181,7 +234,7 @@ impl KitsuTracker {
         if let Some(id) = self.user_id.read().await.clone() {
             return Ok(id);
         }
-        let url = format!("{API}/users?filter[self]=true");
+        let url = format!("{}/users?filter[self]=true", self.site.api());
         let payload = self
             .held
             .send(self, token, |t| self.request(reqwest::Method::GET, &url, t))
@@ -219,8 +272,9 @@ impl KitsuTracker {
         kitsu_id: u32,
     ) -> Result<Option<String>, anistream_core::Error> {
         let url = format!(
-            "{API}/library-entries?filter[userId]={user_id}&filter[animeId]={kitsu_id}\
-             &fields[libraryEntries]=status&page[limit]=1"
+            "{}/library-entries?filter[userId]={user_id}&filter[animeId]={kitsu_id}\
+             &fields[libraryEntries]=status&page[limit]=1",
+            self.site.api()
         );
         let body: serde_json::Value = self
             .held
@@ -306,9 +360,10 @@ impl Tracker for KitsuTracker {
         // `include=anime` is what makes the relationship carry its id: JSON:API sends
         // resource linkage only for included relationships.
         let mut next = Some(format!(
-            "{API}/library-entries?filter[userId]={user_id}&filter[kind]=anime\
+            "{}/library-entries?filter[userId]={user_id}&filter[kind]=anime\
              &fields[libraryEntries]=progress,status,ratingTwenty,anime\
-             &include=anime&fields[anime]=id&page[limit]=500"
+             &include=anime&fields[anime]=id&page[limit]=500",
+            self.site.api()
         ));
 
         let mut pages = 0_u32;
@@ -321,7 +376,7 @@ impl Tracker for KitsuTracker {
                 tracing::warn!(pages, "kitsu pagination did not terminate; stopping");
                 break;
             }
-            if !url.starts_with(API) {
+            if !url.starts_with(self.site.api()) {
                 tracing::warn!(url = %url, "kitsu paged us off its own api; stopping");
                 break;
             }
@@ -395,7 +450,7 @@ impl Tracker for KitsuTracker {
                         "type": "libraryEntries",
                         "attributes": attributes,
                     }});
-                    let url = format!("{API}/library-entries/{entry_id}");
+                    let url = format!("{}/library-entries/{entry_id}", self.site.api());
                     self.held
                         .send(self, &mut token, |t| {
                             self.request(reqwest::Method::PATCH, &url, t).json(&body)
@@ -420,7 +475,7 @@ impl Tracker for KitsuTracker {
                             "user": { "data": { "type": "users", "id": user_id } },
                         },
                     }});
-                    let url = format!("{API}/library-entries");
+                    let url = format!("{}/library-entries", self.site.api());
                     self.held
                         .send(self, &mut token, |t| {
                             self.request(reqwest::Method::POST, &url, t).json(&body)

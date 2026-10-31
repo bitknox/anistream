@@ -20,7 +20,7 @@ accounts-brings-lists = Brings in your lists and fills { -continue-cap } with wh
 
 # Line under the accounts screen when the library needs a tracker.
 # @arg tracker: text
-accounts-library-needs = { -library-cap } and sync need a { $tracker } account
+accounts-library-needs = { -library-cap } and sync need your { $tracker } account
 
 # Line on the settings page: where the library gets its lists.
 # @arg tracker: text
@@ -163,6 +163,10 @@ accounts-password = Password
 
 # Button label while the sign-in runs.
 accounts-signing-in-action = Signing in
+
+# Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+# @arg tracker: text
+accounts-credentials-refused = { $tracker } didn't accept that user name and password. Check them and try again.
 
 ## Signing in with a code
 

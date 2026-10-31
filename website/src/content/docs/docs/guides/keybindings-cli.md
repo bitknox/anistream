@@ -54,7 +54,7 @@ shows what is bound, overrides included.
 | `:` / `Ctrl-K` | Command palette |
 | `/` | Search |
 | `Ctrl-F` | Search filters: genre, year, season, format, status, sort |
-| `L` | Logs |
+| `!` | Logs |
 | `Q` / `Ctrl-C` | Quit |
 
 **On the Downloads screen**, `Space` pauses and `x` cancels, as they do during playback, and:
@@ -71,7 +71,7 @@ shows what is bound, overrides included.
 | `K` / `J` | Move the selected source up / down the failover order |
 
 **While something is playing** a separate table takes priority, and it shadows some of the keys
-above: `L` seeks instead of opening the logs.
+above: `x` stops playback instead of removing a title from Continue. The logs key, `!`, works in both.
 
 | | |
 |---|---|
@@ -122,4 +122,4 @@ and `jq`. An option given without the command it belongs to, such as `--json` or
 | `--preview 120x34 --screen home` | Render any screen as one frame of text, reached the way the app reaches it: home, calendar, seasonal, search, library, downloads, providers, accounts, settings, title, episodes, help, palette |
 | `--refresh-data` | Refresh the ID-mapping datasets |
 | `--update` | Download the latest release, verify its SHA-256, replace the binary |
-| `--theme adaptive\|immersive` · `--no-images` | Presentation switches |
+| `--theme adaptive\|immersive\|light\|dark` · `--no-images` | Presentation switches |

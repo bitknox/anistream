@@ -334,9 +334,48 @@ pub struct MatchCandidate {
     pub key: anistream_core::ids::ProviderKey,
     /// Title-match similarity, 0..1.
     pub similarity: f64,
-    /// Why the ladder ruled it out, when it did.
+    /// Why the ladder ruled it out, when it did: one of the `match-ruled-out-*` messages,
+    /// worded by the front end in place of the similarity.
     #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub rejected: Option<String>,
+    pub rejected: Option<crate::Msg>,
+    /// The year it started, as the source lists it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub year: Option<u16>,
+    /// How many episodes the source lists for it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub episodes: Option<u32>,
+    /// Its format, as the source lists it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub format: Option<crate::search::MediaFormat>,
+}
+
+/// What a set of [`MatchCandidate`]s answers, so a sheet waiting on a search can tell its
+/// answer from the question the ladder asks on its own, and an old search from the newest.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum MatchQuestion {
+    /// The ladder found candidates on a title's source and could not choose between them.
+    Ladder,
+    /// [`Command::ManualSearch`](crate::command::Command::ManualSearch) for these words, as
+    /// they were sent. Empty candidates mean the source found nothing.
+    Search { query: String },
+}
+
+/// Which entry on a source a title is matched to now, and how it came to be.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct CurrentMatch {
+    pub provider_id: String,
+    /// The source's name.
+    pub source: String,
+    /// The source's name for the entry, as it was when matched. `None` for a match made
+    /// before anistream kept it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title: Option<String>,
+    /// Chosen by the person, from candidates or a search, rather than by the ladder: what
+    /// [`Command::ClearMatch`](crate::command::Command::ClearMatch) would undo.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub chosen_by_you: bool,
 }
 
 #[cfg(test)]

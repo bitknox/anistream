@@ -183,43 +183,21 @@ public sealed partial class TitlePage : Page, IPageKeys
             OpenShowSettings();
         };
         KeyboardAccelerators.Add(settings);
+        // The page's own key is in the shortcuts list; a tooltip naming it over the whole page is not wanted.
+        KeyboardAcceleratorPlacementMode = KeyboardAcceleratorPlacementMode.Hidden;
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
-        trailer = new PageTrailer(this, Banner, Art, Scroll, SoundButton, () => reserved);
-        Unloaded += (_, _) =>
+        ctx.Hear(this, Heard, () =>
         {
-            ctx.Batch -= Heard;
             discussion?.Close();
-            trailer.Release();
-        };
-    }
-
-    readonly PageTrailer trailer;
-
-    /// <summary>
-    /// A trailer may play here, so the band is tall enough for it from the first frame. Decided
-    /// once the title and the engine's word on autoplay are known, and kept for the visit: the
-    /// page never moves for the trailer.
-    /// </summary>
-    bool reserved;
-
-    /// <summary>The band under the title bar for a title that may play a trailer.</summary>
-    const double TrailerBand = 280;
-
-    void Reserve()
-    {
-        if (reserved || ctx.Known.Entry(id) is not { } entry || !trailer.Wanted(entry))
-            return;
-        reserved = true;
-        Layout();
+        });
     }
 
     /// <summary>The banner's height and where the cover and title start under it.</summary>
     void Layout()
     {
-        var band = reserved ? TrailerBand : Math.Min(360, Math.Max(220, Scroll.ActualWidth * 9 / 32));
+        var band = Math.Min(360, Math.Max(220, Scroll.ActualWidth * 9 / 32));
         Banner.Height = band;
-        Columns.Padding = new Thickness(36, reserved ? band - 80 : band - 120, 36, 24);
+        Columns.Padding = new Thickness(36, band - 120, 36, 24);
     }
 
     /// <summary>The page's own layout as raised plates: banner, cover and title, then episode rows.</summary>
@@ -255,9 +233,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         ctx.Send(new Command.LoadDownloads());
         ctx.Send(new Command.LoadDub(id));
         DubLine.Opacity = 0;
-        trailer.Open(id);
         Show();
-        Reserve();
         ShowEpisodes();
         // The cover a grid sent flies in to this one; anything else crossfades.
         var flight = ConnectedAnimationService.GetForCurrentView().GetAnimation(CoverAnimation);
@@ -327,12 +303,6 @@ public sealed partial class TitlePage : Page, IPageKeys
             {
                 case Event.Detail d when d.V1.Id == id:
                     Show();
-                    Reserve();
-                    trailer.MaybeStart();
-                    break;
-                case Event.Autoplay:
-                    Reserve();
-                    trailer.MaybeStart();
                     break;
                 case Event.Progress p when p.Id == id:
                     Show();
@@ -418,6 +388,8 @@ public sealed partial class TitlePage : Page, IPageKeys
         Secondary.Text = entry.Secondary ?? "";
         Secondary.Visibility = entry.Secondary is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
         Meta.Text = Wording.MetaLine(entry);
+        Synopsis.MaxLines = 8;
+        SynopsisMore.Visibility = Visibility.Collapsed;
         Synopsis.Text = entry.Synopsis;
 
         ShowAction(entry);
@@ -435,6 +407,16 @@ public sealed partial class TitlePage : Page, IPageKeys
     /// The one amber action and what depends on it: the engine's next episode, or once the table
     /// is loaded the first after it that some source lists. With none, a line says so in its place.
     /// </summary>
+    /// <summary>More shows only where the synopsis is cut at its eight lines.</summary>
+    void OnSynopsisTrimmed(TextBlock sender, IsTextTrimmedChangedEventArgs args) =>
+        SynopsisMore.Visibility = sender.IsTextTrimmed ? Visibility.Visible : Visibility.Collapsed;
+
+    void OnSynopsisMore(object sender, RoutedEventArgs args)
+    {
+        Synopsis.MaxLines = 0;
+        SynopsisMore.Visibility = Visibility.Collapsed;
+    }
+
     void ShowAction(Entry entry)
     {
         action = PlayableNext.Item(entry, ctx.Known.Episodes.GetValueOrDefault(id), Casing.Sentence);
@@ -512,7 +494,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         Fact(T.FilterCountry, TitleFacts.Country(entry));
         Fact(T.TitleGenres, entry.Genres is { Length: > 0 } genres ? string.Join(" · ", genres.Select(Searches.GenreName)) : null);
         host.Children.Add(facts);
-        var more = new Button { Content = T.TitleMoreAbout, Height = 32, HorizontalAlignment = HorizontalAlignment.Stretch, Background = Res<Brush>("RaisedBrush") };
+        var more = new Button { Content = T.TitleMoreAbout, MinHeight = 32, HorizontalAlignment = HorizontalAlignment.Stretch, Background = Res<Brush>("RaisedBrush") };
         more.Click += (_, _) =>
         {
             if (Current() is { } now && XamlRoot is { } root)
@@ -637,7 +619,6 @@ public sealed partial class TitlePage : Page, IPageKeys
     void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
         Layout();
-        Reserve();
         if (Current() is { } entry)
             ShowDetails(entry);
     }
@@ -848,7 +829,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         void Check() => dialog.IsPrimaryButtonEnabled = from.SelectedIndex >= 0 && to.SelectedIndex >= from.SelectedIndex;
         from.SelectionChanged += (_, _) => Check();
         to.SelectionChanged += (_, _) => Check();
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        if (await Dialogs.Show(dialog) != ContentDialogResult.Primary)
             return;
         var chosen = playable[from.SelectedIndex..(to.SelectedIndex + 1)];
         ctx.Send(new Command.DownloadMany(id, chosen));

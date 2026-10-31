@@ -399,23 +399,10 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
                 WorkRing(true)
                 SheetText(stringResource(R.string.stores_checking_link))
             }
-            is StoresModel.Preview.Failed -> {
-                // The link was refused in place: the error glyph, the reason in silk, and Reject.
-                val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
-                LaunchedEffect(shown) { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.Reject) }
-                Row(
-                    Modifier.padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Problem, contentDescription = stringResource(R.string.error_label), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                    Text(
-                        if (offline) stringResource(R.string.state_offline_line) else plainReason(LocalContext.current, shown.reason),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+            // The link was refused in place: the error glyph, the reason in silk, and Reject.
+            is StoresModel.Preview.Failed -> SheetProblem(
+                if (offline) stringResource(R.string.state_offline_line) else plainReason(LocalContext.current, shown.reason),
+            )
             is StoresModel.Preview.Store -> InvitedStorePreview(shown.store)
             null -> {}
         }

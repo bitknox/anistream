@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │
   ◇  Sources                │  Playback  ────────────────────────────────────────────────────────────────────────────
   ◎  Accounts               │    Audio                       Subbed
-▌ ⚙  Settings               │    Quality                     1080p
+▌ ≡  Settings               │    Quality                     1080p
                             │    Subtitles                   eng
                             │    Counts as watched at        85%
                             │    Auto-play next              On
@@ -27,8 +27,8 @@ anistream                                                                       
                             │    Keep seeding                Off
                             │    After each download         None
                             │
-                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
+                            │
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · Subbed · 1080p                                                                             h/l change   ? keys
+plugins · Subbed · 1080p                                                                              ←→ change   ? keys

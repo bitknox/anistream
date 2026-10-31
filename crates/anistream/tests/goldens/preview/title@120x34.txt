@@ -8,10 +8,11 @@ anistream                                                                       
   ↓  Downloads              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◇  Sources                │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◎  Accounts               │
-  ⚙  Settings               │  Stardust Wayfarer
+  ≡  Settings               │  Stardust Wayfarer
                             │  Hoshikuzu no Tabibito
                             │
-                            │  TV  ·  12 episodes  ·  2024  ·  82  ·  Kujaku Animation Works
+                            │  TV  ·  12 episodes  ·  Spring 2024  ·  82%  ·  Kujaku Animation Works
+                            │  Aired 6 Apr 2024 to 22 Jun 2024
                             │
                             │  Available on Lantern Stream
                             │
@@ -23,7 +24,6 @@ anistream                                                                       
                             │  Adventure  ·  Drama  ·  Fantasy
                             │
                             │  █████░░░░░░░░░░░░░░░  3 of 12 episodes   Up next: episode 4
-                            │
                             │
                             │
                             │

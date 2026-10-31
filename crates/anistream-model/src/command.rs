@@ -388,6 +388,10 @@ pub enum Command {
     ManualSearch {
         id: AnilistId,
         query: String,
+        /// The source to search. `None` searches the sources in order and answers from the
+        /// first that replies.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        provider_id: Option<String>,
     },
     /// Forget the pinned match and cached resolution for a title, then re-resolve
     /// automatically — the undo for [`Command::FixMatch`].
@@ -475,6 +479,9 @@ pub enum Command {
         id: AnilistId,
         provider_id: String,
         key: anistream_core::ids::ProviderKey,
+        /// The source's name for the entry, kept to say what the title is matched to.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        title: Option<String>,
     },
     /// Queue an episode for offline download.
     DownloadEpisode {

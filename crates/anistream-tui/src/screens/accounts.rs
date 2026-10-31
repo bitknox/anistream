@@ -13,7 +13,7 @@ use crate::{
         Role,
         glyph::{self, OBI},
     },
-    widgets::{Hairline, truncate},
+    widgets::{Hairline, truncate, wrap},
 };
 
 use super::{
@@ -85,7 +85,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             area.left() + 12,
             y,
             truncate(&spaced, area.width.saturating_sub(13) as usize),
-            app.palette.style(Role::Obi).add_modifier(Modifier::BOLD),
+            app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
         );
         // How long the code has left, under it; once it expires, Enter on the row asks again.
         if let Some(at) = prompt.expires_at {
@@ -208,16 +208,20 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         if let Some(PullError { reason: error, at }) = &state.pull_error
             && y < area.bottom().saturating_sub(2)
         {
-            buf.set_string(
-                area.left() + 16,
-                y,
-                truncate(
-                    &pull_failed(&app.clock, *at, error),
-                    area.right().saturating_sub(area.left() + 17) as usize,
-                ),
-                app.palette.style(Role::Alert),
-            );
-            y += 1;
+            // Wrapped, two lines at most: the reason is the part worth reading, and it comes last.
+            let width = area.right().saturating_sub(area.left() + 17) as usize;
+            for text in wrap(&pull_failed(&app.clock, *at, error), width, 2) {
+                if y >= area.bottom().saturating_sub(2) {
+                    break;
+                }
+                buf.set_string(
+                    area.left() + 16,
+                    y,
+                    truncate(&text, width),
+                    app.palette.style(Role::Alert),
+                );
+                y += 1;
+            }
         }
     }
 
@@ -226,13 +230,19 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
     // per row that reads as three failures.
     if app.sync.iter().any(|s| s.storage_degraded) && y + 1 < area.bottom() {
         y += 1;
-        buf.set_string(
-            area.left() + 2,
-            y,
-            truncate(&t::accounts_token_files(), area.width.saturating_sub(4) as usize),
-            app.palette.style(Role::TextDim),
-        );
-        y += 1;
+        let width = area.width.saturating_sub(4) as usize;
+        for text in wrap(&t::accounts_token_files(), width, 2) {
+            if y >= area.bottom() {
+                break;
+            }
+            buf.set_string(
+                area.left() + 2,
+                y,
+                truncate(&text, width),
+                app.palette.style(Role::TextDim),
+            );
+            y += 1;
+        }
     }
 
     // What Enter will do to the selected row, spelled out — signing out is destructive enough that
@@ -332,20 +342,24 @@ fn code_expiry(seconds_left: i64) -> String {
 /// The config setting that lists the enabled trackers, as the config file spells it.
 pub(super) const TRACKERS_SETTING: &str = "trackers.enabled"; // i18n-skip
 
-/// Divergences the merge refused to guess at.
+/// Divergences the merge refused to guess at, two rows each: keep this device's value, or the
+/// tracker's. The second row only names the choice, so the pair reads as one difference.
 pub(super) fn conflict_rows(app: &App) -> Vec<(String, String)> {
     app.conflicts
         .iter()
-        .map(|row| {
-            (
-                t::accounts_conflict_keep_mine(),
-                t::accounts_conflict_row(
-                    &truncate(&row.title, 34),
-                    &row.field,
-                    &row.local,
-                    &row.remote,
+        .flat_map(|row| {
+            [
+                (
+                    t::accounts_conflict_keep_mine(),
+                    t::accounts_conflict_row(
+                        &truncate(&row.title, 34),
+                        &row.field,
+                        &row.local,
+                        &row.remote,
+                    ),
                 ),
-            )
+                (t::accounts_conflict_keep_theirs(), String::new()),
+            ]
         })
         .collect()
 }
@@ -461,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn the_device_code_uses_the_accent_role_not_the_dim_one() {
+    fn the_device_code_is_drawn_bold_in_the_text_role_not_the_dim_one() {
         // The specific defect: it was rendered in `TextDim`, the least visible role there is, for
         // the one string in the app a user has to transcribe by hand.
         let mut app = app_with(ContentList::Empty);
@@ -476,14 +490,17 @@ mod tests {
         )));
         let buf = render_to_buffer(&mut app, 110, 20);
 
-        let obi = app.palette.style(Role::Obi).fg;
+        // Bold text rather than amber, which is the obi's alone.
+        let text = app.palette.style(Role::Text).fg;
         let found = (0..20).any(|y| {
             (0..110).any(|x| {
                 let cell = &buf[(x, y)];
-                cell.symbol() == "F" && cell.style().fg == obi
+                cell.symbol() == "F"
+                    && cell.style().fg == text
+                    && cell.style().add_modifier.contains(Modifier::BOLD)
             })
         });
-        assert!(found, "the code should be drawn in the accent role");
+        assert!(found, "the code should be drawn bold in the text role");
     }
 
     #[test]

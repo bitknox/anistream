@@ -201,6 +201,12 @@ impl App {
         self.pulse = self.pulse.wrapping_add(1);
     }
 
+    /// The frame the pulses and the skeleton's shimmer draw: the tick count, or with motion off
+    /// the first frame for good. The count itself keeps going, since notices are stamped by it.
+    pub fn pulse_frame(&self) -> u64 {
+        if self.settings.motion { self.pulse } else { 0 }
+    }
+
     /// Start a [`Job`] for `task`, numbered here, if it is work the user will wait on.
     ///
     /// For a still frame or a test that stages one. The running app's jobs are numbered where
@@ -223,9 +229,10 @@ impl App {
         self.jobs.push(Job { id, label, started: self.clock.now_instant(), note: None });
     }
 
-    /// What a job is held up on, and until when.
+    /// What a job is held up on, and until when: never more than [`LONGEST_HOLD`] from now,
+    /// whatever the server asked for.
     pub(super) fn apply_job_note(&mut self, job: JobId, note: String, wait: Option<Duration>) {
-        let until = wait.map(|wait| self.clock.now_instant() + wait);
+        let until = wait.map(|wait| self.clock.now_instant() + wait.min(LONGEST_HOLD));
         if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
             job.note = Some((note, until));
         }
@@ -241,6 +248,9 @@ impl App {
             .collect()
     }
 }
+
+/// The longest wait a job's note counts down from, as the rate limiter's own reset is capped.
+const LONGEST_HOLD: Duration = Duration::from_secs(3600);
 
 /// Something the user started and is waiting on, shown in the activity row until it ends.
 ///
@@ -409,6 +419,27 @@ mod tests {
         assert!(a.jobs[0].note.is_some());
         a.apply(Event::JobDone(id));
         assert!(a.jobs.is_empty());
+    }
+
+    /// The wait comes from a server's Retry-After, by way of the engine. However long it says,
+    /// the deadline is a time this clock can hold, and no more than an hour away, as the rate
+    /// limiter's own reset is.
+    #[test]
+    fn a_job_held_for_ever_is_held_for_an_hour_at_most() {
+        let mut a = app();
+        let id = a.begin_job(&Command::CheckProviders).unwrap();
+        for wait in [Duration::MAX, Duration::from_secs(u64::MAX), Duration::from_secs(86_400)]
+        {
+            a.apply(Event::JobNote {
+                job: id,
+                note: anistream_model::Msg::verbatim("AniList limit"),
+                wait: Some(wait),
+            });
+            let until =
+                a.jobs[0].note.as_ref().and_then(|(_, until)| *until).expect("a deadline");
+            let held = until.saturating_duration_since(a.clock.now_instant());
+            assert!(held <= Duration::from_secs(3600), "held {held:?} for a wait of {wait:?}");
+        }
     }
 
     #[test]

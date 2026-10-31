@@ -290,13 +290,13 @@ pub(crate) fn dispatch(
             engine.names.forget(id);
             spawn(job, services, tx, move |lent| clear_match(lent, id))
         }
-        Command::FixMatch { id, provider_id, key } => {
+        Command::FixMatch { id, provider_id, key, title } => {
             engine.dubs.forget(id);
             engine.names.forget(id);
-            spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
+            spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key, title))
         }
-        Command::ManualSearch { id, query } => {
-            manual_search(id, query, job, engine, services, tx)
+        Command::ManualSearch { id, query, provider_id } => {
+            manual_search(id, query, provider_id, job, engine, services, tx)
         }
         Command::SetProviderPreference { id, provider } => {
             engine.dubs.forget(id);

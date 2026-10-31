@@ -480,6 +480,11 @@ async fn a_binge_tells_the_player_what_the_golden_says() {
 /// The last of the front end's controls, which the stand-in waits to see before the file plays.
 const DONE: &str = "that was every control";
 
+/// The session choosing the subtitle track, which it does once the file has loaded.
+fn subtitles_picked(command: &Value) -> bool {
+    command[0] == "set_property" && command[1] == "sid"
+}
+
 fn controls_done(command: &Value) -> bool {
     command[0] == "script-message-to"
         && command[2] == "toast"
@@ -501,14 +506,13 @@ async fn the_viewers_controls_tell_the_player_what_the_golden_says() {
             ),
         ],
     };
-    // Chapters are not marked here, so the file plays once the controls have all been told.
+    // The controls are sent once the file has loaded, which the session shows by picking its
+    // subtitles: a seek before then was aimed at something else and goes nowhere. Chapters are
+    // not marked here, so the file plays once the controls have all been told.
     let steps = vec![
-        Step { when: loadfile, then: Vec::new(), signal: true },
-        Step {
-            when: controls_done,
-            then: [opening(&first), playing(&first)].concat(),
-            signal: false,
-        },
+        Step { when: loadfile, then: opening(&first), signal: false },
+        Step { when: subtitles_picked, then: Vec::new(), signal: true },
+        Step { when: controls_done, then: playing(&first), signal: false },
     ];
     let mut stage = Stage::new(steps);
 

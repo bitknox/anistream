@@ -234,6 +234,21 @@ public static partial class T
     /// <summary>Toast when a search of the sources for a title found nothing.</summary>
     public static string NoticeSourceSearchEmpty(string query) => Fill(Get("NoticeSourceSearchEmpty"), ("query", query));
 
+    /// <summary>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.</summary>
+    public static string MatchRuledOutFormat => Get("MatchRuledOutFormat");
+
+    /// <summary>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.</summary>
+    public static string MatchRuledOutEpisodes => Get("MatchRuledOutEpisodes");
+
+    /// <summary>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.</summary>
+    public static string MatchRuledOutYear => Get("MatchRuledOutYear");
+
+    /// <summary>Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.</summary>
+    public static string MatchSearchTimedOut => Get("MatchSearchTimedOut");
+
+    /// <summary>Why a search of a source for a show's match failed: the source isn't installed or switched on.</summary>
+    public static string MatchSearchSourceOff => Get("MatchSearchSourceOff");
+
     /// <summary>Toast after the person picked a source for one title.</summary>
     public static string NoticeSourcePinned(string source) => Fill(Get("NoticeSourcePinned"), ("source", source));
 
@@ -696,6 +711,9 @@ public static partial class T
     /// <summary>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</summary>
     public static string StartFailedConfig(string path, string problem) => Fill(Get("StartFailedConfig"), ("path", path), ("problem", problem));
 
+    /// <summary>Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.</summary>
+    public static string ConfigResetFailed(string path, string reason) => Fill(Get("ConfigResetFailed"), ("path", path), ("reason", reason));
+
     /// <summary>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</summary>
     public static string StartFailedDatabase(string path, string reason) => Fill(Get("StartFailedDatabase"), ("path", path), ("reason", reason));
 
@@ -1112,6 +1130,18 @@ public static partial class T
 
     /// <summary>Shortcut in the player.</summary>
     public static string ShortcutsClosePlayer => Get("ShortcutsClosePlayer");
+
+    /// <summary>Notice when Windows wouldn't let the app put text on the clipboard, usually because another app holds it.</summary>
+    public static string ClipboardBusy => Get("ClipboardBusy");
+
+    /// <summary>Title of the window shown instead of the app when the engine could not start. The engine's reason, with what to do, follows.</summary>
+    public static string StartFailedTitle => Get("StartFailedTitle");
+
+    /// <summary>Button in that window: opens the folder that holds the settings and the database, in File Explorer.</summary>
+    public static string StartFailedOpenFolder => Get("StartFailedOpenFolder");
+
+    /// <summary>Button in that window: closes it and the app.</summary>
+    public static string StartFailedQuit => Get("StartFailedQuit");
 
     /// <summary>Under the TV picker's title: the episode about to play on the TV, with its show's title.</summary>
     public static string TvPickerEpisodeOf(string title, string episode) => Fill(Get("TvPickerEpisodeOf"), ("title", title), ("episode", episode));
@@ -3261,6 +3291,9 @@ public static partial class T
     /// <summary>Title of the filters sheet and panel.</summary>
     public static string FiltersTitle => Get("FiltersTitle");
 
+    /// <summary>Accessible label and tooltip of the button that closes the filters panel.</summary>
+    public static string FiltersClose => Get("FiltersClose");
+
     /// <summary>Button that opens the filters, with how many are on.</summary>
     public static string FiltersButtonCount(long count) => Fill(Get("FiltersButtonCount"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
@@ -3480,7 +3513,7 @@ public static partial class T
     /// <summary>Value of the trailers setting: trailers play by themselves only on Wi-Fi.</summary>
     public static string SettingsValueTrailersWifiOnly => Get("SettingsValueTrailersWifiOnly");
 
-    /// <summary>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</summary>
+    /// <summary>Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.</summary>
     public static string SettingsLabelTrailers => Get("SettingsLabelTrailers");
 
     /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>
@@ -3768,6 +3801,12 @@ public static partial class T
     /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
     public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
 
+    /// <summary>Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.</summary>
+    public static string SettingsLabelHoverCards => Get("SettingsLabelHoverCards");
+
+    /// <summary>Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.</summary>
+    public static string SettingsHoverCardsNote => Get("SettingsHoverCardsNote");
+
     /// <summary>Preview note under the upscaling frame for the natural look.</summary>
     public static string SettingsUpscalingNoteNatural => Get("SettingsUpscalingNoteNatural");
 
@@ -3812,6 +3851,18 @@ public static partial class T
 
     /// <summary>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</summary>
     public static string SettingsTrailersWifiOnly => Get("SettingsTrailersWifiOnly");
+
+    /// <summary>Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.</summary>
+    public static string SettingsReset => Get("SettingsReset");
+
+    /// <summary>Title of the confirmation for resetting the settings.</summary>
+    public static string SettingsResetTitle => Get("SettingsResetTitle");
+
+    /// <summary>Line under it. The old settings file is moved aside, not deleted.</summary>
+    public static string SettingsResetDetail => Get("SettingsResetDetail");
+
+    /// <summary>Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.</summary>
+    public static string SettingsResetDone(string file) => Fill(Get("SettingsResetDone"), ("file", file));
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -4010,6 +4061,75 @@ public static partial class T
 
     /// <summary>Value of a plugin's response time, in milliseconds.</summary>
     public static string SourcesResponseMs(long ms) => Fill(Get("SourcesResponseMs"), ("ms", ms.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Menu, palette and source picker entry that opens the sheet.</summary>
+    public static string MatchFix => Get("MatchFix");
+
+    /// <summary>The title page's main action while the source couldn't choose, and the sheet's title.</summary>
+    public static string MatchChoose => Get("MatchChoose");
+
+    /// <summary>The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.</summary>
+    public static string MatchUncertain(long count, string source) => Fill(GetPlural("MatchUncertain", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("source", source));
+
+    /// <summary>The line on a title page when the source listed no title that fits, so the person searches.</summary>
+    public static string MatchUncertainNone(string source) => Fill(Get("MatchUncertainNone"), ("source", source));
+
+    /// <summary>The last row of the source picker, which opens the match sheet.</summary>
+    public static string MatchSourcePickerRow => Get("MatchSourcePickerRow");
+
+    /// <summary>Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".</summary>
+    public static string MatchAnilistFacts(string facts) => Fill(Get("MatchAnilistFacts"), ("facts", facts));
+
+    /// <summary>Heading over the titles a source offers.</summary>
+    public static string MatchSectionSource(string source) => Fill(Get("MatchSectionSource"), ("source", source));
+
+    /// <summary>Heading over the title the show is matched to now.</summary>
+    public static string MatchNow => Get("MatchNow");
+
+    /// <summary>Beside the title matched now: the person chose it.</summary>
+    public static string MatchChosenByYou => Get("MatchChosenByYou");
+
+    /// <summary>Beside the title matched now: anistream chose it.</summary>
+    public static string MatchChosenAutomatically => Get("MatchChosenAutomatically");
+
+    /// <summary>How closely a source's title matches the show, at the end of its row.</summary>
+    public static string MatchSimilarity(string similarity) => Fill(Get("MatchSimilarity"), ("similarity", similarity));
+
+    /// <summary>Placeholder of the search field in the sheet.</summary>
+    public static string MatchSearchField(string source) => Fill(Get("MatchSearchField"), ("source", source));
+
+    /// <summary>While a search of the source runs.</summary>
+    public static string MatchSearching(string source, string query) => Fill(Get("MatchSearching"), ("source", source), ("query", query));
+
+    /// <summary>A search of the source that found nothing.</summary>
+    public static string MatchSearchEmpty(string source, string query) => Fill(Get("MatchSearchEmpty"), ("source", source), ("query", query));
+
+    /// <summary>Under match-search-empty: what to try.</summary>
+    public static string MatchSearchEmptyHint => Get("MatchSearchEmptyHint");
+
+    /// <summary>A search of the source that failed. The reason follows on its own line.</summary>
+    public static string MatchSearchFailed(string source) => Fill(Get("MatchSearchFailed"), ("source", source));
+
+    /// <summary>On the row picked, while the source lists its episodes.</summary>
+    public static string MatchPicking => Get("MatchPicking");
+
+    /// <summary>A pick that failed. The reason follows on its own line.</summary>
+    public static string MatchFixFailed => Get("MatchFixFailed");
+
+    /// <summary>Notice once a picked title's episodes arrive.</summary>
+    public static string MatchPicked(string title, string source) => Fill(Get("MatchPicked"), ("title", title), ("source", source));
+
+    /// <summary>Button that forgets the person's choice, shown only while the match is one they chose.</summary>
+    public static string MatchAutomatic => Get("MatchAutomatic");
+
+    /// <summary>Under "Match automatically", on iPhone, iPad and Android.</summary>
+    public static string MatchAutomaticDetail => Get("MatchAutomaticDetail");
+
+    /// <summary>Notice after "Match automatically".</summary>
+    public static string MatchCleared => Get("MatchCleared");
+
+    /// <summary>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</summary>
+    public static string MatchRowLabel(string title, string facts, string closeness) => Fill(Get("MatchRowLabel"), ("title", title), ("facts", facts), ("closeness", closeness));
 
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
@@ -4980,6 +5100,9 @@ public static partial class T
     /// <summary>Button label while the sign-in runs.</summary>
     public static string AccountsSigningInAction => Get("AccountsSigningInAction");
 
+    /// <summary>Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.</summary>
+    public static string AccountsCredentialsRefused(string tracker) => Fill(Get("AccountsCredentialsRefused"), ("tracker", tracker));
+
     /// <summary>Line under the title: what to do.</summary>
     public static string AccountsCodeDetail(string host) => Fill(Get("AccountsCodeDetail"), ("host", host));
 
@@ -5514,6 +5637,11 @@ public static partial class T
         ["NoticeMatchSaveFailed"] = "Couldn't save that match. {reason}",
         ["NoticeMatchDidNotStick"] = "That match didn't stick. The source may have changed. Try choosing it again.",
         ["NoticeSourceSearchEmpty"] = "Nothing found for “{query}”. Try a different search.",
+        ["MatchRuledOutFormat"] = "Different format",
+        ["MatchRuledOutEpisodes"] = "More episodes than this title",
+        ["MatchRuledOutYear"] = "Different year",
+        ["MatchSearchTimedOut"] = "It didn't answer in time.",
+        ["MatchSearchSourceOff"] = "It isn't switched on.",
         ["NoticeSourcePinned"] = "{source} will be used for this title.",
         ["NoticeSourceAutomatic"] = "Back to automatic source selection.",
         ["NoticeSourceChoiceFailed"] = "Couldn't save that choice. {reason}",
@@ -5676,6 +5804,7 @@ public static partial class T
         ["NoticeDatabaseSetAside"] = "The database was damaged, so anistream started a new one. The old file is kept at {path}. Your trackers bring back what they hold at the next sync.",
         ["StartFailedFolder"] = "anistream couldn't create the folder {path}. Check that the disk has room and the folder can be written to, then try again. {reason}",
         ["StartFailedConfig"] = "{path} has a setting anistream can't use: {problem}. Fix or remove it, then try again.",
+        ["ConfigResetFailed"] = "anistream couldn't move {path} aside to reset the settings. {reason}",
         ["StartFailedDatabase"] = "anistream couldn't open its database at {path}. If another anistream app is open on this folder, quit it and try again. {reason}",
         ["StartFailedNetwork"] = "anistream couldn't set up its network connection from the network settings in config.toml. {reason}",
         ["StartFailed"] = "anistream couldn't start. Quit and open it again. {reason}",
@@ -5821,6 +5950,10 @@ public static partial class T
         ["ShortcutsSpeedReset"] = "Slower, faster, normal speed",
         ["ShortcutsCornerCard"] = "Take the corner card's action",
         ["ShortcutsClosePlayer"] = "Close the player",
+        ["ClipboardBusy"] = "Couldn't copy: another app is using the clipboard. Try again in a moment.",
+        ["StartFailedTitle"] = "anistream couldn't start",
+        ["StartFailedOpenFolder"] = "Open the folder",
+        ["StartFailedQuit"] = "Quit",
         ["TvPickerEpisodeOf"] = "{title}, episode {episode}",
         ["EpisodeLabel"] = "Episode {episode}",
         ["EpisodeLabelOf"] = "Episode {episode} of {title}",
@@ -6550,6 +6683,7 @@ public static partial class T
         ["SearchGenres"] = "Genres",
         ["SearchLoadingMore"] = "Loading more titles",
         ["FiltersTitle"] = "Filters",
+        ["FiltersClose"] = "Close filters",
         ["FiltersButtonCount"] = "All filters · {count}",
         ["FiltersButton"] = "All filters",
         ["FilterGenre"] = "Genre",
@@ -6721,6 +6855,8 @@ public static partial class T
         ["SettingsQualityStandard"] = "Standard",
         ["SettingsUploadUnlimited"] = "Unlimited",
         ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
+        ["SettingsLabelHoverCards"] = "Expand covers on hover",
+        ["SettingsHoverCardsNote"] = "Shows a larger card with the trailer when you rest the pointer on a cover.",
         ["SettingsUpscalingNoteNatural"] = "Faithful line work and texture, nothing restyled.",
         ["SettingsUpscalingNoteSharp"] = "Crisper lines and stronger edges, at some cost to texture.",
         ["SettingsAfterDownload"] = "After each download",
@@ -6736,6 +6872,10 @@ public static partial class T
         ["WidgetLineStart"] = "Play {episode}",
         ["SettingsTrailersAlways"] = "Always",
         ["SettingsTrailersWifiOnly"] = "Wi-Fi only",
+        ["SettingsReset"] = "Reset settings",
+        ["SettingsResetTitle"] = "Reset settings?",
+        ["SettingsResetDetail"] = "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.",
+        ["SettingsResetDone"] = "Settings are back to their defaults. The old file is kept as {file}.",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -6805,6 +6945,30 @@ public static partial class T
         ["SourcesTorrentsNote"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.",
         ["SourcesRebuilding"] = "Sources are being set up again",
         ["SourcesResponseMs"] = "{ms} ms",
+        ["MatchFix"] = "Fix this match",
+        ["MatchChoose"] = "Choose the match",
+        ["MatchUncertain_one"] = "{source} lists a title that could be this one. Choose it to play its episodes.",
+        ["MatchUncertain_other"] = "{source} lists {count} titles that could be this one. Choose one to play its episodes.",
+        ["MatchUncertainNone"] = "{source} has no title that fits this one. Choose one anyway, or search.",
+        ["MatchSourcePickerRow"] = "Wrong title? Fix this match",
+        ["MatchAnilistFacts"] = "On AniList: {facts}",
+        ["MatchSectionSource"] = "On {source}",
+        ["MatchNow"] = "Matched now",
+        ["MatchChosenByYou"] = "Chosen by you",
+        ["MatchChosenAutomatically"] = "Chosen automatically",
+        ["MatchSimilarity"] = "{similarity} match",
+        ["MatchSearchField"] = "Search {source}",
+        ["MatchSearching"] = "Searching {source} for “{query}”",
+        ["MatchSearchEmpty"] = "Nothing on {source} for “{query}”.",
+        ["MatchSearchEmptyHint"] = "Try fewer words, or the title in another language.",
+        ["MatchSearchFailed"] = "Couldn't search {source}.",
+        ["MatchPicking"] = "Matching",
+        ["MatchFixFailed"] = "Couldn't use that match.",
+        ["MatchPicked"] = "Matched to {title} on {source}.",
+        ["MatchAutomatic"] = "Match automatically",
+        ["MatchAutomaticDetail"] = "Forget your choice and let anistream match this title again.",
+        ["MatchCleared"] = "Matching automatically again.",
+        ["MatchRowLabel"] = "{title}, {facts}, {closeness}",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",
@@ -7093,7 +7257,7 @@ public static partial class T
         ["AccountsOtherTrackersNote"] = "Other trackers are in Accounts.",
         ["AccountsWelcomeDetail"] = "Sign in to {tracker} to sync your list and where you stopped.",
         ["AccountsBringsLists"] = "Brings in your lists and fills Continue with what you are watching.",
-        ["AccountsLibraryNeeds"] = "Library and sync need a {tracker} account",
+        ["AccountsLibraryNeeds"] = "Library and sync need your {tracker} account",
         ["AccountsLibraryFrom"] = "Library shows your lists from {tracker}.",
         ["AccountsListsComeFrom"] = "Your lists come from {tracker}.",
         ["AccountsStatusEmpty"] = "Titles you set to this status on {tracker} show here.",
@@ -7133,6 +7297,7 @@ public static partial class T
         ["AccountsUserOrEmail"] = "Email or user name",
         ["AccountsPassword"] = "Password",
         ["AccountsSigningInAction"] = "Signing in",
+        ["AccountsCredentialsRefused"] = "{tracker} didn't accept that user name and password. Check them and try again.",
         ["AccountsCodeDetail"] = "Go to {host} and enter this code. anistream signs in once you have.",
         ["AccountsCodeLabel"] = "Code {code}",
         ["AccountsCodeWaiting"] = "Waiting for {tracker}",

@@ -47,12 +47,14 @@ Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`, `webs
 
 - Work on a branch in your own worktree from `origin/main`; don't edit the primary checkout
   unless asked. Use your own cargo target dir and delete it when done.
-- Ready branches are merged into a merge train (one PR, one CI run); see `merge-train`.
+- Ready branches are merged into a merge train (one PR, one CI run); see `merge-train`. Every
+  train waits for Johan to try local Mac and Android builds of it before it merges.
 - main requires the `CI passed` check. `gh pr merge --auto --merge` only after confirming that
   protection; never `gh pr merge` without `--auto`.
-- Every push to main publishes a release by itself (version from `packaging/next-version.sh`),
-  except pushes that only touch `website/**`, `docs/**`, top-level `*.md`, `**/CLAUDE.md` or
-  `.claude/**`. After a merge, confirm the Release run actually published.
+- Every push to main publishes a release by itself. The merge train sets the version in
+  `Cargo.toml` (minor if it merges a feat/* branch, else patch; `packaging/next-version.sh`
+  and a PR check enforce it), except pushes that only touch `website/**`, `docs/**`, top-level
+  `*.md`, `**/CLAUDE.md` or `.claude/**`. After a merge, confirm the Release run actually published.
 - Always compile and run the touched area's tests locally before pushing (`local-checks`).
 
 ## Keeping token use down

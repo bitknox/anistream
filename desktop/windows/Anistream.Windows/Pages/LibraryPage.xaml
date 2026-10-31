@@ -23,7 +23,7 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <SelectorBar x:Name="Lists" SelectionChanged="OnListChanged" Margin="-8,0,0,0" />
-      <DropDownButton x:Name="OrderButton" Grid.Column="1" Content="{x:Bind s:T.LibrarySortUpdated}" Height="32">
+      <DropDownButton x:Name="OrderButton" Grid.Column="1" Content="{x:Bind s:T.LibrarySortUpdated}" MinHeight="32">
         <DropDownButton.Flyout>
           <MenuFlyout Placement="BottomEdgeAlignedRight">
             <RadioMenuFlyoutItem Text="{x:Bind s:T.LibrarySortUpdated}" GroupName="order" Tag="updated" IsChecked="True" Click="OnOrder" />

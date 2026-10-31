@@ -168,3 +168,19 @@ shortcuts-corner-card = Take the corner card's action
 # Shortcut in the player.
 # @only windows
 shortcuts-close-player = Close the player
+
+# Notice when Windows wouldn't let the app put text on the clipboard, usually because another app holds it.
+# @only windows
+clipboard-busy = Couldn't copy: another app is using the clipboard. Try again in a moment.
+
+# Title of the window shown instead of the app when the engine could not start. The engine's reason, with what to do, follows.
+# @only windows
+start-failed-title = { -app-name } couldn't start
+
+# Button in that window: opens the folder that holds the settings and the database, in File Explorer.
+# @only windows
+start-failed-open-folder = Open the folder
+
+# Button in that window: closes it and the app.
+# @only windows
+start-failed-quit = Quit

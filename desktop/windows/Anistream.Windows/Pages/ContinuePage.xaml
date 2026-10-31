@@ -161,7 +161,7 @@
             <TextBlock Text="{x:Bind s:T.ContinueAiringToday}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
                        AutomationProperties.HeadingLevel="Level2" />
             <Button HorizontalAlignment="Right" Style="{StaticResource DefaultButtonStyle}" Background="Transparent" BorderThickness="0"
-                    Height="32" Padding="12,0" Click="OnWelcomeCalendar" AutomationProperties.Name="{x:Bind s:T.NavCalendar}">
+                    MinHeight="32" Padding="12,0" Click="OnWelcomeCalendar" AutomationProperties.Name="{x:Bind s:T.NavCalendar}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="{x:Bind s:T.NavCalendar}" />
                 <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -196,7 +196,7 @@
             <TextBlock Text="{x:Bind s:T.ContinueThisSeason}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
                        AutomationProperties.HeadingLevel="Level2" />
             <Button HorizontalAlignment="Right" Style="{StaticResource DefaultButtonStyle}" Background="Transparent" BorderThickness="0"
-                    Height="32" Padding="12,0" Click="OnWelcomeSeasonal" AutomationProperties.Name="{x:Bind s:T.NavSeasonal}">
+                    MinHeight="32" Padding="12,0" Click="OnWelcomeSeasonal" AutomationProperties.Name="{x:Bind s:T.NavSeasonal}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="{x:Bind s:T.NavSeasonal}" />
                 <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />

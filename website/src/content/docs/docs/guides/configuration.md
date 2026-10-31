@@ -33,8 +33,10 @@ order = ["torrent", "plugins"]    # tried in order; failover walks the list
 ## Theme
 
 `adaptive` reads your terminal's background over OSC 11 and sits beside your other tools.
-`immersive` paints its own dusk-indigo ground. Set `motion = false` to turn off the eyecatch wipe,
-which is the app's only orchestrated animation.
+`immersive` paints its own dusk-indigo ground. `light` and `dark` keep your terminal's background
+and use the colours made for that kind of ground, for a terminal that does not answer the
+background query. Set `motion = false` to turn off the eyecatch wipe, which is the app's only
+orchestrated animation, and hold the loading pulses still.
 
 ## Watched versus resumable
 

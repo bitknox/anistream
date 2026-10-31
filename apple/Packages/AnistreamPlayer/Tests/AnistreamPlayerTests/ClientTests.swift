@@ -87,6 +87,22 @@ extension PlayerTests {
             await client.shutdown()
         }
 
+        /// Each load answers with the playlist entry it made, and that file's start-file names it:
+        /// what the player matches a start to its playback by.
+        @Test func aLoadAnswersWithTheEntryItsStartNames() async throws {
+            let (client, _) = try await startedClient()
+            var entries: [Int64] = []
+            for _ in 1...2 {
+                let events = client.events()
+                let entry = try #require(try await client.load(try Media.path("testsrc.mkv")))
+                let started = await first(events) { if case .startFile = $0 { true } else { false } }
+                #expect(started == .startFile(entry: entry))
+                entries.append(entry)
+            }
+            #expect(entries[1] > entries[0], "a new entry for each load")
+            await client.shutdown()
+        }
+
         @Test func carriesMpvsLogLines() async throws {
             let (client, _) = try await startedClient { $0.logLevel = "error" }
             let recorder = LogRecorder(client)

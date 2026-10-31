@@ -82,10 +82,10 @@ struct ArtworkView: View {
 }
 
 /// A small card's wide art, in a grid that needs every card's frame, as Calendar's and This
-/// Season's are: the banner, else a seen still when the title's episodes are here already (see
-/// `HeroArt`; a calendar asks for no episodes). Else the cover at its own aspect against the
-/// leading edge of a plate in its colour: a portrait cover stretched across a banner's frame is
-/// never the answer. The heroes drop the frame instead, with `HeroArt`.
+/// Season's are: the banner, else the still of an episode already watched when the title's
+/// episodes are here already (a calendar asks for no episodes), never one not yet seen, so never
+/// the episode a Calendar tile is about. Else the cover filling the frame (`CoverFill`): cropped
+/// around its focus, or blurred behind itself where it is too small to crop.
 struct BannerArt: View {
     @Environment(AppStore.self) private var store
     @Environment(\.displayScale) private var scale
@@ -95,7 +95,7 @@ struct BannerArt: View {
         GeometryReader { proxy in
             let size = proxy.size
             let wide = entry.bannerUrl ?? store.titles.episodes[entry.id].flatMap {
-                HeroArt.seenStill($0, done: entry.progress?.done ?? 0)
+                HeroArt.watchedStill($0, done: entry.progress?.done ?? 0)
             }
             if let wide {
                 ArtworkView(
@@ -103,19 +103,7 @@ struct BannerArt: View {
                     maxPixelSize: Int(max(size.width, size.height) * scale)
                 )
             } else {
-                let inset = (size.height * 0.06).rounded()
-                let height = max(size.height - inset * 2, 0)
-                let width = (height * 2 / 3).rounded()
-                ZStack(alignment: .leading) {
-                    CoverPlate(color: entry.plateColor)
-                    ArtworkView(
-                        url: entry.coverUrl, color: entry.plateColor,
-                        maxPixelSize: Int(height * scale)
-                    )
-                    .frame(width: width, height: height)
-                    .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
-                    .padding(.leading, inset)
-                }
+                CoverFill(entry: entry)
             }
         }
     }

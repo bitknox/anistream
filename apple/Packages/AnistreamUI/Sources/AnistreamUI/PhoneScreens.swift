@@ -250,7 +250,9 @@ struct PhoneHero: View {
                         Image(systemName: "play.fill").font(.ui(12))
                         Text(item.action)
                     }
-                    .fixedSize(horizontal: !stacked, vertical: false)
+                    // The list's row would otherwise hold the label to one line at the
+                    // accessibility sizes.
+                    .fixedSize(horizontal: !stacked, vertical: true)
                     .frame(maxWidth: stacked ? .infinity : nil)
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
@@ -274,6 +276,7 @@ struct PhoneHero: View {
             Text(item.episodeLine(store.titles))
                 .font(.ui(15))
                 .foregroundStyle(.haze)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .accessibilityAddTraits(.isButton)
@@ -386,122 +389,6 @@ struct PhoneNewRow: View {
 }
 
 // MARK: - Calendar
-
-/// The calendar a day at a time: the week as a strip of days, then the chosen day and the rest of
-/// the week as lists.
-struct PhoneCalendar: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
-    @State private var chosen = Calendar.current.startOfDay(for: .now)
-    @Namespace private var rotor
-
-    var body: some View {
-        @Bindable var navigator = navigator
-        let days = weekDays(offset: navigator.calendarWeek)
-        let broadcasts = store.broadcasts(mine: navigator.calendarMine)
-        let now = Date.now
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 0) {
-                    ForEach(days, id: \.self) { day in
-                        dayButton(day, now: now, broadcasts: broadcasts)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                // Seven to a row: no larger than `.xxxLarge`, as controls are.
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .padding(.vertical, 8)
-                ListStates(
-                    state: store.calendar.list.state,
-                    placeholder: AnyView(PhoneCalendarPlaceholder()),
-                    activity: "loading the calendar", // the engine job this list waits on
-                    failure: L.calendarLoadFailed,
-                    retry: { store.loadCalendar() }
-                ) { _ in
-                    VStack(alignment: .leading, spacing: 20) {
-                        ForEach(days.filter { $0 >= chosen }, id: \.self) { day in
-                            let today = broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) }
-                            VStack(alignment: .leading, spacing: 0) {
-                                PhoneHeading(dayHeading(day))
-                                    .accessibilityRotorEntry(id: day, in: rotor)
-                                if today.isEmpty {
-                                    Text(L.calendarEmptyTitle)
-                                        .font(.ui(15))
-                                        .foregroundStyle(.haze)
-                                        .padding(.top, 4)
-                                }
-                                ForEach(today) { broadcast in
-                                    PhoneBroadcastRow(broadcast: broadcast, now: now)
-                                    if broadcast.id != today.last?.id {
-                                        Rectangle().fill(.faintRule).frame(height: 1).padding(.leading, 66)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.top, 8)
-                } empty: {
-                    QuietLine(L.calendarEmptyTitle)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-        }
-        .daysRotor(days.filter { $0 >= chosen }, broadcasts: broadcasts, in: rotor)
-        .pullToRefresh(store, .calendar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Picker(L.filterShow, selection: $navigator.calendarMine) {
-                    Text(L.calendarFilterMine).tag(true)
-                    Text(L.calendarFilterAll).tag(false)
-                }
-                .pickerStyle(.segmented)
-                .fixedSize()
-            }
-        }
-        .task { if store.calendar.list.state == .idle { store.loadCalendar() } }
-        .onAppear {
-            // The day the launch route names, once.
-            guard navigator.calendarOpensOn != 0 else { return }
-            let today = Calendar.current.startOfDay(for: .now)
-            chosen = Calendar.current.date(byAdding: .day, value: navigator.calendarOpensOn, to: today) ?? today
-            navigator.calendarOpensOn = 0
-        }
-    }
-
-    private func dayHeading(_ day: Date) -> String {
-        if Calendar.current.isDateInToday(day) { return L.dayToday }
-        if Calendar.current.isDateInTomorrow(day) { return L.dayTomorrow }
-        return CalendarWords.weekday(day)
-    }
-
-    private func dayButton(_ day: Date, now: Date, broadcasts: [Broadcast]) -> some View {
-        let selected = Calendar.current.isDate(day, inSameDayAs: chosen)
-        let today = Calendar.current.isDateInToday(day)
-        let fresh = broadcasts.contains { Calendar.current.isDate($0.airs, inSameDayAs: day) && !$0.watched }
-        return Button {
-            withAnimation(.quick) { chosen = Calendar.current.startOfDay(for: day) }
-        } label: {
-            VStack(spacing: 4) {
-                Text(CalendarWords.shortWeekday(day))
-                    .font(.ui(11, weight: selected || today ? .semibold : .medium))
-                    .foregroundStyle(selected ? .amber : .haze)
-                Text(CalendarWords.dayNumber(day))
-                    .font(.ui(17, weight: selected ? .semibold : .regular))
-                    .foregroundStyle(selected ? .amber : .silk)
-                Circle().fill(fresh ? Palette.water : .clear).frame(width: 5, height: 5)
-            }
-            .frame(width: 44)
-            .frame(minHeight: 64)
-            .background(selected ? Palette.selection : .clear, in: .capsule)
-            .contentShape(.capsule)
-        }
-        .buttonStyle(.plain)
-        .pointerHover()
-        .accessibilityLabel("\(CalendarWords.weekday(day)) \(CalendarWords.dayMonth(day))")
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
 
 /// The day while the calendar loads, past 600 ms: rows as they will stand, static and redacted.
 struct PhoneCalendarPlaceholder: View {

@@ -23,8 +23,7 @@ public sealed partial class ProvidersPage : Page
     public ProvidersPage()
     {
         InitializeComponent();
-        ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        ctx.Hear(this, Heard);
         Order.KeyDown += OnOrderKey;
     }
 
@@ -198,7 +197,7 @@ public sealed partial class ProvidersPage : Page
                 CloseButtonText = T.ActionCancel,
                 DefaultButton = ContentDialogButton.Close,
             };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            if (await Dialogs.Show(dialog) != ContentDialogResult.Primary)
                 return;
         }
         ctx.Send(new Command.InstallPlugin(store, plugin));
@@ -228,7 +227,7 @@ public sealed partial class ProvidersPage : Page
             CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Close,
         };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await Dialogs.Show(dialog) == ContentDialogResult.Primary)
             ctx.Send(new Command.RemovePlugin(info.Row.Id));
     }
 

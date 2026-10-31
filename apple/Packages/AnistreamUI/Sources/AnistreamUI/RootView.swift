@@ -13,11 +13,24 @@ public struct RootView: View {
 
     public init() {}
 
+    /// A start that failed on `config.toml` offers Reset settings on iPhone and iPad, where
+    /// nobody can edit the file. The Mac's is a file in the terminal's folder.
+    private var resetsSettings: Bool {
+        #if os(macOS)
+        false
+        #else
+        store.settingsUnusable
+        #endif
+    }
+
     public var body: some View {
         Group {
             switch store.phase {
             case .failed(let reason):
-                StartFailed(title: L.shellStartFailed, message: L.shellStartFailedBody, reason: reason) {
+                StartFailed(
+                    title: L.shellStartFailed, message: L.shellStartFailedBody, reason: reason,
+                    reset: resetsSettings ? { Task { await store.resetSettings() } } : nil
+                ) {
                     Task { await store.restart() }
                 }
             case .stopped:
@@ -53,14 +66,31 @@ public struct RootView: View {
 }
 
 /// The engine did not start, or stopped: what happened in plain words, Try again, and what it
-/// said, for a bug report.
+/// said, for a bug report. Settings it could not start on can be reset, after a confirmation.
 struct StartFailed: View {
     let title: String
     let message: String
     let reason: String
+    var reset: (() -> Void)? = nil
     let retry: () -> Void
+    @State private var confirmingReset = false
 
     var body: some View {
+        // It scrolls only when larger text makes it taller than the screen.
+        ViewThatFits(in: .vertical) {
+            content
+            ScrollView { content }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.ground)
+        .confirmationDialog(L.settingsResetTitle, isPresented: $confirmingReset, titleVisibility: .visible) {
+            Button(L.settingsReset, role: .destructive) { reset?() }
+        } message: {
+            Text(L.settingsResetDetail)
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 8) {
             Text(title)
                 .font(.mac(15, weight: .semibold))
@@ -78,15 +108,24 @@ struct StartFailed: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: 480)
             }
-            HStack(spacing: 12) {
-                Button(L.actionTryAgain, action: retry)
-                    .buttonStyle(.borderedProminent)
-                ReportButton(context: BugContext(kind: reason.isEmpty ? "stopped" : "start", message: reason))
+            // Side by side, or stacked when the text is too large for one row.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { actions }
+                VStack(spacing: 12) { actions }
             }
             .padding(.top, 8)
         }
         .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ground)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder private var actions: some View {
+        Button(L.actionTryAgain, action: retry)
+            .buttonStyle(PrimaryCapsuleStyle(height: 28))
+        if reset != nil {
+            Button(L.settingsReset) { confirmingReset = true }
+                .buttonStyle(SecondaryCapsuleStyle())
+        }
+        ReportButton(context: BugContext(kind: reason.isEmpty ? "stopped" : "start", message: reason))
     }
 }

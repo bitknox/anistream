@@ -4,12 +4,14 @@
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_i18n::t;
 use anistream_model::{
+    Msg,
     catalog::{ContentList, ResumePoint},
     command::Command,
     episodes::{DubExtent, EpisodeRow},
     event::Event,
+    notice::Notice,
     progress::{EpisodeProgress, TitleProgress},
-    sources::MatchCandidate,
+    sources::{MatchCandidate, MatchQuestion},
 };
 
 use super::{App, Field, info};
@@ -158,10 +160,17 @@ impl App {
         id: AnilistId,
         provider_id: String,
         candidates: Vec<MatchCandidate>,
+        answers: MatchQuestion,
     ) {
-        // An empty set is not a question worth asking; the caller reports it as a
-        // plain failure instead. Nor is one about a title the user has left.
-        if candidates.is_empty() || !self.detail.as_ref().is_some_and(|d| d.id == id) {
+        // Nor is one about a title the user has left.
+        if !self.detail.as_ref().is_some_and(|d| d.id == id) {
+            return;
+        }
+        // An empty set is not a question worth asking: a search that found nothing says so.
+        if candidates.is_empty() {
+            if let MatchQuestion::Search { query } = answers {
+                self.push_toast(Notice::alert(Msg::NoticeSourceSearchEmpty { query }));
+            }
             return;
         }
         self.episodes_loading = false;
@@ -169,6 +178,15 @@ impl App {
         self.match_context = Some((id, provider_id));
         self.cursors.overlay.selected = 0;
         self.nav.open_overlay(Overlay::Disambiguate);
+    }
+
+    /// A match picked for title `id` that could not be used: said, and the table no longer
+    /// waited on, since what the attempt still listed arrives on its own.
+    pub(super) fn apply_match_fix_failed(&mut self, id: AnilistId, reason: Msg) {
+        if self.detail.as_ref().is_some_and(|d| d.id == id) {
+            self.episodes_loading = false;
+        }
+        self.push_toast(Notice::alert(reason));
     }
 
     /// A title's episode table.
@@ -469,7 +487,7 @@ impl App {
             self.episodes_loading = true;
             return Some(Command::ClearMatch { id });
         }
-        Some(Command::ManualSearch { id, query })
+        Some(Command::ManualSearch { id, query, provider_id: None })
     }
 
     /// The candidate picked, pinned as the title's match.
@@ -482,7 +500,12 @@ impl App {
         self.match_context = None;
         self.episodes_loading = true;
         self.push_toast(info(t::episodes_matched(&candidate.title)));
-        Some(Command::FixMatch { id, provider_id, key: candidate.key })
+        Some(Command::FixMatch {
+            id,
+            provider_id,
+            key: candidate.key,
+            title: Some(candidate.title),
+        })
     }
 
     /// An episode's releases to pick from: the highlighted one in the table, or the next
@@ -639,6 +662,9 @@ mod tests {
             key: anistream_core::ids::ProviderKey::new(title),
             similarity,
             rejected: None,
+            year: None,
+            episodes: None,
+            format: None,
         }
     }
 
@@ -904,6 +930,8 @@ mod tests {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Hoshikuzu S1", 0.62), candidate("Hoshikuzu S2", 0.61)],
+            answers: MatchQuestion::Ladder,
+            source: "Torrent".into(),
         });
 
         assert_eq!(a.nav.overlay(), Some(&Overlay::Disambiguate));
@@ -918,8 +946,32 @@ mod tests {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: Vec::new(),
+            answers: MatchQuestion::Ladder,
+            source: "Torrent".into(),
         });
         assert_ne!(a.nav.overlay(), Some(&Overlay::Disambiguate));
+    }
+
+    #[test]
+    fn a_search_that_found_nothing_says_so_and_a_failed_pick_stops_the_wait() {
+        let mut a = app_at_episodes();
+        a.apply(Event::MatchChoices {
+            id: AnilistId::new(1),
+            provider_id: "torrent".into(),
+            candidates: Vec::new(),
+            answers: MatchQuestion::Search { query: "hoshikuzu".into() },
+            source: "Torrent".into(),
+        });
+        assert_ne!(a.nav.overlay(), Some(&Overlay::Disambiguate));
+        let said: Vec<_> = a.toasts.iter().map(|t| t.notice.text.clone()).collect();
+        assert!(said.iter().any(|t| t.contains("hoshikuzu")), "{said:?}");
+
+        a.episodes_loading = true;
+        a.apply(Event::MatchFixFailed {
+            id: AnilistId::new(1),
+            reason: Msg::NoticeMatchDidNotStick,
+        });
+        assert!(!a.episodes_loading, "nothing more is coming for the pick");
     }
 
     #[test]
@@ -929,6 +981,8 @@ mod tests {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Hoshikuzu S1", 0.62), candidate("Hoshikuzu S2", 0.61)],
+            answers: MatchQuestion::Ladder,
+            source: "Torrent".into(),
         });
 
         // Move to the second candidate and take it.
@@ -940,6 +994,7 @@ mod tests {
                 id: AnilistId::new(1),
                 provider_id: "torrent".into(),
                 key: anistream_core::ids::ProviderKey::new("Hoshikuzu S2"),
+                title: Some("Hoshikuzu S2".into()),
             }
         );
 
@@ -1353,6 +1408,8 @@ mod tests {
             id: AnilistId::new(7),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Something else", 0.6)],
+            answers: MatchQuestion::Ladder,
+            source: "Torrent".into(),
         });
         assert_ne!(a.nav.overlay(), Some(&Overlay::Disambiguate));
     }

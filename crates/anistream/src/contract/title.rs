@@ -15,6 +15,7 @@ use anistream_model::{
     event::Event,
     search::SearchQuery,
     settings::SettingKey,
+    sources::MatchQuestion,
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::ResolutionRung;
@@ -251,7 +252,7 @@ async fn a_matched_titles_episodes_are_named_and_carry_its_history() {
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["Episodes", "JobDone"]);
+    assert_eq!(names(&updates), ["Episodes", "TitleMatch", "JobDone"]);
     let Event::Episodes { id, rows, .. } = &updates[0] else { unreachable!() };
     assert_eq!((*id, rows.len()), (FINISHED, 12));
     assert_eq!(rows[0].title.as_deref(), Some("The Lantern Road"));
@@ -324,16 +325,19 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
     let mut h = harness(unsure()).await;
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["MatchChoices", "Episodes", "Toast", "JobDone"]);
+    assert_eq!(names(&updates), ["MatchChoices", "Episodes", "Toast", "TitleMatch", "JobDone"]);
     // AniList's table, so the page leaves loading while the match is asked about.
     let Event::Episodes { rows, failed: None, .. } = &updates[1] else { unreachable!() };
     assert!(rows.iter().all(|row| row.metadata_only), "{rows:?}");
-    let Event::MatchChoices { id, provider_id, candidates } = &updates[0] else {
+    let Event::MatchChoices { id, provider_id, candidates, answers, .. } = &updates[0] else {
         unreachable!()
     };
     assert_eq!((*id, provider_id.as_str()), (FINISHED, sources::PROVIDER_ID));
+    assert_eq!(*answers, MatchQuestion::Ladder);
     let offered: Vec<_> = candidates.iter().map(|c| (c.title.as_str(), &c.key)).collect();
     assert_eq!(offered, [("Tabibito", &sources::key(FINISHED))]);
+    // Nothing is matched while the question is open.
+    assert!(matches!(&updates[3], Event::TitleMatch { current: None, .. }));
     ends(&updates, job);
 
     // Picked: remembered as an override, so the table comes and the question does not return.
@@ -341,22 +345,42 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
         id: FINISHED,
         provider_id: sources::PROVIDER_ID.into(),
         key: sources::key(FINISHED),
+        title: Some("Tabibito".into()),
     });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Episodes", "JobDone"]);
+    assert_eq!(names(&updates), ["Episodes", "TitleMatch", "JobDone"]);
     assert_eq!(numbers(&updates[0]).len(), 12);
+    let Event::TitleMatch { current: Some(current), .. } = &updates[1] else { unreachable!() };
+    assert_eq!(current.provider_id, sources::PROVIDER_ID);
+    assert_eq!(current.title.as_deref(), Some("Tabibito"));
+    assert!(current.chosen_by_you, "a pick is the person's");
     ends(&updates, job);
     let pinned = h.store().lookup_mapping(FINISHED, sources::PROVIDER_ID).unwrap().unwrap();
     assert_eq!(pinned.rung, ResolutionRung::Override);
     h.send(Command::LoadEpisodes(FINISHED));
-    assert_eq!(names(&h.settle().await), ["Episodes", "JobDone"]);
+    assert_eq!(names(&h.settle().await), ["Episodes", "TitleMatch", "JobDone"]);
 
     // Cleared: forgotten, and asked again.
     let job = h.send(Command::ClearMatch { id: FINISHED });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["MatchChoices", "Episodes", "Toast", "JobDone"]);
+    assert_eq!(names(&updates), ["MatchChoices", "Episodes", "Toast", "TitleMatch", "JobDone"]);
     ends(&updates, job);
     assert!(h.store().lookup_mapping(FINISHED, sources::PROVIDER_ID).unwrap().is_none());
+}
+
+#[tokio::test]
+async fn an_automatic_match_is_said_with_the_title_it_found() {
+    let mut h = Harness::new().await;
+    h.send(Command::LoadEpisodes(FINISHED));
+    let updates = h.settle().await;
+    let current = updates.iter().find_map(|u| match u {
+        Event::TitleMatch { current, .. } => Some(current.clone()),
+        _ => None,
+    });
+    let current = current.expect("a listing says its match").expect("matched");
+    assert_eq!(current.provider_id, sources::PROVIDER_ID);
+    assert!(!current.chosen_by_you, "the ladder chose it");
+    assert!(current.title.is_some(), "the entry's name is kept when matched");
 }
 
 #[tokio::test]
@@ -364,7 +388,7 @@ async fn a_pinned_source_lists_its_own_episodes() {
     let mut h = harness(with_alt()).await;
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Episodes", "JobDone"]);
+    assert_eq!(names(&updates), ["Episodes", "TitleMatch", "JobDone"]);
     assert_eq!(numbers(&updates[0]).len(), 12);
     ends(&updates, job);
 
@@ -432,27 +456,42 @@ async fn releases_that_cannot_be_listed_are_a_toast() {
 #[tokio::test]
 async fn a_search_in_your_own_words_offers_ranked_choices() {
     let mut h = Harness::new().await;
-    let job = h.send(Command::ManualSearch { id: FINISHED, query: "tabibito".into() });
+    let search = |provider_id: Option<&str>| Command::ManualSearch {
+        id: FINISHED,
+        query: "tabibito".into(),
+        provider_id: provider_id.map(Into::into),
+    };
+    let job = h.send(search(None));
     let updates = h.settle().await;
 
     // No AniList table here: the page already has one, from a source or from AniList.
     assert_eq!(names(&updates), ["MatchChoices", "JobDone"]);
-    let Event::MatchChoices { id, provider_id, candidates } = &updates[0] else {
+    let Event::MatchChoices { id, provider_id, candidates, answers, .. } = &updates[0] else {
         unreachable!()
     };
     assert_eq!((*id, provider_id.as_str()), (FINISHED, sources::PROVIDER_ID));
+    assert_eq!(*answers, MatchQuestion::Search { query: "tabibito".into() });
     assert_eq!(candidates[0].key, sources::key(FINISHED), "ranked against the real title");
     assert!(candidates.windows(2).all(|pair| pair[0].similarity >= pair[1].similarity));
     ends(&updates, job);
 
-    let mut h = harness(ProviderRegistry::new(vec![MockProvider::new("fixture").arc()])).await;
-    let job = h.send(Command::ManualSearch { id: FINISHED, query: "tabibito".into() });
+    // The source the sheet names, by its id.
+    h.send(search(Some(sources::PROVIDER_ID)));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(
-        toasts(&updates),
-        ["alert: Nothing found for “tabibito”. Try a different search."]
-    );
+    assert_eq!(names(&updates), ["MatchChoices", "JobDone"]);
+    // One that is not there is a failure the sheet can say, not a search of another source.
+    h.send(search(Some("gone")));
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["MatchSearchFailed", "JobDone"]);
+
+    // Nothing found is an answer with no candidates, told apart from a failure.
+    let mut h = harness(ProviderRegistry::new(vec![MockProvider::new("fixture").arc()])).await;
+    let job = h.send(search(None));
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["MatchChoices", "JobDone"]);
+    let Event::MatchChoices { candidates, answers, .. } = &updates[0] else { unreachable!() };
+    assert!(candidates.is_empty());
+    assert_eq!(*answers, MatchQuestion::Search { query: "tabibito".into() });
     ends(&updates, job);
 }
 

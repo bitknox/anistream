@@ -1,14 +1,14 @@
 anistream                                       torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Find hoshikuzu▏
-  ▤│
-  ▦│  ▌ Stardust Wayfarer                                    3 of 12 episodes
-▌ /│    Stardust Wayfarer Season 2                                         84
-  ▥│
-  ↓│
-  ◇│
-  ◎│
-  ⚙│
+ ▸ │  Find hoshikuzu▏
+ ▤ │
+ ▦ │  ▌ Stardust Wayfarer                                    3 of 12 episodes
+▌/ │    Stardust Wayfarer Season 2                                        84%
+ ▥ │
+ ↓ │
+ ◇ │
+ ◎ │
+ ≡ │
    │
    │
    │

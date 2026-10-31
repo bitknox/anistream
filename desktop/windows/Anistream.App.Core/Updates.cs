@@ -57,32 +57,42 @@ public static class Updates
         _ => null,
     };
 
+    /// <summary>How long a download may go without a byte before it counts as lost.</summary>
+    public static readonly TimeSpan Stall = TimeSpan.FromSeconds(60);
+
     /// <summary>
     /// Downloads <paramref name="asset"/> into <paramref name="dir"/> and checks it, saying how far
     /// it has come. One already there and whole is kept; one that does not match is deleted.
     /// </summary>
     public static async Task<UpdateState> Fetch(HttpClient http, ReleaseAsset asset, string version, string dir,
-        Action<UpdateState> progress, CancellationToken cancel)
+        Action<UpdateState> progress, CancellationToken cancel, TimeSpan? stall = null)
     {
         var path = System.IO.Path.Combine(dir, asset.Name);
+        // A connection that stops sending without closing would wait for ever: a minute with no
+        // bytes ends the download as a lost connection.
+        var quiet = stall ?? Stall;
+        using var stalled = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        stalled.CancelAfter(quiet);
         try
         {
             Directory.CreateDirectory(dir);
             if (File.Exists(path) && await Check(path, asset, cancel) is null)
                 return new UpdateState(UpdateStep.Ready, version, asset.Size, asset.Size, Path: path);
             var partial = path + ".partial";
-            using (var response = await http.GetAsync(asset.Url, HttpCompletionOption.ResponseHeadersRead, cancel))
+            using (var response = await http.GetAsync(asset.Url, HttpCompletionOption.ResponseHeadersRead, stalled.Token))
             {
                 if (!response.IsSuccessStatusCode)
                     return Failed(version, T.UpdatesWhyServer((int)response.StatusCode));
-                await using var body = await response.Content.ReadAsStreamAsync(cancel);
+                stalled.CancelAfter(quiet);
+                await using var body = await response.Content.ReadAsStreamAsync(stalled.Token);
                 await using var file = File.Create(partial);
                 var buffer = new byte[81920];
                 ulong received = 0;
                 var told = DateTime.MinValue;
                 int read;
-                while ((read = await body.ReadAsync(buffer, cancel)) > 0)
+                while ((read = await body.ReadAsync(buffer, stalled.Token)) > 0)
                 {
+                    stalled.CancelAfter(quiet);
                     await file.WriteAsync(buffer.AsMemory(0, read), cancel);
                     received += (ulong)read;
                     if (received > asset.Size)
@@ -106,6 +116,11 @@ public static class Updates
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)
         {
             return UpdateState.Idle;
+        }
+        catch (OperationCanceledException) when (stalled.IsCancellationRequested)
+        {
+            SmallFiles.Delete(path + ".partial");
+            return Failed(version, T.UpdatesWhyConnection);
         }
         catch (HttpRequestException)
         {

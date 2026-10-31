@@ -303,6 +303,28 @@ impl Opened {
     }
 }
 
+/// Settings back to their defaults, for an app whose start failed on a `config.toml` nobody on
+/// the device can edit: the file is moved aside to `config.damaged-<date>` beside it and kept,
+/// and the next start reads the defaults, VPN and proxy included. Nothing else changes: the
+/// database, and the watch history in it, stay. Answers where the old file is kept, or nothing
+/// when there was no file. The app calls it only when the viewer asks, and starts again after.
+#[uniffi::export]
+pub fn reset_config(dirs: FfiDirs) -> Result<Option<String>, FfiError> {
+    let paths = Paths {
+        config_file: Path::new(&dirs.config).join("config.toml"),
+        data_dir: dirs.data.into(),
+        cache_dir: dirs.cache.into(),
+    };
+    let aside = paths.set_config_aside().map_err(|e| {
+        let path = paths.config_file.display().to_string();
+        FfiError::config(Msg::ConfigResetFailed { path, reason: e.to_string() })
+    })?;
+    if let Some(aside) = &aside {
+        tracing::warn!(aside = %aside.display(), "settings reset; the old config kept");
+    }
+    Ok(aside.map(|aside| aside.display().to_string()))
+}
+
 /// The runtime an engine runs on: one per engine, with a worker per core.
 pub(crate) fn runtime() -> Result<Runtime, FfiError> {
     tokio::runtime::Builder::new_multi_thread()
@@ -391,6 +413,32 @@ mod tests {
             std::fs::read_to_string(&file).unwrap(),
             "[playback]\nquality = 720\nsparkle = 1\n"
         );
+    }
+
+    /// Reset settings on the start-failed screen: the file nobody could edit is kept aside, the
+    /// next start reads the defaults, and the database is left as it was.
+    #[test]
+    fn a_config_reset_keeps_the_file_aside_and_the_next_start_opens() {
+        let root = tempfile::tempdir().unwrap();
+        let dirs = dirs_in(root.path());
+        drop(Opened::open(&dirs).expect("a first start makes the database"));
+        let database = root.path().join("data/anistream.db");
+        assert!(database.exists());
+        std::fs::write(root.path().join("config/config.toml"), "[network\nproxy = ").unwrap();
+        let Err(FfiError::Config { .. }) = Opened::open(&dirs) else {
+            panic!("the file is refused");
+        };
+
+        let kept = reset_config(dirs.clone()).unwrap().expect("the file kept");
+        assert!(kept.contains("config.damaged-20"), "{kept}");
+        assert_eq!(std::fs::read_to_string(&kept).unwrap(), "[network\nproxy = ");
+        let files = Opened::open(&dirs).expect("it opens on the defaults");
+        assert_eq!(files.config, Config::default());
+        assert_eq!(files.set_aside, None, "the database is the one before");
+        drop(files);
+        assert!(database.exists());
+
+        assert_eq!(reset_config(dirs).unwrap(), None, "no file, nothing to keep");
     }
 
     #[test]

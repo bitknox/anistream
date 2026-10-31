@@ -29,8 +29,6 @@ use crate::{
 
 /// The banner's tallest height: the band the head stands over.
 const BAND: i32 = 328;
-/// How far the head runs below the band when a trailer may play.
-const HEAD_BELOW: i32 = 100;
 
 /// How far a watched episode's still dims.
 const WATCHED: f64 = 0.55;
@@ -60,8 +58,6 @@ struct Page {
     navigation: glib::WeakRef<adw::NavigationPage>,
     banner: gtk::Box,
     banner_filled: Cell<bool>,
-    /// The trailer behind the banner, made with the banner.
-    trailer: RefCell<Option<Rc<crate::trailer::PageTrailer>>>,
     head: gtk::Box,
     side: gtk::Box,
     seasons: gtk::Box,
@@ -215,7 +211,6 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         navigation: navigation.downgrade(),
         banner: banner_slot,
         banner_filled: Cell::new(false),
-        trailer: RefCell::default(),
         head,
         side,
         seasons,
@@ -244,10 +239,6 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         move |adjustment| {
             if let Some(page) = weak.upgrade() {
                 page.title_shown(adjustment.value());
-                let trailer = page.trailer.borrow().clone();
-                if let Some(trailer) = trailer {
-                    trailer.scrolled(adjustment.value());
-                }
             }
         }
     });
@@ -279,9 +270,6 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     navigation.connect_destroy(move |_| {
         if let Some(id) = page.listening.borrow_mut().take() {
             page.ctx.hub.forget(id);
-        }
-        if let Some(trailer) = page.trailer.borrow_mut().take() {
-            trailer.release();
         }
     });
     navigation
@@ -483,29 +471,8 @@ impl Page {
         // The banner, once: its art does not change with the detail.
         if !self.banner_filled.replace(true) {
             let fit = widgets::faded_banner(hub, entry, BAND);
-            let trailer = self.navigation.upgrade().map(|navigation| {
-                crate::trailer::PageTrailer::new(&self.ctx, entry.id.get(), &fit, &navigation)
-            });
-            match &trailer {
-                Some(trailer) => {
-                    self.banner.append(&trailer.stage.widget);
-                    // The sound button hangs under the video's corner, over the head's layer.
-                    if let Some(grid) = self.banner.parent().and_downcast::<gtk::Grid>() {
-                        trailer.sound.set_halign(gtk::Align::End);
-                        trailer.sound.set_valign(gtk::Align::Start);
-                        trailer.sound.set_margin_top(crate::trailer::Slot::video_bottom() + 8);
-                        trailer.sound.set_margin_end(crate::trailer::Slot::video_end());
-                        grid.attach(&trailer.sound, 0, 0, 1, 1);
-                    }
-                }
-                None => self.banner.append(&fit),
-            }
-            self.trailer.replace(trailer);
+            self.banner.append(&fit);
         }
-        // A title with a trailer gets its room when the page opens: the head stands 100 below the
-        // band, with the video's corner clear above it, so nothing moves when the trailer plays.
-        let room = entry.trailer.is_some() && !narrow;
-        self.banner.set_margin_bottom(if room { HEAD_BELOW } else { 0 });
         let id = entry.id.get();
 
         let text = gtk::Box::new(gtk::Orientation::Vertical, 6);
@@ -673,7 +640,33 @@ impl Page {
             synopsis.set_xalign(0.0);
             synopsis.set_margin_top(6);
             synopsis.set_max_width_chars(90);
+            // Eight lines, then "More" opens the rest in place, only where the text is cut.
+            synopsis.set_lines(8);
+            synopsis.set_ellipsize(gtk::pango::EllipsizeMode::End);
             self.synopsis.append(&synopsis);
+            let more = gtk::Button::with_label(&t::action_more());
+            more.add_css_class("flat");
+            more.set_halign(gtk::Align::Start);
+            more.set_visible(false);
+            more.connect_clicked({
+                let synopsis = synopsis.clone();
+                move |more| {
+                    synopsis.set_lines(-1);
+                    synopsis.set_ellipsize(gtk::pango::EllipsizeMode::None);
+                    more.set_visible(false);
+                }
+            });
+            synopsis.add_tick_callback({
+                let more = more.clone();
+                move |label, _| {
+                    if label.width() == 0 {
+                        return gtk::glib::ControlFlow::Continue;
+                    }
+                    more.set_visible(label.layout().is_ellipsized());
+                    gtk::glib::ControlFlow::Break
+                }
+            });
+            self.synopsis.append(&more);
         }
 
         self.fill_seasons(entry);

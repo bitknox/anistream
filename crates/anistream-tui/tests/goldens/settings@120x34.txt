@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │
   ◇  Sources                │  Playback  ────────────────────────────────────────────────────────────────────────────
   ◎  Accounts               │    Audio                       Subbed · Dubbed this session
-▌ ⚙  Settings               │    Quality                     1080p
+▌ ≡  Settings               │    Quality                     1080p
                             │    Subtitles                   eng
                             │    Counts as watched at        85%
                             │    Auto-play next              On
@@ -27,11 +27,11 @@ anistream                                                                       
                             │    Keep seeding                Off
                             │    After each download         None
                             │
-                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Adapts to the video and your graphics card. Applies from the next episode.
+                            │
 ─────────────────────────────────────────────────────────────────────────────── ▌ Using dubbed audio for this session. ─
-config.toml line 12: unknown field `playbak` — using the defaults until it is fixed                  h/l change   ? keys
+config.toml line 12: unknown field `playbak` — using the defaults until it is fixed                   ←→ change   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -138,19 +138,17 @@ r27 c33-51 fg=text-dim
 r27 c61-64 fg=text
 r28 c28-28 fg=rule
 r29 c28-28 fg=rule
-r29 c31-37 fg=text
-r29 c40-116 fg=rule
+r29 c31-117 fg=rule
 r30 c28-28 fg=rule
-r30 c31-117 fg=rule
+r30 c33-106 fg=text-dim
 r31 c28-28 fg=rule
-r31 c33-106 fg=text-dim
 r32 c00-78 fg=rule
 r32 c79-79 fg=text
 r32 c80-80 fg=state
 r32 c81-118 fg=text
 r32 c119-119 fg=rule
 r33 c00-82 fg=alert
-r33 c101-103 fg=text
+r33 c102-103 fg=text
 r33 c104-113 fg=text-dim
 r33 c114-114 fg=text
 r33 c115-119 fg=text-dim
