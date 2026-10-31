@@ -23,7 +23,7 @@ Later decisions win where they disagree with this text:
 
 ## Interaction model
 
-One SwiftUI app with three shapes: a split view on Mac, the same split view on iPad that collapses as its window narrows, and a tab bar on iPhone. The sections are the canvas's: Home, Calendar, Seasonal, Search, Library, Downloads, then Providers and Plugin stores under Sources, then Accounts.
+One SwiftUI app with three shapes: a split view on Mac, the same split view on iPad that collapses as its window narrows, and a tab bar on iPhone. The sections are the canvas's: Home, Calendar, Seasonal, Search, Library, Downloads, Watch together, then Providers and Plugin stores under Sources, then Accounts. Watch together is a place of its own, with Start a party and Join side by side, the last ten rooms, and a lobby before anything plays. Its behaviour is in `docs/party-protocol.md`; the terminal calls it Together.
 
 ### Mac
 
@@ -46,7 +46,7 @@ One SwiftUI app with three shapes: a split view on Mac, the same split view on i
 
 ### iPhone
 
-- Five tabs: Home, Calendar, Seasonal, Library and Search (`Tab(role: .search)`, with its field at the bottom). Downloads is Library's first row. Accounts, Sources, Plugin stores and Settings open as a sheet from the account button on Home and Library.
+- Five tabs: Home, Calendar, Seasonal, Library and Search (`Tab(role: .search)`, with its field at the bottom). Downloads is Library's first row. Accounts, Sources, Plugin stores and Settings open as a sheet from the account button on Home and Library. Watch together is a people button in Home's toolbar, before the account button, and not a sixth tab; while the phone is in a party a bar above the tabs shows it. On iPad it is a sidebar item that the floating tab bar leaves out, so it keeps five tabs.
 - The tab bar minimises on scroll and the large title collapses, both the system's (T6).
 - The main action sits low. When a title page's Resume button scrolls away, a Resume capsule fades into the bottom toolbar. Sheets open at the medium detent with their action at the bottom.
 - Long press opens `contextMenu(menuItems:preview:)` with the banner as the preview. Pull to refresh (`refreshable`) works on Home, Calendar, Seasonal, Library (where it also syncs) and Downloads, and its spinner lasts until the engine's job ends, at most 15 s.
@@ -65,7 +65,7 @@ Home's cards and posters have no swipe actions, as they sit in rows that scroll 
 
 ## Keyboard and menus
 
-Every action is a menu bar item, so the Help menu's search (⇧⌘/) is the command palette and no custom palette is built. Frequent actions get a shortcut; the rest are menu items without one, as in Apple's apps. Mac and iPad share one `.commands` definition. The menus are anistream, File (Join Plugin Store…), Edit, View (sidebar, sections, Refresh), Title (actions on the selected title), Playback, Window (Mini Player, Messages) and Help (Keyboard Shortcuts).
+Every action is a menu bar item, so the Help menu's search (⇧⌘/) is the command palette and no custom palette is built. Frequent actions get a shortcut; the rest are menu items without one, as in Apple's apps. Mac and iPad share one `.commands` definition. The menus are anistream, File (Join Plugin Store…), Edit, View (sidebar, sections, Refresh), Title (actions on the selected title, including Watch together), Playback, Window (Mini Player, Messages) and Help (Keyboard Shortcuts).
 
 Bare-letter keys work only in the player window, and in lists only while no text field has focus. This is the TUI's rule that `d` in a search box must not start a download.
 

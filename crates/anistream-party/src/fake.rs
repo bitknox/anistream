@@ -66,6 +66,11 @@ pub struct FakeRoom {
     pub paused: bool,
     pub set_by: Option<String>,
     pub members: Vec<FakeOccupant>,
+    /// The room's shared playlist, and the entry it is at.
+    pub playlist: Vec<String>,
+    pub index: Option<usize>,
+    /// Who last wrote the playlist or its index.
+    pub playlist_by: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -106,6 +111,9 @@ struct Room {
     /// When `position` was the room's position, by the server's clock.
     at: f64,
     members: BTreeMap<String, Occupant>,
+    playlist: Vec<String>,
+    index: Option<usize>,
+    playlist_by: Option<String>,
 }
 
 #[derive(Default)]
@@ -132,7 +140,16 @@ struct Conn {
 
 impl Room {
     fn new(now: f64) -> Self {
-        Self { position: 0.0, paused: true, set_by: None, at: now, members: BTreeMap::new() }
+        Self {
+            position: 0.0,
+            paused: true,
+            set_by: None,
+            at: now,
+            members: BTreeMap::new(),
+            playlist: Vec::new(),
+            index: None,
+            playlist_by: None,
+        }
     }
 
     fn position(&self, now: f64) -> f64 {
@@ -225,6 +242,9 @@ impl FakeServer {
                     reported: m.reported,
                 })
                 .collect(),
+            playlist: found.playlist.clone(),
+            index: found.index,
+            playlist_by: found.playlist_by.clone(),
         })
     }
 
@@ -301,6 +321,26 @@ impl FakeMember {
     /// Fall `seconds` behind the room, which then follows: its position drops by as much.
     pub fn fall_behind(&self, seconds: f64) {
         self.with(|occupant| occupant.behind = seconds.max(0.0));
+    }
+
+    /// Replace the room's shared playlist, as a member's client does.
+    pub fn set_playlist(&self, files: &[&str]) {
+        let mut inner = self.shared.lock();
+        let Some(room) = inner.rooms.get_mut(&self.room) else { return };
+        room.playlist = files.iter().map(|f| (*f).to_owned()).collect();
+        room.playlist_by = Some(self.name.clone());
+        let message = playlist_json(&self.name, room);
+        inner.broadcast(&self.room, None, &message);
+    }
+
+    /// Move the room to an entry of its playlist.
+    pub fn set_index(&self, index: usize) {
+        let mut inner = self.shared.lock();
+        let Some(room) = inner.rooms.get_mut(&self.room) else { return };
+        room.index = Some(index);
+        room.playlist_by = Some(self.name.clone());
+        let message = index_json(&self.name, room);
+        inner.broadcast(&self.room, None, &message);
     }
 
     pub fn chat(&self, message: &str) {
@@ -419,6 +459,14 @@ impl Inner {
             .collect();
         json!({ "List": rooms })
     }
+}
+
+fn playlist_json(by: &str, room: &Room) -> Value {
+    json!({ "Set": { "playlistChange": { "user": by, "files": room.playlist } } })
+}
+
+fn index_json(by: &str, room: &Room) -> Value {
+    json!({ "Set": { "playlistIndex": { "user": by, "index": room.index } } })
 }
 
 fn file_json(file: Option<&FileInfo>) -> Value {
@@ -549,6 +597,11 @@ fn hello(
         }
     });
     let _ = lines.send(wire::line(&welcome));
+    if let Some(found) = inner.rooms.get(&room).filter(|r| !r.playlist.is_empty()) {
+        let by = found.playlist_by.clone().unwrap_or_default();
+        let _ = lines.send(wire::line(&playlist_json(&by, found)));
+        let _ = lines.send(wire::line(&index_json(&by, found)));
+    }
     inner.broadcast(&room, None, &user(&name, &room, Some(json!({ "joined": {} })), None));
     inner.conns.insert(
         id,
@@ -585,6 +638,26 @@ fn message(shared: &Shared, id: u64, key: &str, body: &Value) {
                 }
                 let message = user(&name, &room, None, file.as_ref());
                 inner.broadcast(&room, Some(id), &message);
+            }
+            if let Some(files) = body.get("playlistChange").and_then(|p| p.get("files")) {
+                let files: Vec<String> = files
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|f| f.as_str().map(str::to_owned)).collect())
+                    .unwrap_or_default();
+                if let Some(found) = inner.rooms.get_mut(&room) {
+                    found.playlist = files;
+                    found.playlist_by = Some(name.clone());
+                    let message = playlist_json(&name, found);
+                    inner.broadcast(&room, None, &message);
+                }
+            }
+            if let Some(index) = body.get("playlistIndex").and_then(|p| p.get("index"))
+                && let Some(found) = inner.rooms.get_mut(&room)
+            {
+                found.index = index.as_u64().map(|i| i as usize);
+                found.playlist_by = Some(name.clone());
+                let message = index_json(&name, found);
+                inner.broadcast(&room, None, &message);
             }
             if let Some(ready) = body.get("ready") {
                 let is_ready = ready.get("isReady").and_then(Value::as_bool);

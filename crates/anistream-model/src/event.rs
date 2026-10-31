@@ -15,7 +15,10 @@ use crate::{
     jobs::JobId,
     notice::Notice,
     notifications::{NewEpisode, UpcomingNotices},
-    party::{NoSourceWhy, PartyForm, PartyMember, PartyMessage, PartyView},
+    party::{
+        NoSourceWhy, PartyForm, PartyGlimpse, PartyMember, PartyMessage, PartyRecentRoom,
+        PartyStartKind, PartyView,
+    },
     playback::{Ending, PlaybackId, SkipKind, TimeRange, TimelineMark},
     progress::{EpisodeProgress, TitleProgress},
     remote::FrontIntent,
@@ -582,6 +585,28 @@ pub enum Event {
         episode: String,
         why: NoSourceWhy,
         reason: Msg,
+    },
+    /// The room starts or moves on: the player opens.
+    PartyStarted {
+        id: AnilistId,
+        episode: String,
+        kind: PartyStartKind,
+    },
+    /// What a look into a room found.
+    PartyGlimpse(PartyGlimpse),
+    /// A look into a room failed.
+    PartyLookFailed {
+        server: String,
+        room: String,
+        reason: Msg,
+    },
+    /// The last ten rooms, newest first.
+    PartyRecent(Vec<PartyRecentRoom>),
+    /// The room finished the last episode that is out.
+    PartyLastOut {
+        episode: String,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        airs: Option<Msg>,
     },
 }
 

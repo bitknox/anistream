@@ -171,8 +171,9 @@ terminal (`screens/lists.rs`). Only dubs are marked.
     player: Apple in `AnistreamUI/Party.swift` and `AnistreamPlayerUI/PartyPanel.swift` (the
     Watch party… item in the Mac player), Windows in `Pages/PartyDialog.cs` and
     `Player/PartyPanel.cs`, Linux in `desktop/linux/src/party/`. The Android engine is built
-    without the `party` feature (`android/scripts/engine.sh`), so Android has none yet; the TV
-    leaves parties out by decision. The settings rows (on, server, room) are the terminal's:
+    with the `party` feature (`android/scripts/engine.sh`); the Android phone and TV screens
+    for Watch together are the app halves still to build, with the TV joining through a paired
+    phone (`party_join` in `docs/remote-protocol.md`). The settings rows (on, server, room) are the terminal's:
     in an app the on switch does nothing, as apps start parties when asked. See
     `docs/party-protocol.md`.
 11. The engine sends the Translation choice in the player's menu (`PlayerChoice::Translation`);
@@ -180,8 +181,8 @@ terminal (`screens/lists.rs`). Only dubs are marked.
     menu (`PlayerParts.swift`), Android's sheet (`pui/PlayerSheets.kt`) and the TV's
     (`tv/player/TvPlayerScreen.kt`) do not.
 12. Android TV supports Picture in Picture; the app leaves it out by decision.
-13. The terminal starts a party from its settings rows and `y`; it cannot join from a link or show
-    a panel.
+13. The terminal starts a party from its settings rows and `y`, and joins from a link or code
+    with `anistream party <link or code>`; it has no panel in the player.
 14. The model keeps the stats summary (`statsSummary`) and no screen draws it.
 15. mpv's own stats page.
 16. `still_watching_after` is ignored (`desktop/linux/src/player/mod.rs`). The terminal does

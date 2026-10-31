@@ -109,6 +109,11 @@ impl App {
             return task;
         }
 
+        // The Together section's own keys, ahead of the title commands they share keys with.
+        if let Some(task) = self.together_key(action) {
+            return task;
+        }
+
         // Title commands have nothing to act on without a title, on screen or highlighted, and
         // each says so the same way rather than some doing nothing at all.
         if action.acts_on_a_title()
@@ -354,6 +359,9 @@ impl App {
             Action::Open if self.nav.overlay() == Some(&Overlay::JoinStore) => {
                 return self.submit_join_link();
             }
+            Action::Open if self.nav.overlay() == Some(&Overlay::JoinParty) => {
+                return self.submit_party_link();
+            }
             Action::Open if self.nav.overlay() == Some(&Overlay::InviteName) => {
                 return self.submit_invite_name();
             }
@@ -498,7 +506,7 @@ mod tests {
         let mut a = home_list(20);
         a.nav.focus_rail();
         a.handle(Action::Bottom, 5);
-        assert_eq!(a.nav.section(), Section::Settings);
+        assert_eq!(a.nav.section(), Section::Together);
         a.handle(Action::PageUp, 5);
         assert_eq!(a.nav.section(), Section::Home);
         assert_eq!(a.nav.focus(), Focus::Rail);
@@ -529,7 +537,7 @@ mod tests {
         for _ in 0..20 {
             a.handle(Action::Down, 10);
         }
-        assert_eq!(a.nav.section(), Section::Settings);
+        assert_eq!(a.nav.section(), Section::Together);
     }
 
     #[test]

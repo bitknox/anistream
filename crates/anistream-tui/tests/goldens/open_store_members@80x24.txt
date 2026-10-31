@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌◇ │
  ◎ │  Anyone with the link can join · 14 devices joined with it
  ≡ │    The store's link                                Show and copy
-   │  ▌ Joined today                                    Seen just now
+ ⇄ │  ▌ Joined today                                    Seen just now
    │    Joined 3 days ago                               Seen yesterday
    │    Joined 6 days ago                               Not seen yet
    │    Remove all 14
@@ -68,6 +68,7 @@ r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-23 fg=text
 r10 c56-68 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c06-06 fg=obi
 r11 c08-19 fg=text mod=BOLD

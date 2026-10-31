@@ -17,8 +17,8 @@ anistream                                                                       
   Go to Sources                                                                                                    7
   Go to Accounts                                                                                                   8
   Go to Settings                                                                                                   9
+  Go to Together                                                                                                   0
 
-                            │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
                             │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
@@ -100,8 +100,12 @@ r18 c02-15 fg=text-dim bg=ground
 r18 c16-114 fg=rule bg=ground
 r18 c115-115 fg=text bg=ground
 r18 c116-119 fg=rule bg=ground
-r19 c00-119 fg=rule bg=ground
-r20 c00-119 fg=rule
+r19 c00-01 fg=rule bg=ground
+r19 c02-15 fg=text-dim bg=ground
+r19 c16-114 fg=rule bg=ground
+r19 c115-115 fg=text bg=ground
+r19 c116-119 fg=rule bg=ground
+r20 c00-119 fg=rule bg=ground
 r21 c00-119 fg=rule
 r22 c00-69 fg=rule
 r22 c70-97 fg=rule mod=BOLD

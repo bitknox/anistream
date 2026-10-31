@@ -9,7 +9,7 @@ anistream                                                               torrent 
 ▌ ◇  Sources                │    kawasemi            Plugin      Ready           1204 ms
   ◎  Accounts               │
   ≡  Settings               │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    tsubame: search timed out after 8 s
+  ⇄  Together               │    tsubame: search timed out after 8 s
                             │
                             │  Plugin stores
                             │    2 joined  ·  1 update                                                         ↵ Open
@@ -91,6 +91,8 @@ r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
 r10 c31-117 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-67 fg=alert
 r12 c28-28 fg=rule

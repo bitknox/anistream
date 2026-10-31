@@ -47025,6 +47025,18 @@
         }
       }
     },
+    "nav-watch-together" : {
+      "comment" : "Sidebar row, rail item and window title for the place that starts and joins watch parties.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch together"
+          }
+        }
+      }
+    },
     "notice-already-first-episode" : {
       "comment" : "Toast when the previous-episode control is used on the first episode.",
       "extractionState" : "manual",
@@ -61557,6 +61569,66 @@
         }
       }
     },
+    "party-bar-idle" : {
+      "comment" : "Second line of the bar when nothing plays for you.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the room · nothing playing for you"
+          }
+        }
+      }
+    },
+    "party-bar-line" : {
+      "comment" : "Second line of the bar above the tabs. Argument 1: count (Int). Argument 2: ready (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld in the room · %2$lld ready"
+          }
+        }
+      }
+    },
+    "party-bar-title" : {
+      "comment" : "Title line of the bar above the tabs while you are in a party. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Episode %2$@"
+          }
+        }
+      }
+    },
+    "party-change-episode" : {
+      "comment" : "Button in the lobby that changes the room's episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change episode"
+          }
+        }
+      }
+    },
+    "party-change-server" : {
+      "comment" : "Button that changes the server after it could not be reached.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change server"
+          }
+        }
+      }
+    },
     "party-choose-server" : {
       "comment" : "Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it. Argument 1: server (Text). Argument 2: operator (Text).",
       "extractionState" : "manual",
@@ -61751,6 +61823,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Välj en källa för avsnitt %1$@"
+          }
+        }
+      }
+    },
+    "party-code" : {
+      "comment" : "Label of the short code in the lobby.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        }
+      }
+    },
+    "party-code-empty-room" : {
+      "comment" : "Line in the lobby when nobody is in the room of a code. Argument 1: code (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody is in %1$@ yet. Check the code, or wait here."
+          }
+        }
+      }
+    },
+    "party-code-other-server" : {
+      "comment" : "Error when a code is used on another server. The server is the suggested one. Argument 1: server (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codes work on %1$@. For another server, ask for the invite link."
+          }
+        }
+      }
+    },
+    "party-code-shape" : {
+      "comment" : "Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d. Argument 1: example (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A code is a word and eight letters and numbers, like %1$@."
+          }
+        }
+      }
+    },
+    "party-code-wait" : {
+      "comment" : "Button that waits in an empty room.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wait here"
           }
         }
       }
@@ -62085,6 +62217,18 @@
         }
       }
     },
+    "party-device-in-party" : {
+      "comment" : "Line on a phone when its paired TV is in the party. Argument 1: device (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is in this party"
+          }
+        }
+      }
+    },
     "party-ended-early" : {
       "comment" : "Line on the form when the party could not begin.",
       "extractionState" : "manual",
@@ -62147,6 +62291,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Den watch party avslutades innan den startade."
+          }
+        }
+      }
+    },
+    "party-first-server-title" : {
+      "comment" : "Heading of the step that asks for a server and a name the first time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a server"
           }
         }
       }
@@ -62679,6 +62835,18 @@
         }
       }
     },
+    "party-invite" : {
+      "comment" : "Heading of the invite block in the lobby.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite"
+          }
+        }
+      }
+    },
     "party-invite-after-play" : {
       "comment" : "Line under the invite link button before any episode plays.",
       "extractionState" : "manual",
@@ -62741,6 +62909,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inbjudningslänken kommer när ett avsnitt spelas."
+          }
+        }
+      }
+    },
+    "party-invite-copied" : {
+      "comment" : "Notice after the invite link was copied.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite link copied"
           }
         }
       }
@@ -62877,6 +63057,18 @@
         }
       }
     },
+    "party-invited-by" : {
+      "comment" : "Line in the lobby of an invite: who invited. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ invited you"
+          }
+        }
+      }
+    },
     "party-join" : {
       "comment" : "Button that sends the form and joins the party.",
       "extractionState" : "manual",
@@ -62939,6 +63131,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gå med i watch party"
+          }
+        }
+      }
+    },
+    "party-join-on-device" : {
+      "comment" : "Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV. Argument 1: device (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join on %1$@"
+          }
+        }
+      }
+    },
+    "party-join-on-this-phone" : {
+      "comment" : "Button on a phone's sheet that joins on the phone itself.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join on this phone"
           }
         }
       }
@@ -63071,6 +63287,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Går med i %1$@ på %2$@…"
+          }
+        }
+      }
+    },
+    "party-last-out" : {
+      "comment" : "Line in the lobby after the last episode that is out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That was the last episode out."
+          }
+        }
+      }
+    },
+    "party-last-out-airs" : {
+      "comment" : "Line after the last episode out, when the next one has a date. The day is already formatted. Argument 1: episode (Text). Argument 2: day (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ is out on %2$@."
           }
         }
       }
@@ -63405,6 +63645,18 @@
         }
       }
     },
+    "party-leave-on-device" : {
+      "comment" : "Button on the phone's remote screen that leaves the party on the TV. Argument 1: device (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave the watch party on %1$@"
+          }
+        }
+      }
+    },
     "party-leave-title" : {
       "comment" : "Title of the confirmation on closing the app while in a party.",
       "extractionState" : "manual",
@@ -63735,6 +63987,78 @@
         }
       }
     },
+    "party-lobby-count" : {
+      "comment" : "Line in the lobby that counts the room. Argument 1: ready (Int). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the room · %1$lld of %2$lld ready"
+          }
+        }
+      }
+    },
+    "party-lobby-out-on" : {
+      "comment" : "Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday. Argument 1: day (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out on %1$@"
+          }
+        }
+      }
+    },
+    "party-lobby-sources-found" : {
+      "comment" : "Line in the lobby when your own sources have the room's episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plays from your sources"
+          }
+        }
+      }
+    },
+    "party-lobby-sources-missing" : {
+      "comment" : "Line in the lobby when none of your sources has the room's episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not in your sources yet"
+          }
+        }
+      }
+    },
+    "party-looking-in" : {
+      "comment" : "Line shown while the app looks into a room, after a short wait.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking in"
+          }
+        }
+      }
+    },
+    "party-looking-in-note" : {
+      "comment" : "Note that opening a room shows you in it for a moment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opening a room shows you in it for a moment."
+          }
+        }
+      }
+    },
     "party-looking-sources" : {
       "comment" : "Line while the sources are searched for the watch party's episode.",
       "extractionState" : "manual",
@@ -63797,6 +64121,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Söker igenom dina källor…"
+          }
+        }
+      }
+    },
+    "party-member-finding" : {
+      "comment" : "State of a member from the second episode on who is finding a source.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding a source"
+          }
+        }
+      }
+    },
+    "party-member-joined" : {
+      "comment" : "Notice when a member joins. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ joined"
+          }
+        }
+      }
+    },
+    "party-member-joining" : {
+      "comment" : "State of a member whose file is not open yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joining"
+          }
+        }
+      }
+    },
+    "party-member-left" : {
+      "comment" : "Notice when a member leaves. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ left"
           }
         }
       }
@@ -64131,6 +64503,18 @@
         }
       }
     },
+    "party-member-watching-from" : {
+      "comment" : "State of a member who is watching. The time is already formatted, such as 2:14. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watching from %1$@"
+          }
+        }
+      }
+    },
     "party-member-you" : {
       "comment" : "Name of a member who is this device. Argument 1: name (Text).",
       "extractionState" : "manual",
@@ -64391,6 +64775,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Välj först en server för watch party, som syncplay.server. %1$@ drivs av %2$@."
+          }
+        }
+      }
+    },
+    "party-next-joined-at" : {
+      "comment" : "Notice when a member who was behind joins. The time is already formatted. Argument 1: name (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ joined at %2$@"
+          }
+        }
+      }
+    },
+    "party-next-line" : {
+      "comment" : "Line on the Up Next card in a party. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everyone moves on in %1$lld s"
+          }
+        }
+      }
+    },
+    "party-next-off" : {
+      "comment" : "Line that replaces the autoplay switch in a party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The room moves on together at the end."
+          }
+        }
+      }
+    },
+    "party-next-waiting" : {
+      "comment" : "Line on the starting screen while the room waits for a member. Argument 1: name (Text). Argument 2: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %1$@ · %2$lld s"
           }
         }
       }
@@ -65187,6 +65619,54 @@
         }
       }
     },
+    "party-paused-by" : {
+      "comment" : "Notice in the player when someone pauses. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused by %1$@"
+          }
+        }
+      }
+    },
+    "party-pick-next" : {
+      "comment" : "Line under a title in the picker: which episode comes next. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ next"
+          }
+        }
+      }
+    },
+    "party-pick-search" : {
+      "comment" : "Placeholder of the picker's search field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search titles"
+          }
+        }
+      }
+    },
+    "party-pick-title" : {
+      "comment" : "Heading of the step that asks what to watch in a new watch party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What are you watching?"
+          }
+        }
+      }
+    },
     "party-play-with" : {
       "comment" : "Button that plays the chosen source with the room.",
       "extractionState" : "manual",
@@ -65249,6 +65729,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spela med watch party"
+          }
+        }
+      }
+    },
+    "party-played-by" : {
+      "comment" : "Notice in the player when someone plays. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Played by %1$@"
           }
         }
       }
@@ -65381,6 +65873,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jag är redo"
+          }
+        }
+      }
+    },
+    "party-ready-on" : {
+      "comment" : "Label of the I'm ready button once you are ready.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        }
+      }
+    },
+    "party-ready-on-device" : {
+      "comment" : "Button on the phone's remote screen that readies the TV. Argument 1: device (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready on %1$@"
           }
         }
       }
@@ -65649,6 +66165,42 @@
         }
       }
     },
+    "party-room-changed" : {
+      "comment" : "Notice when someone changes the room's episode. Argument 1: name (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ changed the episode to %2$@"
+          }
+        }
+      }
+    },
+    "party-room-found-by-name" : {
+      "comment" : "Line when the room's title was found by its name because its id is unknown here.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found by its name."
+          }
+        }
+      }
+    },
+    "party-room-guesses" : {
+      "comment" : "Heading over up to three guesses for a plain file's title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which title is this?"
+          }
+        }
+      }
+    },
     "party-room-hint" : {
       "comment" : "Line under the room: how others join.",
       "extractionState" : "manual",
@@ -65711,6 +66263,126 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Den som känner till rummets namn kan gå med i det. Inbjudningslänken innehåller det, så ingen behöver läsa upp det."
+          }
+        }
+      }
+    },
+    "party-room-matched" : {
+      "comment" : "Label under a title that was found from a plain file's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched from the file name"
+          }
+        }
+      }
+    },
+    "party-room-moved-on" : {
+      "comment" : "Line in the lobby when the room is on a later episode than the invite. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The room has moved on to episode %1$@."
+          }
+        }
+      }
+    },
+    "party-room-not-found" : {
+      "comment" : "Line when the room's title could not be found in your sources or on AniList.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't find what the room is watching in your sources or on AniList."
+          }
+        }
+      }
+    },
+    "party-room-not-this" : {
+      "comment" : "Button that rejects a title matched from a file name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not this title"
+          }
+        }
+      }
+    },
+    "party-room-nothing" : {
+      "comment" : "Line in the lobby of a room with nothing open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is open in the room yet."
+          }
+        }
+      }
+    },
+    "party-room-nothing-line" : {
+      "comment" : "Second line under Nothing is open in the room yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It starts when someone picks an episode."
+          }
+        }
+      }
+    },
+    "party-room-pick" : {
+      "comment" : "Button that picks what the room watches.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick what to watch"
+          }
+        }
+      }
+    },
+    "party-room-plain-file" : {
+      "comment" : "Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv. Argument 1: name (Text). Argument 2: file (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has %2$@ open"
+          }
+        }
+      }
+    },
+    "party-room-watching" : {
+      "comment" : "Label over the title and episode the room is watching.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The room is watching"
+          }
+        }
+      }
+    },
+    "party-seeked-by" : {
+      "comment" : "Notice in the player when someone moves the position. The time is already formatted. Argument 1: name (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ moved to %2$@"
           }
         }
       }
@@ -66173,6 +66845,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ingen egen server? %1$@ är en publik server, driven av %2$@."
+          }
+        }
+      }
+    },
+    "party-server-unreachable" : {
+      "comment" : "Message when a watch party's server could not be reached, in the lobby or when looking in. Argument 1: server (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reach %1$@. Check the server, or try again."
+          }
+        }
+      }
+    },
+    "party-share" : {
+      "comment" : "Button that opens the system share sheet with the invite link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share…"
+          }
+        }
+      }
+    },
+    "party-share-invite" : {
+      "comment" : "Button on a phone that sends the invite to others.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share invite"
+          }
+        }
+      }
+    },
+    "party-share-text" : {
+      "comment" : "Text shared beside the invite link. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch party · %1$@ · Episode %2$@"
           }
         }
       }
@@ -66703,6 +67423,66 @@
         }
       }
     },
+    "party-start-anyway" : {
+      "comment" : "Button that starts the room without waiting for those who are not ready.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start anyway"
+          }
+        }
+      }
+    },
+    "party-start-party" : {
+      "comment" : "Button that makes the room and opens the lobby.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start party"
+          }
+        }
+      }
+    },
+    "party-starter-left" : {
+      "comment" : "Notice when the member who started the party leaves. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ left. The party carries on."
+          }
+        }
+      }
+    },
+    "party-starting" : {
+      "comment" : "Line during the three second count before play. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting in %1$lld"
+          }
+        }
+      }
+    },
+    "party-starts-line" : {
+      "comment" : "Line in the lobby before everyone is ready.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts at 0:00 when everyone is ready"
+          }
+        }
+      }
+    },
     "party-stay" : {
       "comment" : "Button in the leave confirmation that ignores it.",
       "extractionState" : "manual",
@@ -66769,6 +67549,18 @@
         }
       }
     },
+    "party-still-in-room" : {
+      "comment" : "Line that says you stay in the room while you have no source for the episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're still in the room."
+          }
+        }
+      }
+    },
     "party-title" : {
       "comment" : "Title of the form and the panel.",
       "extractionState" : "manual",
@@ -66831,6 +67623,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Watch party"
+          }
+        }
+      }
+    },
+    "party-tv-join-from-phone" : {
+      "comment" : "Line on the TV's page: joining a friend's party goes through a paired phone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To join a friend's party, open their invite on a paired phone and choose this TV."
+          }
+        }
+      }
+    },
+    "party-tv-or-code" : {
+      "comment" : "Line over the code on the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or type the code"
+          }
+        }
+      }
+    },
+    "party-tv-pair" : {
+      "comment" : "Button that pairs a phone with the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair a phone"
+          }
+        }
+      }
+    },
+    "party-tv-scan" : {
+      "comment" : "Line under the QR code on the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan to send the invite from your phone"
           }
         }
       }
@@ -67297,6 +68137,18 @@
         }
       }
     },
+    "party-watch-something-else" : {
+      "comment" : "Button that picks a new title for the room.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch something else"
+          }
+        }
+      }
+    },
     "party-you" : {
       "comment" : "Word for you in a sentence about who is not ready.",
       "extractionState" : "manual",
@@ -67359,6 +68211,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "du"
+          }
+        }
+      }
+    },
+    "party-you-left" : {
+      "comment" : "Notice after you leave.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You left the watch party."
           }
         }
       }
@@ -126709,6 +127573,362 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avsnitt %1$lld till %2$lld sedda"
+          }
+        }
+      }
+    },
+    "together-add-server" : {
+      "comment" : "Button that adds a server to the list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a server"
+          }
+        }
+      }
+    },
+    "together-forget-room" : {
+      "comment" : "Menu item that removes a recent room from the list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from recent rooms"
+          }
+        }
+      }
+    },
+    "together-in-party" : {
+      "comment" : "Heading of the block on the place that shows the watch party you are in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In a party"
+          }
+        }
+      }
+    },
+    "together-in-party-line" : {
+      "comment" : "Line of the In a party block. The episode is a number or label. Argument 1: episode (Text). Argument 2: count (Int). Argument 3: ready (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ · %2$lld in the room · %3$lld ready"
+          }
+        }
+      }
+    },
+    "together-join" : {
+      "comment" : "Heading of the field that joins a watch party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join a party"
+          }
+        }
+      }
+    },
+    "together-join-action" : {
+      "comment" : "Button that joins from the Join field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join"
+          }
+        }
+      }
+    },
+    "together-join-field" : {
+      "comment" : "Placeholder of the field that takes an invite link or a code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link or code"
+          }
+        }
+      }
+    },
+    "together-join-line" : {
+      "comment" : "Line under Join a party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste a friend's invite link, or type the code they read out."
+          }
+        }
+      }
+    },
+    "together-line" : {
+      "comment" : "Line under the heading of the place for watch parties. States that nothing is shared but timing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everyone plays the episode from their own sources. The server only keeps you in step."
+          }
+        }
+      }
+    },
+    "together-nobody-here" : {
+      "comment" : "Line that says a recent room has nobody in it now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody here now"
+          }
+        }
+      }
+    },
+    "together-open-lobby" : {
+      "comment" : "Button that opens the lobby of the watch party you are in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open lobby"
+          }
+        }
+      }
+    },
+    "together-open-player" : {
+      "comment" : "Button that opens the player of the watch party you are in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open player"
+          }
+        }
+      }
+    },
+    "together-paste" : {
+      "comment" : "Button that pastes the clipboard into the Join field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste"
+          }
+        }
+      }
+    },
+    "together-paste-shortcut-hint" : {
+      "comment" : "Hint on the place that a link or code can be pasted anywhere on the page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste a link or code anywhere on this page."
+          }
+        }
+      }
+    },
+    "together-people-button" : {
+      "comment" : "Accessibility label of the people button in Home's toolbar that opens the place for watch parties.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch together"
+          }
+        }
+      }
+    },
+    "together-recent" : {
+      "comment" : "Heading of the list of the last ten watch parties on this device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent rooms"
+          }
+        }
+      }
+    },
+    "together-recent-empty" : {
+      "comment" : "Line shown when no recent rooms are kept yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rooms you join show here, the last ten."
+          }
+        }
+      }
+    },
+    "together-recent-row" : {
+      "comment" : "Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday. Argument 1: episode (Text). Argument 2: names (Text). Argument 3: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ · with %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "together-rejoin" : {
+      "comment" : "Button on a recent room that goes straight to its lobby with the next episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejoin"
+          }
+        }
+      }
+    },
+    "together-server-suggested" : {
+      "comment" : "Line under the suggested server. The operator is who runs it, such as the Syncplay project. Argument 1: operator (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested · run by %1$@"
+          }
+        }
+      }
+    },
+    "together-server-used" : {
+      "comment" : "Line under a server that parties were held on. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Used for 1 party"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Used for %1$lld parties"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "together-servers" : {
+      "comment" : "Heading of the small list of servers on the place.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servers"
+          }
+        }
+      }
+    },
+    "together-someone-here" : {
+      "comment" : "Line that says who is in a recent room now, after looking in. The names are already joined. Argument 1: names (Text). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@ is in the room"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@ are in the room"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "together-start" : {
+      "comment" : "Button that starts a watch party from the place. The one amber button there.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a party"
+          }
+        }
+      }
+    },
+    "together-start-line" : {
+      "comment" : "Line under Start a party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick something you're watching, then invite friends with a link or a code."
+          }
+        }
+      }
+    },
+    "together-title" : {
+      "comment" : "Heading of the place that starts and joins watch parties.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch together"
           }
         }
       }

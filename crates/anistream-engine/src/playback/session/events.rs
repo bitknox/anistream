@@ -775,14 +775,14 @@ impl Run<'_> {
 }
 
 impl Run<'_> {
-    /// What the party is told plays: the episode, and the name the room sees for it, which is
-    /// the title and the episode and never the stream's address.
+    /// What the party is told plays: the episode and its title, from which the party writes the
+    /// name the room sees, never the stream's address.
     fn seat_playing(&self, duration: Option<f64>) -> SeatReport {
         let context = self.context;
         SeatReport::Playing {
             id: context.anilist_id,
             episode: context.episode.clone(),
-            name: format!("{} · Episode {}", context.title, context.episode),
+            name: context.title.clone(),
             duration,
         }
     }

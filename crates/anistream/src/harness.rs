@@ -859,6 +859,11 @@ pub fn name(update: &Event) -> &'static str {
         Event::PartyMessage(_) => "PartyMessage",
         Event::PartyLeft { .. } => "PartyLeft",
         Event::PartyNoSource { .. } => "PartyNoSource",
+        Event::PartyStarted { .. } => "PartyStarted",
+        Event::PartyGlimpse(_) => "PartyGlimpse",
+        Event::PartyLookFailed { .. } => "PartyLookFailed",
+        Event::PartyRecent(_) => "PartyRecent",
+        Event::PartyLastOut { .. } => "PartyLastOut",
     }
 }
 
@@ -1097,5 +1102,18 @@ fn copy(update: &Event) -> Event {
             why: *why,
             reason: reason.clone(),
         },
+        Event::PartyStarted { id, episode, kind } => {
+            Event::PartyStarted { id: *id, episode: episode.clone(), kind: *kind }
+        }
+        Event::PartyGlimpse(glimpse) => Event::PartyGlimpse(glimpse.clone()),
+        Event::PartyLookFailed { server, room, reason } => Event::PartyLookFailed {
+            server: server.clone(),
+            room: room.clone(),
+            reason: reason.clone(),
+        },
+        Event::PartyRecent(rooms) => Event::PartyRecent(rooms.clone()),
+        Event::PartyLastOut { episode, airs } => {
+            Event::PartyLastOut { episode: episode.clone(), airs: airs.clone() }
+        }
     }
 }

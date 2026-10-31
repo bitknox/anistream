@@ -7,6 +7,7 @@
 //! back [`sync::PlayerAction`]s and [`notice::Notice`]s, so every front end's own player can be
 //! driven by it.
 //!
+//! - [`file`]: the name a file goes by in the room, with its AniList tag.
 //! - [`wire`]: the messages, built and read.
 //! - [`ping`]: the round trip, and how far a position from the room is moved on for it.
 //! - [`sync`]: the rules that keep a player with the room, pure and clocked by the caller.
@@ -19,13 +20,15 @@
 pub mod client;
 #[cfg(any(test, feature = "testing"))]
 pub mod fake;
+pub mod file;
 pub mod notice;
 pub mod ping;
 pub mod sync;
 pub mod wire;
 
 pub use client::{
-    BadServer, DEFAULT_PORT, Member, Party, PartyEvent, PartyOptions, Retry, Server, Tls,
+    BadServer, DEFAULT_PORT, Glimpse, Member, Party, PartyEvent, PartyOptions, Playlist, Retry,
+    Server, Tls, look,
 };
 pub use notice::{Notice, NoticeKind};
 pub use sync::{PlayerAction, Sample};

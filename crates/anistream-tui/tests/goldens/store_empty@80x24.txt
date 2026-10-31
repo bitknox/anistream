@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌◇ │
  ◎ │  ▌ Link another device
  ≡ │    Invite someone
-   │    Members
+ ⇄ │    Members
    │    Who can join                Only people you invite
    │    Publish a plugin
    │    Open the admin page
@@ -62,6 +62,7 @@ r09 c08-26 fg=text mod=BOLD
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-21 fg=text
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-14 fg=text
 r12 c03-03 fg=rule

@@ -29,6 +29,28 @@ pub struct RemoteState {
     pub screen: Screen,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub now_playing: Option<NowPlaying>,
+    /// The watch party the TV is in, while it is in one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub party: Option<PartyInfo>,
+}
+
+/// The watch party the TV is in: what a phone shows on the TV's remote page.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PartyInfo {
+    pub room: String,
+    /// The room's code, when it is one on the suggested server.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// The https invite, which the phone can share on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    /// The title and episode the room is set to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode: Option<String>,
+    pub ready: bool,
+    pub playing: bool,
 }
 
 /// What the TV has on screen, as its front end says: see [`StateFolder::screen`].
@@ -220,6 +242,19 @@ impl StateFolder {
                     let c = replace(&mut now.title, show.clone());
                     a || b || c
                 }),
+            Event::PartyJoined(view) | Event::PartyState(view) => {
+                let info = PartyInfo {
+                    room: view.room.clone(),
+                    code: view.code.clone(),
+                    link: view.link.clone(),
+                    title: view.room_episode.as_ref().map(|r| r.title.clone()),
+                    episode: view.room_episode.as_ref().map(|r| r.episode.clone()),
+                    ready: view.ready,
+                    playing: view.playing,
+                };
+                replace(&mut self.state.party, Some(info))
+            }
+            Event::PartyLeft { .. } => self.state.party.take().is_some(),
             _ => false,
         }
     }

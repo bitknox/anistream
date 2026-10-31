@@ -253,6 +253,8 @@ pub enum Msg {
     PartyRejoined,
     /// Message when the person left a watch party.
     PartyLeft,
+    /// Message when a watch party's server could not be reached, in the lobby or when looking in.
+    PartyServerUnreachable { server: String },
     /// Toast after joining a plugin store with an invite that names this device's owner.
     StoreJoined { store: String, member: String },
     /// Toast after joining a plugin store with its open link, which keeps no name.
@@ -626,6 +628,7 @@ impl Msg {
             Self::PartyServerLost => "party-server-lost",
             Self::PartyRejoined => "party-rejoined",
             Self::PartyLeft => "party-left",
+            Self::PartyServerUnreachable { .. } => "party-server-unreachable",
             Self::StoreJoined { .. } => "store-joined",
             Self::StoreJoinedUnnamed { .. } => "store-joined-unnamed",
             Self::StoreLeft { .. } => "store-left",
@@ -876,6 +879,7 @@ impl Msg {
             Self::PartyServerLost => Vec::new(),
             Self::PartyRejoined => Vec::new(),
             Self::PartyLeft => Vec::new(),
+            Self::PartyServerUnreachable { server } => vec![("server", Value::Text(server.clone()))],
             Self::StoreJoined { store, member } => vec![("store", Value::Text(store.clone())), ("member", Value::Text(member.clone()))],
             Self::StoreJoinedUnnamed { store } => vec![("store", Value::Text(store.clone()))],
             Self::StoreLeft { store } => vec![("store", Value::Text(store.clone()))],

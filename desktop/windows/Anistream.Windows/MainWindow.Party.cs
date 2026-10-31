@@ -35,19 +35,20 @@ public sealed partial class MainWindow
     /// <summary>An <c>anistream://party</c> link: its title's page, and the dialog that asks Join.</summary>
     void OpenPartyInvite(string text)
     {
-        if (AnistreamFfiMethods.ParsePartyInvite(text) is not { } invite)
+        if (AnistreamFfiMethods.ParsePartyTarget(text) is not { } target)
         {
             ShowToast(InfoBarSeverity.Warning, T.PartyLinkIncomplete);
             return;
         }
-        if (ctx.Known.Party is { } party && party.Server == invite.Server && party.Room == invite.Room)
+        if (ctx.Known.Party is { } party && party.Server == target.Server && party.Room == target.Room)
         {
             ShowToast(InfoBarSeverity.Informational, T.PartyAlreadyIn);
             return;
         }
-        if (!Player.Showing)
-            OpenTitle(invite.Id);
-        ShowParty(new PartyDialog.For.Invite(invite));
+        // The lobby opens in its invited state: it looks in, reads what the room watches and waits for Join.
+        var server = target.Server.Length > 0 ? target.Server : ctx.Known.PartyForm?.SuggestedServer ?? "";
+        ctx.Send(new Command.Party(new PartyCommand.Lobby(server, target.Room, ctx.Known.PartyForm?.Name, null)));
+        Go("together");
     }
 
     async void ShowPartySource(uint id, string episode, NoSourceWhy why, string reason)
@@ -89,13 +90,50 @@ public sealed partial class MainWindow
                     }
                     inParty = false;
                     break;
+                case Event.PartyMessage { V1: var message }:
+                    // What the room did, in the engine's words: over the video it is the player's notice.
+                    if (message.Kind is PartyMessageKind.Chat or PartyMessageKind.Corrected or PartyMessageKind.AllReady)
+                        break;
+                    if (Player.Showing)
+                        Player.Say(message.Text);
+                    else if (message.Kind is not (PartyMessageKind.Paused or PartyMessageKind.Resumed or PartyMessageKind.Seeked))
+                        ShowToast(InfoBarSeverity.Informational, message.Text);
+                    break;
                 case Event.PartyNoSource none:
                     ShowPartySource(none.Id, none.Episode, none.Why, none.Reason.Text());
                     break;
             }
         }
         inParty = ctx.Known.Party is not null;
+        UpdatePartyBar();
     }
+
+    /// <summary>The bar above the pages while in a party: the room's episode, who is ready, a way back and out.</summary>
+    internal void UpdatePartyBar()
+    {
+        var onTogether = ContentFrame.Content is TogetherPage;
+        if (ctx.Known.Party is not { } party || onTogether)
+        {
+            PartyBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var members = ctx.Known.PartyMembers ?? [];
+        if (party.RoomEpisode is { } room && party.Playing)
+        {
+            PartyBarTitle.Text = T.PartyBarTitle(room.Title.Length > 0 ? room.Title : room.File, room.Episode);
+            PartyBarLine.Text = T.PartyBarLine(members.Length, members.Count(m => m.Ready == true));
+        }
+        else
+        {
+            PartyBarTitle.Text = party.RoomEpisode is { } r ? T.PartyBarTitle(r.Title.Length > 0 ? r.Title : r.File, r.Episode) : T.TogetherTitle;
+            PartyBarLine.Text = party.RoomEpisode is null ? T.PartyBarLine(members.Length, members.Count(m => m.Ready == true)) : T.PartyBarIdle;
+        }
+        PartyBar.Visibility = Visibility.Visible;
+    }
+
+    void OnPartyBarOpen(object sender, RoutedEventArgs e) => Go("together");
+
+    void OnPartyBarLeave(object sender, RoutedEventArgs e) => ctx.Send(new Command.PartyLeave());
 
     /// <summary>Closing the window leaves the party: asked first, once per close.</summary>
     bool AskLeavingParty()
@@ -200,7 +238,30 @@ public sealed partial class MainWindow
             }
             return;
         }
-        Player.HoldUpNext = true;
+        if (state is "party-lobby" or "party-lobby-ready" or "party-bar")
+        {
+            // A party this device started for episode 7, with two friends in the lobby.
+            ctx.Send(new Command.Party(new PartyCommand.Lobby(server, FixtureRoom, "Ada", new PartyEpisode(900001, "7"))));
+            for (var i = 0; i < 50 && ctx.Known.Party is null; i++)
+                await Task.Delay(200);
+            await Task.Delay(1000);
+            fakeParty.AddMember(FixtureRoom, "Mika");
+            fakeParty.MemberOpens("Mika", "Stardust Wayfarer · Episode 7", 1400);
+            fakeParty.MemberReady("Mika", true);
+            fakeParty.AddMember(FixtureRoom, "Ren");
+            fakeParty.MemberOpens("Ren", "Stardust Wayfarer · Episode 7", 1400);
+            fakeParty.MemberReady("Ren", false);
+            await Task.Delay(1200);
+            if (state == "party-lobby-ready")
+            {
+                fakeParty.MemberReady("Ren", true);
+                ctx.Send(new Command.PartyReady(true));
+                await Task.Delay(600);
+            }
+            Go(state == "party-bar" ? "continue" : "together");
+            return;
+        }
+        Player.HoldUpNext = state != "party-next";
         ctx.Send(new Command.PartyJoin(server, FixtureRoom, "Ada"));
         ctx.Play(900001, "7", fromStart: true);
         // Until this device's member has the episode open, for the others to open the same.
@@ -237,6 +298,22 @@ public sealed partial class MainWindow
                 ctx.Send(new Command.PartyReady(true));
                 await Task.Delay(600);
                 Player.ShowParty();
+                break;
+            case "party-notice":
+                // Mika pauses once the room is playing: everyone's player says so in its top corner.
+                fakeParty.MemberReady("Ren", true);
+                ctx.Send(new Command.PartyReady(true));
+                await Task.Delay(5500);
+                fakeParty.MemberPauses("Mika");
+                break;
+            case "party-next":
+                // Near the end, playing, with the room's Up Next countdown on the card.
+                fakeParty.MemberReady("Ren", true);
+                ctx.Send(new Command.PartyReady(true));
+                await Task.Delay(1500);
+                ctx.Send(new Command.Player(new PlayerCommand.SeekTo(Math.Max(0, length - 12))));
+                await Task.Delay(500);
+                fakeParty.MemberPlays("Mika");
                 break;
             case "party-chat":
                 fakeParty.MemberSays("Mika", "Starting in a minute, grabbing tea");

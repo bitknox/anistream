@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │    Tetsu no Hanazono              82%   ░░░░░░░░░░░░░░░░░
   ◎  Accounts               │    Ame Furu Machi no Robotto      81%   ░░░░░░░░░░░░░░░░░
   ≡  Settings               │    Kumo no Ue no Gakkou           80%   ░░░░░░░░░░░░░░░░░
-                            │    Shiosai Radio Kyoku            79%   ░░░░░░░░░░░░░░░░░
+  ⇄  Together               │    Shiosai Radio Kyoku            79%   ░░░░░░░░░░░░░░░░░
                             │    Fuyu no Shika to Tabi          78%   ░░░░░░░░░░░░░░░░░
                             │    Natsukusa Tanteisha            77%   ░░░░░░░░░░░░░░░░░
                             │    Hotaru Line Kaisoku            76%   ░░░░░░░░░░░░░░░░░
@@ -97,6 +97,8 @@ r10 c28-28 fg=rule
 r10 c33-52 fg=text-dim
 r10 c64-66 fg=text-dim
 r10 c70-86 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-51 fg=text-dim
 r11 c64-66 fg=text-dim

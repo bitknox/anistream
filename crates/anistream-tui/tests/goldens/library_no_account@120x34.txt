@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │  Press 8 to open Accounts and sign in.
   ◎  Accounts               │
   ≡  Settings               │
-                            │
+  ⇄  Together               │
                             │
                             │
                             │
@@ -80,6 +80,8 @@ r09 c28-28 fg=rule
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r12 c28-28 fg=rule
 r13 c28-28 fg=rule

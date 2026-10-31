@@ -9,7 +9,7 @@ anistream                                                                       
 ▌ ◇  Sources                │    Sora                        Member    3         Never
   ◎  Accounts               │
   ≡  Settings               │  Invites not used yet
-                            │    Kai                                             Expires tomorrow
+  ⇄  Together               │    Kai                                             Expires tomorrow
                             │    Mirei, another device                           Expires today
                             │
                             │
@@ -90,6 +90,8 @@ r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
 r10 c31-50 fg=text-dim
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-35 fg=text
 r11 c81-96 fg=text-dim

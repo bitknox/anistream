@@ -524,6 +524,9 @@ scenarios! {
     downloads_empty,
     providers_none,
     accounts_none,
+    together_empty,
+    together_lobby,
+    together_recent,
     stores_none_joined,
     store_empty,
     members_loading,
@@ -2141,6 +2144,118 @@ fn providers_none(s: &mut Screen) {
 fn accounts_none(s: &mut Screen) {
     s.apply(sources_ready());
     s.act(Action::JumpSection(8));
+}
+
+/// No party and no rooms kept: what Together offers, and the Join line to start with.
+fn together_empty(s: &mut Screen) {
+    s.apply(sources_ready());
+    s.act(Action::JumpSection(10));
+    s.apply(Event::PartyRecent(Vec::new()));
+}
+
+/// The last rooms, newest first, with the Join line above them; none is joined.
+fn together_recent(s: &mut Screen) {
+    s.apply(sources_ready());
+    s.act(Action::JumpSection(10));
+    s.apply(Event::PartyRecent(vec![
+        recent_room("kite-7qm4-xr9d", "Natsukaze Relay", "8", &["Mika", "Ren"], NOW - 3 * HOUR),
+        recent_room("ember-2hv8-kd4p", "Lantern Harbour", "3", &["Mika"], NOW - 2 * DAY),
+        recent_room("ember-9wz3-tn6c", "Glass Orchard", "1", &[], NOW - 9 * DAY),
+    ]));
+    s.press(&["j"]);
+}
+
+/// In a lobby: three in the room, one ready, this device not, with its sources checked.
+fn together_lobby(s: &mut Screen) {
+    s.apply(sources_ready());
+    s.act(Action::JumpSection(10));
+    s.apply(Event::PartyRecent(vec![recent_room(
+        "kite-7qm4-xr9d",
+        "Natsukaze Relay",
+        "9",
+        &["Mika", "Ren"],
+        NOW - 60,
+    )]));
+    s.apply(Event::PartyJoined(party_view()));
+    s.apply(Event::PartyMembers(vec![
+        party_member("Ada", Some(false), true),
+        party_member("Mika", Some(true), false),
+        party_member("Ren", Some(false), false),
+    ]));
+}
+
+fn recent_room(
+    room: &str,
+    title: &str,
+    episode: &str,
+    names: &[&str],
+    last_at: i64,
+) -> anistream_model::party::PartyRecentRoom {
+    anistream_model::party::PartyRecentRoom {
+        server: "party.example:8999".into(),
+        room: room.into(),
+        id: AnilistId::new(104_321),
+        title: title.into(),
+        episode: episode.into(),
+        names: names.iter().map(|n| (*n).to_owned()).collect(),
+        last_at,
+        cover_url: None,
+    }
+}
+
+fn party_member(
+    name: &str,
+    ready: Option<bool>,
+    you: bool,
+) -> anistream_model::party::PartyMember {
+    anistream_model::party::PartyMember {
+        name: name.into(),
+        ready,
+        file: None,
+        duration: None,
+        file_matches: None,
+        you,
+    }
+}
+
+fn party_view() -> anistream_model::party::PartyView {
+    use anistream_model::party::{
+        PartyConnection, PartyFound, PartyRoomEpisode, PartySources, PartyView,
+    };
+    PartyView {
+        server: "party.example:8999".into(),
+        room: "kite-7qm4-xr9d".into(),
+        name: "Ada".into(),
+        connection: PartyConnection::Connected,
+        encrypted: true,
+        ready: false,
+        episode: None,
+        invite: None,
+        motd: None,
+        latency_ms: Some(42),
+        room_episode: Some(PartyRoomEpisode {
+            id: Some(AnilistId::new(104_321)),
+            episode: "9".into(),
+            title: "Natsukaze Relay".into(),
+            file: "Natsukaze Relay, episode 9 [anilist:104321:9]".into(),
+            found: PartyFound::Tag,
+            plain_by: None,
+        }),
+        next_episode: None,
+        starter: Some("Mika".into()),
+        starter_present: true,
+        can_start_anyway: false,
+        code: Some("kite-7qm4-xr9d".into()),
+        link: Some(
+            "https://anistream.tv/party#s=party.example%3A8999&r=kite-7qm4-xr9d&e=9".into(),
+        ),
+        playing: false,
+        starting_in: None,
+        sources: Some(PartySources::Found),
+        guesses: Vec::new(),
+        looking: false,
+        moves_on: true,
+    }
 }
 
 /// The store list once it has loaded and holds nothing.

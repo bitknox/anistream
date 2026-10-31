@@ -219,6 +219,10 @@ becomes one engine `Command` or one request to the TV front end (`RemoteCommand:
 | Track | `{"name":"track","kind":"subtitle","id":2}` | `PlayerCommand::ChooseTrack` |
 | Search text | `{"name":"text","text":"harbour","submit":false}` | front end sets the focused field |
 | Navigate | `{"name":"navigate","key":"down"}` | front end moves focus |
+| Join a watch party | `{"name":"party_join","server":"syncplay.pl:8995","room":"kite-7qm4-xr9d"}` | `PartyCommand::Lobby` |
+| Ready in the party | `{"name":"party_ready","ready":true}` | `Command::PartyReady` |
+| Start the party anyway | `{"name":"party_start"}` | `PartyCommand::StartAnyway` |
+| Leave the party | `{"name":"party_leave"}` | `Command::PartyLeave` |
 
 The model's own enums are not put on the wire for three reasons. The model has no serde, and its
 shape follows the engine, while the wire has to stay readable by a TV a release older than the
@@ -257,6 +261,11 @@ loses nothing:
   }
 }
 ```
+
+When the TV is in a watch party the state has a `party` object: `room`, and when known `code`,
+`link` (the https invite a phone can share), `title`, `episode`, `ready` and `playing`. The
+phone reads the invite itself (`parse_party_target`) and sends the server and room; party
+commands need nothing playing.
 
 `screen` is one of `home`, `search` (with its `query`), `title` (with its `id`), `player`,
 `settings` and `other`. The TV front end reports it.

@@ -50,6 +50,9 @@ keys-action-jump-accounts = Go to Accounts
 keys-action-jump-settings = Go to Settings
 
 # Action label in the help overlay and the command palette.
+keys-action-jump-together = Go to Together
+
+# Action label in the help overlay and the command palette.
 keys-action-jump-section = Go to section
 
 # Action label in the help overlay and the command palette.
@@ -632,3 +635,15 @@ nav-rail-collapsed = Collapsed
 
 # Name of the rail's width setting, shown in a toast when it changes.
 nav-rail-hidden = Hidden
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+# @max 20
+keys-hint-ready = Ready
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+# @max 20
+keys-hint-copy-link = Copy link
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+# @max 20
+keys-hint-leave-party = Leave

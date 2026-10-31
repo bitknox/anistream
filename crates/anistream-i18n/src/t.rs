@@ -690,6 +690,11 @@ pub fn party_left() -> String {
     text("party-left", &[])
 }
 
+/// Message when a watch party's server could not be reached, in the lobby or when looking in.
+pub fn party_server_unreachable(server: &str) -> String {
+    text("party-server-unreachable", &[("server", Arg::Text(server))])
+}
+
 /// Toast after joining a plugin store with an invite that names this device's owner.
 pub fn store_joined(store: &str, member: &str) -> String {
     text("store-joined", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
@@ -2976,6 +2981,11 @@ pub fn keys_action_jump_settings() -> String {
 }
 
 /// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_together() -> String {
+    text("keys-action-jump-together", &[])
+}
+
+/// Action label in the help overlay and the command palette.
 pub fn keys_action_jump_section() -> String {
     text("keys-action-jump-section", &[])
 }
@@ -3778,6 +3788,21 @@ pub fn nav_rail_collapsed() -> String {
 /// Name of the rail's width setting, shown in a toast when it changes.
 pub fn nav_rail_hidden() -> String {
     text("nav-rail-hidden", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_ready() -> String {
+    text("keys-hint-ready", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_copy_link() -> String {
+    text("keys-hint-copy-link", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_leave_party() -> String {
+    text("keys-hint-leave-party", &[])
 }
 
 /// Shown in place of a screen when the terminal is too small to draw it.
@@ -6173,6 +6198,31 @@ pub fn status_reloading_sources() -> String {
 /// Toast when the { -source } pinned for a title can't be used and the others are tried instead.
 pub fn pin_unavailable(name: &str) -> String {
     text("pin-unavailable", &[("name", Arg::Text(name))])
+}
+
+/// Name of the Together section in the terminal's rail, on the key 0.
+pub fn tui_together_section() -> String {
+    text("tui-together-section", &[])
+}
+
+/// Prompt of the Join line in the Together section.
+pub fn tui_together_join_prompt() -> String {
+    text("tui-together-join-prompt", &[])
+}
+
+/// Hint line of the keys in the Together section.
+pub fn tui_together_keys() -> String {
+    text("tui-together-keys", &[])
+}
+
+/// Toast when what was typed in the Together section's Join line is neither a link nor a code.
+pub fn tui_together_not_a_link() -> String {
+    text("tui-together-not-a-link", &[])
+}
+
+/// Second line of a recent room nobody else was in. The time is already formatted, such as Tuesday.
+pub fn tui_together_recent_alone(episode: &str, when: &str) -> String {
+    text("tui-together-recent-alone", &[("episode", Arg::Text(episode)), ("when", Arg::Text(when))])
 }
 
 /// Title of the about page.
@@ -8785,6 +8835,11 @@ pub fn tooltip_with_key(name: &str, key: &str) -> String {
     text("tooltip-with-key", &[("name", Arg::Text(name)), ("key", Arg::Text(key))])
 }
 
+/// Sidebar row, rail item and window title for the place that starts and joins watch parties.
+pub fn nav_watch_together() -> String {
+    text("nav-watch-together", &[])
+}
+
 /// Title of the welcome window.
 pub fn onboarding_welcome() -> String {
     text("onboarding-welcome", &[])
@@ -9213,6 +9268,486 @@ pub fn party_no_source_lists(episode: &str) -> String {
 /// Button that plays the chosen source with the room.
 pub fn party_play_with() -> String {
     text("party-play-with", &[])
+}
+
+/// Heading of the place that starts and joins watch parties.
+pub fn together_title() -> String {
+    text("together-title", &[])
+}
+
+/// Line under the heading of the place for watch parties. States that nothing is shared but timing.
+pub fn together_line() -> String {
+    text("together-line", &[])
+}
+
+/// Accessibility label of the people button in Home's toolbar that opens the place for watch parties.
+pub fn together_people_button() -> String {
+    text("together-people-button", &[])
+}
+
+/// Button that starts a watch party from the place. The one amber button there.
+pub fn together_start() -> String {
+    text("together-start", &[])
+}
+
+/// Line under Start a party.
+pub fn together_start_line() -> String {
+    text("together-start-line", &[])
+}
+
+/// Heading of the field that joins a watch party.
+pub fn together_join() -> String {
+    text("together-join", &[])
+}
+
+/// Line under Join a party.
+pub fn together_join_line() -> String {
+    text("together-join-line", &[])
+}
+
+/// Placeholder of the field that takes an invite link or a code.
+pub fn together_join_field() -> String {
+    text("together-join-field", &[])
+}
+
+/// Button that pastes the clipboard into the Join field.
+pub fn together_paste() -> String {
+    text("together-paste", &[])
+}
+
+/// Button that joins from the Join field.
+pub fn together_join_action() -> String {
+    text("together-join-action", &[])
+}
+
+/// Heading of the block on the place that shows the watch party you are in.
+pub fn together_in_party() -> String {
+    text("together-in-party", &[])
+}
+
+/// Line of the In a party block. The episode is a number or label.
+pub fn together_in_party_line(episode: &str, count: i64, ready: i64) -> String {
+    text("together-in-party-line", &[("episode", Arg::Text(episode)), ("count", Arg::Int(count)), ("ready", Arg::Int(ready))])
+}
+
+/// Button that opens the lobby of the watch party you are in.
+pub fn together_open_lobby() -> String {
+    text("together-open-lobby", &[])
+}
+
+/// Button that opens the player of the watch party you are in.
+pub fn together_open_player() -> String {
+    text("together-open-player", &[])
+}
+
+/// Heading of the list of the last ten watch parties on this device.
+pub fn together_recent() -> String {
+    text("together-recent", &[])
+}
+
+/// Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.
+pub fn together_recent_row(episode: &str, names: &str, when: &str) -> String {
+    text("together-recent-row", &[("episode", Arg::Text(episode)), ("names", Arg::Text(names)), ("when", Arg::Text(when))])
+}
+
+/// Line shown when no recent rooms are kept yet.
+pub fn together_recent_empty() -> String {
+    text("together-recent-empty", &[])
+}
+
+/// Button on a recent room that goes straight to its lobby with the next episode.
+pub fn together_rejoin() -> String {
+    text("together-rejoin", &[])
+}
+
+/// Menu item that removes a recent room from the list.
+pub fn together_forget_room() -> String {
+    text("together-forget-room", &[])
+}
+
+/// Line that says who is in a recent room now, after looking in. The names are already joined.
+pub fn together_someone_here(names: &str, count: i64) -> String {
+    text("together-someone-here", &[("names", Arg::Text(names)), ("count", Arg::Int(count))])
+}
+
+/// Line that says a recent room has nobody in it now.
+pub fn together_nobody_here() -> String {
+    text("together-nobody-here", &[])
+}
+
+/// Heading of the small list of servers on the place.
+pub fn together_servers() -> String {
+    text("together-servers", &[])
+}
+
+/// Line under the suggested server. The operator is who runs it, such as the Syncplay project.
+pub fn together_server_suggested(operator: &str) -> String {
+    text("together-server-suggested", &[("operator", Arg::Text(operator))])
+}
+
+/// Line under a server that parties were held on.
+pub fn together_server_used(count: i64) -> String {
+    text("together-server-used", &[("count", Arg::Int(count))])
+}
+
+/// Button that adds a server to the list.
+pub fn together_add_server() -> String {
+    text("together-add-server", &[])
+}
+
+/// Hint on the place that a link or code can be pasted anywhere on the page.
+pub fn together_paste_shortcut_hint() -> String {
+    text("together-paste-shortcut-hint", &[])
+}
+
+/// Heading of the step that asks what to watch in a new watch party.
+pub fn party_pick_title() -> String {
+    text("party-pick-title", &[])
+}
+
+/// Line under a title in the picker: which episode comes next.
+pub fn party_pick_next(episode: &str) -> String {
+    text("party-pick-next", &[("episode", Arg::Text(episode))])
+}
+
+/// Placeholder of the picker's search field.
+pub fn party_pick_search() -> String {
+    text("party-pick-search", &[])
+}
+
+/// Heading of the step that asks for a server and a name the first time.
+pub fn party_first_server_title() -> String {
+    text("party-first-server-title", &[])
+}
+
+/// Button that makes the room and opens the lobby.
+pub fn party_start_party() -> String {
+    text("party-start-party", &[])
+}
+
+/// Line in the lobby when your own sources have the room's episode.
+pub fn party_lobby_sources_found() -> String {
+    text("party-lobby-sources-found", &[])
+}
+
+/// Line in the lobby when none of your sources has the room's episode.
+pub fn party_lobby_sources_missing() -> String {
+    text("party-lobby-sources-missing", &[])
+}
+
+/// Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.
+pub fn party_lobby_out_on(day: &str) -> String {
+    text("party-lobby-out-on", &[("day", Arg::Text(day))])
+}
+
+/// Line that says you stay in the room while you have no source for the episode.
+pub fn party_still_in_room() -> String {
+    text("party-still-in-room", &[])
+}
+
+/// Line in the lobby that counts the room.
+pub fn party_lobby_count(ready: i64, count: i64) -> String {
+    text("party-lobby-count", &[("ready", Arg::Int(ready)), ("count", Arg::Int(count))])
+}
+
+/// Line in the lobby of an invite: who invited.
+pub fn party_invited_by(name: &str) -> String {
+    text("party-invited-by", &[("name", Arg::Text(name))])
+}
+
+/// Line shown while the app looks into a room, after a short wait.
+pub fn party_looking_in() -> String {
+    text("party-looking-in", &[])
+}
+
+/// Note that opening a room shows you in it for a moment.
+pub fn party_looking_in_note() -> String {
+    text("party-looking-in-note", &[])
+}
+
+/// State of a member whose file is not open yet.
+pub fn party_member_joining() -> String {
+    text("party-member-joining", &[])
+}
+
+/// State of a member from the second episode on who is finding a source.
+pub fn party_member_finding() -> String {
+    text("party-member-finding", &[])
+}
+
+/// State of a member who is watching. The time is already formatted, such as 2:14.
+pub fn party_member_watching_from(time: &str) -> String {
+    text("party-member-watching-from", &[("time", Arg::Text(time))])
+}
+
+/// Label of the I'm ready button once you are ready.
+pub fn party_ready_on() -> String {
+    text("party-ready-on", &[])
+}
+
+/// Heading of the invite block in the lobby.
+pub fn party_invite() -> String {
+    text("party-invite", &[])
+}
+
+/// Label of the short code in the lobby.
+pub fn party_code() -> String {
+    text("party-code", &[])
+}
+
+/// Button that opens the system share sheet with the invite link.
+pub fn party_share() -> String {
+    text("party-share", &[])
+}
+
+/// Text shared beside the invite link.
+pub fn party_share_text(title: &str, episode: &str) -> String {
+    text("party-share-text", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Notice after the invite link was copied.
+pub fn party_invite_copied() -> String {
+    text("party-invite-copied", &[])
+}
+
+/// Line in the lobby before everyone is ready.
+pub fn party_starts_line() -> String {
+    text("party-starts-line", &[])
+}
+
+/// Button that starts the room without waiting for those who are not ready.
+pub fn party_start_anyway() -> String {
+    text("party-start-anyway", &[])
+}
+
+/// Line during the three second count before play.
+pub fn party_starting(seconds: i64) -> String {
+    text("party-starting", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Button in the lobby that changes the room's episode.
+pub fn party_change_episode() -> String {
+    text("party-change-episode", &[])
+}
+
+/// Button that changes the server after it could not be reached.
+pub fn party_change_server() -> String {
+    text("party-change-server", &[])
+}
+
+/// Label over the title and episode the room is watching.
+pub fn party_room_watching() -> String {
+    text("party-room-watching", &[])
+}
+
+/// Line in the lobby of a room with nothing open.
+pub fn party_room_nothing() -> String {
+    text("party-room-nothing", &[])
+}
+
+/// Second line under Nothing is open in the room yet.
+pub fn party_room_nothing_line() -> String {
+    text("party-room-nothing-line", &[])
+}
+
+/// Button that picks what the room watches.
+pub fn party_room_pick() -> String {
+    text("party-room-pick", &[])
+}
+
+/// Line in the lobby when the room is on a later episode than the invite.
+pub fn party_room_moved_on(episode: &str) -> String {
+    text("party-room-moved-on", &[("episode", Arg::Text(episode))])
+}
+
+/// Notice when someone changes the room's episode.
+pub fn party_room_changed(name: &str, episode: &str) -> String {
+    text("party-room-changed", &[("name", Arg::Text(name)), ("episode", Arg::Text(episode))])
+}
+
+/// Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.
+pub fn party_room_plain_file(name: &str, file: &str) -> String {
+    text("party-room-plain-file", &[("name", Arg::Text(name)), ("file", Arg::Text(file))])
+}
+
+/// Label under a title that was found from a plain file's name.
+pub fn party_room_matched() -> String {
+    text("party-room-matched", &[])
+}
+
+/// Button that rejects a title matched from a file name.
+pub fn party_room_not_this() -> String {
+    text("party-room-not-this", &[])
+}
+
+/// Heading over up to three guesses for a plain file's title.
+pub fn party_room_guesses() -> String {
+    text("party-room-guesses", &[])
+}
+
+/// Line when the room's title was found by its name because its id is unknown here.
+pub fn party_room_found_by_name() -> String {
+    text("party-room-found-by-name", &[])
+}
+
+/// Line when the room's title could not be found in your sources or on AniList.
+pub fn party_room_not_found() -> String {
+    text("party-room-not-found", &[])
+}
+
+/// Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.
+pub fn party_code_shape(example: &str) -> String {
+    text("party-code-shape", &[("example", Arg::Text(example))])
+}
+
+/// Line in the lobby when nobody is in the room of a code.
+pub fn party_code_empty_room(code: &str) -> String {
+    text("party-code-empty-room", &[("code", Arg::Text(code))])
+}
+
+/// Button that waits in an empty room.
+pub fn party_code_wait() -> String {
+    text("party-code-wait", &[])
+}
+
+/// Error when a code is used on another server. The server is the suggested one.
+pub fn party_code_other_server(server: &str) -> String {
+    text("party-code-other-server", &[("server", Arg::Text(server))])
+}
+
+/// Title line of the bar above the tabs while you are in a party.
+pub fn party_bar_title(title: &str, episode: &str) -> String {
+    text("party-bar-title", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Second line of the bar above the tabs.
+pub fn party_bar_line(count: i64, ready: i64) -> String {
+    text("party-bar-line", &[("count", Arg::Int(count)), ("ready", Arg::Int(ready))])
+}
+
+/// Second line of the bar when nothing plays for you.
+pub fn party_bar_idle() -> String {
+    text("party-bar-idle", &[])
+}
+
+/// Notice in the player when someone pauses.
+pub fn party_paused_by(name: &str) -> String {
+    text("party-paused-by", &[("name", Arg::Text(name))])
+}
+
+/// Notice in the player when someone plays.
+pub fn party_played_by(name: &str) -> String {
+    text("party-played-by", &[("name", Arg::Text(name))])
+}
+
+/// Notice in the player when someone moves the position. The time is already formatted.
+pub fn party_seeked_by(name: &str, time: &str) -> String {
+    text("party-seeked-by", &[("name", Arg::Text(name)), ("time", Arg::Text(time))])
+}
+
+/// Line on the Up Next card in a party.
+pub fn party_next_line(seconds: i64) -> String {
+    text("party-next-line", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Line on the starting screen while the room waits for a member.
+pub fn party_next_waiting(name: &str, seconds: i64) -> String {
+    text("party-next-waiting", &[("name", Arg::Text(name)), ("seconds", Arg::Int(seconds))])
+}
+
+/// Notice when a member who was behind joins. The time is already formatted.
+pub fn party_next_joined_at(name: &str, time: &str) -> String {
+    text("party-next-joined-at", &[("name", Arg::Text(name)), ("time", Arg::Text(time))])
+}
+
+/// Line that replaces the autoplay switch in a party.
+pub fn party_next_off() -> String {
+    text("party-next-off", &[])
+}
+
+/// Line in the lobby after the last episode that is out.
+pub fn party_last_out() -> String {
+    text("party-last-out", &[])
+}
+
+/// Line after the last episode out, when the next one has a date. The day is already formatted.
+pub fn party_last_out_airs(episode: &str, day: &str) -> String {
+    text("party-last-out-airs", &[("episode", Arg::Text(episode)), ("day", Arg::Text(day))])
+}
+
+/// Button that picks a new title for the room.
+pub fn party_watch_something_else() -> String {
+    text("party-watch-something-else", &[])
+}
+
+/// Notice when a member joins.
+pub fn party_member_joined(name: &str) -> String {
+    text("party-member-joined", &[("name", Arg::Text(name))])
+}
+
+/// Notice when a member leaves.
+pub fn party_member_left(name: &str) -> String {
+    text("party-member-left", &[("name", Arg::Text(name))])
+}
+
+/// Notice when the member who started the party leaves.
+pub fn party_starter_left(name: &str) -> String {
+    text("party-starter-left", &[("name", Arg::Text(name))])
+}
+
+/// Notice after you leave.
+pub fn party_you_left() -> String {
+    text("party-you-left", &[])
+}
+
+/// Line under the QR code on the TV.
+pub fn party_tv_scan() -> String {
+    text("party-tv-scan", &[])
+}
+
+/// Line over the code on the TV.
+pub fn party_tv_or_code() -> String {
+    text("party-tv-or-code", &[])
+}
+
+/// Line on the TV's page: joining a friend's party goes through a paired phone.
+pub fn party_tv_join_from_phone() -> String {
+    text("party-tv-join-from-phone", &[])
+}
+
+/// Button that pairs a phone with the TV.
+pub fn party_tv_pair() -> String {
+    text("party-tv-pair", &[])
+}
+
+/// Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.
+pub fn party_join_on_device(device: &str) -> String {
+    text("party-join-on-device", &[("device", Arg::Text(device))])
+}
+
+/// Button on a phone's sheet that joins on the phone itself.
+pub fn party_join_on_this_phone() -> String {
+    text("party-join-on-this-phone", &[])
+}
+
+/// Line on a phone when its paired TV is in the party.
+pub fn party_device_in_party(device: &str) -> String {
+    text("party-device-in-party", &[("device", Arg::Text(device))])
+}
+
+/// Button on a phone that sends the invite to others.
+pub fn party_share_invite() -> String {
+    text("party-share-invite", &[])
+}
+
+/// Button on the phone's remote screen that readies the TV.
+pub fn party_ready_on_device(device: &str) -> String {
+    text("party-ready-on-device", &[("device", Arg::Text(device))])
+}
+
+/// Button on the phone's remote screen that leaves the party on the TV.
+pub fn party_leave_on_device(device: &str) -> String {
+    text("party-leave-on-device", &[("device", Arg::Text(device))])
 }
 
 /// Label on the card for the episode that plays after this one.

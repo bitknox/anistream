@@ -12,7 +12,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
     Refresh this view              r    Page up                   ctrl+u
     Force a full resync            R    Page down                 ctrl+d
     Subbed or dubbed               t  Lists
-    Go to section                1–9    Open                           ↵
+    Go to section                1–0    Open                           ↵
     Search                         /    Play next unwatched        space
     Recent messages                !    Set list status                a
   Movement                              Rate this title                *

@@ -31,3 +31,27 @@ status-reloading-sources = Reloading { -source-pl }…
 # @arg name: text
 # @only tui
 pin-unavailable = { $name } is pinned for this title but isn't available, so the other { -source-pl } are used.
+
+# Name of the Together section in the terminal's rail, on the key 0.
+# @max 16
+# @only tui
+tui-together-section = Together
+
+# Prompt of the Join line in the Together section.
+# @max 24
+# @only tui
+tui-together-join-prompt = link or code
+
+# Hint line of the keys in the Together section.
+# @only tui
+tui-together-keys = r ready · c copy link · s start now · x leave
+
+# Toast when what was typed in the Together section's Join line is neither a link nor a code.
+# @only tui
+tui-together-not-a-link = That is not a party link or code.
+
+# Second line of a recent room nobody else was in. The time is already formatted, such as Tuesday.
+# @arg episode: text
+# @arg when: text
+# @only tui
+tui-together-recent-alone = Episode { $episode } · { $when }

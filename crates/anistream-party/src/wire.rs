@@ -15,7 +15,7 @@ pub const PROTOCOL_VERSION: &str = "1.2.255";
 
 /// The release a client says it is. Servers decide by it which messages a client understands:
 /// readiness from 1.3 and chat from 1.5. This is a release that has both and no shared
-/// playlists, which this client does not take part in.
+/// playlists, which a party uses for the episode the room watches and the one after it.
 pub const REAL_VERSION: &str = "1.7.3";
 
 /// The longest line read from a server. Real messages are well under a kilobyte; the room list
@@ -55,7 +55,7 @@ pub fn hello(name: &str, room: &str) -> Value {
             "version": PROTOCOL_VERSION,
             "realversion": REAL_VERSION,
             "features": {
-                "sharedPlaylists": false,
+                "sharedPlaylists": true,
                 "chat": true,
                 "featureList": true,
                 "readiness": true,
@@ -84,6 +84,16 @@ pub fn set_file(file: Option<&FileInfo>) -> Value {
 /// Say whether this member is ready, and whether they said so themselves.
 pub fn set_ready(ready: bool, manual: bool) -> Value {
     json!({ "Set": { "ready": { "isReady": ready, "manuallyInitiated": manual } } })
+}
+
+/// Replace the room's shared playlist with `files`, in this form: a name each.
+pub fn set_playlist(files: &[String]) -> Value {
+    json!({ "Set": { "playlistChange": { "files": files } } })
+}
+
+/// Make the entry at `index` the one the room watches.
+pub fn set_playlist_index(index: usize) -> Value {
+    json!({ "Set": { "playlistIndex": { "index": index } } })
 }
 
 /// Ask for the members of the room.
@@ -190,6 +200,10 @@ pub enum SetItem {
     },
     /// This member is now in this room.
     Room(String),
+    /// The room's shared playlist was replaced, by `user` when the server says who.
+    Playlist { user: Option<String>, files: Vec<String> },
+    /// The room moved to this entry of the playlist; `None` when it has none.
+    PlaylistIndex { user: Option<String>, index: Option<usize> },
     /// A part this client does not take part in.
     Other(String),
 }
@@ -349,6 +363,18 @@ fn set_items(body: &Value) -> Vec<SetItem> {
                     items.push(SetItem::Room(name));
                 }
             }
+            "playlistChange" => items.push(SetItem::Playlist {
+                user: string(value.get("user")).filter(|u| !u.is_empty()),
+                files: value
+                    .get("files")
+                    .and_then(Value::as_array)
+                    .map(|files| files.iter().filter_map(|f| string(Some(f))).collect())
+                    .unwrap_or_default(),
+            }),
+            "playlistIndex" => items.push(SetItem::PlaylistIndex {
+                user: string(value.get("user")).filter(|u| !u.is_empty()),
+                index: value.get("index").and_then(Value::as_u64).map(|i| i as usize),
+            }),
             other => items.push(SetItem::Other(other.to_owned())),
         }
     }
@@ -442,7 +468,7 @@ mod tests {
         assert_eq!(hello["Hello"]["version"], PROTOCOL_VERSION);
         assert_eq!(hello["Hello"]["realversion"], REAL_VERSION);
         assert_eq!(hello["Hello"]["features"]["readiness"], true);
-        assert_eq!(hello["Hello"]["features"]["sharedPlaylists"], false);
+        assert_eq!(hello["Hello"]["features"]["sharedPlaylists"], true);
     }
 
     #[test]

@@ -439,6 +439,9 @@ party-rejoined = [Ɓàçķ îñ ţĥé ŵàţçĥ þàŕţý.~~~~~~~~]
 # Message when the person left a watch party.
 party-left = [Ļéƒţ ţĥé ŵàţçĥ þàŕţý.~~~~~~~]
 
+# Message when a watch party's server could not be reached, in the lobby or when looking in.
+party-server-unreachable = [Çöüļðñ'ţ ŕéàçĥ { $server }. Çĥéçķ ţĥé šéŕṽéŕ, öŕ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~]
+
 # Toast after joining a plugin store with an invite that names this device's owner.
 store-joined = [Ĵöîñéð { $store } àš { $member }.~~~~~~]
 
@@ -1899,6 +1902,9 @@ keys-action-jump-accounts = [Ĝö ţö Åççöüñţš~~~~~]
 keys-action-jump-settings = [Ĝö ţö Šéţţîñĝš~~~~~]
 
 # Action label in the help overlay and the command palette.
+keys-action-jump-together = [Ĝö ţö Ţöĝéţĥéŕ~~~~~]
+
+# Action label in the help overlay and the command palette.
 keys-action-jump-section = [Ĝö ţö šéçţîöñ~~~~]
 
 # Action label in the help overlay and the command palette.
@@ -2380,6 +2386,15 @@ nav-rail-collapsed = [Çöļļàþšéð~~~]
 
 # Name of the rail's width setting, shown in a toast when it changes.
 nav-rail-hidden = [Ĥîððéñ~~]
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-ready = [Ŕéàðý~~]
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-copy-link = [Çöþý ļîñķ~~~]
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-leave-party = [Ļéàṽé~~]
 
 # Shown in place of a screen when the terminal is too small to draw it.
 lists-terminal-too-small = [Ñééðš à ļàŕĝéŕ ţéŕɱîñàļ~~~~~~~]
@@ -3877,6 +3892,21 @@ status-reloading-sources = [Ŕéļöàðîñĝ šöüŕçéš…~~~~~~]
 
 # Toast when the { -source } pinned for a title can't be used and the others are tried instead.
 pin-unavailable = [{ $name } îš þîññéð ƒöŕ ţĥîš ţîţļé ƀüţ îšñ'ţ àṽàîļàƀļé, šö ţĥé öţĥéŕ šöüŕçéš àŕé üšéð.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Name of the Together section in the terminal's rail, on the key 0.
+tui-together-section = [Ţöĝéţĥéŕ~~~]
+
+# Prompt of the Join line in the Together section.
+tui-together-join-prompt = [ļîñķ öŕ çöðé~~~~]
+
+# Hint line of the keys in the Together section.
+tui-together-keys = [ŕ ŕéàðý · ç çöþý ļîñķ · š šţàŕţ ñöŵ · ẋ ļéàṽé~~~~~~~~~~~~~~]
+
+# Toast when what was typed in the Together section's Join line is neither a link nor a code.
+tui-together-not-a-link = [Ţĥàţ îš ñöţ à þàŕţý ļîñķ öŕ çöðé.~~~~~~~~~~]
+
+# Second line of a recent room nobody else was in. The time is already formatted, such as Tuesday.
+tui-together-recent-alone = [Éþîšöðé { $episode } · { $when }~~~~~~]
 
 # Title of the about page.
 about-title = [Åƀöüţ~~]
@@ -5484,6 +5514,9 @@ nav-expand = [Éẋþàñð ñàṽîĝàţîöñ~~~~~~]
 # Name of a shortcut or tooltip: the name, then the key that does it.
 tooltip-with-key = [{ $name } ({ $key })~~~]
 
+# Sidebar row, rail item and window title for the place that starts and joins watch parties.
+nav-watch-together = [Ŵàţçĥ ţöĝéţĥéŕ~~~~~]
+
 # Title of the welcome window.
 onboarding-welcome = [Ŵéļçöɱé~~~]
 
@@ -5745,6 +5778,302 @@ party-no-source-lists = [Ñö šöüŕçé ļîšţš éþîšöðé { $episode 
 
 # Button that plays the chosen source with the room.
 party-play-with = [Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]
+
+# Heading of the place that starts and joins watch parties.
+together-title = [Ŵàţçĥ ţöĝéţĥéŕ~~~~~]
+
+# Line under the heading of the place for watch parties. States that nothing is shared but timing.
+together-line = [Éṽéŕýöñé þļàýš ţĥé éþîšöðé ƒŕöɱ ţĥéîŕ öŵñ šöüŕçéš. Ţĥé šéŕṽéŕ öñļý ķééþš ýöü îñ šţéþ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Accessibility label of the people button in Home's toolbar that opens the place for watch parties.
+together-people-button = [Ŵàţçĥ ţöĝéţĥéŕ~~~~~]
+
+# Button that starts a watch party from the place. The one amber button there.
+together-start = [Šţàŕţ à þàŕţý~~~~]
+
+# Line under Start a party.
+together-start-line = [Þîçķ šöɱéţĥîñĝ ýöü'ŕé ŵàţçĥîñĝ, ţĥéñ îñṽîţé ƒŕîéñðš ŵîţĥ à ļîñķ öŕ à çöðé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading of the field that joins a watch party.
+together-join = [Ĵöîñ à þàŕţý~~~~]
+
+# Line under Join a party.
+together-join-line = [Þàšţé à ƒŕîéñð'š îñṽîţé ļîñķ, öŕ ţýþé ţĥé çöðé ţĥéý ŕéàð öüţ.~~~~~~~~~~~~~~~~~~~]
+
+# Placeholder of the field that takes an invite link or a code.
+together-join-field = [Ļîñķ öŕ çöðé~~~~]
+
+# Button that pastes the clipboard into the Join field.
+together-paste = [Þàšţé~~]
+
+# Button that joins from the Join field.
+together-join-action = [Ĵöîñ~~]
+
+# Heading of the block on the place that shows the watch party you are in.
+together-in-party = [Îñ à þàŕţý~~~]
+
+# Line of the In a party block. The episode is a number or label.
+together-in-party-line = [Éþîšöðé { $episode } · { $count } îñ ţĥé ŕööɱ · { $ready } ŕéàðý~~~~~~~~~~~~~]
+
+# Button that opens the lobby of the watch party you are in.
+together-open-lobby = [Öþéñ ļöƀƀý~~~]
+
+# Button that opens the player of the watch party you are in.
+together-open-player = [Öþéñ þļàýéŕ~~~~]
+
+# Heading of the list of the last ten watch parties on this device.
+together-recent = [Ŕéçéñţ ŕööɱš~~~~]
+
+# Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.
+together-recent-row = [Éþîšöðé { $episode } · ŵîţĥ { $names } · { $when }~~~~~~~~~]
+
+# Line shown when no recent rooms are kept yet.
+together-recent-empty = [Ŕööɱš ýöü ĵöîñ šĥöŵ ĥéŕé, ţĥé ļàšţ ţéñ.~~~~~~~~~~~~]
+
+# Button on a recent room that goes straight to its lobby with the next episode.
+together-rejoin = [Ŕéĵöîñ~~]
+
+# Menu item that removes a recent room from the list.
+together-forget-room = [Ŕéɱöṽé ƒŕöɱ ŕéçéñţ ŕööɱš~~~~~~~~]
+
+# Line that says who is in a recent room now, after looking in. The names are already joined.
+together-someone-here =
+    { $count ->
+        [one] [{ $names } îš îñ ţĥé ŕööɱ~~~~~~]
+       *[other] [{ $names } àŕé îñ ţĥé ŕööɱ~~~~~~]
+    }
+
+# Line that says a recent room has nobody in it now.
+together-nobody-here = [Ñöƀöðý ĥéŕé ñöŵ~~~~~]
+
+# Heading of the small list of servers on the place.
+together-servers = [Šéŕṽéŕš~~~]
+
+# Line under the suggested server. The operator is who runs it, such as the Syncplay project.
+together-server-suggested = [Šüĝĝéšţéð · ŕüñ ƀý { $operator }~~~~~~~]
+
+# Line under a server that parties were held on.
+together-server-used =
+    { $count ->
+        [one] [Ûšéð ƒöŕ 1 þàŕţý~~~~~]
+       *[other] [Ûšéð ƒöŕ { $count } þàŕţîéš~~~~~~]
+    }
+
+# Button that adds a server to the list.
+together-add-server = [Åðð à šéŕṽéŕ~~~~]
+
+# Hint on the place that a link or code can be pasted anywhere on the page.
+together-paste-shortcut-hint = [Þàšţé à ļîñķ öŕ çöðé àñýŵĥéŕé öñ ţĥîš þàĝé.~~~~~~~~~~~~~]
+
+# Heading of the step that asks what to watch in a new watch party.
+party-pick-title = [Ŵĥàţ àŕé ýöü ŵàţçĥîñĝ?~~~~~~~]
+
+# Line under a title in the picker: which episode comes next.
+party-pick-next = [Éþîšöðé { $episode } ñéẋţ~~~~~]
+
+# Placeholder of the picker's search field.
+party-pick-search = [Šéàŕçĥ ţîţļéš~~~~]
+
+# Heading of the step that asks for a server and a name the first time.
+party-first-server-title = [Çĥööšé à šéŕṽéŕ~~~~~]
+
+# Button that makes the room and opens the lobby.
+party-start-party = [Šţàŕţ þàŕţý~~~~]
+
+# Line in the lobby when your own sources have the room's episode.
+party-lobby-sources-found = [Þļàýš ƒŕöɱ ýöüŕ šöüŕçéš~~~~~~~]
+
+# Line in the lobby when none of your sources has the room's episode.
+party-lobby-sources-missing = [Ñöţ îñ ýöüŕ šöüŕçéš ýéţ~~~~~~~]
+
+# Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.
+party-lobby-out-on = [Öüţ öñ { $day }~~~]
+
+# Line that says you stay in the room while you have no source for the episode.
+party-still-in-room = [Ýöü'ŕé šţîļļ îñ ţĥé ŕööɱ.~~~~~~~~]
+
+# Line in the lobby that counts the room.
+party-lobby-count = [Îñ ţĥé ŕööɱ · { $ready } öƒ { $count } ŕéàðý~~~~~~~~~]
+
+# Line in the lobby of an invite: who invited.
+party-invited-by = [{ $name } îñṽîţéð ýöü~~~~~]
+
+# Line shown while the app looks into a room, after a short wait.
+party-looking-in = [Ļööķîñĝ îñ~~~]
+
+# Note that opening a room shows you in it for a moment.
+party-looking-in-note = [Öþéñîñĝ à ŕööɱ šĥöŵš ýöü îñ îţ ƒöŕ à ɱöɱéñţ.~~~~~~~~~~~~~~]
+
+# State of a member whose file is not open yet.
+party-member-joining = [Ĵöîñîñĝ~~~]
+
+# State of a member from the second episode on who is finding a source.
+party-member-finding = [Ƒîñðîñĝ à šöüŕçé~~~~~]
+
+# State of a member who is watching. The time is already formatted, such as 2:14.
+party-member-watching-from = [Ŵàţçĥîñĝ ƒŕöɱ { $time }~~~~~~]
+
+# Label of the I'm ready button once you are ready.
+party-ready-on = [Ŕéàðý~~]
+
+# Heading of the invite block in the lobby.
+party-invite = [Îñṽîţé~~]
+
+# Label of the short code in the lobby.
+party-code = [Çöðé~~]
+
+# Button that opens the system share sheet with the invite link.
+party-share = [Šĥàŕé…~~]
+
+# Text shared beside the invite link.
+party-share-text = [Ŵàţçĥ þàŕţý · { $title } · Éþîšöðé { $episode }~~~~~~~~~~]
+
+# Notice after the invite link was copied.
+party-invite-copied = [Îñṽîţé ļîñķ çöþîéð~~~~~~]
+
+# Line in the lobby before everyone is ready.
+party-starts-line = [Šţàŕţš àţ 0:00 ŵĥéñ éṽéŕýöñé îš ŕéàðý~~~~~~~~~~~~]
+
+# Button that starts the room without waiting for those who are not ready.
+party-start-anyway = [Šţàŕţ àñýŵàý~~~~]
+
+# Line during the three second count before play.
+party-starting = [Šţàŕţîñĝ îñ { $seconds }~~~~~]
+
+# Button in the lobby that changes the room's episode.
+party-change-episode = [Çĥàñĝé éþîšöðé~~~~~]
+
+# Button that changes the server after it could not be reached.
+party-change-server = [Çĥàñĝé šéŕṽéŕ~~~~]
+
+# Label over the title and episode the room is watching.
+party-room-watching = [Ţĥé ŕööɱ îš ŵàţçĥîñĝ~~~~~~]
+
+# Line in the lobby of a room with nothing open.
+party-room-nothing = [Ñöţĥîñĝ îš öþéñ îñ ţĥé ŕööɱ ýéţ.~~~~~~~~~~]
+
+# Second line under Nothing is open in the room yet.
+party-room-nothing-line = [Îţ šţàŕţš ŵĥéñ šöɱéöñé þîçķš àñ éþîšöðé.~~~~~~~~~~~~]
+
+# Button that picks what the room watches.
+party-room-pick = [Þîçķ ŵĥàţ ţö ŵàţçĥ~~~~~~]
+
+# Line in the lobby when the room is on a later episode than the invite.
+party-room-moved-on = [Ţĥé ŕööɱ ĥàš ɱöṽéð öñ ţö éþîšöðé { $episode }.~~~~~~~~~~~~]
+
+# Notice when someone changes the room's episode.
+party-room-changed = [{ $name } çĥàñĝéð ţĥé éþîšöðé ţö { $episode }~~~~~~~~~]
+
+# Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.
+party-room-plain-file = [{ $name } ĥàš { $file } öþéñ~~~~~]
+
+# Label under a title that was found from a plain file's name.
+party-room-matched = [Ṁàţçĥéð ƒŕöɱ ţĥé ƒîļé ñàɱé~~~~~~~~]
+
+# Button that rejects a title matched from a file name.
+party-room-not-this = [Ñöţ ţĥîš ţîţļé~~~~~]
+
+# Heading over up to three guesses for a plain file's title.
+party-room-guesses = [Ŵĥîçĥ ţîţļé îš ţĥîš?~~~~~~]
+
+# Line when the room's title was found by its name because its id is unknown here.
+party-room-found-by-name = [Ƒöüñð ƀý îţš ñàɱé.~~~~~~]
+
+# Line when the room's title could not be found in your sources or on AniList.
+party-room-not-found = [Çöüļðñ'ţ ƒîñð ŵĥàţ ţĥé ŕööɱ îš ŵàţçĥîñĝ îñ ýöüŕ šöüŕçéš öŕ öñ ÅñîĻîšţ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.
+party-code-shape = [Å çöðé îš à ŵöŕð àñð éîĝĥţ ļéţţéŕš àñð ñüɱƀéŕš, ļîķé { $example }.~~~~~~~~~~~~~~~~~~]
+
+# Line in the lobby when nobody is in the room of a code.
+party-code-empty-room = [Ñöƀöðý îš îñ { $code } ýéţ. Çĥéçķ ţĥé çöðé, öŕ ŵàîţ ĥéŕé.~~~~~~~~~~~~~~~~]
+
+# Button that waits in an empty room.
+party-code-wait = [Ŵàîţ ĥéŕé~~~]
+
+# Error when a code is used on another server. The server is the suggested one.
+party-code-other-server = [Çöðéš ŵöŕķ öñ { $server }. Ƒöŕ àñöţĥéŕ šéŕṽéŕ, àšķ ƒöŕ ţĥé îñṽîţé ļîñķ.~~~~~~~~~~~~~~~~~~~]
+
+# Title line of the bar above the tabs while you are in a party.
+party-bar-title = [{ $title } · Éþîšöðé { $episode }~~~~~~]
+
+# Second line of the bar above the tabs.
+party-bar-line = [{ $count } îñ ţĥé ŕööɱ · { $ready } ŕéàðý~~~~~~~~~]
+
+# Second line of the bar when nothing plays for you.
+party-bar-idle = [Îñ ţĥé ŕööɱ · ñöţĥîñĝ þļàýîñĝ ƒöŕ ýöü~~~~~~~~~~~~]
+
+# Notice in the player when someone pauses.
+party-paused-by = [Þàüšéð ƀý { $name }~~~~]
+
+# Notice in the player when someone plays.
+party-played-by = [Þļàýéð ƀý { $name }~~~~]
+
+# Notice in the player when someone moves the position. The time is already formatted.
+party-seeked-by = [{ $name } ɱöṽéð ţö { $time }~~~~~]
+
+# Line on the Up Next card in a party.
+party-next-line = [Éṽéŕýöñé ɱöṽéš öñ îñ { $seconds } š~~~~~~~~]
+
+# Line on the starting screen while the room waits for a member.
+party-next-waiting = [Ŵàîţîñĝ ƒöŕ { $name } · { $seconds } š~~~~~~~]
+
+# Notice when a member who was behind joins. The time is already formatted.
+party-next-joined-at = [{ $name } ĵöîñéð àţ { $time }~~~~~~]
+
+# Line that replaces the autoplay switch in a party.
+party-next-off = [Ţĥé ŕööɱ ɱöṽéš öñ ţöĝéţĥéŕ àţ ţĥé éñð.~~~~~~~~~~~~]
+
+# Line in the lobby after the last episode that is out.
+party-last-out = [Ţĥàţ ŵàš ţĥé ļàšţ éþîšöðé öüţ.~~~~~~~~~]
+
+# Line after the last episode out, when the next one has a date. The day is already formatted.
+party-last-out-airs = [Éþîšöðé { $episode } îš öüţ öñ { $day }.~~~~~~~~]
+
+# Button that picks a new title for the room.
+party-watch-something-else = [Ŵàţçĥ šöɱéţĥîñĝ éļšé~~~~~~]
+
+# Notice when a member joins.
+party-member-joined = [{ $name } ĵöîñéð~~~]
+
+# Notice when a member leaves.
+party-member-left = [{ $name } ļéƒţ~~~]
+
+# Notice when the member who started the party leaves.
+party-starter-left = [{ $name } ļéƒţ. Ţĥé þàŕţý çàŕŕîéš öñ.~~~~~~~~~~]
+
+# Notice after you leave.
+party-you-left = [Ýöü ļéƒţ ţĥé ŵàţçĥ þàŕţý.~~~~~~~~]
+
+# Line under the QR code on the TV.
+party-tv-scan = [Šçàñ ţö šéñð ţĥé îñṽîţé ƒŕöɱ ýöüŕ þĥöñé~~~~~~~~~~~~]
+
+# Line over the code on the TV.
+party-tv-or-code = [Öŕ ţýþé ţĥé çöðé~~~~~]
+
+# Line on the TV's page: joining a friend's party goes through a paired phone.
+party-tv-join-from-phone = [Ţö ĵöîñ à ƒŕîéñð'š þàŕţý, öþéñ ţĥéîŕ îñṽîţé öñ à þàîŕéð þĥöñé àñð çĥööšé ţĥîš ŢṼ.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that pairs a phone with the TV.
+party-tv-pair = [Þàîŕ à þĥöñé~~~~]
+
+# Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.
+party-join-on-device = [Ĵöîñ öñ { $device }~~~~]
+
+# Button on a phone's sheet that joins on the phone itself.
+party-join-on-this-phone = [Ĵöîñ öñ ţĥîš þĥöñé~~~~~~]
+
+# Line on a phone when its paired TV is in the party.
+party-device-in-party = [{ $device } îš îñ ţĥîš þàŕţý~~~~~~]
+
+# Button on a phone that sends the invite to others.
+party-share-invite = [Šĥàŕé îñṽîţé~~~~]
+
+# Button on the phone's remote screen that readies the TV.
+party-ready-on-device = [Ŕéàðý öñ { $device }~~~~]
+
+# Button on the phone's remote screen that leaves the party on the TV.
+party-leave-on-device = [Ļéàṽé ţĥé ŵàţçĥ þàŕţý öñ { $device }~~~~~~~~~]
 
 # Label on the card for the episode that plays after this one.
 player-up-next = [Ûþ ñéẋţ~~~]

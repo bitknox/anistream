@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │  Playback  ────────────────────────────────────────────────────────────────────────────
   ◎  Accounts               │    Audio                       Subbed · Dubbed this session
 ▌ ≡  Settings               │    Quality                     1080p
-                            │    Subtitles                   eng
+  ⇄  Together               │    Subtitles                   eng
                             │    Counts as watched at        85%
                             │    Auto-play next              On
                             │    Skip opening automatically  On
@@ -86,6 +86,8 @@ r10 c05-12 fg=text mod=BOLD
 r10 c28-28 fg=rule
 r10 c33-39 fg=text-dim
 r10 c61-65 fg=text
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-41 fg=text-dim
 r11 c61-63 fg=text

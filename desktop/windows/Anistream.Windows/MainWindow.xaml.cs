@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window
         ["seasonal"] = typeof(SeasonalPage),
         ["library"] = typeof(LibraryPage),
         ["downloads"] = typeof(DownloadsPage),
+        ["together"] = typeof(TogetherPage),
         ["providers"] = typeof(ProvidersPage),
         ["stores"] = typeof(StoresPage),
         ["search"] = typeof(SearchPage),
@@ -61,8 +62,8 @@ public sealed partial class MainWindow : Window
         this.options = options;
         InitializeComponent();
         Title = T.AppName;
-        // Each destination's tooltip names its shortcut: Ctrl+1 to Ctrl+7, in the sidebar's order.
-        string[] names = [T.NavContinue, T.NavCalendar, T.NavSeasonal, T.NavLibrary, T.NavDownloads, T.SourcesTitle, T.NavPluginStores];
+        // Each destination's tooltip names its shortcut: Ctrl+1 to Ctrl+8, in the sidebar's order.
+        string[] names = [T.NavContinue, T.NavCalendar, T.NavSeasonal, T.NavLibrary, T.NavDownloads, T.TogetherTitle, T.SourcesTitle, T.NavPluginStores];
         foreach (var (item, n) in Nav.MenuItems.OfType<NavigationViewItem>().Select((item, i) => (item, i)))
             ToolTipService.SetToolTip(item, T.TooltipWithKey(names[n], $"Ctrl+{n + 1}"));
         // The built-in Settings item reads the system language, so it takes the catalogue's word.
@@ -595,7 +596,7 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(page, parameter, new SuppressNavigationTransitionInfo());
     }
 
-    /// <summary>Goes to a destination by its tag, as the pane and Ctrl+1 to Ctrl+7 do.</summary>
+    /// <summary>Goes to a destination by its tag, as the pane and Ctrl+1 to Ctrl+8 do.</summary>
     internal void Go(string tag)
     {
         if (Player.Showing)
@@ -684,6 +685,7 @@ public sealed partial class MainWindow : Window
         else
             Nav.SelectedItem = null;
         selecting = false;
+        UpdatePartyBar();
     }
 
     void OnBackRequested(TitleBar sender, object args) => GoBack();
@@ -1169,7 +1171,7 @@ public sealed partial class MainWindow : Window
 
     void Keys()
     {
-        string[] tags = ["continue", "calendar", "seasonal", "library", "downloads", "providers", "stores"];
+        string[] tags = ["continue", "calendar", "seasonal", "library", "downloads", "together", "providers", "stores"];
         for (var i = 0; i < tags.Length; i++)
         {
             var tag = tags[i];
@@ -1246,7 +1248,7 @@ public sealed partial class MainWindow : Window
             grid.Children.Add(key);
         }
         Section(T.ShortcutsWindow);
-        Line(T.ShortcutsSections, T.ShortcutsKeysRange("Ctrl+1", "Ctrl+7"));
+        Line(T.ShortcutsSections, T.ShortcutsKeysRange("Ctrl+1", "Ctrl+8"));
         Line(T.NavSearch, "Ctrl+F, Ctrl+E");
         Line(T.ActionBack, T.ShortcutsKeysBack("Alt+Left"));
         Line(T.NavSettings, "Ctrl+,");

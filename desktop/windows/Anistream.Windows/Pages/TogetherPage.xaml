@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Anistream.Windows.Pages.TogetherPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Anistream.Windows.Pages"
+    Background="{ThemeResource GroundBrush}">
+  <ScrollViewer>
+    <StackPanel x:Name="Stack" Padding="36,20,36,36" Spacing="14" MaxWidth="720" HorizontalAlignment="Left" />
+  </ScrollViewer>
+</Page>

@@ -275,3 +275,371 @@ party-no-source-lists = No { -source } lists episode { $episode }. { -source-cap
 # Button that plays the chosen source with the room.
 # @max 36
 party-play-with = Play with the { -watch-party }
+
+# Heading of the place that starts and joins watch parties.
+together-title = { -watch-together-cap }
+
+# Line under the heading of the place for watch parties. States that nothing is shared but timing.
+together-line = Everyone plays the episode from their own { -source-pl }. The server only keeps you in step.
+
+# Accessibility label of the people button in Home's toolbar that opens the place for watch parties.
+together-people-button = { -watch-together-cap }
+
+# Button that starts a watch party from the place. The one amber button there.
+# @max 24
+together-start = Start a party
+
+# Line under Start a party.
+together-start-line = Pick something you're watching, then invite friends with a link or a code.
+
+# Heading of the field that joins a watch party.
+together-join = Join a party
+
+# Line under Join a party.
+together-join-line = Paste a friend's invite link, or type the code they read out.
+
+# Placeholder of the field that takes an invite link or a code.
+# @max 24
+together-join-field = Link or code
+
+# Button that pastes the clipboard into the Join field.
+# @max 16
+together-paste = Paste
+
+# Button that joins from the Join field.
+# @max 16
+together-join-action = Join
+
+# Heading of the block on the place that shows the watch party you are in.
+together-in-party = In a party
+
+# Line of the In a party block. The episode is a number or label.
+# @arg episode: text
+# @arg count: int
+# @arg ready: int
+together-in-party-line = Episode { $episode } · { $count } in the room · { $ready } ready
+
+# Button that opens the lobby of the watch party you are in.
+# @max 24
+together-open-lobby = Open lobby
+
+# Button that opens the player of the watch party you are in.
+# @max 24
+together-open-player = Open player
+
+# Heading of the list of the last ten watch parties on this device.
+together-recent = Recent rooms
+
+# Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.
+# @arg episode: text
+# @arg names: text
+# @arg when: text
+together-recent-row = Episode { $episode } · with { $names } · { $when }
+
+# Line shown when no recent rooms are kept yet.
+together-recent-empty = Rooms you join show here, the last ten.
+
+# Button on a recent room that goes straight to its lobby with the next episode.
+# @max 16
+together-rejoin = Rejoin
+
+# Menu item that removes a recent room from the list.
+together-forget-room = Remove from recent rooms
+
+# Line that says who is in a recent room now, after looking in. The names are already joined.
+# @arg names: text
+# @arg count: int
+together-someone-here = { $names } { $count ->
+    [one] is
+   *[other] are
+} in the room
+
+# Line that says a recent room has nobody in it now.
+together-nobody-here = Nobody here now
+
+# Heading of the small list of servers on the place.
+together-servers = Servers
+
+# Line under the suggested server. The operator is who runs it, such as the Syncplay project.
+# @arg operator: text
+together-server-suggested = Suggested · run by { $operator }
+
+# Line under a server that parties were held on.
+# @arg count: int
+together-server-used = { $count ->
+    [one] Used for 1 party
+   *[other] Used for { $count } parties
+}
+
+# Button that adds a server to the list.
+# @max 24
+together-add-server = Add a server
+
+# Hint on the place that a link or code can be pasted anywhere on the page.
+together-paste-shortcut-hint = Paste a link or code anywhere on this page.
+
+# Heading of the step that asks what to watch in a new watch party.
+party-pick-title = What are you watching?
+
+# Line under a title in the picker: which episode comes next.
+# @arg episode: text
+party-pick-next = Episode { $episode } next
+
+# Placeholder of the picker's search field.
+# @max 24
+party-pick-search = Search titles
+
+# Heading of the step that asks for a server and a name the first time.
+party-first-server-title = Choose a server
+
+# Button that makes the room and opens the lobby.
+# @max 24
+party-start-party = Start party
+
+# Line in the lobby when your own sources have the room's episode.
+party-lobby-sources-found = Plays from your { -source-pl }
+
+# Line in the lobby when none of your sources has the room's episode.
+party-lobby-sources-missing = Not in your { -source-pl } yet
+
+# Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.
+# @arg day: text
+party-lobby-out-on = Out on { $day }
+
+# Line that says you stay in the room while you have no source for the episode.
+party-still-in-room = You're still in the room.
+
+# Line in the lobby that counts the room.
+# @arg ready: int
+# @arg count: int
+party-lobby-count = In the room · { $ready } of { $count } ready
+
+# Line in the lobby of an invite: who invited.
+# @arg name: text
+party-invited-by = { $name } invited you
+
+# Line shown while the app looks into a room, after a short wait.
+party-looking-in = Looking in
+
+# Note that opening a room shows you in it for a moment.
+party-looking-in-note = Opening a room shows you in it for a moment.
+
+# State of a member whose file is not open yet.
+party-member-joining = Joining
+
+# State of a member from the second episode on who is finding a source.
+party-member-finding = Finding a { -source }
+
+# State of a member who is watching. The time is already formatted, such as 2:14.
+# @arg time: text
+party-member-watching-from = Watching from { $time }
+
+# Label of the I'm ready button once you are ready.
+# @max 16
+party-ready-on = Ready
+
+# Heading of the invite block in the lobby.
+party-invite = Invite
+
+# Label of the short code in the lobby.
+party-code = Code
+
+# Button that opens the system share sheet with the invite link.
+# @max 16
+party-share = Share…
+
+# Text shared beside the invite link.
+# @arg title: text
+# @arg episode: text
+party-share-text = { -watch-party-cap } · { $title } · Episode { $episode }
+
+# Notice after the invite link was copied.
+party-invite-copied = Invite link copied
+
+# Line in the lobby before everyone is ready.
+party-starts-line = Starts at 0:00 when everyone is ready
+
+# Button that starts the room without waiting for those who are not ready.
+# @max 24
+party-start-anyway = Start anyway
+
+# Line during the three second count before play.
+# @arg seconds: int
+party-starting = Starting in { $seconds }
+
+# Button in the lobby that changes the room's episode.
+# @max 24
+party-change-episode = Change episode
+
+# Button that changes the server after it could not be reached.
+# @max 24
+party-change-server = Change server
+
+# Label over the title and episode the room is watching.
+party-room-watching = The room is watching
+
+# Line in the lobby of a room with nothing open.
+party-room-nothing = Nothing is open in the room yet.
+
+# Second line under Nothing is open in the room yet.
+party-room-nothing-line = It starts when someone picks an episode.
+
+# Button that picks what the room watches.
+# @max 28
+party-room-pick = Pick what to watch
+
+# Line in the lobby when the room is on a later episode than the invite.
+# @arg episode: text
+party-room-moved-on = The room has moved on to episode { $episode }.
+
+# Notice when someone changes the room's episode.
+# @arg name: text
+# @arg episode: text
+party-room-changed = { $name } changed the episode to { $episode }
+
+# Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.
+# @arg name: text
+# @arg file: text
+party-room-plain-file = { $name } has { $file } open
+
+# Label under a title that was found from a plain file's name.
+party-room-matched = Matched from the file name
+
+# Button that rejects a title matched from a file name.
+# @max 24
+party-room-not-this = Not this title
+
+# Heading over up to three guesses for a plain file's title.
+party-room-guesses = Which title is this?
+
+# Line when the room's title was found by its name because its id is unknown here.
+party-room-found-by-name = Found by its name.
+
+# Line when the room's title could not be found in your sources or on AniList.
+party-room-not-found = Couldn't find what the room is watching in your { -source-pl } or on AniList.
+
+# Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.
+# @arg example: text
+party-code-shape = A code is a word and eight letters and numbers, like { $example }.
+
+# Line in the lobby when nobody is in the room of a code.
+# @arg code: text
+party-code-empty-room = Nobody is in { $code } yet. Check the code, or wait here.
+
+# Button that waits in an empty room.
+# @max 24
+party-code-wait = Wait here
+
+# Error when a code is used on another server. The server is the suggested one.
+# @arg server: text
+party-code-other-server = Codes work on { $server }. For another server, ask for the invite link.
+
+# Title line of the bar above the tabs while you are in a party.
+# @arg title: text
+# @arg episode: text
+party-bar-title = { $title } · Episode { $episode }
+
+# Second line of the bar above the tabs.
+# @arg count: int
+# @arg ready: int
+party-bar-line = { $count } in the room · { $ready } ready
+
+# Second line of the bar when nothing plays for you.
+party-bar-idle = In the room · nothing playing for you
+
+# Notice in the player when someone pauses.
+# @arg name: text
+party-paused-by = Paused by { $name }
+
+# Notice in the player when someone plays.
+# @arg name: text
+party-played-by = Played by { $name }
+
+# Notice in the player when someone moves the position. The time is already formatted.
+# @arg name: text
+# @arg time: text
+party-seeked-by = { $name } moved to { $time }
+
+# Line on the Up Next card in a party.
+# @arg seconds: int
+party-next-line = Everyone moves on in { $seconds } s
+
+# Line on the starting screen while the room waits for a member.
+# @arg name: text
+# @arg seconds: int
+party-next-waiting = Waiting for { $name } · { $seconds } s
+
+# Notice when a member who was behind joins. The time is already formatted.
+# @arg name: text
+# @arg time: text
+party-next-joined-at = { $name } joined at { $time }
+
+# Line that replaces the autoplay switch in a party.
+party-next-off = The room moves on together at the end.
+
+# Line in the lobby after the last episode that is out.
+party-last-out = That was the last episode out.
+
+# Line after the last episode out, when the next one has a date. The day is already formatted.
+# @arg episode: text
+# @arg day: text
+party-last-out-airs = Episode { $episode } is out on { $day }.
+
+# Button that picks a new title for the room.
+# @max 28
+party-watch-something-else = Watch something else
+
+# Notice when a member joins.
+# @arg name: text
+party-member-joined = { $name } joined
+
+# Notice when a member leaves.
+# @arg name: text
+party-member-left = { $name } left
+
+# Notice when the member who started the party leaves.
+# @arg name: text
+party-starter-left = { $name } left. The party carries on.
+
+# Notice after you leave.
+party-you-left = You left the { -watch-party }.
+
+# Line under the QR code on the TV.
+party-tv-scan = Scan to send the invite from your phone
+
+# Line over the code on the TV.
+party-tv-or-code = Or type the code
+
+# Line on the TV's page: joining a friend's party goes through a paired phone.
+party-tv-join-from-phone = To join a friend's party, open their invite on a paired phone and choose this TV.
+
+# Button that pairs a phone with the TV.
+# @max 24
+party-tv-pair = Pair a phone
+
+# Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.
+# @arg device: text
+# @max 32
+party-join-on-device = Join on { $device }
+
+# Button on a phone's sheet that joins on the phone itself.
+# @max 28
+party-join-on-this-phone = Join on this phone
+
+# Line on a phone when its paired TV is in the party.
+# @arg device: text
+party-device-in-party = { $device } is in this party
+
+# Button on a phone that sends the invite to others.
+# @max 24
+party-share-invite = Share invite
+
+# Button on the phone's remote screen that readies the TV.
+# @arg device: text
+# @max 32
+party-ready-on-device = Ready on { $device }
+
+# Button on the phone's remote screen that leaves the party on the TV.
+# @arg device: text
+# @max 40
+party-leave-on-device = Leave the { -watch-party } on { $device }

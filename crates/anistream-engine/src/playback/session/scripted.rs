@@ -691,14 +691,14 @@ async fn a_party_steers_the_player_and_hears_what_it_does() {
     let id = AnilistId::new(900_001);
     assert!(
         matches!(reports.first(), Some(SeatReport::Playing { id: played, episode, name, .. })
-            if *played == id && episode == "1" && name == "Stardust Wayfarer · Episode 1"),
+            if *played == id && episode == "1" && name == "Stardust Wayfarer"),
         "{reports:?}"
     );
     assert!(reports.iter().any(|r| matches!(r, SeatReport::Sample { paused: true, .. })));
     assert!(reports.iter().any(|r| matches!(r, SeatReport::Sample { paused: false, .. })));
     // Played to its end, it stays in the party and is marked watched; with the party there is
     // no rolling on to the next episode.
-    assert_eq!(reports.last(), Some(&SeatReport::Ended { leave: false }));
+    assert_eq!(reports.last(), Some(&SeatReport::Ended { leave: false, finished: true }));
     assert_eq!(rig.store.completed_episodes(id).unwrap(), ["1"]);
     assert!(
         !events.iter().any(|e| matches!(e, Event::PlaybackEnded { rolling_on: true, .. })),

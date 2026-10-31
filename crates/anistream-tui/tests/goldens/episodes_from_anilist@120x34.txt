@@ -9,7 +9,7 @@ anistream                                                                       
  ◇ │    003   Letter No. 3                                                                    24:00   ██████████  Done
  ◎ │    004   Letter No. 4                                                                    24:00   ██████████  Done
  ≡ │    005   Letter No. 5                                                                    24:00   ██████████  Done
-   │    006   Letter No. 6                                                                    24:00   ██████████  Done
+ ⇄ │    006   Letter No. 6                                                                    24:00   ██████████  Done
    │  ▌ 007   Letter No. 7                                                                    24:00   ░░░░░░░░░░
    │    008   Letter No. 8                                                                    24:00   ░░░░░░░░░░
    │    009   Letter No. 9                                                                    24:00   ░░░░░░░░░░
@@ -90,6 +90,7 @@ r10 c14-25 fg=text-dim
 r10 c94-98 fg=text-dim
 r10 c102-111 fg=state
 r10 c114-117 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-10 fg=text-dim
 r11 c14-25 fg=text-dim

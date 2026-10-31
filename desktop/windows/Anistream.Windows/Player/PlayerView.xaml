@@ -290,7 +290,7 @@
             <TextBlock x:Name="UpNextLine" Style="{StaticResource HazeCaptionStyle}" Typography.NumeralAlignment="Tabular" Margin="0,4,0,0" />
           </StackPanel>
           <ProgressBar x:Name="UpNextBar" Grid.Row="1" Grid.ColumnSpan="2" Maximum="1" Visibility="Collapsed" />
-          <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+          <StackPanel x:Name="UpNextButtons" Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
             <Button Content="{x:Bind app:T.ActionCancel}" Click="OnCancelNext" />
             <Button Content="{x:Bind app:T.ActionPlayNow}" Style="{StaticResource AccentButtonStyle}" Click="OnPlayNext" />
           </StackPanel>

@@ -155,6 +155,7 @@ pub(super) fn render_overlay(
             .into_iter()
             .collect(),
         Overlay::JoinStore => vec![(String::new(), t::overlays_hint_join_store())],
+        Overlay::JoinParty => vec![(String::new(), t::together_join_line())],
         Overlay::InviteName => vec![(String::new(), t::overlays_hint_invite_name())],
         Overlay::StoreConfirm => store_confirm_rows(app),
         Overlay::PluginAction => plugin_action_rows(app).0,
@@ -292,6 +293,10 @@ pub(super) fn render_overlay(
         Overlay::JoinStore => {
             let room = (band.width as usize).saturating_sub(title.cells() + 8);
             titled(&format!("{}▏", tail(&field_text(app, Field::JoinLink), room)))
+        }
+        Overlay::JoinParty => {
+            let room = (band.width as usize).saturating_sub(title.cells() + 8);
+            titled(&format!("{}▏", tail(&field_text(app, Field::PartyLink), room)))
         }
         Overlay::InviteName => typed(Field::InviteName),
         Overlay::StoreConfirm => store_confirm_heading(app),

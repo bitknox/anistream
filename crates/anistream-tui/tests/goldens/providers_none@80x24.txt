@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ·  ·  anilist
 ▌◇ │
  ◎ │  Plugin stores
  ≡ │    Plugins shared by people you know. Join with an invite link.   ↵ Open
-   │
+ ⇄ │
    │
    │
    │
@@ -56,6 +56,7 @@ r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-67 fg=text-dim
 r10 c71-76 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule
