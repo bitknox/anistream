@@ -120,6 +120,9 @@ search-loading-more = Loading more titles
 # Title of the filters sheet and panel.
 filters-title = Filters
 
+# Accessible label and tooltip of the button that closes the filters panel.
+filters-close = Close filters
+
 # Button that opens the filters, with how many are on.
 # @arg count: int
 filters-button-count = All filters · { $count }

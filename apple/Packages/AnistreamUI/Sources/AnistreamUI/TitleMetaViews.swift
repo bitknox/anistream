@@ -41,6 +41,8 @@ struct InlineMoreText: View {
     let text: String
     let lines: Int
     let font: Font
+    /// The Mac's fixed line height; nil leaves the font's own.
+    var lineHeight: CGFloat?
     @State private var expanded = false
     @State private var full: CGFloat = 0
     @State private var shown: CGFloat = 0
@@ -48,12 +50,14 @@ struct InlineMoreText: View {
     var body: some View {
         Text(text)
             .font(font)
+            .fixedLineHeight(lineHeight)
             .foregroundStyle(.haze)
             .lineLimit(expanded ? nil : lines)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { shown = $0 }
             .background(alignment: .topLeading) {
                 Text(text)
                     .font(font)
+                    .fixedLineHeight(lineHeight)
                     .fixedSize(horizontal: false, vertical: true)
                     .hidden()
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { full = $0 }
@@ -73,6 +77,12 @@ struct InlineMoreText: View {
                         .accessibilityHint(L.titleSynopsisHint)
                 }
             }
+    }
+}
+
+private extension View {
+    @ViewBuilder func fixedLineHeight(_ height: CGFloat?) -> some View {
+        if let height { macLineHeight(height) } else { self }
     }
 }
 

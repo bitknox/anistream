@@ -1155,6 +1155,9 @@ struct TrackLists: View {
 struct EpisodeList: View {
     let model: PlayerModel
     let metrics: PlayerMetrics
+    /// After an episode is picked: the iPhone's and iPad's sheet closes, since the sources move
+    /// to the picked row and every row between would shift under the next tap.
+    var picked: (() -> Void)? = nil
 
     var body: some View {
         let episodes = model.menus?.episodes ?? []
@@ -1185,6 +1188,7 @@ struct EpisodeList: View {
             checked: row.current, metrics: metrics
         ) {
             model.choose(.episode(row.number))
+            if !row.current { picked?() }
         }
     }
 

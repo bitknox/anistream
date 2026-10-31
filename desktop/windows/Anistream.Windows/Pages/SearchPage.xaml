@@ -20,7 +20,7 @@
     <!-- The filters: each drop-down says its name until set, then what it has, in amber. -->
     <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Margin="0,0,-36,0">
       <StackPanel x:Name="FilterRow" Orientation="Horizontal" Spacing="8" Padding="0,0,36,0">
-        <DropDownButton x:Name="GenreButton" Content="{x:Bind s:T.FilterGenre}" Height="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterGenre}">
+        <DropDownButton x:Name="GenreButton" Content="{x:Bind s:T.FilterGenre}" MinHeight="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterGenre}">
           <DropDownButton.Flyout>
             <Flyout x:Name="GenreFlyout" Placement="BottomEdgeAlignedLeft">
               <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto">
@@ -29,29 +29,29 @@
             </Flyout>
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="FormatButton" Content="{x:Bind s:T.FilterFormat}" Height="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterFormat}">
+        <DropDownButton x:Name="FormatButton" Content="{x:Bind s:T.FilterFormat}" MinHeight="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterFormat}">
           <DropDownButton.Flyout>
             <Flyout x:Name="FormatFlyout" Placement="BottomEdgeAlignedLeft">
               <StackPanel x:Name="FormatList" Spacing="2" MinWidth="180" />
             </Flyout>
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="SeasonButton" Content="{x:Bind s:T.FilterSeason}" Height="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterSeason}">
+        <DropDownButton x:Name="SeasonButton" Content="{x:Bind s:T.FilterSeason}" MinHeight="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterSeason}">
           <DropDownButton.Flyout>
             <MenuFlyout x:Name="SeasonMenu" Placement="BottomEdgeAlignedLeft" />
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="YearButton" Content="{x:Bind s:T.FilterYear}" Height="32" MinWidth="88" AutomationProperties.Name="{x:Bind s:T.FilterYear}">
+        <DropDownButton x:Name="YearButton" Content="{x:Bind s:T.FilterYear}" MinHeight="32" MinWidth="88" AutomationProperties.Name="{x:Bind s:T.FilterYear}">
           <DropDownButton.Flyout>
             <MenuFlyout x:Name="YearMenu" Placement="BottomEdgeAlignedLeft" />
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="SortButton" Content="{x:Bind s:T.SearchSortName}" Height="32" MinWidth="88" AutomationProperties.Name="{x:Bind s:T.SearchSortName}">
+        <DropDownButton x:Name="SortButton" Content="{x:Bind s:T.SearchSortName}" MinHeight="32" MinWidth="88" AutomationProperties.Name="{x:Bind s:T.SearchSortName}">
           <DropDownButton.Flyout>
             <MenuFlyout x:Name="SortMenu" Placement="BottomEdgeAlignedLeft" />
           </DropDownButton.Flyout>
         </DropDownButton>
-        <HyperlinkButton x:Name="ClearButton" Content="{x:Bind s:T.SearchClearFilters}" Click="OnClear" Height="32" Visibility="Collapsed" />
+        <HyperlinkButton x:Name="ClearButton" Content="{x:Bind s:T.SearchClearFilters}" Click="OnClear" MinHeight="32" Visibility="Collapsed" />
       </StackPanel>
     </ScrollViewer>
     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">

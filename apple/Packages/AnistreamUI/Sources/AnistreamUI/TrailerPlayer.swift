@@ -1,13 +1,15 @@
-// The web view a trailer plays in, and what its page says: one view for the title page's banner,
-// the hover preview and the Play trailer window or sheet.
+// The web view a trailer plays in, and what its page says: the hover preview and the Play trailer
+// window or sheet. The views and their store last the run, and each one plays trailer after
+// trailer, so a hover asks YouTube only for the video.
 
 import AnistreamKit
+import AnistreamStore
 import SwiftUI
 import WebKit
 
-/// A trailer's `WKWebView`, made the way the trailers spec asks: the engine's page loaded under the
-/// app's identifier so YouTube sees a Referer, no cookies or storage kept, inline and muted
-/// autoplay, no new windows and, for the banner and the preview, no pointer or touch input at all.
+/// A trailer playing in one of the pool's web views, made the way the trailers spec asks: the
+/// engine's page loaded under the app's identifier so YouTube sees a Referer, nothing kept past the
+/// run, inline and muted autoplay, no new windows and, for the preview, no pointer or touch input.
 @MainActor
 final class TrailerPlayer: NSObject, TrailerSurface {
     /// The app's identifier as YouTube knows it: the Referer and the player's `origin`.
@@ -17,19 +19,227 @@ final class TrailerPlayer: NSObject, TrailerSurface {
     /// video may be fetched: it says the same things through the same bridge.
     nonisolated(unsafe) static var standIn: (@MainActor (Trailer) -> String)?
 
-    let webView: WKWebView
-    private let style: EmbedStyle
+    /// The page's view, or none when nothing is asked for.
+    var webView: WKWebView? { page?.webView }
+    private let page: TrailerPage?
+    private let pool: TrailerPool
+    private let trailer: Trailer
     private let onSignal: @MainActor (TrailerSignal) -> Void
+    private let gate: TrailerGate
+    private let started = ContinuousClock.now
+    /// Whether the page was already up, and only the video was asked for.
+    private let warm: Bool
     private var released = false
+    /// The last thing the page said, for the log when the visit gives up.
+    private var lastHeard = "nothing"
 
     /// Whether the page can play this trailer at all (YouTube's only).
     let playable: Bool
 
-    init(trailer: Trailer, style: EmbedStyle, onSignal: @escaping @MainActor (TrailerSignal) -> Void) {
-        self.style = style
+    /// `subtitles` is the playback setting's language, which captions follow.
+    init(
+        trailer: Trailer, style: EmbedStyle, subtitles: String, pool: TrailerPool = .shared,
+        gate: TrailerGate = .shared, onSignal: @escaping @MainActor (TrailerSignal) -> Void
+    ) {
+        self.trailer = trailer
+        self.pool = pool
         self.onSignal = onSignal
+        self.gate = gate
+        playable = trailerEmbeddable(trailer: trailer)
+        let asks = playable && gate.mayAsk(trailer.id)
+        let taken = Self.standIn.map { (pool.standIn($0(trailer), style: style), false) }
+            ?? (asks ? pool.take(trailer, style: style, subtitles: subtitles) : (nil, false))
+        page = taken.0
+        warm = taken.1
+        super.init()
+        guard let page else {
+            // Not YouTube's, or refused before this run: nothing is asked, and it says so as a
+            // refusal, so Play trailer opens the watch page.
+            let code = playable ? 150 : 0
+            if playable { AppLog.debug("trailer", "not asking YouTube for \(trailer.id) again this run") }
+            Task { @MainActor in self.onSignal(.failed(code)) }
+            return
+        }
+        page.hear = { [weak self] text in self?.heard(text) }
+        AppLog.debug("trailer", "loading \(trailer.id), \(warm ? "warm" : "cold") web view")
+    }
+
+    /// Tell the page to play, pause, mute or unmute.
+    func control(_ control: TrailerControl) {
+        guard !released, let page else { return }
+        page.run(trailerScript(control: control))
+    }
+
+    /// Stop, and hand the view back to the pool, paused.
+    func tearDown() {
+        guard !released else { return }
+        released = true
+        page?.hear = nil
+        page.map { pool.give($0) }
+    }
+
+    /// Nothing played in time: logged with what the page last said and YouTube's state now, read
+    /// before the pool pauses it.
+    func gaveUp(after: Duration) {
+        let ms = Int(after.components.seconds * 1000 + after.components.attoseconds / 1_000_000_000_000_000)
+        let line = "\(trailer.id) gave up after \(ms) ms, never playing; last heard \(lastHeard), \(warm ? "warm" : "cold")"
+        guard let page else {
+            AppLog.warn("trailer", line)
+            return
+        }
+        page.webView.evaluateJavaScript(trailerStateScript()) { value, _ in
+            let state = (value as? NSNumber).map { "\($0.intValue)" } ?? "none" // i18n-skip: a log value
+            AppLog.warn("trailer", "\(line), player state \(state)")
+        }
+    }
+
+    private func heard(_ text: String) {
+        guard !released else { return }
+        let word = text.trimmingCharacters(in: .whitespaces)
+        lastHeard = word
+        // The page's words that are not the player's state. i18n-skip: the page's words
+        switch word {
+        case "ending": onSignal(.ending); return // i18n-skip
+        case "captions:on": onSignal(.captions(true)); return // i18n-skip
+        case "captions:off": onSignal(.captions(false)); return // i18n-skip
+        default: break
+        }
+        let ms = AppLog.ms(since: started)
+        switch trailerMessage(message: text) {
+        case .playing:
+            gate.played()
+            AppLog.debug("trailer", "\(trailer.id) playing, shown after \(ms) ms, \(warm ? "warm" : "cold")")
+            page?.reveal()
+            onSignal(.playing)
+        case .ready:
+            AppLog.debug("trailer", "\(trailer.id) player ready after \(ms) ms")
+            onSignal(.quiet)
+        case .paused:
+            AppLog.debug("trailer", "\(trailer.id) paused after \(ms) ms")
+            onSignal(.quiet)
+        case .ended:
+            AppLog.debug("trailer", "\(trailer.id) ended after \(ms) ms")
+            onSignal(.ended)
+        case .error(let code):
+            let code = Int(code)
+            AppLog.warn("trailer", "\(trailer.id) failed after \(ms) ms: error \(code), \(Self.meaning(code))")
+            if gate.failed(trailer.id, code: code) {
+                AppLog.warn("trailer", "YouTube refused two trailers in a row: no more trailers this run")
+            }
+            onSignal(.failed(code))
+        case nil:
+            break
+        }
+    }
+
+    /// What YouTube's error code says, for the log.
+    static func meaning(_ code: Int) -> String {
+        switch code {
+        case 0: "the page or the player API did not load"
+        case 2: "a bad video id"
+        case 5: "the HTML5 player failed"
+        case 100: "the video is gone or private"
+        case 101, 150: "embedding not allowed, or YouTube's sign-in check (a flagged network, such as a VPN exit)"
+        case 152: "the embed's identity was refused"
+        case 153: "the embed sent no identity (Referer)"
+        default: "an unknown code"
+        }
+    }
+}
+
+/// The trailers' web views for the whole run, and the one store they share.
+///
+/// The store is in memory only: nothing is written to disk and nothing outlives the run. Within the
+/// run, the player's scripts and YouTube's cookies are kept, and one Networking process serves
+/// every view. A view handed back is paused and kept, its player loaded, to play the next trailer
+/// through `loadVideoById`: two of each style, as a preview and Play trailer can be up together
+/// with another on its way out.
+@MainActor
+final class TrailerPool {
+    static let shared = TrailerPool()
+
+    let store = WKWebsiteDataStore.nonPersistent()
+    private var idle: [TrailerPage] = []
+    private let keep = 2
+    private var warmed = false
+
+    /// Load the preview's player ahead of the first hover, with no video in it: once a run, and
+    /// nothing after the first call.
+    func prewarm(subtitles: String) {
+        guard !warmed, Self.standInFree else { return }
+        warmed = true
+        guard let html = trailerPage(trailer: nil, style: .banner, app: TrailerPlayer.identity, subtitleLanguage: subtitles),
+              let base = URL(string: trailerBaseUrl(app: TrailerPlayer.identity)) else { return }
+        let page = TrailerPage(style: .banner, store: store, pooled: true, subtitles: subtitles)
+        page.webView.loadHTMLString(html, baseURL: base)
+        idle.append(page)
+        AppLog.debug("trailer", "the preview's player is loading ahead of the first hover")
+    }
+
+    /// Whether the real page is in use, not the Fixtures app's stand-in.
+    private static var standInFree: Bool { TrailerPlayer.standIn == nil }
+
+    /// A page for `trailer`: one already up when there is one, which then only switches video.
+    func take(_ trailer: Trailer, style: EmbedStyle, subtitles: String) -> (TrailerPage?, warm: Bool) {
+        // A page made for another subtitle language is let go: its captions were set as it loaded.
+        for page in idle where page.broken || page.subtitles != subtitles { page.close() }
+        idle.removeAll { $0.broken || $0.subtitles != subtitles }
+        if let index = idle.firstIndex(where: { $0.style == style }),
+           let script = trailerLoadScript(trailer: trailer) {
+            let page = idle.remove(at: index)
+            page.run(script)
+            return (page, true)
+        }
+        guard let html = trailerPage(trailer: trailer, style: style, app: TrailerPlayer.identity, subtitleLanguage: subtitles),
+              let base = URL(string: trailerBaseUrl(app: TrailerPlayer.identity)) else { return (nil, false) }
+        let page = TrailerPage(style: style, store: store, pooled: true, subtitles: subtitles)
+        page.webView.loadHTMLString(html, baseURL: base)
+        return (page, false)
+    }
+
+    /// The Fixtures app's page: never kept, so each shot starts as the first did.
+    func standIn(_ html: String, style: EmbedStyle) -> TrailerPage {
+        let page = TrailerPage(style: style, store: store, pooled: false, subtitles: "")
+        page.webView.loadHTMLString(html, baseURL: nil)
+        return page
+    }
+
+    /// Take a page back: hidden and out of the window first, then paused, so neither the player's
+    /// pause screen nor its end screen is ever seen. Kept while there is room.
+    func give(_ page: TrailerPage) {
+        page.hide()
+        page.webView.removeFromSuperview()
+        page.run(trailerScript(control: .pause))
+        guard page.pooled, !page.broken, idle.filter({ $0.style == page.style }).count < keep else {
+            page.close()
+            return
+        }
+        idle.append(page)
+    }
+}
+
+/// One web view with the engine's page in it, and its bridge.
+@MainActor
+final class TrailerPage: NSObject {
+    let webView: WKWebView
+    let style: EmbedStyle
+    let pooled: Bool
+    /// The subtitle language its captions were set up for.
+    let subtitles: String
+    /// Who hears the page now: the trailer playing in it.
+    var hear: ((String) -> Void)?
+    /// The page failed to load or its process ended: not kept.
+    private(set) var broken = false
+    /// Whether the page has loaded, and its `window.trailer` is there to be told things.
+    private var loaded = false
+    private var queued: [String] = []
+
+    init(style: EmbedStyle, store: WKWebsiteDataStore, pooled: Bool, subtitles: String) {
+        self.style = style
+        self.pooled = pooled
+        self.subtitles = subtitles
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .nonPersistent()
+        configuration.websiteDataStore = store
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         #if os(iOS)
@@ -39,6 +249,14 @@ final class TrailerPlayer: NSObject, TrailerSurface {
         configuration.allowsAirPlayForMediaPlayback = false
         let bridge = Bridge()
         configuration.userContentController.add(bridge, name: "anistream") // i18n-skip: the page's bridge
+        #if os(macOS)
+        // In a preview, YouTube's own controls are hidden in its frame; Play trailer keeps them.
+        if style == .banner {
+            configuration.userContentController.addUserScript(
+                WKUserScript(source: trailerChromeScript(), injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+            )
+        }
+        #endif
         #if os(macOS)
         let view: WKWebView = style == .banner ? PassiveWebView(frame: .zero, configuration: configuration)
             : WKWebView(frame: .zero, configuration: configuration)
@@ -53,64 +271,70 @@ final class TrailerPlayer: NSObject, TrailerSurface {
         if style == .banner { view.isUserInteractionEnabled = false }
         #endif
         webView = view
-        let page: String? = Self.standIn.map { $0(trailer) }
-            ?? trailerEmbedPage(trailer: trailer, style: style, app: Self.identity)
-        playable = page != nil
         super.init()
-        bridge.player = self
+        bridge.page = self
         view.navigationDelegate = self
         view.uiDelegate = self
         view.allowsLinkPreview = false
-        if let page, let base = URL(string: trailerBaseUrl(app: Self.identity)) {
-            view.loadHTMLString(page, baseURL: base)
-        } else {
-            Task { @MainActor in self.onSignal(.failed(0)) }
-        }
+        hide()
     }
 
-    /// Tell the page to play, pause, mute or unmute.
-    func control(_ control: TrailerControl) {
-        guard !released else { return }
-        webView.evaluateJavaScript(trailerScript(control: control), completionHandler: nil)
+    /// Run `script` in the page now, or once it has loaded: a hover can come before a page loaded
+    /// ahead of it is up.
+    func run(_ script: String) {
+        if loaded { webView.evaluateJavaScript(script, completionHandler: nil) } else { queued.append(script) }
     }
 
-    /// Stop, and let go of the view's decoder and everything it kept.
-    func tearDown() {
-        guard !released else { return }
-        released = true
+    /// Unseen until the page says a frame is up, so YouTube's loading screen never shows.
+    func hide() {
+        #if os(macOS)
+        webView.alphaValue = 0
+        #else
+        webView.alpha = 0
+        #endif
+    }
+
+    func reveal() {
+        #if os(macOS)
+        webView.alphaValue = 1
+        #else
+        webView.alpha = 1
+        #endif
+    }
+
+    /// Let go of the view, its decoder and everything it kept.
+    func close() {
+        hear = nil
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "anistream") // i18n-skip
         webView.stopLoading()
         webView.loadHTMLString("", baseURL: nil)
         webView.removeFromSuperview()
     }
 
-    fileprivate func heard(_ text: String) {
-        guard !released else { return }
-        if text.trimmingCharacters(in: .whitespaces) == "ending" { // i18n-skip: the page's word
-            onSignal(.ending)
-            return
-        }
-        switch trailerMessage(message: text) {
-        case .playing: onSignal(.playing)
-        case .ready, .paused: onSignal(.quiet)
-        case .ended: onSignal(.ended)
-        case .error(let code): onSignal(.failed(Int(code)))
-        case nil: break
-        }
+    fileprivate func fail(_ reason: String) {
+        broken = true
+        AppLog.warn("trailer", "the trailer's web view failed: \(AppLog.redacting(reason))")
+        hear?("error:0") // i18n-skip: the page's word
     }
 
-    /// Hears the page without keeping the player alive.
+    /// Hears the page without keeping it alive.
     private final class Bridge: NSObject, WKScriptMessageHandler {
-        weak var player: TrailerPlayer?
+        weak var page: TrailerPage?
 
         func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
             guard let text = message.body as? String else { return }
-            Task { @MainActor in self.player?.heard(text) }
+            Task { @MainActor in
+                if text == trailerChromeMessage() {
+                    AppLog.debug("trailer", "YouTube's controls hidden in the preview's player")
+                    return
+                }
+                self.page?.hear?(text)
+            }
         }
     }
 }
 
-extension TrailerPlayer: WKNavigationDelegate, WKUIDelegate {
+extension TrailerPage: WKNavigationDelegate, WKUIDelegate {
     /// The page is the only page: nothing the player does navigates the view away.
     func webView(
         _ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
@@ -126,35 +350,93 @@ extension TrailerPlayer: WKNavigationDelegate, WKUIDelegate {
         for action: WKNavigationAction, windowFeatures: WKWindowFeatures
     ) -> WKWebView? { nil }
 
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        loaded = true
+        let scripts = queued
+        queued = []
+        scripts.forEach { webView.evaluateJavaScript($0, completionHandler: nil) }
+    }
+
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: any Error) {
-        onSignal(.failed(0))
+        fail("\(error)")
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
-        onSignal(.failed(0))
+        fail("\(error)")
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        fail("its process ended")
     }
 }
 
 #if os(macOS)
-/// A web view the pointer passes through: the banner and the preview take no mouse input.
+/// A web view the pointer passes through: the preview takes no mouse input.
 private final class PassiveWebView: WKWebView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
     override var acceptsFirstResponder: Bool { false }
     override func menu(for event: NSEvent) -> NSMenu? { nil }
 }
 
+/// The page's view inside a holder of this place's own, so a view the pool moves on to another
+/// place is never pulled out of it when this one goes.
 struct TrailerWebView: NSViewRepresentable {
-    let player: TrailerPlayer
+    let view: WKWebView
 
-    func makeNSView(context: Context) -> WKWebView { player.webView }
-    func updateNSView(_ view: WKWebView, context: Context) {}
+    func makeNSView(context: Context) -> NSView {
+        let holder = Holder()
+        holder.passive = view is PassiveWebView
+        adopt(into: holder)
+        return holder
+    }
+
+    func updateNSView(_ holder: NSView, context: Context) { adopt(into: holder) }
+
+    static func dismantleNSView(_ holder: NSView, coordinator: ()) {
+        holder.subviews.forEach { $0.removeFromSuperview() }
+    }
+
+    /// Passes the pointer through, as its web view does, for the preview's.
+    final class Holder: NSView {
+        var passive = false
+        override func hitTest(_ point: NSPoint) -> NSView? { passive ? nil : super.hitTest(point) }
+        override var acceptsFirstResponder: Bool { false }
+    }
+
+    private func adopt(into holder: NSView) {
+        guard view.superview !== holder else { return }
+        view.removeFromSuperview()
+        view.frame = holder.bounds
+        view.autoresizingMask = [.width, .height]
+        holder.addSubview(view)
+    }
 }
 #else
+/// The page's view inside a holder of this place's own, so a view the pool moves on to another
+/// place is never pulled out of it when this one goes.
 struct TrailerWebView: UIViewRepresentable {
-    let player: TrailerPlayer
+    let view: WKWebView
 
-    func makeUIView(context: Context) -> WKWebView { player.webView }
-    func updateUIView(_ view: WKWebView, context: Context) {}
+    func makeUIView(context: Context) -> UIView {
+        let holder = UIView()
+        holder.backgroundColor = .clear
+        adopt(into: holder)
+        return holder
+    }
+
+    func updateUIView(_ holder: UIView, context: Context) { adopt(into: holder) }
+
+    static func dismantleUIView(_ holder: UIView, coordinator: ()) {
+        holder.subviews.forEach { $0.removeFromSuperview() }
+    }
+
+    private func adopt(into holder: UIView) {
+        guard view.superview !== holder else { return }
+        view.removeFromSuperview()
+        view.frame = holder.bounds
+        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        holder.addSubview(view)
+    }
 }
 #endif
 
@@ -162,11 +444,7 @@ struct TrailerWebView: UIViewRepresentable {
 /// things through the same bridge, so screenshots and click tests need no network and fetch
 /// nothing. Only the Fixtures app installs it.
 public enum TrailerStandIn {
-    /// Whether a window that is not key keeps its trailer: a snapshot's window never is.
-    nonisolated(unsafe) static var keepsWhenInactive = false
-
-    @MainActor public static func install(keepsWhenInactive: Bool = false) {
-        Self.keepsWhenInactive = keepsWhenInactive
+    @MainActor public static func install() {
         TrailerPlayer.standIn = { trailer in page(endsAfter: trailer.id.hasSuffix("-ends") ? 3 : nil) }
     }
 

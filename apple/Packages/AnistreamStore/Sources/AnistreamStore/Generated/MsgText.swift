@@ -66,6 +66,11 @@ extension Msg {
         case .noticeMatchSaveFailed(let reason): L.noticeMatchSaveFailed(reason: reason)
         case .noticeMatchDidNotStick: L.noticeMatchDidNotStick
         case .noticeSourceSearchEmpty(let query): L.noticeSourceSearchEmpty(query: query)
+        case .matchRuledOutFormat: L.matchRuledOutFormat
+        case .matchRuledOutEpisodes: L.matchRuledOutEpisodes
+        case .matchRuledOutYear: L.matchRuledOutYear
+        case .matchSearchTimedOut: L.matchSearchTimedOut
+        case .matchSearchSourceOff: L.matchSearchSourceOff
         case .noticeSourcePinned(let source): L.noticeSourcePinned(source: source)
         case .noticeSourceAutomatic: L.noticeSourceAutomatic
         case .noticeSourceChoiceFailed(let reason): L.noticeSourceChoiceFailed(reason: reason)
@@ -215,6 +220,7 @@ extension Msg {
         case .noticeDatabaseSetAside(let path): L.noticeDatabaseSetAside(path: path)
         case .startFailedFolder(let path, let reason): L.startFailedFolder(path: path, reason: reason)
         case .startFailedConfig(let path, let problem): L.startFailedConfig(path: path, problem: problem)
+        case .configResetFailed(let path, let reason): L.configResetFailed(path: path, reason: reason)
         case .startFailedDatabase(let path, let reason): L.startFailedDatabase(path: path, reason: reason)
         case .startFailedNetwork(let reason): L.startFailedNetwork(reason: reason)
         case .startFailed(let reason): L.startFailed(reason: reason)

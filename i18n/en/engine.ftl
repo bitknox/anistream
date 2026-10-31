@@ -36,6 +36,12 @@ start-failed-folder = { -app-name } couldn't create the folder { $path }. Check 
 # @arg problem: text
 start-failed-config = { $path } has a setting { -app-name } can't use: { $problem }. Fix or remove it, then try again.
 
+# Message when the settings could not be reset after a start failed on them: the config file
+# could not be moved aside. The path is the file, the reason comes from the system.
+# @arg path: text
+# @arg reason: text
+config-reset-failed = { -app-name } couldn't move { $path } aside to reset the settings. { $reason }
+
 # Message when anistream could not start because its database could not be opened. The path is
 # the database file, the reason comes from the system.
 # @arg path: text

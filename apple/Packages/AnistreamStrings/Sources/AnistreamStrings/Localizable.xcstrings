@@ -229,6 +229,30 @@
         }
       }
     },
+    "access-hover-facts" : {
+      "comment" : "VoiceOver: the heading of a cover's more content that holds its facts line, such as \"TV · 12 episodes · Autumn 2026\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facts"
+          }
+        }
+      }
+    },
+    "access-hover-synopsis" : {
+      "comment" : "VoiceOver: the heading of a cover's more content that holds the show's synopsis.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synopsis"
+          }
+        }
+      }
+    },
     "access-in-span" : {
       "comment" : "VoiceOver: when an episode will come out. The span is spoken in full, such as \"1 hour 30 minutes\". Argument 1: span (Text).",
       "extractionState" : "manual",
@@ -607,6 +631,18 @@
         }
       }
     },
+    "accounts-credentials-refused" : {
+      "comment" : "Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ didn't accept that user name and password. Check them and try again."
+          }
+        }
+      }
+    },
     "accounts-did-not-answer" : {
       "comment" : "Line when the tracker did not answer. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -746,7 +782,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Library and sync need a %1$@ account"
+            "value" : "Library and sync need your %1$@ account"
           }
         }
       }
@@ -1913,6 +1949,18 @@
         }
       }
     },
+    "calendar-day-empty-apple" : {
+      "comment" : "Name of a day with nothing airing, in the calendar's columns and agenda.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing airs"
+          }
+        }
+      }
+    },
     "calendar-delayed" : {
       "comment" : "Note on a row whose episode was delayed. The note says how long. Argument 1: note (Text).",
       "extractionState" : "manual",
@@ -1957,6 +2005,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing on your list airs this week."
+          }
+        }
+      }
+    },
+    "calendar-empty-mine-ahead-apple" : {
+      "comment" : "Line in the iPhone agenda, under Today, when My list is chosen and nothing on it airs in the next four weeks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing on your list airs in the next 4 weeks."
           }
         }
       }
@@ -2021,6 +2081,18 @@
         }
       }
     },
+    "calendar-filter-all-title" : {
+      "comment" : "Calendar filter on the Mac and iPad, in title case like the menus: every airing show.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Airing"
+          }
+        }
+      }
+    },
     "calendar-filter-mine" : {
       "comment" : "Filter: only shows on the person's list.",
       "extractionState" : "manual",
@@ -2029,6 +2101,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "My list"
+          }
+        }
+      }
+    },
+    "calendar-filter-mine-title" : {
+      "comment" : "Calendar filter on the Mac and iPad, in title case like the menus: only the person's list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My List"
           }
         }
       }
@@ -2141,6 +2225,18 @@
         }
       }
     },
+    "calendar-load-week-failed" : {
+      "comment" : "Line where the rest of the week would be when it could not be loaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load this week"
+          }
+        }
+      }
+    },
     "calendar-loading-earlier" : {
       "comment" : "Activity line while earlier broadcasts load.",
       "extractionState" : "manual",
@@ -2161,6 +2257,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading later broadcasts"
+          }
+        }
+      }
+    },
+    "calendar-loading-week" : {
+      "comment" : "Activity line in the first column of a week that is loading.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading this week"
           }
         }
       }
@@ -2731,6 +2839,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keep going"
+          }
+        }
+      }
+    },
+    "config-reset-failed" : {
+      "comment" : "Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system. Argument 1: path (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't move %1$@ aside to reset the settings. %2$@"
           }
         }
       }
@@ -5961,6 +6081,18 @@
         }
       }
     },
+    "filters-close" : {
+      "comment" : "Accessible label and tooltip of the button that closes the filters panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close filters"
+          }
+        }
+      }
+    },
     "filters-title" : {
       "comment" : "Title of the filters sheet and panel.",
       "extractionState" : "manual",
@@ -6645,6 +6777,364 @@
         }
       }
     },
+    "match-anilist-facts" : {
+      "comment" : "Under the show's name in the sheet: what AniList says of it, such as \"TV · 2026 · 24 episodes\". Argument 1: facts (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On AniList: %1$@"
+          }
+        }
+      }
+    },
+    "match-automatic" : {
+      "comment" : "Button that forgets the person's choice, shown only while the match is one they chose.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match automatically"
+          }
+        }
+      }
+    },
+    "match-automatic-detail" : {
+      "comment" : "Under \"Match automatically\", on iPhone, iPad and Android.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget your choice and let anistream match this title again."
+          }
+        }
+      }
+    },
+    "match-choose" : {
+      "comment" : "The title page's main action while the source couldn't choose, and the sheet's title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the match"
+          }
+        }
+      }
+    },
+    "match-chosen-automatically" : {
+      "comment" : "Beside the title matched now: anistream chose it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chosen automatically"
+          }
+        }
+      }
+    },
+    "match-chosen-by-you" : {
+      "comment" : "Beside the title matched now: the person chose it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chosen by you"
+          }
+        }
+      }
+    },
+    "match-cleared" : {
+      "comment" : "Notice after \"Match automatically\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching automatically again."
+          }
+        }
+      }
+    },
+    "match-fix" : {
+      "comment" : "Menu, palette and source picker entry that opens the sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix this match"
+          }
+        }
+      }
+    },
+    "match-fix-failed" : {
+      "comment" : "A pick that failed. The reason follows on its own line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't use that match."
+          }
+        }
+      }
+    },
+    "match-now" : {
+      "comment" : "Heading over the title the show is matched to now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched now"
+          }
+        }
+      }
+    },
+    "match-picked" : {
+      "comment" : "Notice once a picked title's episodes arrive. Argument 1: title (Text). Argument 2: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched to %1$@ on %2$@."
+          }
+        }
+      }
+    },
+    "match-picking" : {
+      "comment" : "On the row picked, while the source lists its episodes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching"
+          }
+        }
+      }
+    },
+    "match-row-label" : {
+      "comment" : "Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. Argument 1: title (Text). Argument 2: facts (Text). Argument 3: closeness (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, %3$@"
+          }
+        }
+      }
+    },
+    "match-ruled-out-episodes" : {
+      "comment" : "In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More episodes than this title"
+          }
+        }
+      }
+    },
+    "match-ruled-out-format" : {
+      "comment" : "In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Different format"
+          }
+        }
+      }
+    },
+    "match-ruled-out-year" : {
+      "comment" : "In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Different year"
+          }
+        }
+      }
+    },
+    "match-search-empty" : {
+      "comment" : "A search of the source that found nothing. Argument 1: source (Text). Argument 2: query (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing on %1$@ for “%2$@”."
+          }
+        }
+      }
+    },
+    "match-search-empty-hint" : {
+      "comment" : "Under match-search-empty: what to try.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try fewer words, or the title in another language."
+          }
+        }
+      }
+    },
+    "match-search-failed" : {
+      "comment" : "A search of the source that failed. The reason follows on its own line. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't search %1$@."
+          }
+        }
+      }
+    },
+    "match-search-field" : {
+      "comment" : "Placeholder of the search field in the sheet. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search %1$@"
+          }
+        }
+      }
+    },
+    "match-search-source-off" : {
+      "comment" : "Why a search of a source for a show's match failed: the source isn't installed or switched on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It isn't switched on."
+          }
+        }
+      }
+    },
+    "match-search-timed-out" : {
+      "comment" : "Why a search of a source for a show's match failed, under \"Couldn't search\" and the source's name: the source took too long to answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It didn't answer in time."
+          }
+        }
+      }
+    },
+    "match-searching" : {
+      "comment" : "While a search of the source runs. Argument 1: source (Text). Argument 2: query (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching %1$@ for “%2$@”"
+          }
+        }
+      }
+    },
+    "match-section-source" : {
+      "comment" : "Heading over the titles a source offers. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On %1$@"
+          }
+        }
+      }
+    },
+    "match-similarity" : {
+      "comment" : "How closely a source's title matches the show, at the end of its row. Argument 1: similarity (Percent).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ match"
+          }
+        }
+      }
+    },
+    "match-source-picker-row" : {
+      "comment" : "The last row of the source picker, which opens the match sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong title? Fix this match"
+          }
+        }
+      }
+    },
+    "match-uncertain" : {
+      "comment" : "The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out. Argument 1: count (Int). Argument 2: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%2$@ lists a title that could be this one. Choose it to play its episodes."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%2$@ lists %1$lld titles that could be this one. Choose one to play its episodes."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "match-uncertain-none" : {
+      "comment" : "The line on a title page when the source listed no title that fits, so the person searches. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has no title that fits this one. Choose one anyway, or search."
+          }
+        }
+      }
+    },
     "material-anime" : {
       "comment" : "Value of \"Based on\": another anime.",
       "extractionState" : "manual",
@@ -7089,6 +7579,30 @@
         }
       }
     },
+    "menu-fix-match" : {
+      "comment" : "Mac menu bar item that opens the sheet for choosing which of a source's titles this show is. Title Case, as the menu bar's items are. Everywhere else it is match-fix.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix This Match…"
+          }
+        }
+      }
+    },
+    "menu-go-to-today" : {
+      "comment" : "Mac and iPad View menu item that shows the calendar's current week.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Today"
+          }
+        }
+      }
+    },
     "menu-join-plugin-store" : {
       "comment" : "Mac menu bar item that opens the sheet for joining a plugin store. Title Case, so the words are typed.",
       "extractionState" : "manual",
@@ -7221,6 +7735,18 @@
         }
       }
     },
+    "menu-next-week" : {
+      "comment" : "Mac and iPad View menu item that shows the calendar's week after.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Week"
+          }
+        }
+      }
+    },
     "menu-no-episode-selected" : {
       "comment" : "Heading of the Mac Episode menu when no episode is selected.",
       "extractionState" : "manual",
@@ -7325,6 +7851,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Episode"
+          }
+        }
+      }
+    },
+    "menu-previous-week" : {
+      "comment" : "Mac and iPad View menu item that shows the calendar's week before.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Week"
           }
         }
       }
@@ -14703,6 +15241,18 @@
         }
       }
     },
+    "settings-hover-cards-note" : {
+      "comment" : "Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows a larger card with the trailer when you rest the pointer on a cover."
+          }
+        }
+      }
+    },
     "settings-keep-next" : {
       "comment" : "Row: keep the next episodes.",
       "extractionState" : "manual",
@@ -14763,8 +15313,20 @@
         }
       }
     },
+    "settings-label-hover-cards" : {
+      "comment" : "Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand covers on hover"
+          }
+        }
+      }
+    },
     "settings-label-trailers" : {
-      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -15465,6 +16027,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read online"
+          }
+        }
+      }
+    },
+    "settings-reset" : {
+      "comment" : "Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset settings"
+          }
+        }
+      }
+    },
+    "settings-reset-detail" : {
+      "comment" : "Line under it. The old settings file is moved aside, not deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept."
+          }
+        }
+      }
+    },
+    "settings-reset-done" : {
+      "comment" : "Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30. Argument 1: file (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings are back to their defaults. The old file is kept as %1$@."
+          }
+        }
+      }
+    },
+    "settings-reset-title" : {
+      "comment" : "Title of the confirmation for resetting the settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset settings?"
           }
         }
       }

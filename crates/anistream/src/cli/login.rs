@@ -384,6 +384,7 @@ async fn login_kitsu(config: &Config, paths: &Paths, http: &HttpClient) -> Resul
     println!("Exchanging the credentials for a token…");
     let pair = anistream_track::kitsu::login(
         http.plain(),
+        &anistream_track::kitsu::Site::default(),
         username,
         &password,
         anistream_store::now(),

@@ -370,6 +370,31 @@ pub fn notice_source_search_empty(query: &str) -> String {
     text("notice-source-search-empty", &[("query", Arg::Text(query))])
 }
 
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+pub fn match_ruled_out_format() -> String {
+    text("match-ruled-out-format", &[])
+}
+
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+pub fn match_ruled_out_episodes() -> String {
+    text("match-ruled-out-episodes", &[])
+}
+
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+pub fn match_ruled_out_year() -> String {
+    text("match-ruled-out-year", &[])
+}
+
+/// Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+pub fn match_search_timed_out() -> String {
+    text("match-search-timed-out", &[])
+}
+
+/// Why a search of a source for a show's match failed: the source isn't installed or switched on.
+pub fn match_search_source_off() -> String {
+    text("match-search-source-off", &[])
+}
+
 /// Toast after the person picked a source for one title.
 pub fn notice_source_pinned(source: &str) -> String {
     text("notice-source-pinned", &[("source", Arg::Text(source))])
@@ -1138,6 +1163,11 @@ pub fn start_failed_folder(path: &str, reason: &str) -> String {
 /// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
 pub fn start_failed_config(path: &str, problem: &str) -> String {
     text("start-failed-config", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
+}
+
+/// Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+pub fn config_reset_failed(path: &str, reason: &str) -> String {
+    text("config-reset-failed", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
 }
 
 /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
@@ -2090,6 +2120,11 @@ pub fn up_next_airs_at(time: &str) -> String {
     text("up-next-airs-at", &[("time", Arg::Text(time))])
 }
 
+/// Header title on a terminal too narrow for the rail: the product name, then the section on screen.
+pub fn chrome_header_section(section: &str) -> String {
+    text("chrome-header-section", &[("section", Arg::Text(section))])
+}
+
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 pub fn chrome_meta_chip(mark: &str) -> String {
     text("chrome-meta-chip", &[("mark", Arg::Text(mark))])
@@ -2120,7 +2155,7 @@ pub fn overlays_logs_empty() -> String {
     text("overlays-logs-empty", &[])
 }
 
-/// Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
+/// Prompt hint under the manual search heading. The footer names its keys.
 pub fn overlays_hint_manual_query() -> String {
     text("overlays-hint-manual-query", &[])
 }
@@ -2140,14 +2175,9 @@ pub fn overlays_hint_download_range() -> String {
     text("overlays-hint-download-range", &[])
 }
 
-/// Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
+/// Prompt hint for editing a setting: its label on the Settings screen. The footer names the keys.
 pub fn overlays_hint_edit_setting(setting: &str) -> String {
     text("overlays-hint-edit-setting", &[("setting", Arg::Text(setting))])
-}
-
-/// Prompt hint for editing a setting, when the setting is not known.
-pub fn overlays_hint_edit_setting_bare() -> String {
-    text("overlays-hint-edit-setting-bare", &[])
 }
 
 /// Prompt hint for joining a { -plugin-store }.
@@ -2190,29 +2220,14 @@ pub fn overlays_heading_disambiguate(name: &str) -> String {
     text("overlays-heading-disambiguate", &[("name", Arg::Text(name))])
 }
 
-/// Same, when no title is known.
-pub fn overlays_heading_disambiguate_bare() -> String {
-    text("overlays-heading-disambiguate-bare", &[])
-}
-
 /// Overlay heading, after the title "Watch order": the title the order is built around.
 pub fn overlays_heading_watch_order(name: &str) -> String {
     text("overlays-heading-watch-order", &[("name", Arg::Text(name))])
 }
 
-/// Same, when no title is known.
-pub fn overlays_heading_watch_order_bare() -> String {
-    text("overlays-heading-watch-order-bare", &[])
-}
-
 /// Overlay heading, after the title "Recommended": the title the list came from.
 pub fn overlays_heading_recommendations(name: &str) -> String {
     text("overlays-heading-recommendations", &[("name", Arg::Text(name))])
-}
-
-/// Same, when no title is known.
-pub fn overlays_heading_recommendations_bare() -> String {
-    text("overlays-heading-recommendations-bare", &[])
 }
 
 /// Overlay heading, after the title of the release list.
@@ -2223,16 +2238,6 @@ pub fn overlays_heading_release() -> String {
 /// Overlay heading, after the title of the { -source } list: the choice is kept for this title.
 pub fn overlays_heading_source(name: &str) -> String {
     text("overlays-heading-source", &[("name", Arg::Text(name))])
-}
-
-/// Same, when no title is known.
-pub fn overlays_heading_source_bare() -> String {
-    text("overlays-heading-source-bare", &[])
-}
-
-/// Overlay heading, after the title "Filters": the keys of the filter editor.
-pub fn overlays_heading_filters() -> String {
-    text("overlays-heading-filters", &[])
 }
 
 /// Overlay heading, after the title of the releases list: the episode it is for.
@@ -2935,7 +2940,7 @@ pub fn keys_action_toggle_synopsis() -> String {
     text("keys-action-toggle-synopsis", &[])
 }
 
-/// Action label in the help overlay and the command palette.
+/// Action label in the help overlay and the command palette. The key removes a row from { -continue-cap }, and on a suggestion under it says Not interested.
 pub fn keys_action_hide_from_continue() -> String {
     text("keys-action-hide-from-continue", &[])
 }
@@ -3213,6 +3218,11 @@ pub fn keys_hint_add_source() -> String {
 /// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 pub fn keys_hint_play() -> String {
     text("keys-hint-play", &[])
+}
+
+/// Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
+pub fn keys_hint_not_interested() -> String {
+    text("keys-hint-not-interested", &[])
 }
 
 /// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
@@ -3950,6 +3960,11 @@ pub fn accounts_conflict_keep_mine() -> String {
     text("accounts-conflict-keep-mine", &[])
 }
 
+/// Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
+pub fn accounts_conflict_keep_theirs() -> String {
+    text("accounts-conflict-keep-theirs", &[])
+}
+
 /// A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 pub fn accounts_conflict_row(title: &str, field: &str, local: &str, remote: &str) -> String {
     text("accounts-conflict-row", &[("title", Arg::Text(title)), ("field", Arg::Text(field)), ("local", Arg::Text(local)), ("remote", Arg::Text(remote))])
@@ -4103,6 +4118,11 @@ pub fn lists_episode(episode: &str) -> String {
 /// An episode in a list row, for a title watched dubbed.
 pub fn lists_episode_dubbed(episode: &str) -> String {
     text("lists-episode-dubbed", &[("episode", Arg::Text(episode))])
+}
+
+/// A title's AniList score, out of a hundred, in its facts line and at the end of a list row.
+pub fn lists_score(score: i64) -> String {
+    text("lists-score", &[("score", Arg::Int(score))])
 }
 
 /// A row on the { -continue-cap } list: the episode and how far into it the person stopped.
@@ -4323,11 +4343,6 @@ pub fn lists_sort_trending() -> String {
 /// A search sort order.
 pub fn lists_sort_newest() -> String {
     text("lists-sort-newest", &[])
-}
-
-/// Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
-pub fn lists_up_next_dismissed(title: &str) -> String {
-    text("lists-up-next-dismissed", &[("title", Arg::Text(title))])
 }
 
 /// Notice when the person leaves Now Playing while mpv carries on in its own window.
@@ -4688,6 +4703,16 @@ pub fn settings_value_theme_adaptive() -> String {
 /// Value of the theme setting: draws its own background.
 pub fn settings_value_theme_immersive() -> String {
     text("settings-value-theme-immersive", &[])
+}
+
+/// Value of the theme setting: the terminal's background, with colours for a light one.
+pub fn settings_value_theme_light() -> String {
+    text("settings-value-theme-light", &[])
+}
+
+/// Value of the theme setting: the terminal's background, with colours for a dark one.
+pub fn settings_value_theme_dark() -> String {
+    text("settings-value-theme-dark", &[])
 }
 
 /// Value of the titles setting: use the language AniList picks for the signed-in account.
@@ -5705,11 +5730,6 @@ pub fn stores_open_link_lasts() -> String {
     text("stores-open-link-lasts", &[])
 }
 
-/// Last line of the link overlays: Enter is the key.
-pub fn stores_link_close() -> String {
-    text("stores-link-close", &[])
-}
-
 /// Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
 pub fn stores_invite_works_once(expiry: &str) -> String {
     text("stores-invite-works-once", &[("expiry", Arg::Text(expiry))])
@@ -5820,11 +5840,6 @@ pub fn stores_join_device_note() -> String {
     text("stores-join-device-note", &[])
 }
 
-/// Last line of the join confirmation: Enter and Esc are the keys.
-pub fn stores_join_keys() -> String {
-    text("stores-join-keys", &[])
-}
-
 /// Lines of the leave confirmation.
 pub fn stores_leave_plugins() -> String {
     text("stores-leave-plugins", &[])
@@ -5833,11 +5848,6 @@ pub fn stores_leave_plugins() -> String {
 /// Lines of the leave confirmation.
 pub fn stores_leave_revoked() -> String {
     text("stores-leave-revoked", &[])
-}
-
-/// Last line of the leave confirmation.
-pub fn stores_leave_keys() -> String {
-    text("stores-leave-keys", &[])
 }
 
 /// Line of the remove member confirmation.
@@ -5850,29 +5860,14 @@ pub fn stores_remove_member_plugins() -> String {
     text("stores-remove-member-plugins", &[])
 }
 
-/// Last line of the remove member confirmation.
-pub fn stores_remove_member_keys() -> String {
-    text("stores-remove-member-keys", &[])
-}
-
 /// Line of the cancel invite confirmation.
 pub fn stores_cancel_invite_link() -> String {
     text("stores-cancel-invite-link", &[])
 }
 
-/// Last line of the cancel invite confirmation.
-pub fn stores_cancel_invite_keys() -> String {
-    text("stores-cancel-invite-keys", &[])
-}
-
 /// Line of the stop offering confirmation.
 pub fn stores_unpublish_members() -> String {
     text("stores-unpublish-members", &[])
-}
-
-/// Last line of the stop offering confirmation.
-pub fn stores_unpublish_keys() -> String {
-    text("stores-unpublish-keys", &[])
 }
 
 /// Line of the confirmation to let anyone with the store's link join.
@@ -5890,11 +5885,6 @@ pub fn stores_open_members_see() -> String {
     text("stores-open-members-see", &[])
 }
 
-/// Last line of the confirmation to let anyone with the store's link join.
-pub fn stores_open_keys() -> String {
-    text("stores-open-keys", &[])
-}
-
 /// Line of the confirmation to let only invited people join.
 pub fn stores_close_link() -> String {
     text("stores-close-link", &[])
@@ -5903,11 +5893,6 @@ pub fn stores_close_link() -> String {
 /// Line of the confirmation to let only invited people join.
 pub fn stores_close_devices() -> String {
     text("stores-close-devices", &[])
-}
-
-/// Last line of the confirmation to let only invited people join.
-pub fn stores_close_keys() -> String {
-    text("stores-close-keys", &[])
 }
 
 /// Line of the confirmation to remove one device that joined with the store's link.
@@ -5928,11 +5913,6 @@ pub fn stores_anonymous_plugins() -> String {
 /// Line of the confirmation to remove devices that joined with the store's link.
 pub fn stores_anonymous_still_joins() -> String {
     text("stores-anonymous-still-joins", &[])
-}
-
-/// Last line of the confirmation to remove devices that joined with the store's link.
-pub fn stores_anonymous_keys() -> String {
-    text("stores-anonymous-keys", &[])
 }
 
 /// Line of the plugin overlay: the hosts the plugin may contact.
@@ -9415,6 +9395,11 @@ pub fn filters_title() -> String {
     text("filters-title", &[])
 }
 
+/// Accessible label and tooltip of the button that closes the filters panel.
+pub fn filters_close() -> String {
+    text("filters-close", &[])
+}
+
 /// Button that opens the filters, with how many are on.
 pub fn filters_button_count(count: i64) -> String {
     text("filters-button-count", &[("count", Arg::Int(count))])
@@ -9780,7 +9765,7 @@ pub fn settings_value_trailers_wifi_only() -> String {
     text("settings-value-trailers-wifi-only", &[])
 }
 
-/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+/// Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 pub fn settings_label_trailers() -> String {
     text("settings-label-trailers", &[])
 }
@@ -10260,6 +10245,16 @@ pub fn settings_upscaling_natural() -> String {
     text("settings-upscaling-natural", &[])
 }
 
+/// Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+pub fn settings_label_hover_cards() -> String {
+    text("settings-label-hover-cards", &[])
+}
+
+/// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+pub fn settings_hover_cards_note() -> String {
+    text("settings-hover-cards-note", &[])
+}
+
 /// Preview note under the upscaling frame for the natural look.
 pub fn settings_upscaling_note_natural() -> String {
     text("settings-upscaling-note-natural", &[])
@@ -10333,6 +10328,26 @@ pub fn settings_trailers_always() -> String {
 /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 pub fn settings_trailers_wifi_only() -> String {
     text("settings-trailers-wifi-only", &[])
+}
+
+/// Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+pub fn settings_reset() -> String {
+    text("settings-reset", &[])
+}
+
+/// Title of the confirmation for resetting the settings.
+pub fn settings_reset_title() -> String {
+    text("settings-reset-title", &[])
+}
+
+/// Line under it. The old settings file is moved aside, not deleted.
+pub fn settings_reset_detail() -> String {
+    text("settings-reset-detail", &[])
+}
+
+/// Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+pub fn settings_reset_done(file: &str) -> String {
+    text("settings-reset-done", &[("file", Arg::Text(file))])
 }
 
 /// Title of the screen or section that lists sources.
@@ -10663,6 +10678,121 @@ pub fn sources_rebuilding() -> String {
 /// Value of a plugin's response time, in milliseconds.
 pub fn sources_response_ms(ms: i64) -> String {
     text("sources-response-ms", &[("ms", Arg::Int(ms))])
+}
+
+/// Menu, palette and source picker entry that opens the sheet.
+pub fn match_fix() -> String {
+    text("match-fix", &[])
+}
+
+/// The title page's main action while the source couldn't choose, and the sheet's title.
+pub fn match_choose() -> String {
+    text("match-choose", &[])
+}
+
+/// The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+pub fn match_uncertain(count: i64, source: &str) -> String {
+    text("match-uncertain", &[("count", Arg::Int(count)), ("source", Arg::Text(source))])
+}
+
+/// The line on a title page when the source listed no title that fits, so the person searches.
+pub fn match_uncertain_none(source: &str) -> String {
+    text("match-uncertain-none", &[("source", Arg::Text(source))])
+}
+
+/// The last row of the source picker, which opens the match sheet.
+pub fn match_source_picker_row() -> String {
+    text("match-source-picker-row", &[])
+}
+
+/// Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+pub fn match_anilist_facts(facts: &str) -> String {
+    text("match-anilist-facts", &[("facts", Arg::Text(facts))])
+}
+
+/// Heading over the titles a source offers.
+pub fn match_section_source(source: &str) -> String {
+    text("match-section-source", &[("source", Arg::Text(source))])
+}
+
+/// Heading over the title the show is matched to now.
+pub fn match_now() -> String {
+    text("match-now", &[])
+}
+
+/// Beside the title matched now: the person chose it.
+pub fn match_chosen_by_you() -> String {
+    text("match-chosen-by-you", &[])
+}
+
+/// Beside the title matched now: anistream chose it.
+pub fn match_chosen_automatically() -> String {
+    text("match-chosen-automatically", &[])
+}
+
+/// How closely a source's title matches the show, at the end of its row.
+pub fn match_similarity(similarity: &str) -> String {
+    text("match-similarity", &[("similarity", Arg::Text(similarity))])
+}
+
+/// Placeholder of the search field in the sheet.
+pub fn match_search_field(source: &str) -> String {
+    text("match-search-field", &[("source", Arg::Text(source))])
+}
+
+/// While a search of the source runs.
+pub fn match_searching(source: &str, query: &str) -> String {
+    text("match-searching", &[("source", Arg::Text(source)), ("query", Arg::Text(query))])
+}
+
+/// A search of the source that found nothing.
+pub fn match_search_empty(source: &str, query: &str) -> String {
+    text("match-search-empty", &[("source", Arg::Text(source)), ("query", Arg::Text(query))])
+}
+
+/// Under match-search-empty: what to try.
+pub fn match_search_empty_hint() -> String {
+    text("match-search-empty-hint", &[])
+}
+
+/// A search of the source that failed. The reason follows on its own line.
+pub fn match_search_failed(source: &str) -> String {
+    text("match-search-failed", &[("source", Arg::Text(source))])
+}
+
+/// On the row picked, while the source lists its episodes.
+pub fn match_picking() -> String {
+    text("match-picking", &[])
+}
+
+/// A pick that failed. The reason follows on its own line.
+pub fn match_fix_failed() -> String {
+    text("match-fix-failed", &[])
+}
+
+/// Notice once a picked title's episodes arrive.
+pub fn match_picked(title: &str, source: &str) -> String {
+    text("match-picked", &[("title", Arg::Text(title)), ("source", Arg::Text(source))])
+}
+
+/// Button that forgets the person's choice, shown only while the match is one they chose.
+pub fn match_automatic() -> String {
+    text("match-automatic", &[])
+}
+
+/// Under "Match automatically", on iPhone, iPad and Android.
+pub fn match_automatic_detail() -> String {
+    text("match-automatic-detail", &[])
+}
+
+/// Notice after "Match automatically".
+pub fn match_cleared() -> String {
+    text("match-cleared", &[])
+}
+
+/// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+pub fn match_row_label(title: &str, facts: &str, closeness: &str) -> String {
+    text("match-row-label", &[("title", Arg::Text(title)), ("facts", Arg::Text(facts)), ("closeness", Arg::Text(closeness))])
 }
 
 /// Short label for a joined store, on a row.
@@ -12278,6 +12408,11 @@ pub fn accounts_password() -> String {
 /// Button label while the sign-in runs.
 pub fn accounts_signing_in_action() -> String {
     text("accounts-signing-in-action", &[])
+}
+
+/// Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+pub fn accounts_credentials_refused(tracker: &str) -> String {
+    text("accounts-credentials-refused", &[("tracker", Arg::Text(tracker))])
 }
 
 /// Line under the title: what to do.

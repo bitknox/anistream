@@ -7,7 +7,7 @@ members = ["crates/*", "tools/i18n"]
 exclude = ["plugins/*"]
 
 [workspace.package]
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 rust-version = "1.98"
 license = "MIT"
@@ -98,6 +98,7 @@ rusqlite = { version = "0.40", features = ["bundled", "chrono", "serde_json"] }
 
 # --- tui ---
 ratatui = "0.30"
+unicode-width = "0.2"
 # Local-timezone day boundaries for the calendar's rulings. Already in the tree via
 # rusqlite's feature, so this costs nothing new.
 chrono = "0.4"

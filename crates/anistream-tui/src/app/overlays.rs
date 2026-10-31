@@ -228,7 +228,7 @@ impl App {
             Some(Overlay::ListStatus) => LibrarySegment::ALL.len(),
             Some(Overlay::Rate) => 10,
             Some(Overlay::SearchFilters) => search_filter_labels().len(),
-            Some(Overlay::Conflicts) => self.conflicts.len(),
+            Some(Overlay::Conflicts) => self.conflicts.len() * 2,
             Some(Overlay::Accounts) => self.sync.len(),
             // The palette was missing from this list, which meant the arrows scrolled the list
             // behind it and Enter did nothing — so the app's stated discoverability mechanism
@@ -323,9 +323,11 @@ mod tests {
         assert_eq!(a.overlay_cursor(), 2);
         assert_eq!(a.cursor(), 0, "the list behind the overlay moved");
 
-        // And it cannot run off the end.
-        a.handle(Action::Down, 20);
-        assert_eq!(a.overlay_cursor(), 2);
+        // And it cannot run off the end: three differences, two rows each.
+        for _ in 0..5 {
+            a.handle(Action::Down, 20);
+        }
+        assert_eq!(a.overlay_cursor(), 5);
     }
 
     #[test]

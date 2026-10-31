@@ -225,6 +225,7 @@ extension SettingKey {
         case .upNextCountdown: L.settingsUpNextCountdown
         case .spoilerProtection: L.settingsSpoiler
         case .episodeDiscussions: L.settingsAppleDiscussions
+        case .hoverCards: L.settingsLabelHoverCards
         case .commentImages: L.settingsAppleCommentImages
         case .downloadQuality: L.settingsQuality
         case .keepNextEpisodes: L.settingsKeepNext

@@ -36,8 +36,7 @@ public sealed partial class SeasonalPage : Page
         State.Placeholders = () => States.Covers();
         State.ActivityText = T.SeasonalLoading;
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        ctx.Hear(this, Heard);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)

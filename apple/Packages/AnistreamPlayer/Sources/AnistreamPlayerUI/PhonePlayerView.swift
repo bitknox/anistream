@@ -320,7 +320,7 @@ public struct PhonePlayerView: View {
                             }
                         }
                     case .episodes:
-                        EpisodeList(model: model, metrics: metrics)
+                        EpisodeList(model: model, metrics: metrics) { self.sheet = nil }
                     case .party:
                         EmptyView()
                     }

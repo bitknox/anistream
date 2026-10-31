@@ -197,3 +197,45 @@ struct EarlyTests {
         try await waitFor { answered.value == [url] }
     }
 }
+
+/// Reset settings on the start-failed screen, over the testing engine.
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct ResetSettingsTests {
+    @Test func settingsTheEngineCannotStartOnAreResetAfterAskingAndKept() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let config = root.appending(path: "config", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: config, withIntermediateDirectories: true)
+        try Data("[network\nproxy = ".utf8).write(to: config.appending(path: "config.toml"))
+
+        let store = AppStore()
+        let launch = EngineLaunch(engine: .fixtures(.fresh), home: .override(root: root), platform: .ios, secrets: .host)
+        await store.start(launch, host: quietHost())
+        guard case .failed = store.phase else {
+            Issue.record("a config it cannot use stops the start: \(store.phase)")
+            return
+        }
+        #expect(store.settingsUnusable)
+
+        // Try again changes nothing: the file is as it was.
+        await store.restart()
+        #expect(store.settingsUnusable)
+
+        await store.resetSettings()
+        defer { store.shutdown() }
+        #expect(store.phase == .running, "\(store.phase)")
+        #expect(!store.settingsUnusable)
+        let kept = try FileManager.default.contentsOfDirectory(atPath: config.path(percentEncoded: false))
+            .filter { $0.hasPrefix("config.damaged-") }
+        #expect(kept.count == 1, "\(kept)")
+        #expect(store.notices.log.contains { $0.notice.text.contains(kept.first ?? "?") })
+    }
+
+    @Test func aStartThatFailedOnSomethingElseOffersNoReset() async throws {
+        let store = AppStore()
+        #expect(!store.settingsUnusable)
+        await store.resetSettings()
+        #expect(store.phase == .starting, "nothing started, nothing reset")
+    }
+}

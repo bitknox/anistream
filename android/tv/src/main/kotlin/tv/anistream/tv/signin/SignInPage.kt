@@ -21,6 +21,10 @@ import java.net.SocketException
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.security.SecureRandom
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import tv.anistream.store.TorrentWords
 
@@ -52,7 +56,11 @@ enum class PageForm { Code, Password, Link, Torrent, TorrentProxy, Proxy }
 
 /**
  * The page for [tracker] ("AniList"), its form [form], with a link to [authorizeUrl] to open
- * first when there is one. Each answer goes to [onAnswer], on the page's own thread.
+ * first when there is one. Each answer goes to [onAnswer], on a thread of the page's, one at a time.
+ *
+ * Each client is served on a thread of its own, [MAX_CLIENTS] at once, and is cut off
+ * [clientDeadlineMillis] after it connected however slowly it sends: one that trickles its request
+ * holds no one else up. The page stops [lifetimeMillis] after it started, whatever its clients do.
  */
 class SignInPage(
     private val context: Context,
@@ -61,6 +69,8 @@ class SignInPage(
     private val authorizeUrl: String?,
     /** What the form opens filled in with: a saved proxy's host, port and user name, never a password. */
     filled: Map<String, String> = emptyMap(),
+    private val lifetimeMillis: Long = LIFETIME_MILLIS,
+    private val clientDeadlineMillis: Long = CLIENT_DEADLINE_MILLIS,
     private val onAnswer: (PageAnswer) -> Unit,
 ) {
     private val filled = filled - "password"
@@ -76,7 +86,13 @@ class SignInPage(
 
     @Volatile
     private var server: ServerSocket? = null
-    private val started = System.nanoTime()
+
+    /** What closes the page at the end of its life, and each client at its deadline. */
+    private val timer = Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "sign-in page timer").apply { isDaemon = true } }
+
+    /** The clients being served, closed with the page. */
+    private val clients = ConcurrentHashMap.newKeySet<Socket>()
+    private val serving = Semaphore(MAX_CLIENTS)
 
     /** Listen on [port], or any port when it is taken; the port it listens on, or null. */
     fun start(port: Int = DEFAULT_PORT): Int? {
@@ -89,6 +105,7 @@ class SignInPage(
             null
         } ?: return null
         server = socket
+        timer.schedule({ stop() }, lifetimeMillis, TimeUnit.MILLISECONDS)
         thread(name = "sign-in page", isDaemon = true) { serve(socket) }
         return socket.localPort
     }
@@ -96,6 +113,8 @@ class SignInPage(
     fun stop() {
         runCatching { server?.close() }
         server = null
+        clients.forEach { runCatching { it.close() } }
+        timer.shutdownNow()
     }
 
     private fun bind(port: Int) = ServerSocket().apply {
@@ -105,23 +124,31 @@ class SignInPage(
 
     private fun serve(socket: ServerSocket) {
         while (!socket.isClosed) {
-            if (System.nanoTime() - started > LIFETIME_NANOS) {
-                stop()
-                return
-            }
             val client = try {
-                socket.soTimeout = ACCEPT_TIMEOUT_MILLIS
                 socket.accept()
-            } catch (_: java.net.SocketTimeoutException) {
-                continue
             } catch (_: SocketException) {
                 return
+            } catch (e: java.io.IOException) {
+                Log.w(TAG, "the sign-in page could not take a client", e)
+                continue
             }
-            client.use { runCatching { answer(it) }.onFailure { e -> Log.w(TAG, "a sign-in page request failed", e) } }
-            // Torrents' page takes one answer: once it has, no one else on the network can reach it.
-            if (answered && torrents) {
-                stop()
-                return
+            // As many at once as a household's phones; one more is turned away rather than kept waiting.
+            if (!serving.tryAcquire()) {
+                runCatching { client.close() }
+                continue
+            }
+            clients += client
+            val deadline = runCatching { timer.schedule({ runCatching { client.close() } }, clientDeadlineMillis, TimeUnit.MILLISECONDS) }.getOrNull()
+            thread(name = "sign-in page client", isDaemon = true) {
+                try {
+                    client.use { runCatching { answer(it) }.onFailure { e -> Log.w(TAG, "a sign-in page request failed", e) } }
+                } finally {
+                    deadline?.cancel(false)
+                    clients -= client
+                    serving.release()
+                }
+                // Torrents' page takes one answer: once it has, no one else on the network can reach it.
+                if (answered && torrents) stop()
             }
         }
     }
@@ -146,7 +173,9 @@ class SignInPage(
                 when {
                     fields == null -> Reply(400, said(ok = false, context.getString(R.string.torrents_page_unreadable)))
                     answer == null -> Reply(200, said(ok = false, if (torrents) torrentProblem(fields) else context.getString(R.string.torrents_page_fill_form)))
-                    else -> {
+                    // Torrents' page takes one answer, so two sent at once are not both taken.
+                    else -> synchronized(this) {
+                        if (answered && torrents) return
                         answered = true
                         onAnswer(answer)
                         val next = when (form) {
@@ -360,10 +389,18 @@ class SignInPage(
         const val DEFAULT_PORT = 47_110
 
         /** The page lives ten minutes at most. */
-        const val LIFETIME_NANOS = 10 * 60 * 1_000_000_000L
-        private const val ACCEPT_TIMEOUT_MILLIS = 1_000
+        const val LIFETIME_MILLIS = 10 * 60 * 1_000L
+
+        /** A client has this long from connecting to its answer, however it sends its request. */
+        const val CLIENT_DEADLINE_MILLIS = 15_000L
+
+        /** Clients served at once. */
+        const val MAX_CLIENTS = 4
         private const val READ_TIMEOUT_MILLIS = 10_000
         private const val MAX_BODY = 16 * 1024
+
+        /** Header lines a request may have; a browser sends a dozen or two. */
+        private const val MAX_HEADERS = 64
 
         data class Request(val method: String, val target: String, val body: String)
 
@@ -373,9 +410,11 @@ class SignInPage(
             val parts = line.split(' ')
             if (parts.size < 2) return null
             var length = 0
+            var headers = 0
             while (true) {
                 val header = readLine(input) ?: return null
                 if (header.isEmpty()) break
+                if (++headers > MAX_HEADERS) return null
                 if (header.substringBefore(':').trim().equals("content-length", ignoreCase = true)) {
                     length = header.substringAfter(':').trim().toIntOrNull()?.coerceIn(0, MAX_BODY) ?: 0
                 }

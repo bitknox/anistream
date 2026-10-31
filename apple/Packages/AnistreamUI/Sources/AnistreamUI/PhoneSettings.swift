@@ -185,6 +185,7 @@ struct PhoneMenuValue: View {
 
 struct PhoneSettingsRoot: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let anilist = store.accounts.tracker("anilist")
@@ -253,12 +254,28 @@ struct PhoneSettingsRoot: View {
 
     private func link(_ page: PhoneSettingsPage, _ title: String, _ symbol: String, value: String) -> some View {
         NavigationLink(value: page) {
-            HStack {
-                Label(title, systemImage: symbol)
-                    .font(.ui(17))
-                    .foregroundStyle(.silk)
-                Spacer()
-                Text(value).font(.ui(17)).foregroundStyle(.haze)
+            // At the accessibility sizes the value goes under the title, as the system's own
+            // rows put it. The title drops its symbol and keeps to one line, shrinking a little
+            // rather than breaking a word.
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(title, systemImage: symbol)
+                        .labelStyle(.titleOnly)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .foregroundStyle(.silk)
+                    Text(value).foregroundStyle(.haze)
+                }
+                .font(.ui(17))
+                .padding(.vertical, 4)
+            } else {
+                HStack {
+                    Label(title, systemImage: symbol)
+                        .font(.ui(17))
+                        .foregroundStyle(.silk)
+                    Spacer()
+                    Text(value).font(.ui(17)).foregroundStyle(.haze)
+                }
             }
         }
         .listRowBackground(Palette.raised)

@@ -67,15 +67,27 @@ pub struct Mpv {
 #[derive(Debug, Clone, PartialEq)]
 pub enum MpvEvent {
     Shutdown,
-    Log { prefix: String, level: String, text: String },
-    StartFile,
-    EndFile { reason: i32 },
+    Log {
+        prefix: String,
+        level: String,
+        text: String,
+    },
+    /// A file starts, as the playlist entry its `loadfile` answered with.
+    StartFile {
+        entry: i64,
+    },
+    EndFile {
+        reason: i32,
+    },
     FileLoaded,
     Idle,
     VideoReconfig,
     Seek,
     PlaybackRestart,
-    Property { name: String, value: Value },
+    Property {
+        name: String,
+        value: Value,
+    },
     Other(i32),
 }
 
@@ -127,6 +139,23 @@ impl Mpv {
         let code =
             unsafe { sys::mpv_command_node(self.raw(), node.as_ptr(), std::ptr::null_mut()) };
         checked(code, || command["name"].as_str().unwrap_or("command").to_owned())
+    }
+
+    /// A command as [`Self::command_node`] sends it, and what mpv answered: `loadfile` answers
+    /// with the playlist entry it made, `{"playlist_entry_id": 4}`.
+    pub fn command_node_answered(&self, command: &Value) -> Result<Value, MpvError> {
+        let mut node = OwnedNode::from_json(command);
+        let mut out =
+            sys::mpv_node { u: sys::mpv_node_u { int64: 0 }, format: sys::MPV_FORMAT_NONE };
+        // SAFETY: the node is owned and alive for the call; mpv fills `out`, which is freed with
+        // mpv_free_node_contents after reading, and only when the command succeeded.
+        unsafe {
+            let code = sys::mpv_command_node(self.raw(), node.as_ptr(), &raw mut out);
+            checked(code, || command["name"].as_str().unwrap_or("command").to_owned())?;
+            let value = node::to_json(&out);
+            sys::mpv_free_node_contents(&raw mut out);
+            Ok(value)
+        }
     }
 
     /// Sets a property to `value`, as mpv's own format for it: a flag, an integer, a double, a
@@ -246,7 +275,10 @@ impl Mpv {
                         text: node::text(msg.text),
                     }
                 }
-                sys::MPV_EVENT_START_FILE => MpvEvent::StartFile,
+                sys::MPV_EVENT_START_FILE => {
+                    let start = &*data.cast::<sys::mpv_event_start_file>();
+                    MpvEvent::StartFile { entry: start.playlist_entry_id }
+                }
                 sys::MPV_EVENT_END_FILE => {
                     let end = &*data.cast::<sys::mpv_event_end_file>();
                     MpvEvent::EndFile { reason: end.reason }

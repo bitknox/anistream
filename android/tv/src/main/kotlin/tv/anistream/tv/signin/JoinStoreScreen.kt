@@ -180,7 +180,7 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
             address = if (port != null && local != null) page.address(local, port) else null
             started = true
             if (port != null) {
-                delay(SignInPage.LIFETIME_NANOS / 1_000_000)
+                delay(SignInPage.LIFETIME_MILLIS)
                 expired = true
                 page.stop()
             }

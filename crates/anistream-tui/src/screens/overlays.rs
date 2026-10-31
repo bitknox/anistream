@@ -13,7 +13,7 @@ use crate::{
         Role,
         glyph::{self, OBI},
     },
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, tail, truncate},
 };
 
 use super::{
@@ -148,13 +148,12 @@ pub(super) fn render_overlay(
         }
         Overlay::KitsuPassword => vec![(String::new(), t::overlays_hint_kitsu_password())],
         Overlay::DownloadRange => vec![(String::new(), t::overlays_hint_download_range())],
-        Overlay::EditSetting => vec![(
-            String::new(),
-            match app.edit_target {
-                Some(id) => t::overlays_hint_edit_setting(id.label()),
-                None => t::overlays_hint_edit_setting_bare(),
-            },
-        )],
+        // The footer names the keys; the body names what is being changed.
+        Overlay::EditSetting => app
+            .edit_target
+            .map(|id| (String::new(), t::overlays_hint_edit_setting(id.label())))
+            .into_iter()
+            .collect(),
         Overlay::JoinStore => vec![(String::new(), t::overlays_hint_join_store())],
         Overlay::InviteName => vec![(String::new(), t::overlays_hint_invite_name())],
         Overlay::StoreConfirm => store_confirm_rows(app),
@@ -212,11 +211,9 @@ pub(super) fn render_overlay(
             help.columns.iter().skip(page * help.across).take(help.across).cloned().collect();
         // Each column only as wide as its longest row needs. Stretched to share a wide band,
         // the keys sat a hundred cells from the labels they belong to.
-        let natural = rows
-            .iter()
-            .map(|(key, label)| label.chars().count() + key.chars().count() + 3)
-            .max()
-            .unwrap_or(0) as u16;
+        let natural =
+            rows.iter().map(|(key, label)| label.cells() + key.cells() + 3).max().unwrap_or(0)
+                as u16;
         let width = (available / help.across.max(1) as u16).min(natural + 2);
         let position =
             (pages > 1).then(|| t::overlays_help_page(page as i64 + 1, pages as i64));
@@ -259,21 +256,23 @@ pub(super) fn render_overlay(
         }
     }
 
-    // Then clear the band itself so content underneath does not show through it.
-    let ground = app.palette.ground().unwrap_or(app.palette.ground_ref());
+    // Then clear the band itself so content underneath does not show through it: to the raised
+    // surface where the palette paints grounds, so the band sits over the screen.
+    let ground =
+        app.palette.raised().or(app.palette.ground()).unwrap_or(app.palette.ground_ref());
     for y in band.top()..band.bottom() {
         for x in band.left()..band.right() {
             buf[(x, y)].set_char(' ').set_bg(ground.to_ratatui());
         }
     }
 
-    Hairline::new(&app.palette).render(Rect { height: 1, ..band }, buf);
-    // The band is clamped to the stage, which on a very short terminal is one or two rows —
-    // so the title row and the rule under it can both fall outside the buffer. An overlay is
-    // the one thing reachable from every screen, `?` included, so an unguarded write here
-    // crashed the app at any height a pane can be dragged to.
+    // The band is clamped to the stage, which on a very short terminal is one or two rows, or
+    // none when a pane is dragged shut: the hairline, the title row and the rule under it can
+    // each fall outside the buffer. An overlay is the one thing reachable from every screen,
+    // `?` included, so every write here is kept inside the band.
+    Hairline::new(&app.palette).render(Rect { height: band.height.min(1), ..band }, buf);
     let title_y = band.top() + 1;
-    if title_y >= band.bottom() {
+    if title_y >= band.bottom() || band.width == 0 {
         return report;
     }
     buf[(band.left(), title_y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
@@ -291,7 +290,7 @@ pub(super) fn render_overlay(
         // A link is longer than the band, and the end is where the cursor is, so the end is
         // what shows.
         Overlay::JoinStore => {
-            let room = (band.width as usize).saturating_sub(title.chars().count() + 8);
+            let room = (band.width as usize).saturating_sub(title.cells() + 8);
             titled(&format!("{}▏", tail(&field_text(app, Field::JoinLink), room)))
         }
         Overlay::InviteName => typed(Field::InviteName),
@@ -321,28 +320,26 @@ pub(super) fn render_overlay(
         // Say what is being asked, or a bare "Which one" over a list of near-identical release
         // names is a riddle rather than a question. Not why: the same list answers a search
         // typed after `m`, where "no confident match" sat above a 100% candidate.
-        Overlay::Disambiguate => titled(&match app.detail.as_ref() {
-            Some(detail) => t::overlays_heading_disambiguate(&detail.title),
-            None => t::overlays_heading_disambiguate_bare(),
-        }),
+        Overlay::Disambiguate => match app.detail.as_ref() {
+            Some(detail) => titled(&t::overlays_heading_disambiguate(&detail.title)),
+            None => title.clone(),
+        },
         // Name the title the order is anchored on — a list of sequels floats without it.
-        Overlay::WatchOrder => titled(&match app.target() {
-            Some(detail) => t::overlays_heading_watch_order(&detail.title),
-            None => t::overlays_heading_watch_order_bare(),
-        }),
+        Overlay::WatchOrder => match app.target() {
+            Some(detail) => titled(&t::overlays_heading_watch_order(&detail.title)),
+            None => title.clone(),
+        },
         // Anchor on the title the recommendations came from.
-        Overlay::Recommendations => titled(&match app.target() {
-            Some(detail) => t::overlays_heading_recommendations(&detail.title),
-            None => t::overlays_heading_recommendations_bare(),
-        }),
+        Overlay::Recommendations => match app.target() {
+            Some(detail) => titled(&t::overlays_heading_recommendations(&detail.title)),
+            None => title.clone(),
+        },
         Overlay::SourceRelease => titled(&t::overlays_heading_release()),
         // Name the title, since the choice is remembered against it rather than globally.
-        Overlay::SourceProvider => titled(&match app.detail.as_ref() {
-            Some(detail) => t::overlays_heading_source(&detail.title),
-            None => t::overlays_heading_source_bare(),
-        }),
-        // The grammar is not self-evident for a value editor, so the heading states it.
-        Overlay::SearchFilters => titled(&t::overlays_heading_filters()),
+        Overlay::SourceProvider => match app.detail.as_ref() {
+            Some(detail) => titled(&t::overlays_heading_source(&detail.title)),
+            None => title.clone(),
+        },
         // Name the episode the slate is for, or a wall of release names has no anchor.
         Overlay::Sources => titled(&match app.source_context.as_ref() {
             Some((_, episode)) => t::overlays_heading_releases(episode),
@@ -351,8 +348,8 @@ pub(super) fn render_overlay(
         _ => title.clone(),
     };
     // Where in a table too long for the band the window is, so the rest is known to exist.
-    let position = position.filter(|p| p.chars().count() + 8 < band.width as usize);
-    let position_room = position.as_ref().map_or(0, |p| p.chars().count() as u16 + 2);
+    let position = position.filter(|p| p.cells() + 8 < band.width as usize);
+    let position_room = position.as_ref().map_or(0, |p| p.cells() as u16 + 2);
     line(
         buf,
         band.left() + 2,
@@ -361,7 +358,7 @@ pub(super) fn render_overlay(
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     if let Some(position) = &position {
-        let x = band.right().saturating_sub(position.chars().count() as u16 + 2);
+        let x = band.right().saturating_sub(position.cells() as u16 + 2);
         buf.set_string(x, title_y, position, app.palette.style(Role::TextDim));
     }
     if title_y + 1 < band.bottom() {
@@ -378,7 +375,7 @@ pub(super) fn render_overlay(
             continue;
         }
         let x = band.left() + 2 + column as u16 * column_width;
-        let key_width = key.chars().count() as u16;
+        let key_width = key.cells() as u16;
         let label_room = column_width.saturating_sub(key_width + 3) as usize;
 
         // The obi again, in the one place a modal has a focused row.
@@ -417,16 +414,6 @@ pub(super) fn render_overlay(
 pub(super) fn field_text(app: &App, field: Field) -> String {
     let line = app.field(field);
     if field.masked() { "•".repeat(line.len()) } else { line.as_str().to_owned() }
-}
-
-/// The last `room` characters of `text`, with an ellipsis when that is not all of it.
-fn tail(text: &str, room: usize) -> String {
-    let len = text.chars().count();
-    if len <= room || room < 2 {
-        return text.to_owned();
-    }
-    let kept: String = text.chars().skip(len - (room - 1)).collect();
-    format!("…{}", kept)
 }
 
 fn help_rows(app: &App) -> Vec<(String, String)> {

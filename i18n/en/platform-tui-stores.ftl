@@ -478,10 +478,6 @@ stores-open-link-warning = Anyone with it can join, without a name, as often as 
 # @only tui
 stores-open-link-lasts = It works until the { -store } goes back to invites only.
 
-# Last line of the link overlays: Enter is the key.
-# @only tui
-stores-link-close = Enter closes
-
 # Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
 # @arg expiry: text
 # @only tui
@@ -584,10 +580,6 @@ stores-join-already = Already joined. Joining again gives this { -device } a new
 # @only tui
 stores-join-device-note = The { -store }'s owner sees this name. Type to change it.
 
-# Last line of the join confirmation: Enter and Esc are the keys.
-# @only tui
-stores-join-keys = Enter joins · Esc cancels
-
 # Lines of the leave confirmation.
 # @only tui
 stores-leave-plugins = { -plugin-cap-pl } installed from it stay on this machine and stop updating.
@@ -595,10 +587,6 @@ stores-leave-plugins = { -plugin-cap-pl } installed from it stay on this machine
 # Lines of the leave confirmation.
 # @only tui
 stores-leave-revoked = This { -device }'s access to the { -store } is revoked.
-
-# Last line of the leave confirmation.
-# @only tui
-stores-leave-keys = Enter leaves · Esc stays
 
 # Line of the remove member confirmation.
 # @arg count: int
@@ -612,25 +600,13 @@ stores-remove-member-devices = { $count ->
 # @only tui
 stores-remove-member-plugins = { -plugin-cap-pl } they already installed stay on their machines.
 
-# Last line of the remove member confirmation.
-# @only tui
-stores-remove-member-keys = Enter removes · Esc keeps them
-
 # Line of the cancel invite confirmation.
 # @only tui
 stores-cancel-invite-link = The link stops working.
 
-# Last line of the cancel invite confirmation.
-# @only tui
-stores-cancel-invite-keys = Enter cancels it · Esc keeps it
-
 # Line of the stop offering confirmation.
 # @only tui
 stores-unpublish-members = Members who installed it keep it, and it stops updating.
-
-# Last line of the stop offering confirmation.
-# @only tui
-stores-unpublish-keys = Enter withdraws it · Esc keeps it
 
 # Line of the confirmation to let anyone with the store's link join.
 # @only tui
@@ -644,10 +620,6 @@ stores-open-link-new = The link is new each time, so an earlier one stays dead.
 # @only tui
 stores-open-members-see = Members see that the { -store } is open.
 
-# Last line of the confirmation to let anyone with the store's link join.
-# @only tui
-stores-open-keys = Enter opens it · Esc keeps it to invites
-
 # Line of the confirmation to let only invited people join.
 # @only tui
 stores-close-link = The link stops working, and no one new joins without an invite.
@@ -655,10 +627,6 @@ stores-close-link = The link stops working, and no one new joins without an invi
 # Line of the confirmation to let only invited people join.
 # @only tui
 stores-close-devices = { -device-cap-pl } that joined with it keep working until you remove them in members.
-
-# Last line of the confirmation to let only invited people join.
-# @only tui
-stores-close-keys = Enter limits it to invites · Esc keeps it open
 
 # Line of the confirmation to remove one device that joined with the store's link.
 # @only tui
@@ -675,10 +643,6 @@ stores-anonymous-plugins = { -plugin-cap-pl } already installed stay where they 
 # Line of the confirmation to remove devices that joined with the store's link.
 # @only tui
 stores-anonymous-still-joins = While the { -store } is open, the link still joins anyone.
-
-# Last line of the confirmation to remove devices that joined with the store's link.
-# @only tui
-stores-anonymous-keys = Enter removes · Esc keeps
 
 # Line of the plugin overlay: the hosts the plugin may contact.
 # @arg hosts: text

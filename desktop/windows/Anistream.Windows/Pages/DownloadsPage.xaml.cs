@@ -19,8 +19,7 @@ public sealed partial class DownloadsPage : Page
     public DownloadsPage()
     {
         InitializeComponent();
-        ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        ctx.Hear(this, Heard);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -204,11 +203,14 @@ public sealed partial class DownloadsPage : Page
                 return Ui.Haze(T.DownloadsCaptionQueuedSlot, wrap: false);
             default:
             {
-                // The glyph is the one vermilion thing; the words are haze, and the engine's
-                // reason goes to the log, not the row.
+                // The glyph is the one vermilion thing; the words are haze, with the reason the
+                // engine kept on the row when it has one.
                 var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                 line.Children.Add(States.ErrorGlyph(12));
-                line.Children.Add(Ui.Haze(T.DownloadsFailedRow, wrap: false));
+                var words = Ui.Haze(row.Error is { Length: > 0 } why ? T.DownloadsCaptionFailedWhy(why) : T.DownloadsFailedRow, wrap: false);
+                words.TextTrimming = TextTrimming.CharacterEllipsis;
+                ToolTipService.SetToolTip(words, words.Text);
+                line.Children.Add(words);
                 return line;
             }
         }
@@ -251,7 +253,7 @@ public sealed partial class DownloadsPage : Page
             CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Close,
         };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await Dialogs.Show(dialog) == ContentDialogResult.Primary)
             ctx.Send(new Command.DownloadDelete(row.Id));
     }
 

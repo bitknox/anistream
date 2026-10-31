@@ -212,7 +212,8 @@ impl App {
             | S::SwapFaceButtons
             | S::CalendarMine
             | S::CastTvs
-            | S::TorrentsWhileCasting => return None,
+            | S::TorrentsWhileCasting
+            | S::HoverCards => return None,
         })
     }
 
@@ -257,6 +258,8 @@ impl App {
         if repaint {
             self.palette = crate::theme::Palette::of(match self.settings.theme {
                 ThemeMode::Immersive => crate::theme::Variant::Immersive,
+                ThemeMode::Light => crate::theme::Variant::Light,
+                ThemeMode::Dark => crate::theme::Variant::Dark,
                 ThemeMode::Adaptive => self.adaptive_variant,
             });
         }
@@ -323,6 +326,7 @@ fn label_text(key: SettingKey) -> String {
         S::CalendarMine => t::settings_label_calendar_mine(),
         S::CastTvs => t::settings_label_cast_tvs(),
         S::TorrentsWhileCasting => t::settings_label_torrents_while_casting(),
+        S::HoverCards => t::settings_label_hover_cards(),
     }
 }
 
@@ -373,6 +377,8 @@ fn known_value(key: SettingKey, raw: &str) -> String {
     let known = match (key, raw) {
         (S::Theme, "adaptive") => t::settings_value_theme_adaptive(), // i18n-skip
         (S::Theme, "immersive") => t::settings_value_theme_immersive(), // i18n-skip
+        (S::Theme, "light") => t::settings_value_theme_light(),       // i18n-skip
+        (S::Theme, "dark") => t::settings_value_theme_dark(),         // i18n-skip
         (S::Titles, "AniList's choice") => t::settings_value_titles_anilist(), // i18n-skip
         (S::Titles, "English") => t::settings_value_titles_english(), // i18n-skip
         (S::Titles, "Romaji") => t::settings_value_titles_romaji(),   // i18n-skip

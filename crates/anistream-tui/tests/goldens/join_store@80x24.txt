@@ -1,14 +1,14 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Plugin stores
-  ▤│
-  ▦│    Store                       Plugins   You       State
-  /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    Hearth plugins              3         Owner     1 update
+ ▸ │  Plugin stores
+ ▤ │
+ ▦ │    Store                       Plugins   You       State
+ / │  ────────────────────────────────────────────────────────────────────────
+ ▥ │    Hearth plugins              3         Owner     ⇅ 1 update
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Join a plugin store   …n/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
 ────────────────────────────────────────────────────────────────────────────────
-  Paste the invite or store link you were given. Enter checks it, Esc canc…
+  Paste the invite or store link you were given.
 
    │
    │
@@ -36,15 +36,15 @@ r05 c00-79 fg=rule
 r06 c00-79 fg=rule
 r07 c00-79 fg=rule bg=ground
 r08 c00-00 fg=obi bg=ground
-r08 c01-01 fg=rule bg=ground
+r08 c01-01 fg=rule bg=ground mod=BOLD
 r08 c02-77 fg=text bg=ground mod=BOLD
 r08 c78-79 fg=rule bg=ground
 r09 c00-07 fg=rule bg=ground
 r09 c08-21 fg=rule bg=ground mod=BOLD
 r09 c22-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-74 fg=text-dim bg=ground
-r10 c75-79 fg=rule bg=ground
+r10 c02-47 fg=text-dim bg=ground
+r10 c48-79 fg=rule bg=ground
 r11 c00-79 fg=rule bg=ground
 r12 c00-79 fg=rule
 r13 c00-79 fg=rule

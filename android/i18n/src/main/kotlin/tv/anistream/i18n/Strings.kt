@@ -301,6 +301,26 @@ object Strings {
     fun noticeSourceSearchEmpty(context: Context, query: String): String =
         context.getString(R.string.notice_source_search_empty, query)
 
+    /** In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series. */
+    fun matchRuledOutFormat(context: Context): String =
+        context.getString(R.string.match_ruled_out_format)
+
+    /** In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has. */
+    fun matchRuledOutEpisodes(context: Context): String =
+        context.getString(R.string.match_ruled_out_episodes)
+
+    /** In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year. */
+    fun matchRuledOutYear(context: Context): String =
+        context.getString(R.string.match_ruled_out_year)
+
+    /** Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer. */
+    fun matchSearchTimedOut(context: Context): String =
+        context.getString(R.string.match_search_timed_out)
+
+    /** Why a search of a source for a show's match failed: the source isn't installed or switched on. */
+    fun matchSearchSourceOff(context: Context): String =
+        context.getString(R.string.match_search_source_off)
+
     /** Toast after the person picked a source for one title. */
     fun noticeSourcePinned(context: Context, source: String): String =
         context.getString(R.string.notice_source_pinned, source)
@@ -916,6 +936,10 @@ object Strings {
     /** Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can. */
     fun startFailedConfig(context: Context, path: String, problem: String): String =
         context.getString(R.string.start_failed_config, path, problem)
+
+    /** Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system. */
+    fun configResetFailed(context: Context, path: String, reason: String): String =
+        context.getString(R.string.config_reset_failed, path, reason)
 
     /** Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. */
     fun startFailedDatabase(context: Context, path: String, reason: String): String =
@@ -2432,14 +2456,6 @@ object Strings {
     /** Under a release in the source picker: how many people share it right now. */
     fun releaseSeeders(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.release_seeders, count, count)
-
-    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner. */
-    fun settingsTrailersLabel(context: Context): String =
-        context.getString(R.string.settings_trailers_label)
-
-    /** Note under the Play trailers setting: what the trailers are and when they do not play. */
-    fun settingsTrailersNote(context: Context): String =
-        context.getString(R.string.settings_trailers_note)
 
     /** Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. */
     fun trailerFailed(context: Context): String =
@@ -5145,6 +5161,10 @@ object Strings {
     fun filtersTitle(context: Context): String =
         context.getString(R.string.filters_title)
 
+    /** Accessible label and tooltip of the button that closes the filters panel. */
+    fun filtersClose(context: Context): String =
+        context.getString(R.string.filters_close)
+
     /** Button that opens the filters, with how many are on. */
     fun filtersButtonCount(context: Context, count: Int): String =
         context.getString(R.string.filters_button_count, count)
@@ -5437,7 +5457,7 @@ object Strings {
     fun settingsValueTrailersWifiOnly(context: Context): String =
         context.getString(R.string.settings_value_trailers_wifi_only)
 
-    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. */
+    /** Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps. */
     fun settingsLabelTrailers(context: Context): String =
         context.getString(R.string.settings_label_trailers)
 
@@ -5821,6 +5841,14 @@ object Strings {
     fun settingsUpscalingNatural(context: Context): String =
         context.getString(R.string.settings_upscaling_natural)
 
+    /** Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer. */
+    fun settingsLabelHoverCards(context: Context): String =
+        context.getString(R.string.settings_label_hover_cards)
+
+    /** Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it. */
+    fun settingsHoverCardsNote(context: Context): String =
+        context.getString(R.string.settings_hover_cards_note)
+
     /** Preview note under the upscaling frame for the natural look. */
     fun settingsUpscalingNoteNatural(context: Context): String =
         context.getString(R.string.settings_upscaling_note_natural)
@@ -5880,6 +5908,22 @@ object Strings {
     /** Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. */
     fun settingsTrailersWifiOnly(context: Context): String =
         context.getString(R.string.settings_trailers_wifi_only)
+
+    /** Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first. */
+    fun settingsReset(context: Context): String =
+        context.getString(R.string.settings_reset)
+
+    /** Title of the confirmation for resetting the settings. */
+    fun settingsResetTitle(context: Context): String =
+        context.getString(R.string.settings_reset_title)
+
+    /** Line under it. The old settings file is moved aside, not deleted. */
+    fun settingsResetDetail(context: Context): String =
+        context.getString(R.string.settings_reset_detail)
+
+    /** Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30. */
+    fun settingsResetDone(context: Context, file: String): String =
+        context.getString(R.string.settings_reset_done, file)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =
@@ -6144,6 +6188,102 @@ object Strings {
     /** Value of a plugin's response time, in milliseconds. */
     fun sourcesResponseMs(context: Context, ms: Int): String =
         context.getString(R.string.sources_response_ms, ms)
+
+    /** Menu, palette and source picker entry that opens the sheet. */
+    fun matchFix(context: Context): String =
+        context.getString(R.string.match_fix)
+
+    /** The title page's main action while the source couldn't choose, and the sheet's title. */
+    fun matchChoose(context: Context): String =
+        context.getString(R.string.match_choose)
+
+    /** The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out. */
+    fun matchUncertain(context: Context, count: Int, source: String): String =
+        context.resources.getQuantityString(R.plurals.match_uncertain, count, count, source)
+
+    /** The line on a title page when the source listed no title that fits, so the person searches. */
+    fun matchUncertainNone(context: Context, source: String): String =
+        context.getString(R.string.match_uncertain_none, source)
+
+    /** The last row of the source picker, which opens the match sheet. */
+    fun matchSourcePickerRow(context: Context): String =
+        context.getString(R.string.match_source_picker_row)
+
+    /** Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes". */
+    fun matchAnilistFacts(context: Context, facts: String): String =
+        context.getString(R.string.match_anilist_facts, facts)
+
+    /** Heading over the titles a source offers. */
+    fun matchSectionSource(context: Context, source: String): String =
+        context.getString(R.string.match_section_source, source)
+
+    /** Heading over the title the show is matched to now. */
+    fun matchNow(context: Context): String =
+        context.getString(R.string.match_now)
+
+    /** Beside the title matched now: the person chose it. */
+    fun matchChosenByYou(context: Context): String =
+        context.getString(R.string.match_chosen_by_you)
+
+    /** Beside the title matched now: anistream chose it. */
+    fun matchChosenAutomatically(context: Context): String =
+        context.getString(R.string.match_chosen_automatically)
+
+    /** How closely a source's title matches the show, at the end of its row. */
+    fun matchSimilarity(context: Context, similarity: String): String =
+        context.getString(R.string.match_similarity, similarity)
+
+    /** Placeholder of the search field in the sheet. */
+    fun matchSearchField(context: Context, source: String): String =
+        context.getString(R.string.match_search_field, source)
+
+    /** A TV row that opens the search screen from the sheet's panel. */
+    fun matchSearchAnother(context: Context): String =
+        context.getString(R.string.match_search_another)
+
+    /** While a search of the source runs. */
+    fun matchSearching(context: Context, source: String, query: String): String =
+        context.getString(R.string.match_searching, source, query)
+
+    /** A search of the source that found nothing. */
+    fun matchSearchEmpty(context: Context, source: String, query: String): String =
+        context.getString(R.string.match_search_empty, source, query)
+
+    /** Under match-search-empty: what to try. */
+    fun matchSearchEmptyHint(context: Context): String =
+        context.getString(R.string.match_search_empty_hint)
+
+    /** A search of the source that failed. The reason follows on its own line. */
+    fun matchSearchFailed(context: Context, source: String): String =
+        context.getString(R.string.match_search_failed, source)
+
+    /** On the row picked, while the source lists its episodes. */
+    fun matchPicking(context: Context): String =
+        context.getString(R.string.match_picking)
+
+    /** A pick that failed. The reason follows on its own line. */
+    fun matchFixFailed(context: Context): String =
+        context.getString(R.string.match_fix_failed)
+
+    /** Notice once a picked title's episodes arrive. */
+    fun matchPicked(context: Context, title: String, source: String): String =
+        context.getString(R.string.match_picked, title, source)
+
+    /** Button that forgets the person's choice, shown only while the match is one they chose. */
+    fun matchAutomatic(context: Context): String =
+        context.getString(R.string.match_automatic)
+
+    /** Under "Match automatically", on iPhone, iPad and Android. */
+    fun matchAutomaticDetail(context: Context): String =
+        context.getString(R.string.match_automatic_detail)
+
+    /** Notice after "Match automatically". */
+    fun matchCleared(context: Context): String =
+        context.getString(R.string.match_cleared)
+
+    /** Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. */
+    fun matchRowLabel(context: Context, title: String, facts: String, closeness: String): String =
+        context.getString(R.string.match_row_label, title, facts, closeness)
 
     /** Short label for a joined store, on a row. */
     fun storesJoined(context: Context): String =
@@ -7436,6 +7576,10 @@ object Strings {
     /** Button label while the sign-in runs. */
     fun accountsSigningInAction(context: Context): String =
         context.getString(R.string.accounts_signing_in_action)
+
+    /** Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in. */
+    fun accountsCredentialsRefused(context: Context, tracker: String): String =
+        context.getString(R.string.accounts_credentials_refused, tracker)
 
     /** Line under the title: what to do. */
     fun accountsCodeDetail(context: Context, host: String): String =

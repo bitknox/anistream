@@ -78,7 +78,7 @@ settings-value-trailers-always = Always
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = Wi-Fi only
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Play trailers
 
 # Option: use the tracker's own choice. The tracker is a name.
@@ -397,6 +397,14 @@ settings-upload-unlimited = Unlimited
 # @max 28
 settings-upscaling-natural = Natural · ArtCNN
 
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+# @max 32
+settings-label-hover-cards = Expand covers on hover
+
+# Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+# @max 110
+settings-hover-cards-note = Shows a larger card with the trailer when you rest the pointer on a cover.
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
 
@@ -446,3 +454,21 @@ settings-trailers-always = Always
 # Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 # @max 16
 settings-trailers-wifi-only = Wi-Fi only
+
+## Resetting the settings when anistream could not start on them
+
+# Button on the screen shown on iPhone, iPad and Android when anistream could not start because
+# its settings file has something it can't use. It asks first.
+# @max 28
+settings-reset = Reset settings
+
+# Title of the confirmation for resetting the settings.
+settings-reset-title = Reset settings?
+
+# Line under it. The old settings file is moved aside, not deleted.
+settings-reset-detail = Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.
+
+# Notice once anistream has started again on the default settings. The file is the name the old
+# settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+# @arg file: text
+settings-reset-done = Settings are back to their defaults. The old file is kept as { $file }.

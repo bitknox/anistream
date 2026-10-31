@@ -24,7 +24,7 @@ use anistream_core::{
     ids::{AnilistId, ProviderKey},
     media::{SearchHit, Translation},
 };
-use anistream_meta::title::{CONFIDENCE_FLOOR, MatchTarget, rank};
+use anistream_meta::title::{CONFIDENCE_FLOOR, MatchTarget, Rejection, rank};
 use anistream_store::{ResolutionRung, Store};
 
 use crate::registry::{Attempt, ProviderRegistry};
@@ -35,7 +35,7 @@ pub struct Candidate {
     pub hit: SearchHit,
     pub score: f64,
     /// Why this was ruled out, when it was.
-    pub rejected: Option<&'static str>,
+    pub rejected: Option<Rejection>,
 }
 
 /// Where the ladder stopped.
@@ -141,10 +141,11 @@ pub async fn resolve(
         let key = best.hit.key.clone();
         // Cache it, but never as an override: an automatic match stays revisable, and a
         // dataset refresh is allowed to clear it.
-        let _ = store.cache_resolution(
+        let _ = store.cache_resolution_titled(
             anilist_id,
             &provider_id,
             &key,
+            Some(&best.hit.title),
             best.score,
             ResolutionRung::ProviderSearch,
             now,
@@ -167,8 +168,9 @@ pub async fn resolve(
 pub enum Answer<T> {
     /// A source matched the title, under its own key, and answered.
     Answered { provider_id: String, key: ProviderKey, value: T },
-    /// A source found the title's candidates but could not choose between them. A question for
-    /// the user, asked before any source further down the order is tried.
+    /// A source found the title's candidates but could not choose between them, and no source
+    /// further down the order answered. A question for the user. The first such source in the
+    /// order is the one named.
     Ambiguous { provider_id: String, candidates: Vec<Candidate> },
     /// No source answered. What each one said, in order, and whether any of them matched the
     /// title at all — a title no source has is a different answer from an episode none has.
@@ -291,6 +293,7 @@ where
 {
     let mut reasons = Vec::new();
     let mut matched = false;
+    let mut ambiguous: Option<(String, Vec<Candidate>)> = None;
     let usable = registry.usable_ids();
     let skipped: Vec<_> =
         registry.ids().into_iter().filter(|id| !usable.contains(id)).collect();
@@ -311,10 +314,20 @@ where
         .await
         {
             Outcome::Answered(Contribution { provider_id, key, value }) => {
+                if let Some((passed, candidates)) = &ambiguous {
+                    tracing::info!(
+                        passed_over = %passed,
+                        candidates = candidates.len(),
+                        answered = %provider_id,
+                        "ambiguous source passed over for one that answered"
+                    );
+                }
                 return Answer::Answered { provider_id, key, value };
             }
             Outcome::Ambiguous { provider_id, candidates } => {
-                return Answer::Ambiguous { provider_id, candidates };
+                matched = true;
+                reasons.push(format!("{} possible matches on {provider_id}", candidates.len()));
+                ambiguous.get_or_insert((provider_id, candidates));
             }
             Outcome::Failed { reason, matched: found } => {
                 matched |= found;
@@ -322,6 +335,9 @@ where
             }
             Outcome::Skipped => {}
         }
+    }
+    if let Some((provider_id, candidates)) = ambiguous {
+        return Answer::Ambiguous { provider_id, candidates };
     }
     Answer::Unanswered { reasons, matched }
 }
@@ -1094,27 +1110,51 @@ mod tests {
         assert_eq!(reasons.len(), 2);
     }
 
-    #[tokio::test]
-    async fn a_source_that_cannot_choose_asks_before_the_next_is_tried() {
-        let store = Store::open_in_memory().unwrap();
-        let beta = MockProvider::new("beta").with_hits(vec![wanderer_hit("beta-1")]);
-        let beta_calls = beta.call_count();
-        let unsure = SearchHit {
+    fn unsure(key: &str) -> SearchHit {
+        SearchHit {
             episode_count: None,
             year: None,
             format: None,
-            ..SearchHit::new(ProviderKey::new("alpha-x"), "Tabibito")
-        };
-        let registry = ProviderRegistry::new(vec![
-            MockProvider::new("alpha").with_hits(vec![unsure]).arc(),
-            beta.arc(),
-        ]);
+            ..SearchHit::new(ProviderKey::new(key), "Tabibito")
+        }
+    }
 
-        let answer = ask_for_streams(&store, &registry).await;
-        assert!(
-            matches!(&answer, Answer::Ambiguous { provider_id, .. } if provider_id == "alpha")
-        );
-        assert_eq!(beta_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+    #[tokio::test]
+    async fn a_source_that_cannot_choose_is_passed_over_for_one_that_answers() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![unsure("alpha-x")]).arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_streams(vec![stream("https://beta.example/1.m3u8")])
+                .arc(),
+        ]);
+        match ask_for_streams(&store, &registry).await {
+            Answer::Answered { provider_id, key, .. } => {
+                assert_eq!(provider_id, "beta");
+                assert_eq!(key.as_str(), "beta-1");
+            }
+            other => panic!("expected beta to answer, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn when_none_answers_the_first_source_that_cannot_choose_is_the_question() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![]).arc(),
+            MockProvider::new("beta").with_hits(vec![unsure("beta-x")]).arc(),
+            MockProvider::new("gamma")
+                .with_hits(vec![unsure("gamma-x"), unsure("gamma-y")])
+                .arc(),
+            MockProvider::new("delta")
+                .failing(ProviderError::Blocked("operation timed out".into()))
+                .arc(),
+        ]);
+        match ask_for_streams(&store, &registry).await {
+            Answer::Ambiguous { provider_id, .. } => assert_eq!(provider_id, "beta"),
+            other => panic!("expected beta to ask, got {other:?}"),
+        }
     }
 
     #[tokio::test]

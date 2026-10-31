@@ -51,7 +51,7 @@ sealed class JoinStoreDialog
         ctx.Batch += Heard;
         try
         {
-            await dialog.ShowAsync();
+            await Dialogs.Show(dialog);
         }
         finally
         {

@@ -30,11 +30,11 @@
         <local:OfflineLine />
       </StackPanel>
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-        <Button x:Name="Earlier" Click="OnEarlier" ToolTipService.ToolTip="{x:Bind s:T.CalendarPreviousWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarPreviousWeek}" Height="32">
+        <Button x:Name="Earlier" Click="OnEarlier" ToolTipService.ToolTip="{x:Bind s:T.CalendarPreviousWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarPreviousWeek}" MinHeight="32">
           <FontIcon Glyph="&#xE76B;" FontSize="12" />
         </Button>
-        <Button x:Name="ThisWeek" Content="{x:Bind s:T.CalendarToday}" Click="OnThisWeek" Height="32" ToolTipService.ToolTip="{x:Bind TodayTip}" />
-        <Button x:Name="Later" Click="OnLater" ToolTipService.ToolTip="{x:Bind s:T.CalendarNextWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarNextWeek}" Height="32">
+        <Button x:Name="ThisWeek" Content="{x:Bind s:T.CalendarToday}" Click="OnThisWeek" MinHeight="32" ToolTipService.ToolTip="{x:Bind TodayTip}" />
+        <Button x:Name="Later" Click="OnLater" ToolTipService.ToolTip="{x:Bind s:T.CalendarNextWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarNextWeek}" MinHeight="32">
           <FontIcon Glyph="&#xE76C;" FontSize="12" />
         </Button>
       </StackPanel>

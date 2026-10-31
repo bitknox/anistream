@@ -243,3 +243,111 @@ sources-rebuilding = { -source-cap-pl } are being set up again
 # Value of a plugin's response time, in milliseconds.
 # @arg ms: int
 sources-response-ms = { $ms } ms
+
+## Fixing a source match: the sheet that chooses which of a source's titles a show is, from the
+## title page when the source couldn't choose, or from "Fix this match" when its choice is wrong.
+
+# Menu, palette and source picker entry that opens the sheet.
+# @max 28
+match-fix = Fix this match
+
+# The title page's main action while the source couldn't choose, and the sheet's title.
+# @max 24
+match-choose = Choose the match
+
+# The line on the title page while the match is open, under its main action. The count leaves out
+# titles that were ruled out.
+# @arg count: int
+# @arg source: text
+match-uncertain = { $count ->
+    [one] { $source } lists a title that could be this one. Choose it to play its episodes.
+   *[other] { $source } lists { $count } titles that could be this one. Choose one to play its episodes.
+ }
+
+# The line on a title page when the source listed no title that fits, so the person searches.
+# @arg source: text
+match-uncertain-none = { $source } has no title that fits this one. Choose one anyway, or search.
+
+# The last row of the source picker, which opens the match sheet.
+# @max 36
+match-source-picker-row = Wrong title? Fix this match
+
+# Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+# @arg facts: text
+match-anilist-facts = On AniList: { $facts }
+
+# Heading over the titles a source offers.
+# @arg source: text
+match-section-source = On { $source }
+
+# Heading over the title the show is matched to now.
+# @max 28
+match-now = Matched now
+
+# Beside the title matched now: the person chose it.
+# @max 24
+match-chosen-by-you = Chosen by you
+
+# Beside the title matched now: anistream chose it.
+# @max 28
+match-chosen-automatically = Chosen automatically
+
+# How closely a source's title matches the show, at the end of its row.
+# @arg similarity: percent
+# @max 14
+match-similarity = { $similarity } match
+
+# Placeholder of the search field in the sheet.
+# @arg source: text
+match-search-field = Search { $source }
+
+# A TV row that opens the search screen from the sheet's panel.
+# @only android
+# @max 32
+match-search-another = Search for another title
+
+# While a search of the source runs.
+# @arg source: text
+# @arg query: text
+match-searching = Searching { $source } for “{ $query }”
+
+# A search of the source that found nothing.
+# @arg source: text
+# @arg query: text
+match-search-empty = Nothing on { $source } for “{ $query }”.
+
+# Under match-search-empty: what to try.
+match-search-empty-hint = Try fewer words, or the title in another language.
+
+# A search of the source that failed. The reason follows on its own line.
+# @arg source: text
+match-search-failed = Couldn't search { $source }.
+
+# On the row picked, while the source lists its episodes.
+# @max 16
+match-picking = Matching
+
+# A pick that failed. The reason follows on its own line.
+match-fix-failed = Couldn't use that match.
+
+# Notice once a picked title's episodes arrive.
+# @arg title: text
+# @arg source: text
+match-picked = Matched to { $title } on { $source }.
+
+# Button that forgets the person's choice, shown only while the match is one they chose.
+# @max 28
+match-automatic = Match automatically
+
+# Under "Match automatically", on iPhone, iPad and Android.
+match-automatic-detail = Forget your choice and let { -app-name } match this title again.
+
+# Notice after "Match automatically".
+match-cleared = Matching automatically again.
+
+# Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the
+# title was ruled out.
+# @arg title: text
+# @arg facts: text
+# @arg closeness: text
+match-row-label = { $title }, { $facts }, { $closeness }

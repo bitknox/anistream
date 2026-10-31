@@ -87,3 +87,9 @@ access-queued = queued
 # @arg episode: text
 # @arg standing: text
 access-download = { $title }, { $episode }, { $standing }
+
+# VoiceOver: the heading of a cover's more content that holds its facts line, such as "TV · 12 episodes · Autumn 2026".
+access-hover-facts = Facts
+
+# VoiceOver: the heading of a cover's more content that holds the show's synopsis.
+access-hover-synopsis = Synopsis

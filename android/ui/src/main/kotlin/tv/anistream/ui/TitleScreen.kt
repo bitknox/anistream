@@ -878,30 +878,6 @@ private fun PrefetchSeasons(family: TitleFamily, around: androidx.compose.runtim
 @Composable
 private fun TitleHead(entry: Entry, episodes: List<EpisodeRow>?, list: LazyListState, inset: Dp, shared: Boolean) {
     val art = HeroArt.of(entry, episodes)
-    // A title whose trailer may play has its banner taller from the first frame, decided once, so
-    // the page never moves when the video arrives.
-    if (rememberTrailerRoom(entry)) {
-        TrailerHead(
-            entry = entry,
-            art = { modifier ->
-                if (art != HeroArt.Compact) {
-                    ArtworkImage(
-                        url = art.url,
-                        plate = null,
-                        maxPixelSize = pixels(412.dp),
-                        modifier = modifier.then(if (shared) Modifier.shared(Shared.Player, entry.id).shared(Shared.Art, entry.id) else Modifier),
-                    )
-                } else {
-                    Box(modifier)
-                }
-            },
-            list = list,
-            inset = inset,
-            active = shared,
-            header = { modifier -> TitleHeader(entry, shared, modifier, trailingGap = TrailerRoom.titleGap) },
-        )
-        return
-    }
     Box {
         if (art != HeroArt.Compact) {
             ArtworkImage(

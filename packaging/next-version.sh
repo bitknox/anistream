@@ -3,12 +3,20 @@
 # tags in this checkout:
 #
 #   packaging/next-version.sh          prints it, such as 2.0.1
+#   packaging/next-version.sh --check-pr <base>   fails when a pull request releases without
+#                                      a version newer than the newest release tag
 #   packaging/next-version.sh --test   checks the rules below against made-up tags
 #
-# The workspace's version is the base. When there is no tag v<base>, the release is the base.
-# When there is, the release keeps the base's major and minor and takes the patch one past the
-# highest among the v<major>.<minor>.* tags. So a new minor or major starts when Cargo.toml's
-# version is raised, and every release after it raises the patch by itself.
+# The merge train sets the version: it commits the release's version to Cargo.toml before it
+# merges, a minor when it merges any feat/* branch and a patch otherwise, so main, the crates and
+# the apps all carry the release's own number. When there is no tag v<base>, the release is the
+# base. When there is, which only an emergency push without a bump meets, the release keeps the
+# base's major and minor and takes the patch one past the highest among the v<major>.<minor>.*
+# tags, with a warning on stderr.
+#
+# A pull request releases unless every file it changes is under website/ or docs/, a top-level
+# *.md, a CLAUDE.md or under .claude/, as the release workflow decides. --check-pr compares
+# HEAD with <base> and fails for a release whose version is not newer than the newest tag.
 #
 # Only full release tags count, vMAJOR.MINOR.PATCH. Pre-release tags such as v2.1.0-rc.1 and
 # anything else that starts with v are ignored. A release has to be newer than every release
@@ -67,12 +75,51 @@ next() {
   done
 
   local release="$major $minor $patch"
-  if (( released )); then release="$major $minor $((highest + 1))"; fi
+  if (( released )); then
+    release="$major $minor $((highest + 1))"
+    echo "next-version.sh: warning: v$base is already released, so this takes ${release// /.}." \
+      "The merge train should have set a new version in Cargo.toml." >&2
+  fi
   if [[ -n "$newest" ]] && ! older "$newest" "$release"; then
     fail "the next release would be ${release// /.}, which is not newer than $newest_tag." \
       "Raise the workspace version in Cargo.toml, now $base, above it."
   fi
   echo "${release// /.}"
+}
+
+# Whether a changed file makes a release: not under website/ or docs/, not a top-level *.md,
+# not a CLAUDE.md and not under .claude/.
+releases() {
+  case "$1" in
+    website/* | docs/* | .claude/* | CLAUDE.md | */CLAUDE.md) return 1 ;;
+    */*) return 0 ;;
+    *.md) return 1 ;;
+  esac
+  return 0
+}
+
+# check <version> <tag>...: succeeds when the version is newer than the newest full release tag,
+# and otherwise fails saying what to set.
+check() {
+  local version="$1"
+  shift
+  local parsed
+  parsed="$(numbers "$version")" || fail "the workspace version, $version, is not MAJOR.MINOR.PATCH"
+  local tag found newest="" newest_tag=""
+  for tag in "$@"; do
+    [[ "$tag" == v* ]] || continue
+    found="$(numbers "${tag#v}")" || continue
+    if [[ -z "$newest" ]] || older "$newest" "$found"; then
+      newest="$found"
+      newest_tag="${tag#v}"
+    fi
+  done
+  [[ -n "$newest" ]] || return 0
+  if older "$newest" "$parsed"; then return 0; fi
+  local major minor patch
+  read -r major minor patch <<<"$newest"
+  fail "This PR releases, so raise the workspace version in Cargo.toml above $newest_tag" \
+    "(patch $major.$minor.$((patch + 1)), or minor $major.$((minor + 1)).0 if it adds features)."
 }
 
 # The version under [workspace.package] in Cargo.toml.
@@ -134,6 +181,44 @@ run_tests() {
   expect "(failed)" 2.0.0-rc.1
   expect "(failed)" ""
 
+  # The pull request check: a releasing change needs a version newer than the newest tag.
+  gate() {
+    local want="$1" got
+    shift
+    count=$((count + 1))
+    if (check "$@") >/dev/null 2>&1; then got=pass; else got=fail; fi
+    if [[ "$got" != "$want" ]]; then
+      echo "not ok: check $* gave $got, not $want" >&2
+      failed=$((failed + 1))
+    fi
+  }
+  gate pass 2.0.62 v2.0.0 v2.0.61
+  gate pass 2.1.0 v2.0.61 v2.0.9
+  gate pass 3.0.0 v2.0.61
+  gate pass 2.0.0
+  gate pass 2.0.1 v2.0.0 v2.1.0-rc.1 vnext
+  gate fail 2.0.61 v2.0.61
+  gate fail 2.0.2 v2.0.61
+  gate fail 2.0.9 v2.0.10
+  gate fail 1.9.0 v2.0.0
+  gate fail 2.0 v2.0.0
+  count=$((count + 1))
+  advice="$( (check 2.0.61 v2.0.0 v2.0.61) 2>&1 || true)"
+  if [[ "$advice" != *"above 2.0.61 (patch 2.0.62, or minor 2.1.0 if it adds features)."* ]]; then
+    echo "not ok: check gave the wrong advice" >&2
+    failed=$((failed + 1))
+  fi
+  # Which changed files release.
+  local path
+  for path in website/a.astro docs/x/y.md README.md CLAUDE.md android/CLAUDE.md .claude/skills/a/SKILL.md; do
+    count=$((count + 1))
+    if releases "$path"; then echo "not ok: $path should not release" >&2; failed=$((failed + 1)); fi
+  done
+  for path in Cargo.toml .github/workflows/ci.yml packaging/next-version.sh crates/a/README.md website2/a docs.md.x; do
+    count=$((count + 1))
+    if ! releases "$path"; then echo "not ok: $path should release" >&2; failed=$((failed + 1)); fi
+  done
+
   if (( failed )); then
     echo "next-version.sh: $failed of $count tests failed" >&2
     exit 1
@@ -150,8 +235,22 @@ case "${1:-}" in
     while IFS= read -r tag; do tags+=("$tag"); done < <(git -C "$(dirname "$0")" tag --list 'v*')
     next "$version" ${tags[@]+"${tags[@]}"}
     ;;
+  --check-pr)
+    [[ -n "${2:-}" ]] || fail "--check-pr needs the base revision to compare with"
+    changed=0
+    while IFS= read -r file; do
+      if releases "$file"; then changed=1; break; fi
+    done < <(git -C "$(dirname "$0")" diff --name-only "$2" HEAD)
+    if (( ! changed )); then echo "No release in this change, so no new version is needed."; exit 0; fi
+    version="$(base)"
+    [[ -n "$version" ]] || fail "Cargo.toml has no version under [workspace.package]"
+    tags=()
+    while IFS= read -r tag; do tags+=("$tag"); done < <(git -C "$(dirname "$0")" tag --list 'v*')
+    check "$version" ${tags[@]+"${tags[@]}"}
+    echo "Version $version is newer than every release tag."
+    ;;
   *)
-    echo "usage: packaging/next-version.sh [--test]" >&2
+    echo "usage: packaging/next-version.sh [--test | --check-pr <base>]" >&2
     exit 2
     ;;
 esac

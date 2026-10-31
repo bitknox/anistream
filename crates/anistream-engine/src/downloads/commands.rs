@@ -143,11 +143,39 @@ pub fn download_start_now(id: i64, services: &Services, tx: &Outbox) {
 /// Cancel a download.
 pub fn download_cancel(id: i64, services: &Services, tx: &Outbox) {
     let Services { store, .. } = services;
-    // The row goes first: the manager notices it is gone on its next poll and drops the
-    // torrent. Deleting the torrent from here would race with that loop.
-    let _ = store.remove_download(id);
+    cancel(store, id);
     downloads::publish_now(store, tx);
     let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeDownloadCancelled)));
+}
+
+/// Remove download `id`'s row, and the part of its file fetched so far.
+///
+/// A running download's file is the manager's to remove: it notices the row is gone on its next
+/// poll and drops the torrent with its file. Deleting the torrent from here would race with that
+/// loop. One paused or waiting may have no torrent in this process, as after a restart, so
+/// nothing else would remove its file: that goes here, unless another row names the same file.
+/// A finished download's file is kept; deleting it is [`download_delete`].
+fn cancel(store: &anistream_store::Store, id: i64) {
+    use anistream_store::DownloadState;
+    let rows = store.downloads().unwrap_or_default();
+    let row = rows.iter().find(|d| d.id == id).cloned();
+    let _ = store.remove_download(id);
+    let Some(row) = row else { return };
+    let idle = matches!(
+        row.state,
+        DownloadState::Paused | DownloadState::Queued | DownloadState::Failed
+    );
+    let Some(path) = row.path.filter(|_| idle) else { return };
+    if rows.iter().any(|d| d.id != id && d.path.as_deref() == Some(path.as_str())) {
+        return;
+    }
+    match std::fs::remove_file(&path) {
+        Ok(()) => tracing::info!(row = id, "cancelled download's partial file removed"),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            tracing::warn!(row = id, error = %e, "cancelled download's partial file kept")
+        }
+    }
 }
 
 /// Delete a download and its file.
@@ -186,4 +214,64 @@ pub fn download_clear_completed(services: &Services, tx: &Outbox) {
     let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeDownloadsCleared {
         count: cleared as i64,
     })));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anistream_store::{DownloadState, Store};
+
+    /// A row for `episode` with part of `file` fetched, in `state`, the file in `dir`.
+    fn part(
+        store: &Store,
+        dir: &std::path::Path,
+        (episode, file): (&str, &str),
+        state: DownloadState,
+    ) -> (i64, std::path::PathBuf) {
+        let row = store
+            .enqueue_download(
+                AnilistId::new(900_002),
+                episode,
+                "The Library Above the Clouds",
+                "magnet:?xt=urn:btih:0",
+            )
+            .unwrap();
+        let path = dir.join(file);
+        std::fs::write(&path, b"part of an episode").unwrap();
+        store
+            .update_download_progress(row.id, 18, 100, Some(&path.display().to_string()))
+            .unwrap();
+        store.set_download_state(row.id, state).unwrap();
+        (row.id, path)
+    }
+
+    #[test]
+    fn cancelling_a_paused_download_removes_what_it_fetched() {
+        let (store, dir) = (Store::open_in_memory().unwrap(), tempfile::tempdir().unwrap());
+        let (paused, paused_file) =
+            part(&store, dir.path(), ("3", "Episode 03.mkv"), DownloadState::Paused);
+        let (waiting, waiting_file) =
+            part(&store, dir.path(), ("4", "Episode 04.mkv"), DownloadState::Queued);
+        cancel(&store, paused);
+        cancel(&store, waiting);
+        assert!(store.downloads().unwrap().is_empty());
+        assert!(!paused_file.exists(), "a paused download's partial file outlived its row");
+        assert!(!waiting_file.exists(), "a waiting download's partial file outlived its row");
+    }
+
+    #[test]
+    fn cancelling_keeps_a_finished_file_and_one_another_row_names() {
+        let (store, dir) = (Store::open_in_memory().unwrap(), tempfile::tempdir().unwrap());
+        let (done, done_file) =
+            part(&store, dir.path(), ("5", "Episode 05.mkv"), DownloadState::Done);
+        cancel(&store, done);
+        assert!(done_file.exists(), "removing a finished row from the list deleted its file");
+
+        let (first, shared) =
+            part(&store, dir.path(), ("6", "Season pack.mkv"), DownloadState::Paused);
+        let (_second, _) =
+            part(&store, dir.path(), ("7", "Season pack.mkv"), DownloadState::Queued);
+        cancel(&store, first);
+        assert!(shared.exists(), "a file another row names went with the first");
+    }
 }

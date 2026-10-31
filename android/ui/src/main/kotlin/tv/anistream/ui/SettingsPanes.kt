@@ -264,7 +264,6 @@ internal fun GeneralPane() {
             title = stringResource(R.string.settings_group_titles),
             rows = listOf(
                 { place -> TitleLanguageRow(place) },
-                { place -> SettingMenu(place, SettingKey.TRAILERS, stringResource(R.string.settings_trailers_label), note = stringResource(R.string.settings_trailers_note)) },
                 { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, stringResource(R.string.settings_adult), note = stringResource(R.string.settings_adult_detail, "AniList")) },
             ),
         )

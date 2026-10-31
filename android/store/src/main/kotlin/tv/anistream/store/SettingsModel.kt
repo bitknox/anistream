@@ -72,8 +72,6 @@ object SettingsCatalog {
             SettingOption(SettingValue.Str("english"), "English"),
             SettingOption(SettingValue.Str("romaji"), "Romaji"),
         )
-        SettingKey.TRAILERS -> listOf("always" to "always", "wifi-only" to "Wi-Fi only", "off" to "off")
-            .map { SettingOption(SettingValue.Str(it.first), it.second) }
         SettingKey.QUALITY -> listOf(480, 720, 1080, 2160).map { SettingOption(SettingValue.Int(it.toLong()), "${it}p") }
         SettingKey.COMMIT_THRESHOLD -> listOf(70, 80, 85, 90, 95).map { SettingOption(SettingValue.Float(it / 100.0), "$it%") }
         SettingKey.UPSCALING -> listOf("off" to "off", "natural" to "natural · ArtCNN", "sharp" to "sharp · Anime4K")
@@ -123,11 +121,6 @@ object SettingsCatalog {
                 "anilist" -> Strings.settingsTitleTracker(context, "AniList")
                 "english" -> Strings.settingsTitleEnglish(context)
                 else -> Strings.settingsTitleRomaji(context)
-            }
-            key == SettingKey.TRAILERS && value is SettingValue.Str -> when (value.v1) {
-                "wifi-only" -> Strings.settingsTrailersWifiOnly(context)
-                "off" -> Strings.valueOff(context)
-                else -> Strings.settingsTrailersAlways(context)
             }
             key == SettingKey.COMMIT_THRESHOLD && value is SettingValue.Float -> percentText(Math.round(value.v1 * 100).toInt())
             key == SettingKey.UPSCALING && value is SettingValue.Str -> when (value.v1) {

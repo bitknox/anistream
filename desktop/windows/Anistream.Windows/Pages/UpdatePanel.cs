@@ -50,8 +50,14 @@ sealed class UpdatePanel : StackPanel
         Children.Add(buttons);
         Children.Add(notesBlock);
         Show();
-        updater.Changed += Show;
-        ctx.Batch += Heard;
+        // Listening only while on screen: a panel built for a page left before it loaded never
+        // unloads, and would stay in memory as a listener.
+        Loaded += (_, _) =>
+        {
+            updater.Changed += Show;
+            ctx.Batch += Heard;
+            Show();
+        };
         Unloaded += (_, _) =>
         {
             updater.Changed -= Show;

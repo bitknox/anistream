@@ -59,4 +59,25 @@ struct HeroArtTests {
     @Test func thePlateWhileTheEpisodesAreOnTheirWay() {
         #expect(HeroArt.resolve(bannerless, episodes: nil) == .waiting)
     }
+
+    @Test func theCoverFillsTheFrameWhereItMay() {
+        let covered = entry(900_005, "Hagane no Niwashi") {
+            $0.bannerUrl = nil
+            $0.coverUrl = "cover/900005.jpg"
+        }
+        let stillless = rows(12, completed: 3, stills: false)
+        #expect(HeroArt.resolve(covered, episodes: stillless, coverFills: true) == .cover("cover/900005.jpg"))
+        #expect(HeroArt.resolve(covered, episodes: stillless) == .compact)
+        // A seen still still comes first, and the plate holds while the episodes are on their way.
+        #expect(HeroArt.resolve(covered, episodes: rows(12, completed: 3), coverFills: true) == .still("ep/900005/3.jpg"))
+        #expect(HeroArt.resolve(covered, episodes: nil, coverFills: true) == .waiting)
+        #expect(HeroArt.cover("cover/900005.jpg").url == nil)
+        #expect(!HeroArt.cover("cover/900005.jpg").isCompact)
+    }
+
+    @Test func aWatchedStillIsOnlyEverAWatchedEpisodes() {
+        #expect(HeroArt.watchedStill(rows(12), done: 0) == nil)
+        #expect(HeroArt.watchedStill(rows(12, completed: 2), done: 0) == "ep/900005/2.jpg")
+        #expect(HeroArt.watchedStill(rows(12), done: 5) == "ep/900005/5.jpg")
+    }
 }
