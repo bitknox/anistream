@@ -12,7 +12,7 @@ use async_trait::async_trait;
 
 use crate::{
     error::ProviderError,
-    ids::ProviderKey,
+    ids::{ExternalIds, ProviderKey},
     media::{Episode, SearchHit, Translation},
     stream::Stream,
 };
@@ -33,9 +33,40 @@ pub enum ProviderKind {
     /// A licensed service we can browse and track but not decrypt — resolves to an
     /// external deep link. Crunchyroll is the case in point.
     Licensed,
+    /// Folders on this device, scanned into a library.
+    Library,
+    /// A media server the user runs, such as Jellyfin.
+    Server,
+    /// A free catalogue the user added: an Internet Archive collection or a PeerTube channel.
+    Catalogue,
+    /// The bundled demo, made of works under open licences.
+    Demo,
 }
 
 impl ProviderKind {
+    /// Whether anistream itself provides this source, rather than a plugin or a web source: what
+    /// the user already has, a server they run, or a catalogue they chose.
+    pub const fn is_first_party(self) -> bool {
+        matches!(
+            self,
+            Self::Library | Self::Server | Self::Catalogue | Self::Licensed | Self::Demo
+        )
+    }
+
+    /// Where this kind sits by default, lowest first: Your media, then media servers, then free
+    /// catalogues, then everything else, then the demo. It breaks ties between sources the
+    /// user's order places alike; the order itself is the user's. Licensed links never play
+    /// inside anistream, so they take no part and sit with the rest.
+    pub const fn tier(self) -> u8 {
+        match self {
+            Self::Library => 0,
+            Self::Server => 1,
+            Self::Catalogue => 2,
+            Self::Demo => 4,
+            _ => 3,
+        }
+    }
+
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Native => "native",
@@ -43,6 +74,10 @@ impl ProviderKind {
             Self::Remote => "remote",
             Self::Torrent => "torrent",
             Self::Licensed => "licensed",
+            Self::Library => "library",
+            Self::Server => "server",
+            Self::Catalogue => "catalogue",
+            Self::Demo => "demo",
         }
     }
 }
@@ -125,6 +160,13 @@ pub trait Provider: Send + Sync {
         episode: &str,
         translation: Translation,
     ) -> Result<Vec<Stream>, ProviderError>;
+
+    /// Find a title by the ids other services know it by, with no fuzzy matching. A source with
+    /// its own index (a media server, the library) answers from it; the default has no index and
+    /// answers `None`, so the caller falls back to [`Self::search`].
+    async fn lookup(&self, _ids: &ExternalIds) -> Result<Option<SearchHit>, ProviderError> {
+        Ok(None)
+    }
 
     /// The selectable releases for an episode, best-first, without starting any of them.
     ///
@@ -358,5 +400,25 @@ mod tests {
         // part of the user-facing contract.
         assert_eq!(ProviderKind::Torrent.as_str(), "torrent");
         assert_eq!(ProviderKind::Licensed.as_str(), "licensed");
+        assert_eq!(ProviderKind::Library.as_str(), "library");
+        assert_eq!(ProviderKind::Server.as_str(), "server");
+        assert_eq!(ProviderKind::Catalogue.as_str(), "catalogue");
+        assert_eq!(ProviderKind::Demo.as_str(), "demo");
+    }
+
+    #[test]
+    fn first_party_kinds_are_tried_before_plugins_and_the_demo_last() {
+        let tiers: Vec<u8> = [
+            ProviderKind::Library,
+            ProviderKind::Server,
+            ProviderKind::Catalogue,
+            ProviderKind::Plugin,
+            ProviderKind::Demo,
+        ]
+        .map(ProviderKind::tier)
+        .to_vec();
+        assert!(tiers.windows(2).all(|pair| pair[0] < pair[1]), "{tiers:?}");
+        assert!(ProviderKind::Server.is_first_party());
+        assert!(!ProviderKind::Plugin.is_first_party());
     }
 }

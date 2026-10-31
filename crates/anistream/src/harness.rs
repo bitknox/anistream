@@ -170,6 +170,8 @@ pub struct Harness {
     engine_clock: anistream_engine::clock::Clock,
     /// How many player windows the engine's playbacks have opened.
     windows: Arc<std::sync::atomic::AtomicUsize>,
+    /// What the host was asked to do, in order: `open <url>` and `notify <title>: <body>`.
+    host: Arc<TestHost>,
     /// Last, so it is removed after everything that might still be writing into it.
     _root: tempfile::TempDir,
 }
@@ -289,7 +291,8 @@ impl Harness {
         if let Some(seed) = options.before_start {
             seed(&store);
         }
-        let (engine, mut events) = Engine::start(start, host).await.expect("the engine starts");
+        let (engine, mut events) =
+            Engine::start(start, host.clone()).await.expect("the engine starts");
         // What launch says, applied as the loop applies it before its first frame: the stores,
         // the chain and the trackers on their rows.
         for update in events.launch().await {
@@ -312,6 +315,7 @@ impl Harness {
             registry,
             engine_clock,
             windows,
+            host,
             _root: root,
         }
     }
@@ -569,6 +573,12 @@ impl Harness {
         &self.store
     }
 
+    /// What the host was asked to do so far, in order: `open <url>` for a page it was asked to
+    /// open, and `notify <title>: <body>`.
+    pub fn host_asked(&self) -> Vec<String> {
+        self.host.asked.lock().expect("the host's record").clone()
+    }
+
     /// How many player windows the engine's playbacks have opened so far.
     pub fn windows(&self) -> usize {
         self.windows.load(std::sync::atomic::Ordering::SeqCst)
@@ -776,6 +786,11 @@ pub fn name(update: &Event) -> &'static str {
         Event::TitlePlayable { .. } => "TitlePlayable",
         Event::HiddenTitles(_) => "HiddenTitles",
         Event::Facets(_) => "Facets",
+        Event::Licensed(_) => "Licensed",
+        Event::Availability(_) => "Availability",
+        Event::LicensedReturn(_) => "LicensedReturn",
+        Event::Server(_) => "Server",
+        Event::Local(_) => "Local",
         Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
         Event::CalendarBackfill { .. } => "CalendarBackfill",
@@ -904,6 +919,11 @@ fn copy(update: &Event) -> Event {
         }
         Event::HiddenTitles(rows) => Event::HiddenTitles(rows.clone()),
         Event::Facets(facets) => Event::Facets(facets.clone()),
+        Event::Licensed(view) => Event::Licensed(view.clone()),
+        Event::Availability(availability) => Event::Availability(availability.clone()),
+        Event::LicensedReturn(back) => Event::LicensedReturn(back.clone()),
+        Event::Server(event) => Event::Server(event.clone()),
+        Event::Local(event) => Event::Local(event.clone()),
         Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
         Event::CalendarWindow {
             anchor,

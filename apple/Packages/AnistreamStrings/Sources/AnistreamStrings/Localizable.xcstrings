@@ -39163,6 +39163,30 @@
         }
       }
     },
+    "licensed-marked" : {
+      "comment" : "Notice after Mark as watched on the return notice. It holds Undo. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld marked as watched."
+          }
+        }
+      }
+    },
+    "licensed-return" : {
+      "comment" : "Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream. Argument 1: episode (Int). Argument 2: service (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watched episode %1$lld on %2$@?"
+          }
+        }
+      }
+    },
     "list-refresh-failed" : {
       "comment" : "Notice when a list could not be refreshed and the rows already on screen stay.",
       "extractionState" : "manual",

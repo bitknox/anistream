@@ -260,6 +260,16 @@ pub fn home_more_genre(genre: &str) -> String {
     text("home-more-genre", &[("genre", Arg::Text(genre))])
 }
 
+/// Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.
+pub fn licensed_return(episode: i64, service: &str) -> String {
+    text("licensed-return", &[("episode", Arg::Int(episode)), ("service", Arg::Text(service))])
+}
+
+/// Notice after Mark as watched on the return notice. It holds Undo.
+pub fn licensed_marked(episode: i64) -> String {
+    text("licensed-marked", &[("episode", Arg::Int(episode))])
+}
+
 /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 pub fn notice_reason(reason: &str) -> String {
     text("notice-reason", &[("reason", Arg::Text(reason))])

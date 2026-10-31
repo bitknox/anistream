@@ -213,6 +213,26 @@ pub async fn load_facets(lent: Lent, adult: bool, now: i64) {
     let _ = tx.send(Event::Facets(facets));
 }
 
+/// The streaming sites AniList lists, from the kept search facets while they are under seven days
+/// old, and otherwise asked for. A stale list answers when AniList cannot; none yet answers empty.
+pub async fn streaming_sites(meta: &Meta, store: &Store, now: i64) -> Vec<String> {
+    let kept = store
+        .get_meta_text(FACETS_KEY)
+        .ok()
+        .flatten()
+        .and_then(|json| serde_json::from_str::<KeptFacets>(&json).ok());
+    if let Some(kept) = &kept
+        && now - kept.at < FACETS_FOR
+    {
+        return kept.facets.streaming.clone();
+    }
+    match (fetch(meta, store, now).await, kept) {
+        (Some(fresh), _) => fresh.streaming,
+        (None, Some(kept)) => kept.facets.streaming,
+        (None, None) => Vec::new(),
+    }
+}
+
 async fn fetch(meta: &Meta, store: &Store, now: i64) -> Option<Facets> {
     match meta.facets().await {
         Ok(facets) => {

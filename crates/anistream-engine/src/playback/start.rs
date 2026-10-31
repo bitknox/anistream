@@ -579,6 +579,7 @@ fn spawn_playback(
     } else {
         prefetched
     };
+    let reports = services.servers.reports();
     let (config, meta, store, registry, http, machine, slot, tx) = (
         config.clone(),
         services.meta.clone(),
@@ -707,8 +708,11 @@ fn spawn_playback(
         }
 
         let shader_dir = shaders.await.ok().flatten();
-        let settings =
-            playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, hub) };
+        let settings = playback::PlaySettings {
+            shader_dir,
+            reports,
+            ..play_settings(&config, tracker_ids, hub)
+        };
         handoff.complete().await;
         // Stopped while the window was handed over: the one parked for it closes.
         if *stopped.borrow() {
@@ -750,6 +754,7 @@ pub fn play_settings(
         tone_mapping: playback.tone_mapping.clone(),
         tracker_ids,
         presence: config.presence.clone(),
+        reports: Default::default(),
         party,
         up_next_countdown: playback::UP_NEXT_COUNTDOWN,
         mpv_options: anistream_playback::protocol::option_pairs(&playback.mpv_args),

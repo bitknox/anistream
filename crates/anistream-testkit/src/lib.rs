@@ -19,6 +19,7 @@ pub mod art;
 pub mod fixtures;
 pub mod golden;
 pub mod home_world;
+pub mod jellyfin;
 pub mod seed;
 pub mod sources;
 

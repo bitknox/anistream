@@ -66,6 +66,11 @@ impl Store {
     /// meaningless. A lower episode is dropped outright rather than queued behind a
     /// higher one, which would otherwise walk a tracker's progress backwards.
     pub fn enqueue(&self, tracker_id: &str, op: &TrackOp, at: i64) -> Result<Option<i64>> {
+        // A title anistream made up ids for, such as files kept unmatched, is on no tracker, so
+        // nothing about it is ever queued.
+        if op.anilist_id().is_own() {
+            return Ok(None);
+        }
         let anilist_id = op.anilist_id().get();
         let payload = serde_json::to_string(op)
             .map_err(|source| StoreError::Encode { what: "TrackOp", source })?;
@@ -309,6 +314,14 @@ mod tests {
 
     fn progress(episode: u32) -> TrackOp {
         TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode }
+    }
+
+    #[test]
+    fn a_title_with_its_own_id_is_never_queued_for_a_tracker() {
+        let store = Store::open_in_memory().unwrap();
+        let own = TrackOp::SetProgress { anilist_id: AnilistId::own(3), episode: 2 };
+        assert_eq!(store.enqueue("anilist", &own, 0).unwrap(), None);
+        assert!(store.enqueue("anilist", &progress(1), 0).unwrap().is_some());
     }
 
     #[test]
