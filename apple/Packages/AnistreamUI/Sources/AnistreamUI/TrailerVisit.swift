@@ -8,9 +8,7 @@ import Observation
 
 /// What the trailer's page said, as the screens read it.
 enum TrailerSignal: Equatable {
-    /// The video's clock moved: it plays, under the art, while YouTube's own title and icons fade.
-    case started
-    /// A frame is on screen and YouTube's chrome is gone: the art may fade away over it.
+    /// The player plays and its clock has moved: the art may fade away over it.
     case playing
     /// The player is up, or paused; nothing changes on screen.
     case quiet
@@ -29,11 +27,11 @@ protocol TrailerSurface: AnyObject {
     func control(_ control: TrailerControl)
     func tearDown()
     /// The visit stopped waiting `after` the start with nothing played: say so in the log.
-    func gaveUp(after: Duration, started: Bool)
+    func gaveUp(after: Duration)
 }
 
 extension TrailerSurface {
-    func gaveUp(after: Duration, started: Bool) {}
+    func gaveUp(after: Duration) {}
 }
 
 /// Whether trailers start with their sound on: the person's last choice, kept on this device.
@@ -96,13 +94,12 @@ final class TrailerGate {
 /// while `shown`. The art fades back before anything is released, so the player's own end screen
 /// never shows.
 ///
-/// - The art stays, silently, if the video has not started within `loadTimeout`, has started but
-///   not come out from under YouTube's chrome within `settleTimeout` after that, or the player
+/// - The art stays, silently, if the video is not playing within `loadTimeout` or the player
 ///   reports an error. Each is logged.
 /// - It ends once: the art returns when the trailer is about to end, and it does not loop.
 @MainActor @Observable
 final class TrailerVisit {
-    private enum Stage { case waiting, loading, started, playing, done }
+    private enum Stage { case waiting, loading, playing, done }
 
     /// The web view, while there is one.
     private(set) var surface: (any TrailerSurface)?
@@ -118,7 +115,6 @@ final class TrailerVisit {
     @ObservationIgnored private var stage = Stage.waiting
     @ObservationIgnored private var timer: Task<Void, Never>?
     @ObservationIgnored private let loadTimeout: Duration
-    @ObservationIgnored private let settleTimeout: Duration
     @ObservationIgnored private var begun = ContinuousClock.now
     @ObservationIgnored private let fade: Duration
     @ObservationIgnored private let sound: TrailerSound
@@ -126,13 +122,11 @@ final class TrailerVisit {
     /// Whether a web view exists.
     var live: Bool { surface != nil }
 
-    /// `settleTimeout` is past the page's wait for YouTube's chrome to fade, 4.5 s.
     init(
-        loadTimeout: Duration = .seconds(8), settleTimeout: Duration = .seconds(7),
-        fade: Duration = .milliseconds(300), sound: TrailerSound = .shared
+        loadTimeout: Duration = .seconds(8), fade: Duration = .milliseconds(300),
+        sound: TrailerSound = .shared
     ) {
         self.loadTimeout = loadTimeout
-        self.settleTimeout = settleTimeout
         self.fade = fade
         self.sound = sound
     }
@@ -149,16 +143,10 @@ final class TrailerVisit {
         self.surface = surface
         // The page starts muted, as autoplay needs; with the sound on it comes up as it plays.
         if !muted { surface.control(.unmute) }
-        wait(loadTimeout, in: .loading)
-    }
-
-    /// Give up if the visit is still at `stage` after `duration`.
-    private func wait(_ duration: Duration, in stage: Stage) {
-        timer?.cancel()
-        timer = Task { [weak self] in
-            try? await Task.sleep(for: duration)
-            guard !Task.isCancelled, let self, self.stage == stage else { return }
-            self.surface?.gaveUp(after: ContinuousClock.now - self.begun, started: stage == .started)
+        timer = Task { [weak self, loadTimeout] in
+            try? await Task.sleep(for: loadTimeout)
+            guard !Task.isCancelled, let self, self.stage == .loading else { return }
+            self.surface?.gaveUp(after: ContinuousClock.now - self.begun)
             self.finish()
         }
     }
@@ -166,17 +154,13 @@ final class TrailerVisit {
     /// What the page said.
     func signal(_ signal: TrailerSignal) {
         switch signal {
-        case .started:
-            guard stage == .loading else { return }
-            stage = .started
-            wait(settleTimeout, in: .started)
         case .playing:
-            guard stage == .loading || stage == .started else { return }
+            guard stage == .loading else { return }
             timer?.cancel()
             stage = .playing
             shown = true
         case .ending, .ended:
-            guard stage == .playing || stage == .started || stage == .loading else { return }
+            guard stage == .playing || stage == .loading else { return }
             shown = false
             timer?.cancel()
             stage = .done
