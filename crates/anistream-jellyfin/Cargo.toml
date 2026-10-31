@@ -1,0 +1,26 @@
+[package]
+name = "anistream-jellyfin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "A client for a Jellyfin server the user runs: sign-in, libraries, playback addresses and progress"
+
+[lib]
+doctest = false
+
+[dependencies]
+anistream-net.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url = "2"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+[lints]
+workspace = true
