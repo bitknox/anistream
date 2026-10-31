@@ -7,6 +7,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Documents;
@@ -38,7 +39,7 @@ sealed partial class CommentRow
     readonly TextBlock answering = Ui.Text("", "HazeCaptionStyle", wrap: false);
     readonly ContentControl body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, IsTabStop = false };
     readonly Button more = new();
-    readonly Button like = new();
+    readonly LikeButton like = new();
     readonly FontIcon heart = new() { FontSize = 13 };
     readonly TextBlock count = new() { FontSize = 12 };
     readonly Button reply = new();
@@ -102,7 +103,7 @@ sealed partial class CommentRow
         text.Children.Add(more);
         content.Children.Add(text);
 
-        var actions = new Grid { Height = 34, ColumnSpacing = 4 };
+        var actions = new Grid { MinHeight = 38, ColumnSpacing = 4 };
         actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -113,6 +114,7 @@ sealed partial class CommentRow
         Quiet(like, new Thickness(8, 0, 8, 0));
         like.Margin = new Thickness(-8, 3, 0, 3);
         AutomationProperties.SetName(like, T.DiscussionLike);
+        like.Toggle = () => ctx.Send(new Command.LikeComment(Id));
         like.Click += (_, _) => ctx.Send(new Command.LikeComment(Id));
         actions.Children.Add(like);
 
@@ -125,7 +127,7 @@ sealed partial class CommentRow
 
         menu.Content = new FontIcon { Glyph = "", FontSize = 12 };
         Quiet(menu, new Thickness(0));
-        menu.Width = menu.Height = 28;
+        menu.Width = menu.Height = 32;
         menu.HorizontalAlignment = HorizontalAlignment.Right;
         menu.Margin = new Thickness(0, 3, 0, 3);
         menu.Opacity = 0;
@@ -208,9 +210,8 @@ sealed partial class CommentRow
     {
         button.Style = Ui.Res<Style>("SubtleButtonStyle");
         button.Padding = padding;
-        button.MinHeight = 0;
+        button.MinHeight = 32;
         button.MinWidth = 0;
-        button.Height = 28;
         button.Foreground = Ui.Res<Brush>("HazeBrush");
         button.Resources["ButtonForegroundPointerOver"] = Ui.Res<Brush>("SilkBrush");
         button.Resources["ButtonForegroundPressed"] = Ui.Res<Brush>("SilkBrush");
@@ -254,7 +255,8 @@ sealed partial class CommentRow
         like.Resources["ButtonForegroundPointerOver"] = Ui.Res<Brush>("SilkBrush");
         count.Text = c.LikeCount.ToString(System.Globalization.CultureInfo.CurrentCulture);
         count.Visibility = c.LikeCount > 0 ? Visibility.Visible : Visibility.Collapsed;
-        AutomationProperties.SetFullDescription(like, c.Liked ? T.DiscussionLike + " " + c.LikeCount : "");
+        like.Liked = c.Liked;
+        AutomationProperties.SetFullDescription(like, c.LikeCount > 0 ? c.LikeCount.ToString(System.Globalization.CultureInfo.CurrentCulture) : "");
         // Signed out, the count stands alone.
         like.IsHitTestVisible = like.IsTabStop = pane.SignedIn;
 
@@ -533,7 +535,7 @@ sealed partial class CommentRow
     sealed class SpoilerGroup(int at, bool open, Action<SpoilerGroup> toggle)
     {
         public int At { get; } = at;
-        readonly List<(Border Bar, TextBlock Text)> words = [];
+        readonly List<(SpoilerBar Bar, TextBlock Text)> words = [];
         bool shown = open;
 
         public IEnumerable<Inline> Chunks(CommentSpan[] spans)
@@ -549,7 +551,7 @@ sealed partial class CommentRow
                         text.FontStyle = global::Windows.UI.Text.FontStyle.Italic;
                     if (span.Strike)
                         text.TextDecorations = global::Windows.UI.Text.TextDecorations.Strikethrough;
-                    var bar = new Border
+                    var bar = new SpoilerBar
                     {
                         Background = Ui.Res<Brush>("SpoilerBarBrush"),
                         Opacity = shown ? 0.55 : 1,
@@ -560,8 +562,11 @@ sealed partial class CommentRow
                     };
                     var tint = (Border: bar, Text: text);
                     words.Add(tint);
+                    // One element for the whole spoiler: the first word is the toggle, the rest are hidden from the tree.
+                    bar.Toggles = words.Count == 1;
                     AutomationProperties.SetName(bar, T.DiscussionSpoiler);
-                    AutomationProperties.SetAutomationControlType(bar, AutomationControlType.Button);
+                    AutomationProperties.SetAccessibilityView(bar, words.Count == 1 ? AccessibilityView.Content : AccessibilityView.Raw);
+                    bar.Toggle = () => toggle(this);
                     bar.Tapped += (_, e) =>
                     {
                         e.Handled = true;
@@ -595,8 +600,88 @@ sealed partial class CommentRow
                 text.Opacity = open ? 1 : 0;
                 bar.Opacity = open ? 0.55 : 1;
                 AutomationProperties.SetAccessibilityView(text, open ? AccessibilityView.Content : AccessibilityView.Raw);
-                AutomationProperties.SetName(bar, open ? text.Text : T.DiscussionSpoiler);
+                bar.Shown = open;
             }
+        }
+    }
+
+    /// <summary>
+    /// A spoiler word's bar. The first word of a spoiler reports a toggle (hidden or shown) to a
+    /// screen reader; the others are out of the tree.
+    /// </summary>
+    sealed class SpoilerBar : Border
+    {
+        public Action? Toggle { get; set; }
+        public bool Toggles { get; set; }
+        bool shown;
+
+        public bool Shown
+        {
+            get => shown;
+            set
+            {
+                if (shown == value)
+                    return;
+                shown = value;
+                if (Toggles && FrameworkElementAutomationPeer.FromElement(this) is { } peer)
+                {
+                    peer.RaisePropertyChangedEvent(
+                        TogglePatternIdentifiers.ToggleStateProperty,
+                        value ? ToggleState.Off : ToggleState.On,
+                        value ? ToggleState.On : ToggleState.Off);
+                }
+            }
+        }
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+        sealed class Peer(SpoilerBar owner) : FrameworkElementAutomationPeer(owner), IToggleProvider
+        {
+            public ToggleState ToggleState => owner.shown ? ToggleState.On : ToggleState.Off;
+
+            public void Toggle() => owner.Toggle?.Invoke();
+
+            protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+
+            protected override object GetPatternCore(PatternInterface pattern) =>
+                pattern == PatternInterface.Toggle ? this : base.GetPatternCore(pattern);
+        }
+    }
+
+    /// <summary>The like button: a plain button to look at, a toggle (liked or not) to a screen reader.</summary>
+    sealed class LikeButton : Button
+    {
+        public Action? Toggle { get; set; }
+        bool liked;
+
+        public bool Liked
+        {
+            get => liked;
+            set
+            {
+                if (liked == value)
+                    return;
+                liked = value;
+                if (FrameworkElementAutomationPeer.FromElement(this) is { } peer)
+                {
+                    peer.RaisePropertyChangedEvent(
+                        TogglePatternIdentifiers.ToggleStateProperty,
+                        value ? ToggleState.Off : ToggleState.On,
+                        value ? ToggleState.On : ToggleState.Off);
+                }
+            }
+        }
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+        sealed class Peer(LikeButton owner) : ButtonAutomationPeer(owner), IToggleProvider
+        {
+            public ToggleState ToggleState => owner.liked ? ToggleState.On : ToggleState.Off;
+
+            public void Toggle() => owner.Toggle?.Invoke();
+
+            protected override object GetPatternCore(PatternInterface pattern) =>
+                pattern == PatternInterface.Toggle ? this : base.GetPatternCore(pattern);
         }
     }
 }

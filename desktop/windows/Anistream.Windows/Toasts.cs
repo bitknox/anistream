@@ -113,7 +113,7 @@ sealed class Toasts
             new XElement("text", notice.Title),
             new XElement("text", notice.Body));
         if (picture is not null)
-            binding.Add(new XElement("image", new XAttribute("placement", "hero"), new XAttribute("src", new Uri(picture).AbsoluteUri)));
+            binding.Add(new XElement("image", new XAttribute("placement", "hero"), new XAttribute("src", new Uri(picture).AbsoluteUri), new XAttribute("alt", notice.Title)));
         var actions = new XElement("actions");
         // A notice about no show, such as the engine's digest, opens the window alone.
         if (notice.Show != 0)

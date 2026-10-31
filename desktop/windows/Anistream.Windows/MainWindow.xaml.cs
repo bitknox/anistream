@@ -508,7 +508,7 @@ public sealed partial class MainWindow : Window
             : anilist.Outbox > 0 ? T.AccountsStateSignedInWaiting(Tracker, anilist.User ?? Tracker, anilist.Outbox)
             : T.AccountsStateSignedIn(Tracker, anilist.User ?? Tracker);
         ToolTipService.SetToolTip(AccountItem, tip);
-        AutomationProperties.SetName(AccountItem, tip);
+        AutomationProperties.SetName(AccountItem, T.AccountsPaneName(tip));
     }
 
     // Notices: the engine's words with the first letter capitalised, for as long as they take to
@@ -684,6 +684,45 @@ public sealed partial class MainWindow : Window
         else
             Nav.SelectedItem = null;
         selecting = false;
+        if (!Player.Showing)
+            FocusPage();
+    }
+
+    /// <summary>
+    /// After a page change, focus goes to the page's first control and the screen reader hears
+    /// its title, instead of staying on the pane item. Typing in the search box is left alone.
+    /// </summary>
+    void FocusPage()
+    {
+        var shown = ContentFrame.Content;
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (Player.Showing || shown != ContentFrame.Content || shown is not UIElement page || Content?.XamlRoot is not { } root)
+                return;
+            if (FocusManager.GetFocusedElement(root) is DependencyObject at)
+            {
+                for (DependencyObject? up = at; up is not null; up = VisualTreeHelper.GetParent(up))
+                {
+                    if (up == SearchBox)
+                        return;
+                }
+            }
+            if (Heading(page) is { } heading && FrameworkElementAutomationPeer.FromElement(heading) is { } peer)
+                peer.RaiseNotificationEvent(AutomationNotificationKind.ActionCompleted, AutomationNotificationProcessing.MostRecent, heading.Text, "page");
+            (FocusManager.FindFirstFocusableElement(page) as Control)?.Focus(FocusState.Programmatic);
+        });
+    }
+
+    static TextBlock? Heading(DependencyObject at)
+    {
+        if (at is TextBlock text && AutomationProperties.GetHeadingLevel(text) == AutomationHeadingLevel.Level1 && text.Text.Length > 0)
+            return text;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(at); i++)
+        {
+            if (Heading(VisualTreeHelper.GetChild(at, i)) is { } found)
+                return found;
+        }
+        return null;
     }
 
     void OnBackRequested(TitleBar sender, object args) => GoBack();
@@ -756,6 +795,12 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         if (!showing && AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen)
             Fullscreen(false);
+        if (!showing)
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                if (!Player.RestoreFocus())
+                    FocusPage();
+            });
     }
 
     RectInt32? beforeMini;

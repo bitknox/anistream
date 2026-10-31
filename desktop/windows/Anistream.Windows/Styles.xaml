@@ -10,7 +10,6 @@
     <Setter Property="FontFamily" Value="{StaticResource ShowFont}" />
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="FontSize" Value="28" />
-    <Setter Property="LineHeight" Value="36" />
     <Setter Property="TextWrapping" Value="WrapWholeWords" />
     <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
   </Style>
@@ -20,7 +19,6 @@
     <Setter Property="FontFamily" Value="{StaticResource ShowFont}" />
     <Setter Property="FontWeight" Value="Bold" />
     <Setter Property="FontSize" Value="15" />
-    <Setter Property="LineHeight" Value="20" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
   </Style>

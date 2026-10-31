@@ -957,6 +957,30 @@ public static partial class T
     /// <summary>Screen reader name of one row in Stats for nerds: "Dropped frames: 3".</summary>
     public static string PlayerStatsRow(string label, string value) => Fill(Get("PlayerStatsRow"), ("label", label), ("value", value));
 
+    /// <summary>A length of time said for a screen reader, in hours. It is joined with minutes and seconds.</summary>
+    public static string PlayerSpokenHours(long count) => Fill(GetPlural("PlayerSpokenHours", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A length of time said for a screen reader, in minutes. It is joined with hours and seconds.</summary>
+    public static string PlayerSpokenMinutes(long count) => Fill(GetPlural("PlayerSpokenMinutes", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A length of time said for a screen reader, in seconds. It is joined with hours and minutes.</summary>
+    public static string PlayerSpokenSeconds(long count) => Fill(GetPlural("PlayerSpokenSeconds", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>What a screen reader says for the seek bar: where the playhead is and how long the episode is. Both times are already spoken in full, such as "12 minutes 4 seconds".</summary>
+    public static string PlayerPositionSpoken(string position, string duration) => Fill(Get("PlayerPositionSpoken"), ("position", position), ("duration", duration));
+
+    /// <summary>What a screen reader says for the volume slider. The number is 0 to 100.</summary>
+    public static string PlayerVolumeSpoken(long percent) => Fill(Get("PlayerVolumeSpoken"), ("percent", percent.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Name of the volume button while the sound is off. The button opens the volume slider.</summary>
+    public static string PlayerVolumeMuted => Get("PlayerVolumeMuted");
+
+    /// <summary>Name of the full screen button while the window is full screen. Pressing it leaves full screen.</summary>
+    public static string PlayerExitFullscreen => Get("PlayerExitFullscreen");
+
+    /// <summary>Name of the account entry in the navigation pane, followed by its state.</summary>
+    public static string AccountsPaneName(string state) => Fill(Get("AccountsPaneName"), ("state", state));
+
     /// <summary>Busy line while Settings waits for the engine's values.</summary>
     public static string SettingsLoading => Get("SettingsLoading");
 
@@ -6185,6 +6209,17 @@ public static partial class T
         ["PlayerLoadAudioCommit"] = "Load audio",
         ["PlayerMiniTip"] = "Stays on top. Press {key} to go back.",
         ["PlayerStatsRow"] = "{label}: {value}",
+        ["PlayerSpokenHours_one"] = "{count} hour",
+        ["PlayerSpokenHours_other"] = "{count} hours",
+        ["PlayerSpokenMinutes_one"] = "{count} minute",
+        ["PlayerSpokenMinutes_other"] = "{count} minutes",
+        ["PlayerSpokenSeconds_one"] = "{count} second",
+        ["PlayerSpokenSeconds_other"] = "{count} seconds",
+        ["PlayerPositionSpoken"] = "{position} of {duration}",
+        ["PlayerVolumeSpoken"] = "{percent} percent",
+        ["PlayerVolumeMuted"] = "Volume, muted",
+        ["PlayerExitFullscreen"] = "Exit full screen",
+        ["AccountsPaneName"] = "Account, {state}",
         ["SettingsLoading"] = "Loading settings",
         ["SettingsGroupMpv"] = "mpv",
         ["SettingsCardState"] = "{title}, {state}",

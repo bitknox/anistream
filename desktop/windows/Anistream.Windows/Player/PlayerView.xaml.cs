@@ -83,6 +83,8 @@ public sealed partial class PlayerView : UserControl
     public PlayerView()
     {
         InitializeComponent();
+        Timeline.Spoken = () => T.PlayerPositionSpoken(SpokenClock(position), SpokenClock(duration));
+        VolumeSlider.Spoken = () => T.PlayerVolumeSpoken((long)Math.Round(VolumeSlider.Value));
         ToolTips();
         click = DispatcherQueue.GetForCurrentThread().CreateTimer();
         click.Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime());
@@ -147,6 +149,8 @@ public sealed partial class PlayerView : UserControl
     {
         if (Showing)
             return;
+        // Where focus was, for the way back when the player closes.
+        returnFocus = XamlRoot is null ? null : FocusManager.GetFocusedElement(XamlRoot) as Control;
         Visibility = Visibility.Visible;
         still.Reset();
         ShowControls();
@@ -155,6 +159,16 @@ public sealed partial class PlayerView : UserControl
         ShowStats();
         Focus(FocusState.Programmatic);
         ShowingChanged?.Invoke(true);
+    }
+
+    Control? returnFocus;
+
+    /// <summary>After the player closed: focus goes back to the control that opened it, when it is still there.</summary>
+    internal bool RestoreFocus()
+    {
+        var back = returnFocus;
+        returnFocus = null;
+        return back is { XamlRoot: not null, IsLoaded: true } && back.Focus(FocusState.Programmatic);
     }
 
     internal void Hide()
@@ -246,6 +260,7 @@ public sealed partial class PlayerView : UserControl
                     VolumeSlider.Value = Math.Clamp(volume, 0, 100);
                     fromPlayer = false;
                     VolumeIcon.Glyph = volume <= 0 ? "" : "";
+                    AutomationProperties.SetName(VolumeButton, volume <= 0 ? T.PlayerVolumeMuted : T.PlayerVolume);
                     if (volumeFlash)
                     {
                         volumeFlash = false;
@@ -384,6 +399,8 @@ public sealed partial class PlayerView : UserControl
             SkipCard.Opacity = 1;
         }
         Motion.ShowStandard(want);
+        if (want == UpNextCard && DeviceWatch.ScreenReaderRunning())
+            DispatcherQueue.TryEnqueue(() => UpNextCancel.Focus(FocusState.Programmatic));
         Announce(want == StallCard ? StallLine : want == UndoCard ? UndoLine : want == UpNextCard ? UpNextTitle : SkipCard);
     }
 
@@ -625,7 +642,10 @@ public sealed partial class PlayerView : UserControl
         ShowUpNext();
         fromPlayer = true;
         Timeline.Maximum = Math.Max(1, duration);
-        Timeline.Value = Math.Min(position, Timeline.Maximum);
+        // While the keyboard is on the slider the thumb is left to the person, so the screen
+        // reader does not hear it change under them. A jump of more than a few seconds still lands.
+        if (Timeline.FocusState != FocusState.Keyboard || Math.Abs(Timeline.Value - position) > 5)
+            Timeline.Value = Math.Min(position, Timeline.Maximum);
         fromPlayer = false;
     }
 
@@ -730,9 +750,9 @@ public sealed partial class PlayerView : UserControl
     {
         if (keepControls || paused || overBar || menuOpen)
             return;
-        if (KeyboardInChrome())
+        if (ControlsInUse())
         {
-            // Someone is on the controls with the keyboard or a screen reader: hold them.
+            // A screen reader is running, or a control has focus by any means: hold them.
             idle.Start();
             return;
         }
@@ -740,10 +760,15 @@ public sealed partial class PlayerView : UserControl
         HidePointer();
     }
 
-    /// <summary>Whether keyboard focus is on one of the controls.</summary>
-    bool KeyboardInChrome()
+    /// <summary>
+    /// Whether the controls must stay: a screen reader runs (its cursor moves without focus, and
+    /// controls that collapse leave the tree), or a control has focus in any state.
+    /// </summary>
+    bool ControlsInUse()
     {
-        if (XamlRoot is null || FocusManager.GetFocusedElement(XamlRoot) is not Control { FocusState: FocusState.Keyboard } focused)
+        if (DeviceWatch.ScreenReaderRunning())
+            return true;
+        if (XamlRoot is null || FocusManager.GetFocusedElement(XamlRoot) is not Control { FocusState: not FocusState.Unfocused } focused)
             return false;
         for (DependencyObject? at = focused; at is not null; at = VisualTreeHelper.GetParent(at))
         {
@@ -961,7 +986,8 @@ public sealed partial class PlayerView : UserControl
         UpdateCorner();
         if (!shown || card is null)
             return;
-        var left = card.Remaining(position, duration);
+        // With a screen reader running the card waits for a choice instead of counting down.
+        var left = DeviceWatch.ScreenReaderRunning() ? null : card.Remaining(position, duration);
         UpNextBar.Visibility = left is null ? Visibility.Collapsed : Visibility.Visible;
         UpNextLine.Visibility = UpNextBar.Visibility;
         if (left is { } l)
@@ -998,7 +1024,27 @@ public sealed partial class PlayerView : UserControl
     void OnStallWait(object sender, RoutedEventArgs e) => Send(new PlayerCommand.StallWait());
     void OnStallSwitch(object sender, RoutedEventArgs e) => Send(new PlayerCommand.StallSwitch());
 
-    internal void ShowFullscreen(bool on) => FullscreenIcon.Glyph = on ? "" : "";
+    internal void ShowFullscreen(bool on)
+    {
+        FullscreenIcon.Glyph = on ? "" : "";
+        var name = on ? T.PlayerExitFullscreen : T.PlayerFullscreen;
+        AutomationProperties.SetName(FullscreenButton, name);
+        ToolTipService.SetToolTip(FullscreenButton, T.TooltipWithKey(name, "F"));
+    }
+
+    /// <summary>A time said in words for a screen reader: "12 minutes 4 seconds".</summary>
+    static string SpokenClock(double seconds)
+    {
+        var total = (long)Math.Max(0, Math.Floor(seconds));
+        var parts = new List<string>(3);
+        if (total / 3600 > 0)
+            parts.Add(T.PlayerSpokenHours(total / 3600));
+        if (total % 3600 / 60 > 0)
+            parts.Add(T.PlayerSpokenMinutes(total % 3600 / 60));
+        if (total % 60 > 0 || parts.Count == 0)
+            parts.Add(T.PlayerSpokenSeconds(total % 60));
+        return string.Join(" ", parts);
+    }
 
     void OnTimelineChanged(object sender, RangeBaseValueChangedEventArgs e)
     {

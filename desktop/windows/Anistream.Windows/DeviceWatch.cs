@@ -49,7 +49,7 @@ sealed class DeviceWatch : IDisposable
     const uint GetScreenReader = 0x0046;
 
     /// <summary>Narrator, and the screen readers that follow it, set this flag while they run.</summary>
-    static bool ScreenReaderRunning() => SystemParametersInfo(GetScreenReader, 0, out var on, 0) && on;
+    internal static bool ScreenReaderRunning() => SystemParametersInfo(GetScreenReader, 0, out var on, 0) && on;
 
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
