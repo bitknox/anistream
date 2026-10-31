@@ -658,16 +658,41 @@ public sealed partial class PlayerView : UserControl
         }
     }
 
+    (uint W, uint H, double Scale)? panelAsked, panelSent;
+    Microsoft.UI.Dispatching.DispatcherQueueTimer? panelPace;
+
+    /// <summary>
+    /// A drag of the window's edge sends a size for every step of it, and each one makes mpv
+    /// rebuild its swapchain and draw again. The first size goes at once, then at most one
+    /// every 50 ms, and the last always; between them the panel stretches the last frame.
+    /// </summary>
     void OnPanelSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (player is null || e.NewSize.Width < 1 || e.NewSize.Height < 1)
             return;
         var scale = XamlRoot?.RasterizationScale ?? 1.0;
-        var w = (uint)Math.Max(1, Math.Round(e.NewSize.Width * scale));
-        var h = (uint)Math.Max(1, Math.Round(e.NewSize.Height * scale));
-        player.CompositionSize(w, h);
-        player.Display(w, h, scale, null);
+        panelAsked = ((uint)Math.Max(1, Math.Round(e.NewSize.Width * scale)), (uint)Math.Max(1, Math.Round(e.NewSize.Height * scale)), scale);
+        if (panelPace is null)
+        {
+            panelPace = DispatcherQueue.CreateTimer();
+            panelPace.Interval = TimeSpan.FromMilliseconds(50);
+            panelPace.IsRepeating = false;
+            panelPace.Tick += (_, _) => SendPanelSize();
+        }
+        if (panelPace.IsRunning)
+            return;
+        SendPanelSize();
+    }
+
+    void SendPanelSize()
+    {
+        if (player is null || panelAsked is not { } size || size == panelSent)
+            return;
+        panelSent = size;
+        player.CompositionSize(size.W, size.H);
+        player.Display(size.W, size.H, size.Scale, null);
         LiftSubtitles(animated: false);
+        panelPace?.Start();
     }
 
     // Showing and hiding the controls.
@@ -1307,7 +1332,18 @@ public sealed partial class PlayerView : UserControl
     /// <summary>A seek by key or scroll, with the time it lands on in the flash.</summary>
     void SeekBy(double seconds)
     {
-        Send(new PlayerCommand.Seek(seconds));
+        // Named for the playback on screen, so the engine lets a seek go once the next episode
+        // has taken over instead of carrying it there.
+        ulong now;
+        lock (loads)
+            now = playback;
+        if (now == 0)
+            Send(new PlayerCommand.Seek(seconds));
+        else
+        {
+            still.Input();
+            ctx?.Send(new Command.Control(now, new PlayerCommand.Seek(seconds)));
+        }
         ShowFlash(AnistreamFfiMethods.PlayClock(Math.Clamp(position + seconds, 0, Math.Max(0, duration))));
     }
 

@@ -278,6 +278,45 @@ class ClosingTest {
         assertTrue(rig.model.isPresented)
     }
 
+    /** Android 12 and later put the app behind on Back without finishing it: the Back itself stops the play. */
+    @Test
+    fun backAMomentAfterPlayStopsThePlayAskedFor() = runTest {
+        val rig = Rig(this)
+        rig.model.asked()
+        assertTrue("Back is the player's from the Play on", rig.model.playAsked)
+        assertFalse("the app goes behind: the Back is the system's", rig.model.backBeforeShown())
+        assertTrue("what is being found is stopped", rig.sent.contains(Command.Player(PlayerCommand.Stop)))
+        assertFalse(rig.model.playAsked)
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", "7", null, 1.0))
+        assertFalse("staged after the app went behind: nobody is there", rig.model.isPresented)
+        // Back in the app, a Play opens the player again.
+        rig.model.hostStarted()
+        rig.model.asked()
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", "7", null, 1.0))
+        assertTrue(rig.model.isPresented)
+        assertFalse("staged: the player's screen takes Back from here", rig.model.playAsked)
+    }
+
+    @Test
+    fun backBeforeThePlayersScreenIsDrawnClosesItAndStays() = runTest {
+        val rig = Rig(this)
+        rig.model.asked()
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", "7", null, 1.0))
+        assertTrue("closed, and the app stays", rig.model.backBeforeShown())
+        assertFalse(rig.model.isPresented)
+    }
+
+    @Test
+    fun aPlayThatIsNeverStagedLetsBackGo() = runTest {
+        val rig = Rig(this)
+        rig.model.asked()
+        rig.model.apply(Event.Toast(Notice(NoticeKind.ALERT, "no sources configured", null)))
+        assertFalse("it failed before it was staged", rig.model.playAsked)
+        rig.model.asked()
+        advanceTimeBy(PlayerTiming.ASKED_WAIT + 1)
+        assertFalse(rig.model.playAsked)
+    }
+
     @Test
     fun aFailureSaysWhyAsTheEngineSaidIt() = runTest {
         val rig = Rig(this)

@@ -25,7 +25,6 @@ import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.i18n.Strings
-import tv.anistream.engine.ffi.trailerMayAutoplay as engineTrailerMayAutoplay
 import tv.anistream.engine.ffi.trailerWatchUrl as engineTrailerWatchUrl
 import tv.anistream.engine.model.Entry as EngineEntry
 import tv.anistream.engine.model.Notice as EngineNotice
@@ -94,14 +93,6 @@ class AppStore(
     /** The one offline state, as the engine says it from the network path the app reports. */
     val offline: StateFlow<Boolean> = _offline.asStateFlow()
 
-    private val _autoplay = MutableStateFlow(false)
-
-    /**
-     * Whether trailers may start by themselves now, as the engine says it from the setting, the
-     * network and what the device reports. False until it says so, so no page makes room early.
-     */
-    val trailersMayAutoplay: StateFlow<Boolean> = _autoplay.asStateFlow()
-
     val titles = TitleCache()
     val continuing = ContinueModel()
     val seasonal = ListModel()
@@ -162,6 +153,9 @@ class AppStore(
 
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
+
+    /** A play was asked of the engine here, for the player to know one is on its way. */
+    var onPlayAsked: (() -> Unit)? = null
 
     /** What a phone's remote asks of a TV's front end, once the TV started its remote. */
     var onRemote: ((FrontIntent) -> Unit)? = null
@@ -281,6 +275,9 @@ class AppStore(
      * while it starts, the command waits and is sent once it has.
      */
     fun send(command: Command): JobId? {
+        if (command is Command.Play || command is Command.PlaySource || command is Command.PlayLocal || command is Command.PlayParty) {
+            onPlayAsked?.invoke()
+        }
         val client = client
         if (client == null) {
             if (_phase.value == Phase.Starting) early += command
@@ -642,18 +639,6 @@ class AppStore(
         send(Command.NetworkPath(cellular, constrained, offline))
     }
 
-    /**
-     * What the device says about itself, for the engine to decide when trailers play: Remove
-     * animations, power saving, a hot device, a screen reader, a low-memory device.
-     */
-    fun deviceState(state: DeviceState) {
-        send(Command.DeviceState(state.reduceMotion, true, state.lowPower, state.thermalSerious, state.screenReader, state.lowMemory))
-    }
-
-    /** Whether [entry]'s trailer may start by itself: the title's side of it, with the spoiler rule. */
-    fun trailerMayAutoplay(entry: EngineEntry): Boolean =
-        _autoplay.value && engineTrailerMayAutoplay(entry, settings.isOn(SettingKey.SPOILER_PROTECTION))
-
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
@@ -1004,8 +989,8 @@ class AppStore(
             is Event.TitleDub -> titles.dub(event.id, event.dub)
 
             is Event.Connectivity -> _offline.value = event.offline
-            is Event.Autoplay -> _autoplay.value = event.v1.trailers
-            is Event.Toast -> notices.post(event.v1)
+            // A failed sign-in the open sheet says in its place: the snackbar would draw under it.
+            is Event.Toast -> if (accounts.tookSignInFailure(event.v1)) notices.log(event.v1) else notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)
@@ -1109,13 +1094,4 @@ data class SourceChoices(
     val episode: String,
     val candidates: List<tv.anistream.engine.core.SourceCandidate>? = null,
     val job: JobId? = null,
-)
-
-/** What the device reports for trailers to be held back by. */
-data class DeviceState(
-    val reduceMotion: Boolean = false,
-    val lowPower: Boolean = false,
-    val thermalSerious: Boolean = false,
-    val screenReader: Boolean = false,
-    val lowMemory: Boolean = false,
 )

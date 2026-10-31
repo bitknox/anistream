@@ -21,7 +21,7 @@
         <local:OfflineLine />
         <TextBlock Text="{x:Bind app:T.SourcesOrderDetail}" Style="{StaticResource HazeBodyStyle}" />
       </StackPanel>
-      <Button Grid.Column="1" Content="{x:Bind app:T.SourcesCheck}" Click="OnCheck" Height="32" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Content="{x:Bind app:T.SourcesCheck}" Click="OnCheck" MinHeight="32" VerticalAlignment="Center" />
     </Grid>
     <!-- No sources: the empty state in place of both columns. -->
     <Border x:Name="NoSources" Grid.Row="1" Visibility="Collapsed" Margin="0,0,0,80" />

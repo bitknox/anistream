@@ -96,7 +96,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
     func run() async {
         let (launch, temporary) = options.launch()
         self.temporary = temporary
-        TrailerStandIn.install(keepsWhenInactive: true)
+        TrailerStandIn.install()
         print("AnistreamDev: \(options.engine) in \(launch.home.data.deletingLastPathComponent().path)")
         let host = AppHost(
             // The real engine on the terminal's directories shares its keychain items; anything

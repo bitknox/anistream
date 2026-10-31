@@ -433,6 +433,16 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ALTER TABLE provider_preference ADD COLUMN release_title TEXT;
     "#,
     ),
+    (
+        "0015_match_title",
+        r#"
+    -- The source's own name for the entry a title was matched to, as it was when matched, so a
+    -- page can say what the title is matched to without asking the source again. NULL for a
+    -- match made before this was kept.
+    ALTER TABLE mapping_override   ADD COLUMN title TEXT;
+    ALTER TABLE mapping_resolution ADD COLUMN title TEXT;
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.

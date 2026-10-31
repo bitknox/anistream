@@ -41,6 +41,12 @@ class NoticesModel(private val clock: () -> Long = System::currentTimeMillis) {
         _log.value = (listOf(item) + _log.value).take(KEPT)
     }
 
+    /** Keep [notice] in the log only: something on screen says it already. */
+    internal fun log(notice: Notice) {
+        count += 1
+        _log.value = (listOf(NoticeItem(count, notice, clock())) + _log.value).take(KEPT)
+    }
+
     /** Take the snackbar down, if it still shows [item]. */
     fun dismiss(item: NoticeItem) {
         if (_current.value?.id == item.id) _current.value = null

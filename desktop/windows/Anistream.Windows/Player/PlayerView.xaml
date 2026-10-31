@@ -4,7 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="using:Anistream.App"
-    RequestedTheme="Dark" IsTabStop="True" TabFocusNavigation="Cycle">
+    RequestedTheme="Dark" IsTabStop="True" TabFocusNavigation="Cycle"
+    KeyboardAcceleratorPlacementMode="Hidden">
   <UserControl.KeyboardAccelerators>
     <KeyboardAccelerator Key="Space" Invoked="OnKeyPause" />
     <KeyboardAccelerator Key="K" Invoked="OnKeyPause" />

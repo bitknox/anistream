@@ -25,7 +25,7 @@ extension SettingKey {
         case .motion, .autoNext, .skipOpening, .skipFiller, .markChapters, .skipButton, .fullscreen, .nightMode,
              .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .presenceRich, .torrents, .syncplay,
              .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles,
-             .episodeDiscussions, .commentImages:
+             .episodeDiscussions, .commentImages, .hoverCards:
             true
         default:
             false

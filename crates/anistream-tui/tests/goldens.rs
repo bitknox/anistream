@@ -31,6 +31,7 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_model::{
+    Msg,
     catalog::{
         Aired, AiringFact, ContentList, Entry, FuzzyDate, LibrarySegment, RelatedTitle,
         ResumePoint, Season,
@@ -43,7 +44,7 @@ use anistream_model::{
     playback::SkipKind,
     progress::TitleProgress,
     settings::{self, SettingsView},
-    sources::{MatchCandidate, MetaSourceRow, ProviderRow},
+    sources::{MatchCandidate, MatchQuestion, MetaSourceRow, ProviderRow},
     stores::{
         AnonymousDeviceRow, InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow,
         OpenJoinView, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
@@ -1512,20 +1513,25 @@ fn logs(s: &mut Screen) {
 /// The match ladder could not choose: three candidates, two ruled out and saying why.
 fn disambiguate(s: &mut Screen) {
     on_kaze(s);
-    let candidate = |title: &str, similarity: f64, rejected: Option<&str>| MatchCandidate {
+    let candidate = |title: &str, similarity: f64, rejected: Option<Msg>| MatchCandidate {
         title: title.into(),
         key: ProviderKey::new(title.to_lowercase().replace(' ', "-")),
         similarity,
-        rejected: rejected.map(Into::into),
+        rejected,
+        year: None,
+        episodes: None,
+        format: None,
     };
     s.apply(Event::MatchChoices {
         id: id(102),
         provider_id: "yamabiko".into(),
         candidates: vec![
             candidate("Kaze no Tegami", 0.62, None),
-            candidate("Kaze no Tegami (2019)", 0.61, Some("aired 2019, not 2026")),
-            candidate("Kaze no Tegami Recap", 0.44, Some("a special, not the series")),
+            candidate("Kaze no Tegami (2019)", 0.61, Some(Msg::MatchRuledOutYear)),
+            candidate("Kaze no Tegami Recap", 0.44, Some(Msg::MatchRuledOutFormat)),
         ],
+        answers: MatchQuestion::Ladder,
+        source: "Yamabiko".into(),
     });
 }
 

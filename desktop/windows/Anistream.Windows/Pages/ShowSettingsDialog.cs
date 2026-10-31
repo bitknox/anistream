@@ -182,7 +182,7 @@ sealed class ShowSettingsDialog
         sheet.Ask();
         try
         {
-            await sheet.dialog.ShowAsync();
+            await Dialogs.Show(sheet.dialog);
         }
         finally
         {

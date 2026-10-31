@@ -36,12 +36,7 @@ public sealed partial class SearchPage : Page
             Run();
         };
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
-        Unloaded += (_, _) =>
-        {
-            ctx.Batch -= Heard;
-            settle.Stop();
-        };
+        ctx.Hear(this, Heard, settle.Stop);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)

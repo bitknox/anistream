@@ -60,12 +60,20 @@ public final class PlayerModel {
 
     private enum Work: Sendable {
         case call(MpvCall)
+        /// A file for `playback`: mpv's answer names the playlist entry its `start-file` will.
+        case load(PlaybackId, url: String, options: [String: String])
         case display(DisplayInfo)
         case resized
         /// A wait in `handedOver()`: reached once mpv has had everything queued before it.
         case mark(Int)
         /// A subtitle or audio file the viewer picked, added and selected (`loadTrack`).
         case trackFile(Track.Kind, path: String)
+    }
+
+    /// A load on its way to mpv, and the playlist entry mpv made for it once it answers.
+    private struct Load {
+        let playback: PlaybackId
+        var entry: Int64?
     }
 
     /// `send` hands the engine a command; `backend` makes the mpv for each player opened, and
@@ -120,7 +128,9 @@ public final class PlayerModel {
     /// The playback whose Open made this player.
     @ObservationIgnored private var opened: PlaybackId?
     /// Loads sent to mpv whose files have not started, oldest first.
-    @ObservationIgnored private var loads: [PlaybackId] = []
+    @ObservationIgnored private var loads: [Load] = []
+    /// A `start-file` heard before its `loadfile` answered with the entry it names.
+    @ObservationIgnored private var startedEarly: Int64?
     /// The playback whose file mpv has now.
     @ObservationIgnored private var current: PlaybackId?
     /// What each playback's Load opened, for the seek preview to open too.
@@ -280,6 +290,25 @@ public final class PlayerModel {
         guard pictureInPictureAvailable || pictureInPicturePhase != .inline else { return }
         pictureInPictureToggle?()
     }
+
+    /// A play asked for in the app while the picture floats in Picture in Picture: Resume on a
+    /// title page, a Continue card. The picture comes back into the player, where what plays
+    /// shows. True when it is a plain play of the episode on screen, which then plays on where it
+    /// is rather than loading again, and is not sent.
+    public func playAsked(_ command: Command) -> Bool {
+        guard pictureInPicture else { return false }
+        let asked: (id: AnilistId, episode: String, again: Bool)
+        switch command {
+        case .play(let id, let episode, let fromStart): asked = (id, episode, fromStart)
+        case .playSource(let id, let episode, _, _), .playLocal(let id, let episode, _, _), .playParty(let id, let episode, _, _, _):
+            asked = (id, episode, true)
+        default: return false
+        }
+        Self.note(.info, "picture in picture: a play asked for in the app brings the picture back")
+        togglePictureInPicture()
+        guard !asked.again, failure == nil, backend != nil, let staged else { return false }
+        return staged.id == asked.id && staged.episode == asked.episode
+    }
     /// The pointer over the seek line on the Mac, at this time: the bubble shows there.
     public private(set) var hovering: Double?
     /// How fast scrubbing moves now: 1, ½ or ¼.
@@ -385,11 +414,13 @@ public final class PlayerModel {
                 return
             }
             if case .load(let url, let options) = call {
-                loads.append(playback)
+                loads.append(Load(playback: playback))
                 sources[playback] = PreviewSource(url: url, options: PreviewSource.reaching(options))
                 hasPicture = false
+                enqueue(.load(playback, url: url, options: options))
+            } else {
+                enqueue(.call(call))
             }
-            enqueue(.call(call))
         case .fullScreen(let on):
             fullScreen = on ?? !fullScreen
         case .quit:
@@ -554,6 +585,14 @@ public final class PlayerModel {
                         case .call(let call):
                             let quiet = if case .sample = call { true } else { false }
                             for report in try await backend.perform(call) { self?.report(report, quiet: quiet) }
+                        case .load(let playback, let url, let options):
+                            do {
+                                let entry = try await backend.load(url, options: options)
+                                self?.loaded(playback, as: entry)
+                            } catch {
+                                self?.loaded(playback, as: nil)
+                                throw error
+                            }
                         case .display(let display):
                             await backend.display(display)
                         case .resized:
@@ -572,8 +611,10 @@ public final class PlayerModel {
                         Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
                         // A change the viewer asked for that mpv refused says so; the periodic
                         // sampling stays quiet.
-                        if case .call(let call) = item {
-                            if case .sample = call {} else { self?.commandFailed() }
+                        switch item {
+                        case .call(.sample): break
+                        case .call, .load: self?.commandFailed()
+                        default: break
                         }
                     }
                 }
@@ -699,10 +740,11 @@ public final class PlayerModel {
         }
         backend = nil
         preview.close()
-        closedThrough = [playback, current, opened, loads.max()].compactMap { $0 }.max()
+        closedThrough = [playback, current, opened, loads.last?.playback].compactMap { $0 }.max()
         opened = nil
         current = nil
         loads = []
+        startedEarly = nil
         sources = [:]
         timelines = [:]
         thumbnails = nil
@@ -781,9 +823,9 @@ public final class PlayerModel {
     private func handle(_ event: MpvEvent, from backend: any PlayerBackend) {
         guard backend === self.backend else { return }
         switch event {
-        case .startFile:
+        case .startFile(let entry):
             mpvSaid = []
-            if !loads.isEmpty { current = loads.removeFirst() }
+            started(entry)
             Self.note(.info, "#\(current.map(String.init) ?? "?") mpv started the file\(elapsed)")
             // Another file: its previews are another file's too.
             preview.close()
@@ -809,6 +851,34 @@ public final class PlayerModel {
             break
         }
         if let report = PlayerReport(event) { self.report(report) }
+    }
+
+    /// mpv took `playback`'s load as playlist `entry`, or refused it (`nil`), when it will never
+    /// start.
+    private func loaded(_ playback: PlaybackId, as entry: Int64?) {
+        // Gone when the player closed while it was on its way.
+        guard let at = loads.firstIndex(where: { $0.playback == playback && $0.entry == nil }) else { return }
+        guard let entry else {
+            loads.remove(at: at)
+            return
+        }
+        loads[at].entry = entry
+        if startedEarly == entry { started(entry) }
+    }
+
+    /// mpv's `start-file` for playlist `entry`. Every load replaces the playlist, and mpv starts
+    /// only the newest of the loads it has taken by the time it gets to the next file: the ones
+    /// before the file that starts never will, so their playbacks are passed over.
+    private func started(_ entry: Int64) {
+        guard let at = loads.firstIndex(where: { $0.entry == entry }) else {
+            // Its `loadfile` has not answered yet, and is matched when it does. A file stopped
+            // as the player closed is matched by nothing.
+            startedEarly = entry
+            return
+        }
+        current = loads[at].playback
+        loads.removeSubrange(...at)
+        startedEarly = nil
     }
 
     /// The file's first picture is up: the starting screen fades from it.
@@ -1081,7 +1151,7 @@ public final class PlayerModel {
 
     private static func describe(_ item: Work) -> String {
         switch item {
-        case .call(.load(let url, _)): "load \(AppLog.address(url))"
+        case .load(_, let url, _): "load \(AppLog.address(url))"
         case .call(.addSubtitle): "add a subtitle track"
         case .call(.set(let property, _)): "set \(property)"
         case .call(let call): "\(call)".prefix(80).description

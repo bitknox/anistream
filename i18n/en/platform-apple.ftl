@@ -7,6 +7,12 @@ menu-show-library = Show { -library-cap }
 # @max 28
 menu-source-for-title = { -source-cap } for This Title
 
+# Mac menu bar item that opens the sheet for choosing which of a source's titles this show is.
+# Title Case, as the menu bar's items are. Everywhere else it is match-fix.
+# @only apple
+# @max 28
+menu-fix-match = Fix This Match…
+
 # Under a release in the source picker: how many people share it right now.
 # @only apple
 # @arg count: int

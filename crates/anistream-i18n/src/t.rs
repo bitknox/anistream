@@ -350,6 +350,31 @@ pub fn notice_source_search_empty(query: &str) -> String {
     text("notice-source-search-empty", &[("query", Arg::Text(query))])
 }
 
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+pub fn match_ruled_out_format() -> String {
+    text("match-ruled-out-format", &[])
+}
+
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+pub fn match_ruled_out_episodes() -> String {
+    text("match-ruled-out-episodes", &[])
+}
+
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+pub fn match_ruled_out_year() -> String {
+    text("match-ruled-out-year", &[])
+}
+
+/// Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+pub fn match_search_timed_out() -> String {
+    text("match-search-timed-out", &[])
+}
+
+/// Why a search of a source for a show's match failed: the source isn't installed or switched on.
+pub fn match_search_source_off() -> String {
+    text("match-search-source-off", &[])
+}
+
 /// Toast after the person picked a source for one title.
 pub fn notice_source_pinned(source: &str) -> String {
     text("notice-source-pinned", &[("source", Arg::Text(source))])
@@ -1118,6 +1143,11 @@ pub fn start_failed_folder(path: &str, reason: &str) -> String {
 /// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
 pub fn start_failed_config(path: &str, problem: &str) -> String {
     text("start-failed-config", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
+}
+
+/// Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+pub fn config_reset_failed(path: &str, reason: &str) -> String {
+    text("config-reset-failed", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
 }
 
 /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
@@ -9335,6 +9365,11 @@ pub fn filters_title() -> String {
     text("filters-title", &[])
 }
 
+/// Accessible label and tooltip of the button that closes the filters panel.
+pub fn filters_close() -> String {
+    text("filters-close", &[])
+}
+
 /// Button that opens the filters, with how many are on.
 pub fn filters_button_count(count: i64) -> String {
     text("filters-button-count", &[("count", Arg::Int(count))])
@@ -9700,7 +9735,7 @@ pub fn settings_value_trailers_wifi_only() -> String {
     text("settings-value-trailers-wifi-only", &[])
 }
 
-/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+/// Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 pub fn settings_label_trailers() -> String {
     text("settings-label-trailers", &[])
 }
@@ -10180,6 +10215,16 @@ pub fn settings_upscaling_natural() -> String {
     text("settings-upscaling-natural", &[])
 }
 
+/// Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+pub fn settings_label_hover_cards() -> String {
+    text("settings-label-hover-cards", &[])
+}
+
+/// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+pub fn settings_hover_cards_note() -> String {
+    text("settings-hover-cards-note", &[])
+}
+
 /// Preview note under the upscaling frame for the natural look.
 pub fn settings_upscaling_note_natural() -> String {
     text("settings-upscaling-note-natural", &[])
@@ -10253,6 +10298,26 @@ pub fn settings_trailers_always() -> String {
 /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 pub fn settings_trailers_wifi_only() -> String {
     text("settings-trailers-wifi-only", &[])
+}
+
+/// Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+pub fn settings_reset() -> String {
+    text("settings-reset", &[])
+}
+
+/// Title of the confirmation for resetting the settings.
+pub fn settings_reset_title() -> String {
+    text("settings-reset-title", &[])
+}
+
+/// Line under it. The old settings file is moved aside, not deleted.
+pub fn settings_reset_detail() -> String {
+    text("settings-reset-detail", &[])
+}
+
+/// Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+pub fn settings_reset_done(file: &str) -> String {
+    text("settings-reset-done", &[("file", Arg::Text(file))])
 }
 
 /// Title of the screen or section that lists sources.
@@ -10583,6 +10648,121 @@ pub fn sources_rebuilding() -> String {
 /// Value of a plugin's response time, in milliseconds.
 pub fn sources_response_ms(ms: i64) -> String {
     text("sources-response-ms", &[("ms", Arg::Int(ms))])
+}
+
+/// Menu, palette and source picker entry that opens the sheet.
+pub fn match_fix() -> String {
+    text("match-fix", &[])
+}
+
+/// The title page's main action while the source couldn't choose, and the sheet's title.
+pub fn match_choose() -> String {
+    text("match-choose", &[])
+}
+
+/// The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+pub fn match_uncertain(count: i64, source: &str) -> String {
+    text("match-uncertain", &[("count", Arg::Int(count)), ("source", Arg::Text(source))])
+}
+
+/// The line on a title page when the source listed no title that fits, so the person searches.
+pub fn match_uncertain_none(source: &str) -> String {
+    text("match-uncertain-none", &[("source", Arg::Text(source))])
+}
+
+/// The last row of the source picker, which opens the match sheet.
+pub fn match_source_picker_row() -> String {
+    text("match-source-picker-row", &[])
+}
+
+/// Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+pub fn match_anilist_facts(facts: &str) -> String {
+    text("match-anilist-facts", &[("facts", Arg::Text(facts))])
+}
+
+/// Heading over the titles a source offers.
+pub fn match_section_source(source: &str) -> String {
+    text("match-section-source", &[("source", Arg::Text(source))])
+}
+
+/// Heading over the title the show is matched to now.
+pub fn match_now() -> String {
+    text("match-now", &[])
+}
+
+/// Beside the title matched now: the person chose it.
+pub fn match_chosen_by_you() -> String {
+    text("match-chosen-by-you", &[])
+}
+
+/// Beside the title matched now: anistream chose it.
+pub fn match_chosen_automatically() -> String {
+    text("match-chosen-automatically", &[])
+}
+
+/// How closely a source's title matches the show, at the end of its row.
+pub fn match_similarity(similarity: &str) -> String {
+    text("match-similarity", &[("similarity", Arg::Text(similarity))])
+}
+
+/// Placeholder of the search field in the sheet.
+pub fn match_search_field(source: &str) -> String {
+    text("match-search-field", &[("source", Arg::Text(source))])
+}
+
+/// While a search of the source runs.
+pub fn match_searching(source: &str, query: &str) -> String {
+    text("match-searching", &[("source", Arg::Text(source)), ("query", Arg::Text(query))])
+}
+
+/// A search of the source that found nothing.
+pub fn match_search_empty(source: &str, query: &str) -> String {
+    text("match-search-empty", &[("source", Arg::Text(source)), ("query", Arg::Text(query))])
+}
+
+/// Under match-search-empty: what to try.
+pub fn match_search_empty_hint() -> String {
+    text("match-search-empty-hint", &[])
+}
+
+/// A search of the source that failed. The reason follows on its own line.
+pub fn match_search_failed(source: &str) -> String {
+    text("match-search-failed", &[("source", Arg::Text(source))])
+}
+
+/// On the row picked, while the source lists its episodes.
+pub fn match_picking() -> String {
+    text("match-picking", &[])
+}
+
+/// A pick that failed. The reason follows on its own line.
+pub fn match_fix_failed() -> String {
+    text("match-fix-failed", &[])
+}
+
+/// Notice once a picked title's episodes arrive.
+pub fn match_picked(title: &str, source: &str) -> String {
+    text("match-picked", &[("title", Arg::Text(title)), ("source", Arg::Text(source))])
+}
+
+/// Button that forgets the person's choice, shown only while the match is one they chose.
+pub fn match_automatic() -> String {
+    text("match-automatic", &[])
+}
+
+/// Under "Match automatically", on iPhone, iPad and Android.
+pub fn match_automatic_detail() -> String {
+    text("match-automatic-detail", &[])
+}
+
+/// Notice after "Match automatically".
+pub fn match_cleared() -> String {
+    text("match-cleared", &[])
+}
+
+/// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+pub fn match_row_label(title: &str, facts: &str, closeness: &str) -> String {
+    text("match-row-label", &[("title", Arg::Text(title)), ("facts", Arg::Text(facts)), ("closeness", Arg::Text(closeness))])
 }
 
 /// Short label for a joined store, on a row.
@@ -12198,6 +12378,11 @@ pub fn accounts_password() -> String {
 /// Button label while the sign-in runs.
 pub fn accounts_signing_in_action() -> String {
     text("accounts-signing-in-action", &[])
+}
+
+/// Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+pub fn accounts_credentials_refused(tracker: &str) -> String {
+    text("accounts-credentials-refused", &[("tracker", Arg::Text(tracker))])
 }
 
 /// Line under the title: what to do.

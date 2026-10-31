@@ -25,6 +25,9 @@ public enum MotionDemo: String, CaseIterable, Sendable {
     case filters
     /// Search: TV toggled in the format filter, as a click in its menu does.
     case refine
+    /// The Mac's hover card: a pointer path rests on a cover, hands the card to the next cover
+    /// and leaves it (the hover card board's Motion studies).
+    case hover
 
     /// The one the launch arguments name.
     public static func from(arguments: [String] = ProcessInfo.processInfo.arguments) -> MotionDemo? {
@@ -71,6 +74,10 @@ public enum MotionDemo: String, CaseIterable, Sendable {
             navigator.searchFiltersShown.toggle()
         case .refine:
             store.searchLive(store.search.query.togglingFormat(format: .tv))
+        case .hover:
+            #if os(macOS)
+            HoverCardScript.requested = true
+            #endif
         }
     }
 }

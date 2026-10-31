@@ -40,7 +40,7 @@ struct PreviewTests {
         try await until("the frame") { rig.model.preview.ready }
 
         // Another file is another preview's.
-        rig.mpv.emit(.startFile)
+        rig.mpv.startFile()
         try await until("the preview closed") { preview.ended }
         #expect(rig.model.preview.layer == nil)
     }

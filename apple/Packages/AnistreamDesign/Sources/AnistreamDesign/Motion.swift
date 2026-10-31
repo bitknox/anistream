@@ -16,6 +16,9 @@ extension Animation {
     /// Mac preview.
     public static let fadeIn = Animation.easeOut(duration: 0.2)
 
+    /// A trailer coming out from under the art, as soon as it plays.
+    public static let reveal = Animation.easeOut(duration: 0.3)
+
     /// Player controls hiding.
     public static let fadeOut = Animation.easeIn(duration: 0.3)
 }

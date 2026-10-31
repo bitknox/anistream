@@ -82,7 +82,7 @@ sealed class PartySourceDialog
         ctx.Batch += Heard;
         try
         {
-            await dialog.ShowAsync();
+            await Dialogs.Show(dialog);
         }
         finally
         {

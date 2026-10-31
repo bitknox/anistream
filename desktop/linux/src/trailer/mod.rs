@@ -1,4 +1,4 @@
-//! Trailers: the banner that plays one, the hover preview and the Play trailer window.
+//! Trailers: the hover preview and the Play trailer window. A title page's banner never plays one.
 //!
 //! The engine decides whether a trailer may start by itself ([`Event::Autoplay`] and
 //! [`trailer_may_autoplay`]) and writes the page; this module owns the web view, which is
@@ -8,7 +8,6 @@
 //! trailer, its area is at least 200 by 200 px, it starts only while more than half of it shows,
 //! only one plays by itself at a time, and the pointer over it does nothing.
 
-mod banner;
 mod preview;
 mod stage;
 mod webkit;
@@ -16,12 +15,11 @@ mod window;
 
 use anistream_model::{catalog::Entry, settings::SettingKey, trailer::trailer_may_autoplay};
 
-pub use banner::PageTrailer;
 pub use preview::{
     attach as hover_preview, close as close_preview, shot_popover as shot_preview,
     show as show_preview,
 };
-pub use stage::{Slot, Stage};
+pub use stage::Stage;
 pub use window::play as play_window;
 
 use crate::{catalog, hub::Hub};

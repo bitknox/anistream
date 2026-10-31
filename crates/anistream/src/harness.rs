@@ -790,6 +790,9 @@ pub fn name(update: &Event) -> &'static str {
         Event::ProviderNote(_) => "ProviderNote",
         Event::ProviderPreference(_) => "ProviderPreference",
         Event::MatchChoices { .. } => "MatchChoices",
+        Event::MatchSearchFailed { .. } => "MatchSearchFailed",
+        Event::MatchFixFailed { .. } => "MatchFixFailed",
+        Event::TitleMatch { .. } => "TitleMatch",
         Event::Sources { .. } => "Sources",
         Event::SourceOptions { .. } => "SourceOptions",
         Event::PinUnavailable { .. } => "PinUnavailable",
@@ -937,11 +940,24 @@ fn copy(update: &Event) -> Event {
         Event::SourcesChanged => Event::SourcesChanged,
         Event::ProviderNote(text) => Event::ProviderNote(text.clone()),
         Event::ProviderPreference(provider) => Event::ProviderPreference(provider.clone()),
-        Event::MatchChoices { id, provider_id, candidates } => Event::MatchChoices {
-            id: *id,
-            provider_id: provider_id.clone(),
-            candidates: candidates.clone(),
-        },
+        Event::MatchChoices { id, provider_id, candidates, answers, source } => {
+            Event::MatchChoices {
+                id: *id,
+                provider_id: provider_id.clone(),
+                candidates: candidates.clone(),
+                answers: answers.clone(),
+                source: source.clone(),
+            }
+        }
+        Event::MatchSearchFailed { id, query, reason } => {
+            Event::MatchSearchFailed { id: *id, query: query.clone(), reason: reason.clone() }
+        }
+        Event::MatchFixFailed { id, reason } => {
+            Event::MatchFixFailed { id: *id, reason: reason.clone() }
+        }
+        Event::TitleMatch { id, current } => {
+            Event::TitleMatch { id: *id, current: current.clone() }
+        }
         Event::Sources { id, episode, candidates } => {
             Event::Sources { id: *id, episode: episode.clone(), candidates: candidates.clone() }
         }

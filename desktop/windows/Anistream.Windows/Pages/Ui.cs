@@ -42,7 +42,7 @@ static class Ui
 
     public static Button Label(string text, RoutedEventHandler click, bool accent = false)
     {
-        var button = new Button { Content = text, Height = 32 };
+        var button = new Button { Content = text, MinHeight = 32 };
         if (accent)
             button.Style = Res<Style>("AccentButtonStyle");
         button.Click += click;
@@ -62,6 +62,17 @@ static class Ui
 
     public static readonly global::Windows.UI.Color Vermilion = global::Windows.UI.Color.FromArgb(0xFF, 0xE0, 0x6B, 0x54);
 
+    /// <summary>The default button with its words in the critical colour: Delete, Remove, Leave.</summary>
+    static Style Destructive
+    {
+        get
+        {
+            var style = new Style(typeof(Button)) { BasedOn = Res<Style>("DefaultButtonStyle") };
+            style.Setters.Add(new Setter(Control.ForegroundProperty, Res<Brush>("SystemFillColorCriticalBrush")));
+            return style;
+        }
+    }
+
     /// <summary>A flat block set off from the next by a hairline: hierarchy from spacing, not boxes.</summary>
     public static Border Card(UIElement child, double padding = 12) => new()
     {
@@ -78,7 +89,8 @@ static class Ui
         {
             Width = width,
             Height = height,
-            CornerRadius = new CornerRadius(6),
+            // Small thumbnails round at 6, covers above 40 wide at 8.
+            CornerRadius = new CornerRadius(width > 40 ? 8 : 6),
             Background = new SolidColorBrush(Colours.Raised),
         };
         if (ctx.Known.Entries.TryGetValue(id, out var entry))
@@ -92,9 +104,30 @@ static class Ui
     public static string Bytes(ulong n) => Wording.Bytes(n);
 
     /// <summary>
-    /// A destructive action's confirmation: the action names itself and has the accent, as the
-    /// primary action does in every dialog, and Enter presses neither, so a key typed on does
-    /// not confirm it. Escape is Cancel.
+    /// Puts <paramref name="text"/> on the clipboard. Windows refuses while another app holds it
+    /// open, and the refusal is an exception: then the window says so and this is false.
+    /// </summary>
+    public static bool TryCopy(string text)
+    {
+        try
+        {
+            var package = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
+            package.SetText(text);
+            global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+            return true;
+        }
+        catch (Exception e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the clipboard refused a copy: {e.Message}");
+            Ctx.Current?.Window.Say(T.ClipboardBusy);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// A destructive action's confirmation: the action names itself in vermilion on a plain
+    /// button, never the amber accent, and Enter presses neither, so a key typed on does not
+    /// confirm it. Escape is Cancel.
     /// </summary>
     public static async Task<bool> Confirm(XamlRoot root, string title, string text, string action)
     {
@@ -106,8 +139,8 @@ static class Ui
             PrimaryButtonText = action,
             CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.None,
-            PrimaryButtonStyle = Res<Style>("AccentButtonStyle"),
+            PrimaryButtonStyle = Destructive,
         };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await Dialogs.Show(dialog) == ContentDialogResult.Primary;
     }
 }

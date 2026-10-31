@@ -25,6 +25,9 @@ use async_trait::async_trait;
 pub struct MockProvider {
     manifest: ProviderManifest,
     hits: Vec<SearchHit>,
+    /// Hits for one query, in place of `hits`, matched ignoring case and the space around it. A
+    /// mock with any of these finds nothing for a query it has none for.
+    hits_for: HashMap<String, Vec<SearchHit>>,
     episodes: Vec<Episode>,
     streams: Vec<Stream>,
     /// Answers for one key, in place of the shared lists above. A key names one title, so a
@@ -58,6 +61,7 @@ impl MockProvider {
                 translations: vec![Translation::Sub],
             },
             hits: Vec::new(),
+            hits_for: HashMap::new(),
             episodes: Vec::new(),
             streams: Vec::new(),
             episodes_for: HashMap::new(),
@@ -75,6 +79,19 @@ impl MockProvider {
 
     pub fn with_hits(mut self, hits: Vec<SearchHit>) -> Self {
         self.hits = hits;
+        self
+    }
+
+    /// What a search for `query` finds. Once a mock has one of these, a search for any query
+    /// it has none for finds nothing, as a catalogue that lists only some titles would.
+    pub fn with_hits_for(mut self, query: &str, hits: Vec<SearchHit>) -> Self {
+        self.hits_for.insert(query.trim().to_lowercase(), hits);
+        self
+    }
+
+    /// The name a person reads for this source, in place of its id.
+    pub fn named(mut self, display_name: &str) -> Self {
+        display_name.clone_into(&mut self.manifest.display_name);
         self
     }
 
@@ -185,11 +202,14 @@ impl Provider for MockProvider {
 
     async fn search(
         &self,
-        _query: &str,
+        query: &str,
         _translation: Translation,
     ) -> Result<Vec<SearchHit>, ProviderError> {
         self.record().await?;
-        Ok(self.hits.clone())
+        if self.hits_for.is_empty() {
+            return Ok(self.hits.clone());
+        }
+        Ok(self.hits_for.get(&query.trim().to_lowercase()).cloned().unwrap_or_default())
     }
 
     async fn episodes(

@@ -212,6 +212,17 @@ struct SearchScreen: View {
         #endif
     }
 
+    /// The trailing room the panel takes before the screen is measured: a screen that comes back
+    /// with the panel already open (from a title's page) lays out once at the full width, which is
+    /// under the panel, until its width is known.
+    private var unmeasuredPanelInset: CGFloat {
+        #if os(macOS)
+        fullWidth == nil && navigator.searchFiltersShown ? MacFiltersPanel.width : 0
+        #else
+        0
+        #endif
+    }
+
     var body: some View {
         @Bindable var navigator = navigator
         let startShown = store.search.startShown
@@ -240,6 +251,7 @@ struct SearchScreen: View {
                 if reduceMotion { transaction.animation = nil }
             }
             .padding(margins)
+            .padding(.trailing, unmeasuredPanelInset)
             // Wider than the scroll view while the panel slides away: from the leading edge,
             // under the panel, never centred.
             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
@@ -257,6 +269,8 @@ struct SearchScreen: View {
                 .presentationDragIndicator(.visible)
         }
         #else
+        // The card stays clear of the open filters panel, inside the results' width.
+        .hoverCards(trailing: navigator.searchFiltersShown ? MacFiltersPanel.width : 0)
         // Every filter in a panel at the trailing edge, inside Search rather than the system's
         // inspector column: an inspector splits the window's title bar and AppKit draws its own
         // toolbar backdrop across it, a grey band in place of the ground. Here the results'
@@ -275,6 +289,8 @@ struct SearchScreen: View {
         }
         .animation(.standard, value: navigator.searchFiltersShown)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { fullWidth = $0 }
+        // Esc in the results closes the open panel; with it shut, Esc is left to whoever had it.
+        .onExitCommand(perform: navigator.searchFiltersShown ? { navigator.searchFiltersShown = false } : nil)
         #endif
         .task {
             store.loadSearchStart()
@@ -359,7 +375,9 @@ struct FilterCapsule: View {
         .font(compact ? .ui(15) : .mac(13))
         .foregroundStyle(active ? .amber : .silk)
         .padding(.horizontal, compact ? 14 : 12)
-        .frame(height: compact ? 34 : 28)
+        // Taller than its 34 or 28 points only when larger text needs it.
+        .padding(.vertical, 4)
+        .frame(minHeight: compact ? 34 : 28)
         .background(active ? Palette.selection : .clear, in: .capsule)
         .overlay(Capsule().strokeBorder(active ? .clear : Palette.faintRule))
         // A 44 point target on touch around a smaller capsule.
@@ -424,7 +442,8 @@ struct SearchFilterRow: View {
             // the filters open or closed and the results never move. The capsules scroll where
             // they don't fit, as in a narrow window or beside the open filters, fading at an edge
             // with more beyond it; the sort stays at the end, outside the scroll, so none slides
-            // under it.
+            // under it. Filters sits beside it, so the button that closes the panel is never
+            // scrolled or clipped away; the menus scroll behind the edge fade, as on a phone.
             HStack(spacing: 8) {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
@@ -439,6 +458,7 @@ struct SearchFilterRow: View {
                     more = edges
                 }
                 .mask { ScrollEdgeFade(edges: more) }
+                filters(query)
                 sort(query)
             }
         }
@@ -454,7 +474,7 @@ struct SearchFilterRow: View {
         season(query)
         formats(query)
         statuses(query)
-        filters(query)
+        if compact { filters(query) }
     }
 
     private func words(_ mac: String, _ phone: String) -> String {
@@ -657,7 +677,8 @@ struct ActiveFilters: View {
                         .font(compact ? .ui(15) : .mac(12))
                         .foregroundStyle(.silk)
                         .padding(.horizontal, 10)
-                        .frame(height: compact ? 30 : 24)
+                        .padding(.vertical, 3)
+                        .frame(minHeight: compact ? 30 : 24)
                         .background(Palette.raised, in: .capsule)
                         .overlay(Capsule().strokeBorder(Palette.faintRule))
                         .frame(minHeight: compact ? 44 : 24)
@@ -962,9 +983,13 @@ struct SearchFiltersPanel: View {
     private var form: some View {
         let query = store.search.query
         let facets = store.search.facets
-        return ScrollView {
+        return VStack(spacing: 0) {
+            header(query)
+                .padding(.horizontal, compact ? 16 : 14)
+                .padding(.top, compact ? 16 : 14)
+                .padding(.bottom, compact ? 8 : 6)
+            ScrollView {
             VStack(alignment: .leading, spacing: compact ? 28 : 24) {
-                header(query)
                 PanelSection(compact: compact, L.filterGenres) {
                     FlowLayout(spacing: 6, lineSpacing: 6) {
                         ForEach(facets?.genres ?? [], id: \.self) { name in
@@ -1066,14 +1091,17 @@ struct SearchFiltersPanel: View {
                 }
                 if store.accounts.summary.state != .signedOut {
                     PanelSection(compact: compact, L.filterMyList) {
-                        Picker(L.filterMyList, selection: Binding<OnList?>(
+                        Picker(selection: Binding<OnList?>(
                             get: { store.search.query.onList },
                             set: { value in store.editSearch { $0.onList = value } }
                         )) {
                             Text(L.filterShow).tag(OnList?.none)
                             Text(L.filterHide).tag(OnList?.some(.hide))
                             Text(L.filterOnly).tag(OnList?.some(.only))
+                        } label: {
+                            Text(L.filterMyList)
                         }
+                        .labelsHidden()
                         .pickerStyle(.segmented)
                     }
                 }
@@ -1082,14 +1110,17 @@ struct SearchFiltersPanel: View {
                     .foregroundStyle(.haze)
             }
             .padding(compact ? 16 : 14)
+            }
+            .scrollIndicators(.never)
         }
-        .scrollIndicators(.never)
         .background(Palette.ground)
         .tint(.amber)
         .toggleStyle(.switch)
+        .closesOnEscape { navigator.searchFiltersShown = false }
     }
 
-    /// The panel's name and Reset; on iPhone, Done too, as a sheet has.
+    /// The panel's name and Reset, pinned above the scrolling filters; Done on iPhone, as a
+    /// sheet has, and a close button on the Mac and iPad.
     @ViewBuilder
     private func header(_ query: SearchQuery) -> some View {
         if compact {
@@ -1113,8 +1144,26 @@ struct SearchFiltersPanel: View {
                 Button(L.actionReset) { reset() }
                     .buttonStyle(SecondaryCapsuleStyle())
                     .disabled(!query.hasFilters())
+                closeButton
             }
         }
+    }
+
+    private var closeButton: some View {
+        Button {
+            navigator.searchFiltersShown = false
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.silk)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Palette.raised))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .pointerHover()
+        .accessibilityLabel(L.filtersClose)
+        .help(L.filtersClose)
     }
 
     @ViewBuilder
@@ -1191,9 +1240,36 @@ private struct PanelSwitch: View {
                 .contentShape(.rect)
                 .onTapGesture { isOn.wrappedValue.toggle() }
         }
+        #if os(macOS)
+        .toggleStyle(PanelSwitchStyle())
+        #else
         .toggleStyle(.switch)
+        #endif
     }
 }
+
+#if os(macOS)
+/// The Mac's switch with a track that shows when it is off: the system's off track is a fill
+/// barely lighter than the ground, so on the dark theme only the white knob was visible.
+private struct PanelSwitchStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            Capsule()
+                .fill(configuration.isOn ? Color.amber : Palette.raised)
+                .overlay(Capsule().strokeBorder(configuration.isOn ? Color.clear : Color.haze.opacity(0.55), lineWidth: 1))
+                .frame(width: 38, height: 22)
+                .overlay(alignment: configuration.isOn ? .trailing : .leading) {
+                    Circle().fill(Color.white).padding(2)
+                }
+                .animation(.quick, value: configuration.isOn)
+                .contentShape(.capsule)
+                .onTapGesture { configuration.isOn.toggle() }
+                .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
+        }
+    }
+}
+#endif
 
 /// A group of tags that opens and closes from anywhere on its row: its name, its count and its
 /// chevron, where the Mac's own disclosure answers on the chevron alone.

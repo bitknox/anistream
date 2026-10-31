@@ -52,7 +52,7 @@ sealed class TitleMoreDialog
         return style;
     }
 
-    public async void Show() => await dialog.ShowAsync();
+    public async void Show() => await Dialogs.Show(dialog);
 
     static TextBlock Heading(string text) => new()
     {

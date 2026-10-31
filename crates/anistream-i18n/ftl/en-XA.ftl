@@ -219,6 +219,21 @@ notice-match-did-not-stick = [Ţĥàţ ɱàţçĥ ðîðñ'ţ šţîçķ. Ţĥé
 # Toast when a search of the sources for a title found nothing.
 notice-source-search-empty = [Ñöţĥîñĝ ƒöüñð ƒöŕ “{ $query }”. Ţŕý à ðîƒƒéŕéñţ šéàŕçĥ.~~~~~~~~~~~~~~~]
 
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+match-ruled-out-format = [Ðîƒƒéŕéñţ ƒöŕɱàţ~~~~~]
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+match-ruled-out-episodes = [Ṁöŕé éþîšöðéš ţĥàñ ţĥîš ţîţļé~~~~~~~~~]
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+match-ruled-out-year = [Ðîƒƒéŕéñţ ýéàŕ~~~~~]
+
+# Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+match-search-timed-out = [Îţ ðîðñ'ţ àñšŵéŕ îñ ţîɱé.~~~~~~~~]
+
+# Why a search of a source for a show's match failed: the source isn't installed or switched on.
+match-search-source-off = [Îţ îšñ'ţ šŵîţçĥéð öñ.~~~~~~~]
+
 # Toast after the person picked a source for one title.
 notice-source-pinned = [{ $source } ŵîļļ ƀé üšéð ƒöŕ ţĥîš ţîţļé.~~~~~~~~~~]
 
@@ -712,6 +727,9 @@ start-failed-folder = [àñîšţŕéàɱ çöüļðñ'ţ çŕéàţé ţĥé ƒ
 
 # Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
 start-failed-config = [{ $path } ĥàš à šéţţîñĝ àñîšţŕéàɱ çàñ'ţ üšé: { $problem }. Ƒîẋ öŕ ŕéɱöṽé îţ, ţĥéñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+config-reset-failed = [àñîšţŕéàɱ çöüļðñ'ţ ɱöṽé { $path } àšîðé ţö ŕéšéţ ţĥé šéţţîñĝš. { $reason }~~~~~~~~~~~~~~~~~~]
 
 # Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
 start-failed-database = [àñîšţŕéàɱ çöüļðñ'ţ öþéñ îţš ðàţàƀàšé àţ { $path }. Îƒ àñöţĥéŕ àñîšţŕéàɱ àþþ îš öþéñ öñ ţĥîš ƒöļðéŕ, ƣüîţ îţ àñð ţŕý àĝàîñ. { $reason }~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -3147,7 +3165,7 @@ settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîš
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = [Ţĥé àþþš þļàý ţŕàîļéŕš ɱüţéð îñ þļàçé öƒ ţĥé ƀàññéŕ. Ţĥé ţéŕɱîñàļ ķééþš ţĥé šéţţîñĝ àñð þļàýš ñöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+settings-note-trailers = [Ţĥé ðéšķţöþ àþþš þļàý ţŕàîļéŕš ɱüţéð îñ ĥöṽéŕ þŕéṽîéŵš. Ţĥé ţéŕɱîñàļ ķééþš ţĥé šéţţîñĝ àñð þļàýš ñöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the subtitles row.
 settings-note-subtitles = [Þŕéšš Éñţéŕ ţö ţýþé à ļàñĝüàĝé çöðé. Ţĥéŕé àŕé ţöö ɱàñý ṽàļüéš ţö çýçļé ţĥŕöüĝĥ.~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -5818,6 +5836,9 @@ search-loading-more = [Ļöàðîñĝ ɱöŕé ţîţļéš~~~~~~]
 # Title of the filters sheet and panel.
 filters-title = [Ƒîļţéŕš~~~]
 
+# Accessible label and tooltip of the button that closes the filters panel.
+filters-close = [Çļöšé ƒîļţéŕš~~~~]
+
 # Button that opens the filters, with how many are on.
 filters-button-count = [Åļļ ƒîļţéŕš · { $count }~~~~~~]
 
@@ -6037,7 +6058,7 @@ settings-value-trailers-always = [Åļŵàýš~~]
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
 
 # Option: use the tracker's own choice. The tracker is a name.
@@ -6333,6 +6354,12 @@ settings-upload-unlimited = [Ûñļîɱîţéð~~~]
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
 
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+settings-label-hover-cards = [Éẋþàñð çöṽéŕš öñ ĥöṽéŕ~~~~~~~]
+
+# Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+settings-hover-cards-note = [Šĥöŵš à ļàŕĝéŕ çàŕð ŵîţĥ ţĥé ţŕàîļéŕ ŵĥéñ ýöü ŕéšţ ţĥé þöîñţéŕ öñ à çöṽéŕ.~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
 
@@ -6377,6 +6404,18 @@ settings-trailers-always = [Åļŵàýš~~]
 
 # Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 settings-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
+
+# Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+settings-reset = [Ŕéšéţ šéţţîñĝš~~~~~]
+
+# Title of the confirmation for resetting the settings.
+settings-reset-title = [Ŕéšéţ šéţţîñĝš?~~~~~]
+
+# Line under it. The old settings file is moved aside, not deleted.
+settings-reset-detail = [Éṽéŕý šéţţîñĝ ĝöéš ƀàçķ ţö îţš ðéƒàüļţ, ṼÞÑ àñð þŕöẋý îñçļüðéð. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš, àñð ţĥé öļð šéţţîñĝš ƒîļé îš ķéþţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+settings-reset-done = [Šéţţîñĝš àŕé ƀàçķ ţö ţĥéîŕ ðéƒàüļţš. Ţĥé öļð ƒîļé îš ķéþţ àš { $file }.~~~~~~~~~~~~~~~~~~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -6587,6 +6626,79 @@ sources-rebuilding = [Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~
 
 # Value of a plugin's response time, in milliseconds.
 sources-response-ms = [{ $ms } ɱš~~]
+
+# Menu, palette and source picker entry that opens the sheet.
+match-fix = [Ƒîẋ ţĥîš ɱàţçĥ~~~~~]
+
+# The title page's main action while the source couldn't choose, and the sheet's title.
+match-choose = [Çĥööšé ţĥé ɱàţçĥ~~~~~]
+
+# The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+match-uncertain =
+    { $count ->
+        [one] [{ $source } ļîšţš à ţîţļé ţĥàţ çöüļð ƀé ţĥîš öñé. Çĥööšé îţ ţö þļàý îţš éþîšöðéš.~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $source } ļîšţš { $count } ţîţļéš ţĥàţ çöüļð ƀé ţĥîš öñé. Çĥööšé öñé ţö þļàý îţš éþîšöðéš.~~~~~~~~~~~~~~~~~~~~~~~~]
+    }
+
+# The line on a title page when the source listed no title that fits, so the person searches.
+match-uncertain-none = [{ $source } ĥàš ñö ţîţļé ţĥàţ ƒîţš ţĥîš öñé. Çĥööšé öñé àñýŵàý, öŕ šéàŕçĥ.~~~~~~~~~~~~~~~~~~~~]
+
+# The last row of the source picker, which opens the match sheet.
+match-source-picker-row = [Ŵŕöñĝ ţîţļé? Ƒîẋ ţĥîš ɱàţçĥ~~~~~~~~~]
+
+# Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+match-anilist-facts = [Öñ ÅñîĻîšţ: { $facts }~~~~~]
+
+# Heading over the titles a source offers.
+match-section-source = [Öñ { $source }~~]
+
+# Heading over the title the show is matched to now.
+match-now = [Ṁàţçĥéð ñöŵ~~~~]
+
+# Beside the title matched now: the person chose it.
+match-chosen-by-you = [Çĥöšéñ ƀý ýöü~~~~]
+
+# Beside the title matched now: anistream chose it.
+match-chosen-automatically = [Çĥöšéñ àüţöɱàţîçàļļý~~~~~~]
+
+# How closely a source's title matches the show, at the end of its row.
+match-similarity = [{ $similarity } ɱàţçĥ~~~]
+
+# Placeholder of the search field in the sheet.
+match-search-field = [Šéàŕçĥ { $source }~~~]
+
+# While a search of the source runs.
+match-searching = [Šéàŕçĥîñĝ { $source } ƒöŕ “{ $query }”~~~~~~~]
+
+# A search of the source that found nothing.
+match-search-empty = [Ñöţĥîñĝ öñ { $source } ƒöŕ “{ $query }”.~~~~~~~~]
+
+# Under match-search-empty: what to try.
+match-search-empty-hint = [Ţŕý ƒéŵéŕ ŵöŕðš, öŕ ţĥé ţîţļé îñ àñöţĥéŕ ļàñĝüàĝé.~~~~~~~~~~~~~~~]
+
+# A search of the source that failed. The reason follows on its own line.
+match-search-failed = [Çöüļðñ'ţ šéàŕçĥ { $source }.~~~~~~]
+
+# On the row picked, while the source lists its episodes.
+match-picking = [Ṁàţçĥîñĝ~~~]
+
+# A pick that failed. The reason follows on its own line.
+match-fix-failed = [Çöüļðñ'ţ üšé ţĥàţ ɱàţçĥ.~~~~~~~~]
+
+# Notice once a picked title's episodes arrive.
+match-picked = [Ṁàţçĥéð ţö { $title } öñ { $source }.~~~~~~~]
+
+# Button that forgets the person's choice, shown only while the match is one they chose.
+match-automatic = [Ṁàţçĥ àüţöɱàţîçàļļý~~~~~~]
+
+# Under "Match automatically", on iPhone, iPad and Android.
+match-automatic-detail = [Ƒöŕĝéţ ýöüŕ çĥöîçé àñð ļéţ àñîšţŕéàɱ ɱàţçĥ ţĥîš ţîţļé àĝàîñ.~~~~~~~~~~~~~~~~~~]
+
+# Notice after "Match automatically".
+match-cleared = [Ṁàţçĥîñĝ àüţöɱàţîçàļļý àĝàîñ.~~~~~~~~~]
+
+# Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+match-row-label = [{ $title }, { $facts }, { $closeness }~~~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]
@@ -7457,7 +7569,7 @@ accounts-welcome-detail = [Šîĝñ îñ ţö { $tracker } ţö šýñç ýöü�
 accounts-brings-lists = [Ɓŕîñĝš îñ ýöüŕ ļîšţš àñð ƒîļļš Çöñţîñüé ŵîţĥ ŵĥàţ ýöü àŕé ŵàţçĥîñĝ.~~~~~~~~~~~~~~~~~~~~~]
 
 # Line under the accounts screen when the library needs a tracker.
-accounts-library-needs = [Ļîƀŕàŕý àñð šýñç ñééð à { $tracker } àççöüñţ~~~~~~~~~~~]
+accounts-library-needs = [Ļîƀŕàŕý àñð šýñç ñééð ýöüŕ { $tracker } àççöüñţ~~~~~~~~~~~~]
 
 # Line on the settings page: where the library gets its lists.
 accounts-library-from = [Ļîƀŕàŕý šĥöŵš ýöüŕ ļîšţš ƒŕöɱ { $tracker }.~~~~~~~~~~~]
@@ -7576,6 +7688,9 @@ accounts-password = [Þàššŵöŕð~~~]
 
 # Button label while the sign-in runs.
 accounts-signing-in-action = [Šîĝñîñĝ îñ~~~]
+
+# Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+accounts-credentials-refused = [{ $tracker } ðîðñ'ţ àççéþţ ţĥàţ üšéŕ ñàɱé àñð þàššŵöŕð. Çĥéçķ ţĥéɱ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line under the title: what to do.
 accounts-code-detail = [Ĝö ţö { $host } àñð éñţéŕ ţĥîš çöðé. àñîšţŕéàɱ šîĝñš îñ öñçé ýöü ĥàṽé.~~~~~~~~~~~~~~~~~~~~]
