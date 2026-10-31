@@ -5,6 +5,13 @@ plugins {
     id("anistream.engine.flavours")
 }
 
+/** The workspace version in Cargo.toml, which the merge train sets: a local build's versionName. */
+val workspaceVersion: String =
+    rootProject.file("../Cargo.toml").readText()
+        .substringAfter("[workspace.package]")
+        .let { Regex("""(?m)^version\s*=\s*"([^"]+)"""").find(it)?.groupValues?.get(1) }
+        ?: "2.0.0"
+
 /**
  * The update test's keystore (android/scripts/update-test.sh): with it, the app flavour is signed
  * with a key the test made, never the release key, so one test build installs over another on an
@@ -21,9 +28,9 @@ android {
     ndkVersion = libs.versions.ndk.get()
     defaultConfig {
         // A release takes both from its tag (packaging/apps/version.sh), which CI passes as the
-        // properties ANISTREAM_VERSION_CODE and ANISTREAM_VERSION_NAME; a local build keeps these.
+        // properties ANISTREAM_VERSION_CODE and ANISTREAM_VERSION_NAME; a local build keeps these (the name is the workspace version).
         versionCode = providers.gradleProperty("ANISTREAM_VERSION_CODE").map(String::toInt).getOrElse(1)
-        versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse("2.0.0")
+        versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse(workspaceVersion)
         ndk { abiFilters += "arm64-v8a" }
         // The feature videos' flows, src/androidTestFixtures (website/scripts/videos).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

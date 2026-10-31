@@ -22,11 +22,18 @@ Johan inspects every train himself before it merges, so keep trains few and comp
    builds and the Mac Release plus `adhoc-sign.sh` when Apple or packaging changed. Fix what
    breaks with small signed train commits that say what they fix. Code that only breaks in
    combination is the usual find.
-4. **PR.** Push the branch and open ONE PR against main. The first paragraphs become release
+4. **Version.** After the merges, choose the bump: minor if the train merged any `feat/*`
+   branch, otherwise patch; major only when Johan asks (a plugin API change that needs plugins
+   rebuilt, data or config the last version can't read, a store protocol break, a dropped OS).
+   Set `[workspace.package] version` in `Cargo.toml` above the newest `v*` tag, run
+   run `cargo check --locked` so `Cargo.lock` matches (fix it with `cargo update -w` if not),
+   and commit `Release X.Y.Z`. A PR check fails a release that isn't newer than the newest tag.
+5. **PR.** Push the branch and open ONE PR against main. The first paragraphs become release
    notes and the apps' update notes (about 500 characters), so keep them short and plain. List
-   the branches, conflicts and resolutions, train fixes, what was checked and what wasn't. End
+   the version, the branches, conflicts and resolutions, train fixes, what was checked and what
+   wasn't. End
    with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
-5. **Review builds.** Don't turn on auto-merge yet. Into `~/anistream-notes/builds/train-<n>/`, put:
+6. **Review builds.** Don't turn on auto-merge yet. Into `~/anistream-notes/builds/train-<n>/`, put:
    - the Mac Release app from step 3, after `adhoc-sign.sh`;
    - the Android app-flavour release APK from the R8 build, with a version code above the latest
      release, so it installs over the store build;
@@ -36,10 +43,10 @@ Johan inspects every train himself before it merges, so keep trains few and comp
 
    Build them even when a platform's code didn't change, because the engine reaches both. Never launch
    `tv.anistream.app` yourself; Johan runs these builds. Report the folder and the PR, then stop.
-6. **Merge after Johan's go.** Only when Johan approves the train in the conversation, confirm
+7. **Merge after Johan's go.** Only when Johan approves the train in the conversation, confirm
    protection first:
    `gh api repos/bitknox/anistream/branches/main/protection/required_status_checks -q .contexts`
    must list `CI passed`. Then `gh pr merge <n> --auto --merge -R bitknox/anistream`. Never merge
    without `--auto`; without protection it merges at once. If he finds problems, fix them on the
-   train with signed commits and rebuild step 5.
-7. **After merge,** confirm the Release run on the merge commit published (see `ci-triage`).
+   train with signed commits and rebuild step 6.
+8. **After merge,** confirm the Release run on the merge commit published (see `ci-triage`).
