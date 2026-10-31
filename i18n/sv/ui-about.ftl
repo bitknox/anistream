@@ -1,0 +1,11 @@
+about-title = Om
+about-title-app = Om { -app-name }
+about-version = Version { $version }
+about-licence = Utgiven under MIT-licensen.
+about-acknowledgements = Erkännanden
+about-licences = Licenser
+about-website = Webbplats
+about-report-bug = Rapportera ett fel
+about-report-bug-detail = Öppnar en felrapport på GitHub, där du loggar in. Den innehåller dina versioner och senaste felet, utan adresser, sökvägar eller titlar.
+about-artwork = Vissa bilder är licensierade under Creative Commons BY-NC 4.0.
+about-font-licence = Licensierad under SIL Open Font License 1.1.

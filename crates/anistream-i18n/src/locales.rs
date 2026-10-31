@@ -9,6 +9,8 @@ pub const SOURCE: &str = "en";
 /// The languages this build has text for, source first.
 pub const LOCALES: &[Locale] = &[
     Locale { tag: "en", name: "English", draft: false, ftl: include_str!("../ftl/en.ftl") },
+    Locale { tag: "ja", name: "日本語", draft: true, ftl: include_str!("../ftl/ja.ftl") },
+    Locale { tag: "sv", name: "Svenska", draft: true, ftl: include_str!("../ftl/sv.ftl") },
 ];
 
 /// Accented, padded English for looking at layouts. Never in a release build unless `pseudo` is on.

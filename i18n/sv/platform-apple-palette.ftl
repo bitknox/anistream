@@ -1,0 +1,12 @@
+palette-placeholder = Titlar och kommandon
+palette-titles = Titlar
+palette-commands = Kommandon
+palette-recent = Senaste
+palette-search-for = Retur söker efter “{ $query }”
+palette-hint-open = Öppna
+palette-resume-episode = Fortsätt E{ $episode }
+palette-progress-kept = Förloppet sparas
+palette-show-settings-detail = Ljud, undertexter, automatisk hoppning, { -source }
+welcome-airing-today-label = Sänds idag, visa i kalendern
+welcome-broadcast = { $episode } · { $clock }
+messages-empty = Inga meddelanden än

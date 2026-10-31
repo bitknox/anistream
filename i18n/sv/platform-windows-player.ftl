@@ -1,0 +1,12 @@
+player-episode-line-titled = { $line } · { $title }
+player-episode-fraction = Avsnitt { $number }
+player-starting-fraction = Startar avsnitt { $number }
+player-failed-fraction = Det gick inte att spela upp avsnitt { $number }
+player-speed-value = { $speed }×
+player-timeline-playing = Spelar upp, { $position } av { $duration }
+player-timeline-paused = Pausad, { $position } av { $duration }
+player-track-added = { $name } · Tillagd
+player-load-subtitles-commit = Läs in undertexter
+player-load-audio-commit = Läs in ljud
+player-mini-tip = Ligger alltid överst. Tryck på { $key } för att gå tillbaka.
+player-stats-row = { $label }: { $value }

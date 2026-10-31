@@ -1,0 +1,12 @@
+palette-placeholder = タイトルとコマンド
+palette-titles = タイトル
+palette-commands = コマンド
+palette-recent = 最近の検索
+palette-search-for = Returnで「{ $query }」を検索
+palette-hint-open = 開く
+palette-resume-episode = E{ $episode }から再開
+palette-progress-kept = 進捗は保持されます
+palette-show-settings-detail = 音声、字幕、自動スキップ、{ -source }
+welcome-airing-today-label = 今日放送、カレンダーを開く
+welcome-broadcast = { $episode } · { $clock }
+messages-empty = メッセージはまだありません
