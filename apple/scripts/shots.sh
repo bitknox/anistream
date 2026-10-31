@@ -21,7 +21,9 @@
 # (pale: 900001's page with a long title on a near-white banner; proxy: torrents through a saved proxy,
 # which sheet=proxy edits, and checking or unsaved its check under way or failed), and watched=<id>:<episodes>,
 # episodes marked watched as the shot starts (900006:8 is caught up), and
-# fold=open, the title page's watched episodes opened:
+# fold=open, the title page's watched episodes opened, world=1, Home's invented season of ten
+# drawn titles (with the scenes suggested, oneleft, continuefull, notfound, slow, failed and offline,
+# which stage Home's states):
 #
 #   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
 #   apple/scripts/shots.sh mac watching:settings+pane=sources+showcase=sources
@@ -82,7 +84,7 @@ for shot in "${shots[@]}"; do
 done
 shots=("${expanded[@]}")
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | sourceless | unsure | fresh | playing) ;; player-*) ;; *) usage ;; esac
+  case "${shot%%:*}" in watching | sourceless | unsure | fresh | playing | suggested | oneleft | continuefull | notfound | slow | failed | offline) ;; player-*) ;; *) usage ;; esac
   if [[ "$shot" == player-* && ! " ${players[*]} " == *" $shot "* ]]; then usage; fi
 done
 
@@ -116,6 +118,7 @@ arguments() {
       fold=*) printf '%s\n' -AnistreamFold "${screen#fold=}" ;;
       day=*) printf '%s\n' -AnistreamDay "${screen#day=}" ;;
       mine=*) printf '%s\n' -AnistreamCalendarMine "${screen#mine=}" ;;
+      world=*) printf '%s\n' -AnistreamHomeWorld "${screen#world=}" ;;
       *) printf '%s\n' -AnistreamSection "$screen" ;;
     esac
   done

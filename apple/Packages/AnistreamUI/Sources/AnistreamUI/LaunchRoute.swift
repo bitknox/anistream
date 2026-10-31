@@ -26,7 +26,7 @@ import Foundation
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
 ///     -AnistreamCatalogue           Search's browse with the test kit's eight more titles beside the six
 public struct LaunchRoute: Equatable, Sendable {
-    public var section: AppSection = .continue
+    public var section: AppSection = .home
     public var selected: AnilistId?
     public var title: AnilistId?
     public var query: String?
@@ -49,7 +49,8 @@ public struct LaunchRoute: Equatable, Sendable {
             else { return nil }
             return arguments[index + 1]
         }
-        section = value("-AnistreamSection").flatMap(AppSection.init(rawValue:)) ?? .continue
+        // "continue" was Home's name, and still opens it.
+        section = value("-AnistreamSection").map { $0 == "continue" ? "home" : $0 }.flatMap(AppSection.init(rawValue:)) ?? .home
         selected = value("-AnistreamSelect").flatMap { AnilistId($0) }
         title = value("-AnistreamTitle").flatMap { AnilistId($0) }
         query = value("-AnistreamQuery")

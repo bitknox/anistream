@@ -36,7 +36,7 @@ struct TabShell: View {
             }
         )
         return TabView(selection: section) {
-            ForEach([AppSection.continue, .calendar, .seasonal, .library]) { section in
+            ForEach([AppSection.home, .calendar, .seasonal, .library]) { section in
                 Tab(section.title, systemImage: section.symbol, value: section) {
                     TabStack(section: section) { screen(section) }
                 }
@@ -99,7 +99,7 @@ struct TabShell: View {
     private func screen(_ section: AppSection) -> some View {
         let wide = sizeClass == .regular
         switch section {
-        case .continue: if wide { ContinueScreen() } else { PhoneContinue() }
+        case .home: HomeScreen()
         case .calendar:
             if wide {
                 // The week's paging and My list or All airing, as on the Mac (PadCalendar).

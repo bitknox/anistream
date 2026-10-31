@@ -31,12 +31,14 @@ enum HoverCardSize {
     /// The synopsis's two lines at 19.
     static let synopsis: CGFloat = 38
     static let action: CGFloat = 28
+    /// Home's line above the synopsis: the full reason, or that no source has it.
+    static let reason: CGFloat = 18
     static let gap: CGFloat = 12
     static let foot: CGFloat = 16
 
     /// The card's height: 322 with the synopsis and the action, 282 without the action.
-    static func height(synopsis: Bool, action: Bool) -> CGFloat {
-        let parts = [synopsis ? Self.synopsis : nil, action ? Self.action : nil].compactMap { $0 }
+    static func height(synopsis: Bool, action: Bool, reason: Bool = false) -> CGFloat {
+        let parts = [reason ? Self.reason : nil, synopsis ? Self.synopsis : nil, action ? Self.action : nil].compactMap { $0 }
         guard !parts.isEmpty else { return band }
         return band + parts.reduce(0) { $0 + gap + $1 } + foot
     }

@@ -35,7 +35,7 @@ struct NoticeCapsule: View {
     /// How long a notice stays up: 4 s, or 8 s with a button or for a problem, and 1 s more for
     /// every 10 words past 12.
     static func duration(_ item: NoticeItem) -> Duration {
-        let base = item.isAlert || item.notice.hint != nil || Self.isTakenOver(item.notice.msg) ? 8 : 4
+        let base = item.isAlert || item.notice.hint != nil || item.action != nil || Self.isTakenOver(item.notice.msg) ? 8 : 4
         let words = item.notice.words.split(whereSeparator: \.isWhitespace).count
         return .seconds(base + max(0, words - 12) / 10)
     }
@@ -57,7 +57,7 @@ struct NoticeCapsule: View {
                                 .lineLimit(2)
                         }
                         .padding(.leading, 16)
-                        .padding(.trailing, item.notice.hint != nil || item.isAlert || playsHere(item) ? 8 : 16)
+                        .padding(.trailing, item.notice.hint != nil || item.action != nil || item.isAlert || playsHere(item) ? 8 : 16)
                         .frame(minHeight: 36)
                         .contentShape(.rect)
                     }
@@ -66,6 +66,14 @@ struct NoticeCapsule: View {
                         Button(Self.words(hint)) { act(hint, item) }
                             .buttonStyle(SecondaryCapsuleStyle(height: 24, fontSize: 12))
                             .padding(.trailing, 6)
+                    } else if let action = item.action {
+                        // The app's own button: Undo after Not interested, Try again.
+                        Button(action.label) {
+                            withAnimation(.fadeOut) { store.notices.dismiss(item) }
+                            action.run()
+                        }
+                        .buttonStyle(SecondaryCapsuleStyle(height: 24, fontSize: 12))
+                        .padding(.trailing, 6)
                     } else if playsHere(item) {
                         // Someone else took the TV: carry on here, from where it was.
                         Button(L.castPlayHere) {

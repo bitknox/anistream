@@ -14,7 +14,7 @@ struct HandoffTests {
         navigator.continueHandoff(.title(900_001))
         navigator.continueHandoff(.title(900_001))
         #expect(navigator.titleOnScreen == 900_001)
-        #expect(navigator.paths[.continue] == [900_001])
+        #expect(navigator.paths[.home] == [900_001])
         #expect(navigator.handedOff == nil)
     }
 

@@ -147,6 +147,8 @@ struct Meter: View {
     var height: CGFloat = 3
     /// What VoiceOver says for it where the time left is known: "14 min left", not a percentage.
     var spoken: String?
+    /// Silk, where the view's one amber is its main action (Home's cards).
+    var silk = false
 
     var body: some View {
         Capsule()
@@ -154,7 +156,7 @@ struct Meter: View {
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
                     Capsule()
-                        .fill(.amber)
+                        .fill(silk ? Palette.silk : Palette.amber)
                         .frame(width: proxy.size.width * min(max(fraction, 0), 1))
                 }
             }

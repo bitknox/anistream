@@ -108,6 +108,9 @@ struct LibraryScreen: View {
         Group {
             if embedded {
                 grid
+            } else if navigator.librarySegment == .watching {
+                // Watching is what Continue was: the queue, and the selected title beside it.
+                ContinueScreen()
             } else if store.accounts.summary.state == .signedOut {
                 SignedOutLibrary()
             } else {

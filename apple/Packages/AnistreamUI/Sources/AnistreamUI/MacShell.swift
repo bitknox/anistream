@@ -96,12 +96,18 @@ struct MacShell: View {
         .matchPickerSheet(navigator)
     }
 
+    /// Home offline says so under its name, as every cached screen does.
+    private var homeSubtitle: String {
+        guard let view = store.discovery.view, view.offline, let since = view.offlineSince else { return "" }
+        return L.homeOffline(time: AirTime.clock(Date(timeIntervalSince1970: TimeInterval(since))))
+    }
+
     /// What the toolbar says under the section's name.
     private var subtitle: String {
         guard navigator.titleOnMac == nil else { return "" }
         switch navigator.section {
-        case .continue:
-            return store.continuing.list.state == .empty ? L.continueEmptyTitle : ""
+        case .home:
+            return homeSubtitle
         case .calendar:
             return CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         case .seasonal:
@@ -323,7 +329,7 @@ struct SectionView: View {
 
     var body: some View {
         switch section {
-        case .continue: ContinueScreen()
+        case .home: HomeScreen()
         case .calendar: CalendarScreen()
         case .seasonal: SeasonalScreen()
         case .search: SearchScreen()

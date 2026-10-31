@@ -101,8 +101,8 @@ public struct ContinueQueue: Equatable, Sendable {
     public var all: [ContinueItem] { inProgress + newThisWeek }
     public var isEmpty: Bool { inProgress.isEmpty && newThisWeek.isEmpty }
 
-    /// At most this many rows: Continue is a shortlist, not a second library.
-    public static let rows = 5
+    /// At most this many rows: the engine's own limit for the queue.
+    public static let rows = 15
     /// What counts as this week.
     public static let week: Int64 = 7 * 86_400
 

@@ -38,6 +38,8 @@ public final class AppStore {
 
     public let titles = TitleCache()
     public let continuing = ContinueModel()
+    /// Home: the engine's whole view of it.
+    public let discovery = HomeModel()
     public let seasonal = ListModel()
     public let calendar = CalendarModel()
     public let discussion = DiscussionModel()
@@ -628,6 +630,7 @@ public final class AppStore {
     /// Take a title off Continue: the row goes at once, and the engine keeps it hidden.
     public func hideFromContinue(_ id: AnilistId) {
         continuing.hide(id)
+        discovery.leaves(id)
         send(.hideFromContinue(id: id))
     }
 
@@ -708,6 +711,7 @@ public final class AppStore {
             + LibraryModel.order.map(library.segment)
         return phase != .starting
             && !lists.contains { $0.state == .loading }
+            && discovery.isSettled
             && jobs.running.isEmpty
             && !artwork.hasPending
     }
@@ -765,6 +769,13 @@ public final class AppStore {
             if case .calendar = view { widgetsChanged() }
         case .caption(let view, let text):
             caption(text, for: view)
+        case .home(let view):
+            discovery.apply(view, titles: titles)
+            if view.failed { homeFailed() }
+        case .titlePlayable(let id, let playable):
+            discovery.playable(id, playable)
+        case .hiddenTitles(let rows):
+            discovery.hidden(rows)
         case .calendarWindow(let anchor, let pages, let morePast, let floor, let ceiling, let aheadPages, let moreAhead):
             calendar.window(
                 anchor: anchor, pages: pages, morePast: morePast,

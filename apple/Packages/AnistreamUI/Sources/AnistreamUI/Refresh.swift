@@ -8,7 +8,7 @@ import SwiftUI
 
 /// What a pull refreshes.
 enum Refreshable {
-    case continueWatching, calendar, seasonal, downloads
+    case home, continueWatching, calendar, seasonal, downloads
     /// The Library's list on screen, which also syncs.
     case library(LibrarySegment)
 }
@@ -23,6 +23,9 @@ extension AppStore {
         let activities: [String]
         let list: ListModel?
         switch what {
+        case .home:
+            loadHome(force: true)
+            (activities, list) = (["loading home"], nil)
         case .continueWatching:
             loadContinue(force: true)
             (activities, list) = (["loading continue watching"], continuing.list)

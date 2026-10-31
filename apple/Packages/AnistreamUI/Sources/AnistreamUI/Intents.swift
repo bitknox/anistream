@@ -144,7 +144,7 @@ public final class IntentsBridge {
 
     /// Play the hero's episode from where it was left, over Continue: the player opens.
     public func play(_ id: AnilistId, episode: UInt32) {
-        navigator?.open(.continue)
+        navigator?.open(.home)
         store?.send(.play(id: id, episode: String(episode)))
     }
 

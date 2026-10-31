@@ -257,7 +257,7 @@ private struct HoverCardLayer: ViewModifier {
                         cards.layout = HoverLayout(
                             covers: place.covers,
                             area: place.area,
-                            height: { [store, navigator] id in store.hoverCardHeight(id, handedOff: navigator.handedOff) },
+                            height: { [store, navigator] id in store.hoverCardHeight(id, handedOff: navigator.handedOff, onHome: navigator.section == .home) },
                             toggle: { [store] id in store.titles[id].map { store.trailerMayAutoplay($0) } ?? false }
                         )
                     }
@@ -409,11 +409,13 @@ extension AppStore {
     /// How tall `id`'s card is: room for the synopsis unless its details are here without one, and
     /// for the action when there is an episode to play.
     @MainActor
-    func hoverCardHeight(_ id: AnilistId, handedOff: HandedOff?) -> CGFloat {
+    func hoverCardHeight(_ id: AnilistId, handedOff: HandedOff?, onHome: Bool = false) -> CGFloat {
         guard let entry = titles[id] else { return HoverCardSize.height(synopsis: true, action: true) }
+        let reason = onHome && HomeHover(self, id)?.line != nil
         let synopsis = !(titles.detailed.contains(id) && entry.shownSynopsis.isEmpty)
         let action = TitleAction(entry, handedOff: handedOff, episodes: titles.episodes[id]).playable
-        return HoverCardSize.height(synopsis: synopsis, action: action)
+            || (onHome && HomeHover(self, id)?.action == .addToPlanning)
+        return HoverCardSize.height(synopsis: synopsis, action: action, reason: reason)
     }
 }
 
