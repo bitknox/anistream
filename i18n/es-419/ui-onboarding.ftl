@@ -1,0 +1,11 @@
+onboarding-welcome = Bienvenida
+onboarding-welcome-to = Bienvenido a { -app-name }
+onboarding-tagline = Lleva el registro de tus animes y reprodúcelos desde las { -source-pl } que elijas.
+onboarding-continue = { -continue-cap }
+onboarding-skip = Omitir
+onboarding-skip-for-now = Omitir por ahora
+onboarding-not-now = Ahora no
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = Las { -source-pl } son { -plugin-pl } que se comparten por invitación desde { -plugin-store-pl }.
+onboarding-join = Unirse
+onboarding-invite-hint = Enlace de invitación

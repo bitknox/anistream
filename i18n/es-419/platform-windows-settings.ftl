@@ -1,0 +1,51 @@
+settings-loading = Cargando la configuración
+settings-group-mpv = mpv
+settings-card-state = { $title }, { $state }
+settings-card-check = { $title }, { $word }, { $note }
+settings-closing-detail = Seguir descargando deja { -app-name } en el área de notificaciones hasta que terminen.
+settings-presence-rich-detail = La portada, una barra de progreso y un enlace al título en { $tracker }. Requiere que se muestre el título.
+settings-another-tv = Otro televisor
+settings-theme = Tema
+settings-motion = Animaciones
+settings-start-fullscreen = Iniciar en pantalla completa
+settings-player-interface = Interfaz del reproductor
+settings-vpn-mode = Modo VPN
+settings-token-storage = Almacenamiento de tokens
+settings-watch-parties = { -watch-party-cap-pl }
+settings-source-order = Orden de { -source }s
+settings-downloads-cellular = Descargas con datos móviles
+settings-episode-notifications = Avisos de episodios nuevos
+settings-episode-discussions = Debates de episodios
+settings-comment-images = Cargar imágenes en los comentarios
+settings-torrent-source = { -source-cap } de torrents
+settings-theme-adaptive = Adaptable
+settings-theme-immersive = Inmersivo
+settings-player-ui-mpv = Tu configuración de mpv
+settings-player-ui-app = { -app-name }
+settings-quality-lines = { $lines }p
+settings-seed-until-ratio = Hasta proporción { $ratio }
+settings-trackers = { -tracker-cap-pl }
+settings-sync = Sincronización
+settings-sync-detail = Envía lo que cambió aquí y trae lo que cambió en otros lugares.
+settings-signed-in-waiting = { $count ->
+    [one] Sesión iniciada · un cambio en espera
+    [many] Sesión iniciada · { $count } cambios en espera
+   *[other] Sesión iniciada · { $count } cambios en espera
+ }
+settings-signed-out-code = Sin sesión iniciada · escribes un código en su sitio web
+settings-libmpv-licence = Distribuido bajo la licencia GNU Lesser General Public License, versión 2.1 o posterior.
+torrents-warn-instead = { -app-name } te avisará en lugar de pausar. Si tu VPN o proxy está caído, otras personas pueden ver tu dirección IP.
+show-settings-label = Configuración de { $title }
+show-settings-loading = Cargando la configuración de esta serie
+show-settings-failed = No se pudo cargar la configuración de esta serie.
+show-settings-no-source = Agrega una { -source } para conservar una en esta serie.
+show-settings-keep-next-detail = Descarga los episodios que siguen al que estás viendo.
+show-settings-notify-detail = Un aviso cuando sale un episodio.
+settings-download-standard = Estándar
+settings-download-higher = Alta
+torrents-dialog-turn-on = Activar torrents
+torrents-dialog-protect = Proteger torrents
+torrents-dialog-edit-proxy = Editar proxy
+torrents-dialog-turn-on-action = Activar
+torrents-choice-spoken = { $label }. { $detail }
+settings-note-trailers-windows = Los tráileres se reproducen silenciados desde YouTube, que ve tu dirección IP. No se reproducen con conexión medida, con los efectos de animación desactivados, en modo de ahorro de energía ni con Narrador activo.

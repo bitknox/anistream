@@ -21,3 +21,8 @@ drafts = "ship"
 name = "日本語"
 stage = "draft"
 drafts = "ship"
+
+[language.es-419]
+name = "Español (Latinoamérica)"
+stage = "draft"
+drafts = "ship"
