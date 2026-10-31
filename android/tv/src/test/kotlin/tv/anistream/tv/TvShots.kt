@@ -389,7 +389,7 @@ class TvShots {
         compose.runOnUiThread { nav.openSignIn("kitsu") }
         compose.mainClock.advanceTimeBy(3_000)
         compose.waitForIdle()
-        compose.onNodeWithText("#k=", substring = true).assertExists()
+        awaitText("#k=")
     }
 
     /** Settings › General › Language: the sheet of languages, a flag beside each name. */
@@ -502,7 +502,7 @@ class TvShots {
         press(Key.DirectionCenter)
         settle()
         compose.onNodeWithText("Protect torrent traffic").assertExists()
-        compose.onNodeWithText("http://192.0.2.10:", substring = true).assertExists()
+        awaitText("http://192.0.2.10:")
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-change.png")
         compose.mainClock.advanceTimeBy(SignInPage.LIFETIME_MILLIS + 1_000)
         settle()
@@ -924,6 +924,21 @@ class TvShots {
             settle()
         }
         if (name != null) compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
+    }
+
+    /**
+     * Text that the sign-in page's address brings. The page binds its socket on Dispatchers.IO, in
+     * real time, which the test's clock and waitForIdle do not wait for: on a busy machine, as in
+     * the whole suite, the address arrives after settle() returns. Poll for it in real time.
+     */
+    private fun awaitText(text: String) {
+        repeat(100) {
+            if (compose.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()) return
+            Thread.sleep(50)
+            compose.mainClock.advanceTimeBy(100)
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText(text, substring = true).assertExists()
     }
 
     private fun settle() {
