@@ -1,6 +1,6 @@
 {
  "scene": "fresh",
- "recordedAt": 1793347895763,
+ "recordedAt": 1793409606097,
  "events": [
   {
    "@type": "Settings",
@@ -308,6 +308,7 @@
     "translation": "SUB",
     "quality": "1080",
     "theme": "ADAPTIVE",
+    "motion": true,
     "sources": {
      "order": [
       "torrent",
@@ -455,6 +456,15 @@
        "back": false,
        "forward": true
       }
+     },
+     {
+      "key": "HOVER_CARDS",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
      }
     ],
     "overridden": [],
@@ -541,19 +551,6 @@
   {
    "@type": "JobDone",
    "v1": "1"
-  },
-  {
-   "@type": "Downloads",
-   "v1": []
-  },
-  {
-   "@type": "JobStarted",
-   "job": "4",
-   "activity": "loading trending titles"
-  },
-  {
-   "@type": "RecentSearches",
-   "v1": []
   },
   {
    "@type": "Caption",
@@ -650,7 +647,7 @@
       "year": "2026",
       "score": null,
       "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
       "coverUrl": "https://img.example/cover/900006-xl.jpg",
       "coverColor": null,
       "bannerUrl": null,
@@ -698,7 +695,7 @@
       "madeOutsideJapan": false,
       "synopsisSpans": [
        {
-        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
         "spoiler": false
        }
       ],
@@ -715,12 +712,21 @@
    }
   },
   {
+   "@type": "Downloads",
+   "v1": []
+  },
+  {
+   "@type": "JobStarted",
+   "job": "4",
+   "activity": "loading trending titles"
+  },
+  {
    "@type": "CalendarWindow",
-   "anchor": "1793347895",
+   "anchor": "1793409606",
    "pages": "1",
    "morePast": false,
-   "floor": "1785571895",
-   "ceiling": "1795767095",
+   "floor": "1785633606",
+   "ceiling": "1795828806",
    "aheadPages": "1",
    "moreAhead": false
   },
@@ -883,7 +889,7 @@
       "year": "2026",
       "score": null,
       "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
       "coverUrl": "https://img.example/cover/900006-xl.jpg",
       "coverColor": null,
       "bannerUrl": null,
@@ -931,7 +937,7 @@
       "madeOutsideJapan": false,
       "synopsisSpans": [
        {
-        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
         "spoiler": false
        }
       ],
@@ -1024,7 +1030,7 @@
       "year": "2026",
       "score": null,
       "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
       "coverUrl": "https://img.example/cover/900006-xl.jpg",
       "coverColor": null,
       "bannerUrl": null,
@@ -1072,7 +1078,7 @@
       "madeOutsideJapan": false,
       "synopsisSpans": [
        {
-        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
         "spoiler": false
        }
       ],
@@ -1165,7 +1171,7 @@
       "year": "2026",
       "score": null,
       "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
       "coverUrl": "https://img.example/cover/900006-xl.jpg",
       "coverColor": null,
       "bannerUrl": null,
@@ -1213,7 +1219,7 @@
       "madeOutsideJapan": false,
       "synopsisSpans": [
        {
-        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
         "spoiler": false
        }
       ],
@@ -1305,6 +1311,10 @@
    "v1": "3"
   },
   {
+   "@type": "RecentSearches",
+   "v1": []
+  },
+  {
    "@type": "JobStarted",
    "job": "5",
    "activity": "searching “hoshi”"
@@ -1374,75 +1384,6 @@
    "activity": "loading your watching list"
   },
   {
-   "@type": "Facets",
-   "v1": {
-    "genres": [
-     "Action",
-     "Adventure",
-     "Comedy",
-     "Drama",
-     "Fantasy",
-     "Mecha",
-     "Mystery",
-     "Romance",
-     "Sci-Fi",
-     "Slice of Life",
-     "Sports"
-    ],
-    "tagGroups": [
-     {
-      "category": "Theme",
-      "tags": [
-       {
-        "name": "Found Family",
-        "description": "Strangers who become a family.",
-        "spoiler": false
-       },
-       {
-        "name": "Gardening",
-        "description": "Growing things.",
-        "spoiler": false
-       },
-       {
-        "name": "The Last Lantern",
-        "description": "A twist at the end.",
-        "spoiler": true
-       },
-       {
-        "name": "Travel",
-        "description": "Journeys from place to place.",
-        "spoiler": false
-       },
-       {
-        "name": "Weather Magic",
-        "description": "Magic over wind and rain.",
-        "spoiler": false
-       }
-      ]
-     },
-     {
-      "category": "Setting",
-      "tags": [
-       {
-        "name": "Libraries",
-        "description": "Set in or around a library.",
-        "spoiler": false
-       },
-       {
-        "name": "Trains",
-        "description": "Railways feature prominently.",
-        "spoiler": false
-       }
-      ]
-     }
-    ],
-    "streamingSites": [
-     "Lantern Stream",
-     "Hikari Stream"
-    ]
-   }
-  },
-  {
    "@type": "JobStarted",
    "job": "7",
    "activity": "loading your planning list"
@@ -1456,6 +1397,71 @@
    "@type": "JobStarted",
    "job": "9",
    "activity": "loading your paused list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "COMPLETED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "8"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "7"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PAUSED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "9"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "10",
+   "activity": "loading your dropped list"
   },
   {
    "@type": "Browse",
@@ -1899,7 +1905,7 @@
        "year": "2026",
        "score": null,
        "studio": null,
-       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
        "coverUrl": "https://img.example/cover/900006-xl.jpg",
        "coverColor": null,
        "bannerUrl": null,
@@ -1947,7 +1953,7 @@
        "madeOutsideJapan": false,
        "synopsisSpans": [
         {
-         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
          "spoiler": false
         }
        ],
@@ -2077,7 +2083,7 @@
        "year": "2026",
        "score": null,
        "studio": null,
-       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
        "coverUrl": "https://img.example/cover/900006-xl.jpg",
        "coverColor": null,
        "bannerUrl": null,
@@ -2125,7 +2131,7 @@
        "madeOutsideJapan": false,
        "synopsisSpans": [
         {
-         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
          "spoiler": false
         }
        ],
@@ -2579,7 +2585,7 @@
        "year": "2026",
        "score": null,
        "studio": null,
-       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
        "coverUrl": "https://img.example/cover/900006-xl.jpg",
        "coverColor": null,
        "bannerUrl": null,
@@ -2627,7 +2633,7 @@
        "madeOutsideJapan": false,
        "synopsisSpans": [
         {
-         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
          "spoiler": false
         }
        ],
@@ -3081,7 +3087,7 @@
        "year": "2026",
        "score": null,
        "studio": null,
-       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+       "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
        "coverUrl": "https://img.example/cover/900006-xl.jpg",
        "coverColor": null,
        "bannerUrl": null,
@@ -3129,7 +3135,7 @@
        "madeOutsideJapan": false,
        "synopsisSpans": [
         {
-         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+         "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
          "spoiler": false
         }
        ],
@@ -3149,6 +3155,99 @@
   {
    "@type": "JobDone",
    "v1": "4"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "DROPPED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "10"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "11",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "Facets",
+   "v1": {
+    "genres": [
+     "Action",
+     "Adventure",
+     "Comedy",
+     "Drama",
+     "Fantasy",
+     "Mecha",
+     "Mystery",
+     "Romance",
+     "Sci-Fi",
+     "Slice of Life",
+     "Sports"
+    ],
+    "tagGroups": [
+     {
+      "category": "Theme",
+      "tags": [
+       {
+        "name": "Found Family",
+        "description": "Strangers who become a family.",
+        "spoiler": false
+       },
+       {
+        "name": "Gardening",
+        "description": "Growing things.",
+        "spoiler": false
+       },
+       {
+        "name": "The Last Lantern",
+        "description": "A twist at the end.",
+        "spoiler": true
+       },
+       {
+        "name": "Travel",
+        "description": "Journeys from place to place.",
+        "spoiler": false
+       },
+       {
+        "name": "Weather Magic",
+        "description": "Magic over wind and rain.",
+        "spoiler": false
+       }
+      ]
+     },
+     {
+      "category": "Setting",
+      "tags": [
+       {
+        "name": "Libraries",
+        "description": "Set in or around a library.",
+        "spoiler": false
+       },
+       {
+        "name": "Trains",
+        "description": "Railways feature prominently.",
+        "spoiler": false
+       }
+      ]
+     }
+    ],
+    "streamingSites": [
+     "Lantern Stream",
+     "Hikari Stream"
+    ]
+   }
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "SearchPaging",
@@ -3438,95 +3537,6 @@
   },
   {
    "@type": "JobStarted",
-   "job": "10",
-   "activity": "loading your dropped list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "COMPLETED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "8"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PLANNING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "7"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "WATCHING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "6"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PAUSED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "9"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "DROPPED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "10"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "11",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
    "job": "12",
    "activity": "loading episodes"
   },
@@ -3634,51 +3644,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713784265"
+       "airsAt": "1713845976"
       },
       {
        "episode": "2",
-       "airsAt": "1714389065"
+       "airsAt": "1714450776"
       },
       {
        "episode": "3",
-       "airsAt": "1714993865"
+       "airsAt": "1715055576"
       },
       {
        "episode": "4",
-       "airsAt": "1715598665"
+       "airsAt": "1715660376"
       },
       {
        "episode": "5",
-       "airsAt": "1716203465"
+       "airsAt": "1716265176"
       },
       {
        "episode": "6",
-       "airsAt": "1716808265"
+       "airsAt": "1716869976"
       },
       {
        "episode": "7",
-       "airsAt": "1717413065"
+       "airsAt": "1717474776"
       },
       {
        "episode": "8",
-       "airsAt": "1718017865"
+       "airsAt": "1718079576"
       },
       {
        "episode": "9",
-       "airsAt": "1718622665"
+       "airsAt": "1718684376"
       },
       {
        "episode": "10",
-       "airsAt": "1719227465"
+       "airsAt": "1719289176"
       },
       {
        "episode": "11",
-       "airsAt": "1719832265"
+       "airsAt": "1719893976"
       },
       {
        "episode": "12",
-       "airsAt": "1720437065"
+       "airsAt": "1720498776"
       }
      ],
      "relations": [
@@ -4002,230 +4012,6 @@
    }
   },
   {
-   "@type": "Episodes",
-   "id": "900001",
-   "rows": [
-    {
-     "number": "1",
-     "title": "The Lantern Road",
-     "thumbnail": "https://img.example/ep/900001/1.jpg",
-     "description": "A lamplighter wakes on the star road with a lantern and no name.",
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1713784265",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": "A Town Without Night",
-     "thumbnail": "https://img.example/ep/900001/2.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1714389065",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": "The Ferryman's Ledger",
-     "thumbnail": "https://img.example/ep/900001/3.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1714993865",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": "Embers in the Snow",
-     "thumbnail": "https://img.example/ep/900001/4.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1715598665",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": "What the Beacons Remember",
-     "thumbnail": "https://img.example/ep/900001/5.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716203465",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": "The Cartographer's Daughter",
-     "thumbnail": "https://img.example/ep/900001/6.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716808265",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": "Rain over Kiriya Pass",
-     "thumbnail": "https://img.example/ep/900001/7.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717413065",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": "A Letter Never Sent",
-     "thumbnail": "https://img.example/ep/900001/8.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1718017865",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "9",
-     "title": "The Last Lamplighter",
-     "thumbnail": "https://img.example/ep/900001/9.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1718622665",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "10",
-     "title": "Where the Roads Cross",
-     "thumbnail": "https://img.example/ep/900001/10.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719227465",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "11",
-     "title": "The Sky Archive",
-     "thumbnail": "https://img.example/ep/900001/11.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719832265",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "12",
-     "title": "Home, by Starlight",
-     "thumbnail": "https://img.example/ep/900001/12.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1720437065",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ],
-   "failed": null
-  },
-  {
-   "@type": "JobDone",
-   "v1": "12"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "15",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
    "@type": "Detail",
    "v1": {
     "id": "900002",
@@ -4298,99 +4084,99 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1790508395"
+       "airsAt": "1790570106"
       },
       {
        "episode": "2",
-       "airsAt": "1791113195"
+       "airsAt": "1791174906"
       },
       {
        "episode": "3",
-       "airsAt": "1791717995"
+       "airsAt": "1791779706"
       },
       {
        "episode": "4",
-       "airsAt": "1792322795"
+       "airsAt": "1792384506"
       },
       {
        "episode": "5",
-       "airsAt": "1792927595"
+       "airsAt": "1792989306"
       },
       {
        "episode": "6",
-       "airsAt": "1793532395"
+       "airsAt": "1793594106"
       },
       {
        "episode": "7",
-       "airsAt": "1794137195"
+       "airsAt": "1794198906"
       },
       {
        "episode": "8",
-       "airsAt": "1794741995"
+       "airsAt": "1794803706"
       },
       {
        "episode": "9",
-       "airsAt": "1795346795"
+       "airsAt": "1795408506"
       },
       {
        "episode": "10",
-       "airsAt": "1795951595"
+       "airsAt": "1796013306"
       },
       {
        "episode": "11",
-       "airsAt": "1796556395"
+       "airsAt": "1796618106"
       },
       {
        "episode": "12",
-       "airsAt": "1797161195"
+       "airsAt": "1797222906"
       },
       {
        "episode": "13",
-       "airsAt": "1797765995"
+       "airsAt": "1797827706"
       },
       {
        "episode": "14",
-       "airsAt": "1798370795"
+       "airsAt": "1798432506"
       },
       {
        "episode": "15",
-       "airsAt": "1798975595"
+       "airsAt": "1799037306"
       },
       {
        "episode": "16",
-       "airsAt": "1799580395"
+       "airsAt": "1799642106"
       },
       {
        "episode": "17",
-       "airsAt": "1800185195"
+       "airsAt": "1800246906"
       },
       {
        "episode": "18",
-       "airsAt": "1800789995"
+       "airsAt": "1800851706"
       },
       {
        "episode": "19",
-       "airsAt": "1801394795"
+       "airsAt": "1801456506"
       },
       {
        "episode": "20",
-       "airsAt": "1801999595"
+       "airsAt": "1802061306"
       },
       {
        "episode": "21",
-       "airsAt": "1802604395"
+       "airsAt": "1802666106"
       },
       {
        "episode": "22",
-       "airsAt": "1803209195"
+       "airsAt": "1803270906"
       },
       {
        "episode": "23",
-       "airsAt": "1803813995"
+       "airsAt": "1803875706"
       },
       {
        "episode": "24",
-       "airsAt": "1804418795"
+       "airsAt": "1804480506"
       }
      ],
      "relations": [],
@@ -4494,76 +4280,12 @@
   },
   {
    "@type": "JobStarted",
-   "job": "16",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900003",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "17",
+   "job": "15",
    "activity": "loading the title"
   },
   {
-   "@type": "JobStarted",
-   "job": "18",
-   "activity": "loading episodes"
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Episodes",
@@ -4579,7 +4301,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790508395",
+     "airsAt": "1790570106",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4596,7 +4318,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791113195",
+     "airsAt": "1791174906",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4613,7 +4335,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791717995",
+     "airsAt": "1791779706",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4630,7 +4352,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792322795",
+     "airsAt": "1792384506",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4647,7 +4369,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792927595",
+     "airsAt": "1792989306",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4658,147 +4380,248 @@
    "failed": null
   },
   {
+   "@type": "TitleMatch",
+   "id": "900002",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumo no Ue no Toshokan",
+    "chosenByYou": false
+   }
+  },
+  {
    "@type": "JobDone",
    "v1": "14"
   },
   {
-   "@type": "ProviderPreference",
-   "v1": null
+   "@type": "Episodes",
+   "id": "900001",
+   "rows": [
+    {
+     "number": "1",
+     "title": "The Lantern Road",
+     "thumbnail": "https://img.example/ep/900001/1.jpg",
+     "description": "A lamplighter wakes on the star road with a lantern and no name.",
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713845976",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": "A Town Without Night",
+     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714450776",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": "The Ferryman's Ledger",
+     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1715055576",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": "Embers in the Snow",
+     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1715660376",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": "What the Beacons Remember",
+     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716265176",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": "The Cartographer's Daughter",
+     "thumbnail": "https://img.example/ep/900001/6.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716869976",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": "Rain over Kiriya Pass",
+     "thumbnail": "https://img.example/ep/900001/7.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717474776",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": "A Letter Never Sent",
+     "thumbnail": "https://img.example/ep/900001/8.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1718079576",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "9",
+     "title": "The Last Lamplighter",
+     "thumbnail": "https://img.example/ep/900001/9.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1718684376",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "10",
+     "title": "Where the Roads Cross",
+     "thumbnail": "https://img.example/ep/900001/10.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719289176",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "11",
+     "title": "The Sky Archive",
+     "thumbnail": "https://img.example/ep/900001/11.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719893976",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "12",
+     "title": "Home, by Starlight",
+     "thumbnail": "https://img.example/ep/900001/12.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1720498776",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900004",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
+   "@type": "TitleMatch",
+   "id": "900001",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Hoshikuzu no Tabibito",
+    "chosenByYou": false
    }
   },
   {
-   "@type": "JobStarted",
-   "job": "19",
-   "activity": "loading the title"
+   "@type": "JobDone",
+   "v1": "12"
   },
   {
    "@type": "JobStarted",
-   "job": "20",
+   "job": "16",
    "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900005",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "21",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
   },
   {
    "@type": "Detail",
@@ -4944,10 +4767,6 @@
    "v1": "15"
   },
   {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
    "@type": "Episodes",
    "id": "900003",
    "rows": [
@@ -4972,199 +4791,23 @@
    "failed": null
   },
   {
+   "@type": "TitleMatch",
+   "id": "900003",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Tsukiakari no Teishajo",
+    "chosenByYou": false
+   }
+  },
+  {
    "@type": "JobDone",
    "v1": "16"
   },
   {
-   "@type": "JobStarted",
-   "job": "22",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "Episodes",
-   "id": "900005",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/1.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/2.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/3.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/4.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/5.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/6.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/7.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/8.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "9",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/9.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "10",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/10.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ],
-   "failed": null
-  },
-  {
-   "@type": "JobDone",
-   "v1": "20"
-  },
-  {
    "@type": "ShowSettings",
    "v1": {
-    "id": "900006",
+    "id": "900003",
     "rows": [
      {
       "key": "TRANSLATION",
@@ -5221,426 +4864,84 @@
   },
   {
    "@type": "JobStarted",
-   "job": "23",
+   "job": "17",
    "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "18",
+   "activity": "loading episodes"
   },
   {
    "@type": "ProviderPreference",
    "v1": null
   },
   {
-   "@type": "Detail",
+   "@type": "ShowSettings",
    "v1": {
     "id": "900004",
-    "title": "Stardust Wayfarer Season 2",
-    "secondary": "Hoshikuzu no Tabibito 2nd Season",
-    "format": "TV",
-    "episodes": "12",
-    "year": "2025",
-    "score": "84",
-    "studio": "Kujaku Animation Works",
-    "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
-    "coverUrl": "https://img.example/cover/900004-xl.jpg",
-    "coverColor": "#d77f4a",
-    "bannerUrl": "https://img.example/banner/900004.jpg",
-    "genres": [
-     "Adventure",
-     "Drama",
-     "Fantasy"
-    ],
-    "availableOn": [
-     "Lantern Stream"
-    ],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [
+    "rows": [
      {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "relation": "prequel",
-      "format": "TV"
-     }
-    ],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
-    "titleEnglish": "Stardust Wayfarer Season 2",
-    "titleNative": "星屑の旅人 第2期",
-    "season": "WINTER",
-    "startDate": {
-     "year": "2025",
-     "month": "1",
-     "day": "11"
-    },
-    "endDate": {
-     "year": "2025",
-     "month": "3",
-     "day": "29"
-    },
-    "source": "MANGA",
-    "adult": false,
-    "detail": {
-     "tags": [],
-     "schedule": [],
-     "relations": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": "PREQUEL",
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "coverColor": "#e4a15d",
-       "season": "SPRING",
-       "year": "2024",
-       "listStatus": null
-      }
-     ],
-     "seasons": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "coverColor": "#e4a15d",
-       "season": "SPRING",
-       "year": "2024",
-       "listStatus": null
-      },
-      {
-       "id": "900004",
-       "title": "Stardust Wayfarer Season 2",
-       "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
-       "titleEnglish": "Stardust Wayfarer Season 2",
-       "titleNative": "星屑の旅人 第2期",
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900004.jpg",
-       "coverColor": "#d77f4a",
-       "season": "WINTER",
-       "year": "2025",
-       "listStatus": null
-      }
-     ],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [],
-     "streamingLinks": [
-      {
-       "site": "Lantern Stream",
-       "url": "https://stream.example/series/hoshikuzu",
-       "language": "Japanese"
-      }
-     ],
-     "following": []
-    },
-    "status": "FINISHED",
-    "airing": {
-     "@type": "Finished",
-     "from": {
-      "year": "2025",
-      "month": "1",
-      "day": "11"
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
      },
-     "to": {
-      "year": "2025",
-      "month": "3",
-      "day": "29"
-     }
-    },
-    "duration": "24",
-    "filmLength": null,
-    "country": null,
-    "madeOutsideJapan": false,
-    "synopsisSpans": [
      {
-      "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
-      "spoiler": false
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
      }
     ],
-    "delayedFrom": null,
-    "airingApproximate": false,
-    "airingTranslation": null,
-    "airingDubbed": false,
-    "watchedIn": null,
-    "trailer": null,
-    "prequels": [],
-    "sequels": []
+    "remembered": [],
+    "source": null
    }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "17"
   },
   {
    "@type": "JobStarted",
-   "job": "24",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900005",
-    "title": "The Steel Gardener",
-    "secondary": "Hagane no Niwashi",
-    "format": "ONA",
-    "episodes": "10",
-    "year": "2023",
-    "score": "71",
-    "studio": "Studio Mokusei",
-    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-    "coverUrl": "https://img.example/cover/900005-xl.jpg",
-    "coverColor": "#7ac47f",
-    "bannerUrl": null,
-    "genres": [
-     "Sci-Fi",
-     "Slice of Life"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hagane no Niwashi",
-    "titleEnglish": "The Steel Gardener",
-    "titleNative": "鋼の庭師",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2023",
-     "month": "7",
-     "day": "1"
-    },
-    "endDate": {
-     "year": "2023",
-     "month": "9",
-     "day": "2"
-    },
-    "source": "WEB_NOVEL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Gardening",
-       "rank": "85",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Slice of Life"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "seasons": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [
-      {
-       "name": "Director of The Steel Gardener",
-       "role": "Director"
-      }
-     ],
-     "streamingLinks": [],
-     "following": []
-    },
-    "status": "FINISHED",
-    "airing": {
-     "@type": "Finished",
-     "from": {
-      "year": "2023",
-      "month": "7",
-      "day": "1"
-     },
-     "to": {
-      "year": "2023",
-      "month": "9",
-      "day": "2"
-     }
-    },
-    "duration": "18",
-    "filmLength": null,
-    "country": null,
-    "madeOutsideJapan": false,
-    "synopsisSpans": [
-     {
-      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-      "spoiler": false
-     }
-    ],
-    "delayedFrom": null,
-    "airingApproximate": false,
-    "airingTranslation": null,
-    "airingDubbed": false,
-    "watchedIn": null,
-    "trailer": null,
-    "prequels": [],
-    "sequels": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "19"
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900006",
-    "title": "Summer Wind Relay",
-    "secondary": "Natsukaze Relay",
-    "format": "TV",
-    "episodes": "12",
-    "year": "2026",
-    "score": null,
-    "studio": null,
-    "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-    "coverUrl": "https://img.example/cover/900006-xl.jpg",
-    "coverColor": null,
-    "bannerUrl": null,
-    "genres": [
-     "Comedy",
-     "Sports"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": "536400",
-    "airingEpisode": null,
-    "nextEpisode": "9",
-    "nextAiringIn": "536400",
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Natsukaze Relay",
-    "titleEnglish": "Summer Wind Relay",
-    "titleNative": "夏風リレー",
-    "season": "FALL",
-    "startDate": {
-     "year": "2026",
-     "month": "8",
-     "day": null
-    },
-    "endDate": null,
-    "source": null,
-    "adult": false,
-    "detail": {
-     "tags": [],
-     "schedule": [
-      {
-       "episode": "1",
-       "airsAt": "1789045895"
-      },
-      {
-       "episode": "2",
-       "airsAt": "1789650695"
-      },
-      {
-       "episode": "3",
-       "airsAt": "1790255495"
-      },
-      {
-       "episode": "4",
-       "airsAt": "1790860295"
-      },
-      {
-       "episode": "5",
-       "airsAt": "1791465095"
-      },
-      {
-       "episode": "6",
-       "airsAt": "1792069895"
-      },
-      {
-       "episode": "7",
-       "airsAt": "1792674695"
-      },
-      {
-       "episode": "8",
-       "airsAt": "1793279495"
-      },
-      {
-       "episode": "9",
-       "airsAt": "1793884295"
-      },
-      {
-       "episode": "10",
-       "airsAt": "1794489095"
-      },
-      {
-       "episode": "11",
-       "airsAt": "1795093895"
-      },
-      {
-       "episode": "12",
-       "airsAt": "1795698695"
-      }
-     ],
-     "relations": [],
-     "seasons": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [],
-     "streamingLinks": [],
-     "following": []
-    },
-    "status": "RELEASING",
-    "airing": {
-     "@type": "Airing",
-     "since": {
-      "year": "2026",
-      "month": "8",
-      "day": null
-     }
-    },
-    "duration": "24",
-    "filmLength": null,
-    "country": null,
-    "madeOutsideJapan": false,
-    "synopsisSpans": [
-     {
-      "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "spoiler": false
-     }
-    ],
-    "delayedFrom": null,
-    "airingApproximate": false,
-    "airingTranslation": null,
-    "airingDubbed": false,
-    "watchedIn": null,
-    "trailer": null,
-    "prequels": [],
-    "sequels": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "21"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "25",
+   "job": "19",
    "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Episodes",
@@ -5854,12 +5155,924 @@
    "failed": null
   },
   {
+   "@type": "TitleMatch",
+   "id": "900004",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Hoshikuzu no Tabibito 2nd Season",
+    "chosenByYou": false
+   }
+  },
+  {
    "@type": "JobDone",
    "v1": "18"
   },
   {
+   "@type": "Detail",
+   "v1": {
+    "id": "900004",
+    "title": "Stardust Wayfarer Season 2",
+    "secondary": "Hoshikuzu no Tabibito 2nd Season",
+    "format": "TV",
+    "episodes": "12",
+    "year": "2025",
+    "score": "84",
+    "studio": "Kujaku Animation Works",
+    "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+    "coverUrl": "https://img.example/cover/900004-xl.jpg",
+    "coverColor": "#d77f4a",
+    "bannerUrl": "https://img.example/banner/900004.jpg",
+    "genres": [
+     "Adventure",
+     "Drama",
+     "Fantasy"
+    ],
+    "availableOn": [
+     "Lantern Stream"
+    ],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "relation": "prequel",
+      "format": "TV"
+     }
+    ],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+    "titleEnglish": "Stardust Wayfarer Season 2",
+    "titleNative": "星屑の旅人 第2期",
+    "season": "WINTER",
+    "startDate": {
+     "year": "2025",
+     "month": "1",
+     "day": "11"
+    },
+    "endDate": {
+     "year": "2025",
+     "month": "3",
+     "day": "29"
+    },
+    "source": "MANGA",
+    "adult": false,
+    "detail": {
+     "tags": [],
+     "schedule": [],
+     "relations": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": "PREQUEL",
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      }
+     ],
+     "seasons": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      },
+      {
+       "id": "900004",
+       "title": "Stardust Wayfarer Season 2",
+       "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+       "titleEnglish": "Stardust Wayfarer Season 2",
+       "titleNative": "星屑の旅人 第2期",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900004.jpg",
+       "coverColor": "#d77f4a",
+       "season": "WINTER",
+       "year": "2025",
+       "listStatus": null
+      }
+     ],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [],
+     "streamingLinks": [
+      {
+       "site": "Lantern Stream",
+       "url": "https://stream.example/series/hoshikuzu",
+       "language": "Japanese"
+      }
+     ],
+     "following": []
+    },
+    "status": "FINISHED",
+    "airing": {
+     "@type": "Finished",
+     "from": {
+      "year": "2025",
+      "month": "1",
+      "day": "11"
+     },
+     "to": {
+      "year": "2025",
+      "month": "3",
+      "day": "29"
+     }
+    },
+    "duration": "24",
+    "filmLength": null,
+    "country": null,
+    "madeOutsideJapan": false,
+    "synopsisSpans": [
+     {
+      "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null,
+    "airingApproximate": false,
+    "airingTranslation": null,
+    "airingDubbed": false,
+    "watchedIn": null,
+    "trailer": null,
+    "prequels": [],
+    "sequels": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "17"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900005",
+    "title": "The Steel Gardener",
+    "secondary": "Hagane no Niwashi",
+    "format": "ONA",
+    "episodes": "10",
+    "year": "2023",
+    "score": "71",
+    "studio": "Studio Mokusei",
+    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+    "coverUrl": "https://img.example/cover/900005-xl.jpg",
+    "coverColor": "#7ac47f",
+    "bannerUrl": null,
+    "genres": [
+     "Sci-Fi",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hagane no Niwashi",
+    "titleEnglish": "The Steel Gardener",
+    "titleNative": "鋼の庭師",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2023",
+     "month": "7",
+     "day": "1"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "9",
+     "day": "2"
+    },
+    "source": "WEB_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Gardening",
+       "rank": "85",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Slice of Life"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "seasons": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [
+      {
+       "name": "Director of The Steel Gardener",
+       "role": "Director"
+      }
+     ],
+     "streamingLinks": [],
+     "following": []
+    },
+    "status": "FINISHED",
+    "airing": {
+     "@type": "Finished",
+     "from": {
+      "year": "2023",
+      "month": "7",
+      "day": "1"
+     },
+     "to": {
+      "year": "2023",
+      "month": "9",
+      "day": "2"
+     }
+    },
+    "duration": "18",
+    "filmLength": null,
+    "country": null,
+    "madeOutsideJapan": false,
+    "synopsisSpans": [
+     {
+      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null,
+    "airingApproximate": false,
+    "airingTranslation": null,
+    "airingDubbed": false,
+    "watchedIn": null,
+    "trailer": null,
+    "prequels": [],
+    "sequels": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "19"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900005",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "Episodes",
+   "id": "900005",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/1.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/2.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/3.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/4.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/5.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/6.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/7.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/8.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "9",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/9.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "10",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/10.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "TitleMatch",
+   "id": "900005",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Hagane no Niwashi",
+    "chosenByYou": false
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "20"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading the title"
+  },
+  {
    "@type": "ProviderPreference",
    "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "22",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900006",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "23",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900006",
+    "title": "Summer Wind Relay",
+    "secondary": "Natsukaze Relay",
+    "format": "TV",
+    "episodes": "12",
+    "year": "2026",
+    "score": null,
+    "studio": null,
+    "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
+    "coverUrl": "https://img.example/cover/900006-xl.jpg",
+    "coverColor": null,
+    "bannerUrl": null,
+    "genres": [
+     "Comedy",
+     "Sports"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": "536400",
+    "airingEpisode": null,
+    "nextEpisode": "9",
+    "nextAiringIn": "536400",
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Natsukaze Relay",
+    "titleEnglish": "Summer Wind Relay",
+    "titleNative": "夏風リレー",
+    "season": "FALL",
+    "startDate": {
+     "year": "2026",
+     "month": "8",
+     "day": null
+    },
+    "endDate": null,
+    "source": null,
+    "adult": false,
+    "detail": {
+     "tags": [],
+     "schedule": [
+      {
+       "episode": "1",
+       "airsAt": "1789107606"
+      },
+      {
+       "episode": "2",
+       "airsAt": "1789712406"
+      },
+      {
+       "episode": "3",
+       "airsAt": "1790317206"
+      },
+      {
+       "episode": "4",
+       "airsAt": "1790922006"
+      },
+      {
+       "episode": "5",
+       "airsAt": "1791526806"
+      },
+      {
+       "episode": "6",
+       "airsAt": "1792131606"
+      },
+      {
+       "episode": "7",
+       "airsAt": "1792736406"
+      },
+      {
+       "episode": "8",
+       "airsAt": "1793341206"
+      },
+      {
+       "episode": "9",
+       "airsAt": "1793946006"
+      },
+      {
+       "episode": "10",
+       "airsAt": "1794550806"
+      },
+      {
+       "episode": "11",
+       "airsAt": "1795155606"
+      },
+      {
+       "episode": "12",
+       "airsAt": "1795760406"
+      }
+     ],
+     "relations": [],
+     "seasons": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [],
+     "streamingLinks": [],
+     "following": []
+    },
+    "status": "RELEASING",
+    "airing": {
+     "@type": "Airing",
+     "since": {
+      "year": "2026",
+      "month": "8",
+      "day": null
+     }
+    },
+    "duration": "24",
+    "filmLength": null,
+    "country": null,
+    "madeOutsideJapan": false,
+    "synopsisSpans": [
+     {
+      "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.\n\nNobody on the team has ever won anything, unless the school lost-and-found raffle counts. Captain Mio Haraki counts it twice a day.\n\nThe first practice is a disaster. The baton ends up in the harbour, the stopwatch in the vending machine, and the coach, who is also the music teacher, in a very long argument with a seagull about the rules of lane eight.\n\nOver the weeks that follow the four of them learn each other's strides, excuses and favourite convenience-store snacks. They also learn that the shoes fit best in turns, which makes the baton pass a small act of trust and an even smaller act of comedy.\n\nThen the regional heats are moved a week earlier, the harbour floods the track, and the team has to find out what they are good at before they find out what they are up against.\n\nWhatever happens at the finish line, the summer wind has already decided which of them it will carry home first.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null,
+    "airingApproximate": false,
+    "airingTranslation": null,
+    "airingDubbed": false,
+    "watchedIn": null,
+    "trailer": null,
+    "prequels": [],
+    "sequels": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "21"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "24",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900006",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1789107606",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1789712406",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790317206",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790922006",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791526806",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792131606",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792736406",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1793341206",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "TitleMatch",
+   "id": "900006",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Natsukaze Relay",
+    "chosenByYou": false
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "22"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "25",
+   "activity": "loading the title"
   },
   {
    "@type": "JobStarted",
@@ -6087,160 +6300,27 @@
    "failed": null
   },
   {
+   "@type": "TitleMatch",
+   "id": "920001",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumokiri Hikousen",
+    "chosenByYou": false
+   }
+  },
+  {
    "@type": "JobDone",
    "v1": "24"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "JobStarted",
    "job": "28",
    "activity": "loading episodes"
-  },
-  {
-   "@type": "Episodes",
-   "id": "900006",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789045895",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789650695",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790255495",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790860295",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791465095",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792069895",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792674695",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1793279495",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ],
-   "failed": null
-  },
-  {
-   "@type": "JobDone",
-   "v1": "22"
   },
   {
    "@type": "JobStarted",
@@ -6252,221 +6332,6 @@
    "v1": null
   },
   {
-   "@type": "Episodes",
-   "id": "920002",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "9",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "10",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "11",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "12",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ],
-   "failed": null
-  },
-  {
-   "@type": "JobDone",
-   "v1": "26"
-  },
-  {
    "@type": "JobStarted",
    "job": "30",
    "activity": "loading episodes"
@@ -6475,226 +6340,6 @@
    "@type": "JobStarted",
    "job": "31",
    "activity": "loading the title"
-  },
-  {
-   "@type": "Episodes",
-   "id": "920008",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "9",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "10",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "11",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "12",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ],
-   "failed": null
-  },
-  {
-   "@type": "JobDone",
-   "v1": "28"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "32",
-   "activity": "loading episodes"
   },
   {
    "@type": "ProviderPreference",
@@ -6929,8 +6574,23 @@
    "failed": null
   },
   {
+   "@type": "TitleMatch",
+   "id": "920009",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumokiri Hikousen 9",
+    "chosenByYou": false
+   }
+  },
+  {
    "@type": "JobDone",
    "v1": "30"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "32",
+   "activity": "loading episodes"
   },
   {
    "@type": "JobStarted",
@@ -6945,6 +6605,456 @@
   {
    "@type": "ProviderPreference",
    "v1": null
+  },
+  {
+   "@type": "Episodes",
+   "id": "920008",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "9",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "10",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "11",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "12",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "TitleMatch",
+   "id": "920008",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumokiri Hikousen 8",
+    "chosenByYou": false
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "28"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920010",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "9",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "10",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "11",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "12",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "TitleMatch",
+   "id": "920010",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumokiri Hikousen 10",
+    "chosenByYou": false
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "32"
   },
   {
    "@type": "Detail",
@@ -7256,7 +7366,7 @@
   },
   {
    "@type": "Episodes",
-   "id": "920012",
+   "id": "920002",
    "rows": [
     {
      "number": "1",
@@ -7461,30 +7571,23 @@
      "source": null,
      "unsourced": false,
      "pastProgress": true
-    },
-    {
-     "number": "13",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
     }
    ],
    "failed": null
   },
   {
+   "@type": "TitleMatch",
+   "id": "920002",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumokiri Hikousen 2",
+    "chosenByYou": false
+   }
+  },
+  {
    "@type": "JobDone",
-   "v1": "34"
+   "v1": "26"
   },
   {
    "@type": "Detail",
@@ -7797,17 +7900,17 @@
   {
    "@type": "Detail",
    "v1": {
-    "id": "920001",
-    "title": "Cloudcutter Airship",
-    "secondary": "Kumokiri Hikousen",
+    "id": "920010",
+    "title": "Cloudcutter Airship Season 10",
+    "secondary": "Kumokiri Hikousen 10",
     "format": "TV",
     "episodes": "12",
-    "year": "2014",
+    "year": "2023",
     "score": null,
     "studio": null,
-    "synopsis": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship.",
-    "coverUrl": "https://img.example/cover/920001.jpg",
-    "coverColor": "#5f8fb0",
+    "synopsis": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
+    "coverUrl": "https://img.example/cover/920010.jpg",
+    "coverColor": "#5c8a7a",
     "bannerUrl": null,
     "genres": [
      "Adventure",
@@ -7823,8 +7926,14 @@
     "resume": null,
     "related": [
      {
-      "id": "920002",
-      "title": "Cloudcutter Airship Season 2",
+      "id": "920009",
+      "title": "Cloudcutter Airship Season 9",
+      "relation": "prequel",
+      "format": "TV"
+     },
+     {
+      "id": "920011",
+      "title": "Cloudcutter Airship Season 11",
       "relation": "sequel",
       "format": "TV"
      }
@@ -7832,17 +7941,17 @@
     "recommended": [],
     "trailerUrl": null,
     "listStatus": null,
-    "titleRomaji": "Kumokiri Hikousen",
-    "titleEnglish": "Cloudcutter Airship",
+    "titleRomaji": "Kumokiri Hikousen 10",
+    "titleEnglish": "Cloudcutter Airship Season 10",
     "titleNative": null,
-    "season": "SPRING",
+    "season": "FALL",
     "startDate": {
-     "year": "2014",
+     "year": "2023",
      "month": "4",
      "day": "9"
     },
     "endDate": {
-     "year": "2014",
+     "year": "2023",
      "month": "6",
      "day": "25"
     },
@@ -7853,31 +7962,31 @@
      "schedule": [],
      "relations": [
       {
-       "id": "920002",
-       "title": "Cloudcutter Airship Season 2",
-       "titleRomaji": "Kumokiri Hikousen 2",
-       "titleEnglish": "Cloudcutter Airship Season 2",
+       "id": "920009",
+       "title": "Cloudcutter Airship Season 9",
+       "titleRomaji": "Kumokiri Hikousen 9",
+       "titleEnglish": "Cloudcutter Airship Season 9",
        "titleNative": null,
-       "relation": "SEQUEL",
+       "relation": "PREQUEL",
        "format": "TV",
-       "coverUrl": "https://img.example/cover/920002.jpg",
-       "coverColor": "#6f8f6a",
-       "season": "FALL",
-       "year": "2015",
+       "coverUrl": "https://img.example/cover/920009.jpg",
+       "coverColor": "#b07a96",
+       "season": "SPRING",
+       "year": "2022",
        "listStatus": null
       },
       {
-       "id": "920014",
-       "title": "Cloudcutter Airship: First Flight",
-       "titleRomaji": "Kumokiri Hikousen: Hatsuhikou",
-       "titleEnglish": "Cloudcutter Airship: First Flight",
+       "id": "920011",
+       "title": "Cloudcutter Airship Season 11",
+       "titleRomaji": "Kumokiri Hikousen 11",
+       "titleEnglish": "Cloudcutter Airship Season 11",
        "titleNative": null,
-       "relation": "SIDE_STORY",
-       "format": "OVA",
-       "coverUrl": "https://img.example/cover/920014.jpg",
-       "coverColor": "#8fa0b0",
-       "season": "WINTER",
-       "year": "2015",
+       "relation": "SEQUEL",
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920011.jpg",
+       "coverColor": "#a8875c",
+       "season": "SPRING",
+       "year": "2024",
        "listStatus": null
       }
      ],
@@ -8062,12 +8171,12 @@
     "airing": {
      "@type": "Finished",
      "from": {
-      "year": "2014",
+      "year": "2023",
       "month": "4",
       "day": "9"
      },
      "to": {
-      "year": "2014",
+      "year": "2023",
       "month": "6",
       "day": "25"
      }
@@ -8078,7 +8187,7 @@
     "madeOutsideJapan": false,
     "synopsisSpans": [
      {
-      "text": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship.",
+      "text": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
       "spoiler": false
      }
     ],
@@ -8094,7 +8203,7 @@
   },
   {
    "@type": "JobDone",
-   "v1": "23"
+   "v1": "31"
   },
   {
    "@type": "Detail",
@@ -8405,19 +8514,261 @@
    "v1": "25"
   },
   {
+   "@type": "Episodes",
+   "id": "920012",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "9",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "10",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "11",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "12",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "13",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "TitleMatch",
+   "id": "920012",
+   "current": {
+    "providerId": "fixture",
+    "source": "fixture",
+    "title": "Kumokiri Hikousen 12",
+    "chosenByYou": false
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "34"
+  },
+  {
    "@type": "Detail",
    "v1": {
-    "id": "920010",
-    "title": "Cloudcutter Airship Season 10",
-    "secondary": "Kumokiri Hikousen 10",
+    "id": "920001",
+    "title": "Cloudcutter Airship",
+    "secondary": "Kumokiri Hikousen",
     "format": "TV",
     "episodes": "12",
-    "year": "2023",
+    "year": "2014",
     "score": null,
     "studio": null,
-    "synopsis": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
-    "coverUrl": "https://img.example/cover/920010.jpg",
-    "coverColor": "#5c8a7a",
+    "synopsis": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship.",
+    "coverUrl": "https://img.example/cover/920001.jpg",
+    "coverColor": "#5f8fb0",
     "bannerUrl": null,
     "genres": [
      "Adventure",
@@ -8433,14 +8784,8 @@
     "resume": null,
     "related": [
      {
-      "id": "920009",
-      "title": "Cloudcutter Airship Season 9",
-      "relation": "prequel",
-      "format": "TV"
-     },
-     {
-      "id": "920011",
-      "title": "Cloudcutter Airship Season 11",
+      "id": "920002",
+      "title": "Cloudcutter Airship Season 2",
       "relation": "sequel",
       "format": "TV"
      }
@@ -8448,17 +8793,17 @@
     "recommended": [],
     "trailerUrl": null,
     "listStatus": null,
-    "titleRomaji": "Kumokiri Hikousen 10",
-    "titleEnglish": "Cloudcutter Airship Season 10",
+    "titleRomaji": "Kumokiri Hikousen",
+    "titleEnglish": "Cloudcutter Airship",
     "titleNative": null,
-    "season": "FALL",
+    "season": "SPRING",
     "startDate": {
-     "year": "2023",
+     "year": "2014",
      "month": "4",
      "day": "9"
     },
     "endDate": {
-     "year": "2023",
+     "year": "2014",
      "month": "6",
      "day": "25"
     },
@@ -8469,31 +8814,31 @@
      "schedule": [],
      "relations": [
       {
-       "id": "920009",
-       "title": "Cloudcutter Airship Season 9",
-       "titleRomaji": "Kumokiri Hikousen 9",
-       "titleEnglish": "Cloudcutter Airship Season 9",
-       "titleNative": null,
-       "relation": "PREQUEL",
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920009.jpg",
-       "coverColor": "#b07a96",
-       "season": "SPRING",
-       "year": "2022",
-       "listStatus": null
-      },
-      {
-       "id": "920011",
-       "title": "Cloudcutter Airship Season 11",
-       "titleRomaji": "Kumokiri Hikousen 11",
-       "titleEnglish": "Cloudcutter Airship Season 11",
+       "id": "920002",
+       "title": "Cloudcutter Airship Season 2",
+       "titleRomaji": "Kumokiri Hikousen 2",
+       "titleEnglish": "Cloudcutter Airship Season 2",
        "titleNative": null,
        "relation": "SEQUEL",
        "format": "TV",
-       "coverUrl": "https://img.example/cover/920011.jpg",
-       "coverColor": "#a8875c",
-       "season": "SPRING",
-       "year": "2024",
+       "coverUrl": "https://img.example/cover/920002.jpg",
+       "coverColor": "#6f8f6a",
+       "season": "FALL",
+       "year": "2015",
+       "listStatus": null
+      },
+      {
+       "id": "920014",
+       "title": "Cloudcutter Airship: First Flight",
+       "titleRomaji": "Kumokiri Hikousen: Hatsuhikou",
+       "titleEnglish": "Cloudcutter Airship: First Flight",
+       "titleNative": null,
+       "relation": "SIDE_STORY",
+       "format": "OVA",
+       "coverUrl": "https://img.example/cover/920014.jpg",
+       "coverColor": "#8fa0b0",
+       "season": "WINTER",
+       "year": "2015",
        "listStatus": null
       }
      ],
@@ -8678,12 +9023,12 @@
     "airing": {
      "@type": "Finished",
      "from": {
-      "year": "2023",
+      "year": "2014",
       "month": "4",
       "day": "9"
      },
      "to": {
-      "year": "2023",
+      "year": "2014",
       "month": "6",
       "day": "25"
      }
@@ -8694,7 +9039,7 @@
     "madeOutsideJapan": false,
     "synopsisSpans": [
      {
-      "text": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
+      "text": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship.",
       "spoiler": false
      }
     ],
@@ -8710,7 +9055,7 @@
   },
   {
    "@type": "JobDone",
-   "v1": "31"
+   "v1": "23"
   },
   {
    "@type": "Detail",
@@ -8999,221 +9344,6 @@
   {
    "@type": "JobDone",
    "v1": "33"
-  },
-  {
-   "@type": "Episodes",
-   "id": "920010",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "9",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "10",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "11",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "12",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ],
-   "failed": null
-  },
-  {
-   "@type": "JobDone",
-   "v1": "32"
   },
   {
    "@type": "JobStarted",
