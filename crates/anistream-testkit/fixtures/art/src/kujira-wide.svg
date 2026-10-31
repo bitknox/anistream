@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 480 270" preserveAspectRatio="xMidYMid slice">
+<rect width="480" height="270" fill="#9cc9d4"/>
+<polyline points="297.6,105.3 240,148.5 192,221.4" fill="none" stroke="#5d6f86" stroke-width="2.16"/>
+<polygon points="297.6,56.7 315.83,81 297.6,105.3 279.38,81" fill="#f7f1dc"/>
+<path d="M0 189 Q 144 162 288 183.6 T 480 172.8 V 270 H 0 Z" fill="#5f9db0"/>
+<path d="M0 226.8 Q 168 205.2 336 224.1 T 480 216 V 270 H 0 Z" fill="#2c5466"/>
+</svg>

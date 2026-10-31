@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid slice">
+<defs><filter id="tone" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="62"/><feColorMatrix type="saturate" values="0.9"/></filter></defs>
+<g filter="url(#tone)">
+<rect x="0" y="0" width="480" height="320" fill="#24392f"/><circle cx="296" cy="150" r="82" fill="none" stroke="#a8aec9" stroke-width="16" stroke-dasharray="20 11"/><circle cx="296" cy="150" r="64" fill="none" stroke="#a8aec9" stroke-width="6"/><circle cx="296" cy="150" r="22" fill="#a8aec9"/><path d="M130 320 C150 250 190 200 250 160" fill="none" stroke="#6f9b6b" stroke-width="6"/><ellipse cx="160" cy="226" rx="56" ry="20" transform="rotate(-34 160 226)" fill="#6f9b6b"/><ellipse cx="214" cy="176" rx="48" ry="17" transform="rotate(-58 214 176)" fill="#8fb98a"/><ellipse cx="200" cy="250" rx="44" ry="15" transform="rotate(14 200 250)" fill="#8fb98a"/>
+</g>
+</svg>

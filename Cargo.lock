@@ -506,6 +506,7 @@ dependencies = [
  "anistream-net",
  "anistream-providers",
  "anistream-store",
+ "jiff",
  "serde_json",
  "tempfile",
  "tokio",
