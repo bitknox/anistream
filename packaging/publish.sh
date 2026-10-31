@@ -171,37 +171,7 @@ fi
 
 # The source's version: the release's date, and the first section of its notes, the pull request
 # merged, as plain text and short, as the apps' update check shortens it.
-python3 -I - "$apps/sidestore.json" "$work/notes.md" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'EOF'
-import json, re, sys
-
-path, notes, date = sys.argv[1:]
-lines = []
-for line in open(notes).read().splitlines():
-    bare = line.strip()
-    if bare.startswith("## ") and lines:
-        break
-    text = bare.lstrip("#").strip() if bare.startswith("#") else line.rstrip()
-    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text).replace("**", "").replace("`", "")
-    if text or (lines and lines[-1]):
-        lines.append(text)
-while lines and not lines[-1]:
-    lines.pop()
-short = ""
-for line in lines:
-    joined = short + ("\n" if short else "") + line
-    if len(joined) > 500:
-        short = (short or line[:500].rsplit(" ", 1)[0]) + "…"
-        break
-    short = joined
-
-source = json.load(open(path))
-version = source["apps"][0]["versions"][0]
-version["date"] = date
-version["localizedDescription"] = short
-with open(path, "w") as f:
-    json.dump(source, f, indent=2, ensure_ascii=False)
-    f.write("\n")
-EOF
+"$here/apps/sidestore-notes.sh" "$apps/sidestore.json" "$work/notes.md" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # --- The release -----------------------------------------------------------------------------------
 
