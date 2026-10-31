@@ -55,8 +55,8 @@ report-last-error = The last error
 
 # Report item for a saved crash. The time and the place are already worded.
 # @arg when: text
-# @arg where: text
-report-crash-item = Crash · { $when } · { $where }
+# @arg place: text
+report-crash-item = Crash · { $when } · { $place }
 
 # Disclosure that opens the exact text of the report.
 report-show-sent = Show what is sent

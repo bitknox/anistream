@@ -13,7 +13,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         Mutex, OnceLock,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering},
     },
     time::Instant,
 };
@@ -188,6 +188,9 @@ impl HeldCrashes {
 
 static SAVING: AtomicBool = AtomicBool::new(false);
 static DEMO_ON: AtomicBool = AtomicBool::new(false);
+static ASK: AtomicBool = AtomicBool::new(true);
+static ENABLED_AT: AtomicI64 = AtomicI64::new(-1);
+static HELD: OnceLock<HeldCrashes> = OnceLock::new();
 static STORE: OnceLock<Mutex<Option<CrashStore>>> = OnceLock::new();
 static STARTED: OnceLock<Instant> = OnceLock::new();
 
@@ -200,6 +203,42 @@ pub fn arm(data_dir: &Path, saving: bool, demo_on: bool) {
     if let Ok(mut store) = STORE.get_or_init(|| Mutex::new(None)).lock() {
         *store = Some(CrashStore::in_data(data_dir));
     }
+}
+
+/// Now, in Unix milliseconds.
+pub fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |since| i64::try_from(since.as_millis()).unwrap_or(0))
+}
+
+/// Arm the hook from the configuration in effect, at engine start.
+pub fn arm_from(data_dir: &Path, config: &anistream_core::config::Config) {
+    arm(data_dir, config.crash_reports.save, config.sources.demo);
+    rearm(config);
+}
+
+/// Hear the settings again: saving, asking, when saving was switched on, and whether the demo is on.
+pub fn rearm(config: &anistream_core::config::Config) {
+    SAVING.store(config.crash_reports.save, Ordering::Relaxed);
+    ASK.store(config.crash_reports.ask, Ordering::Relaxed);
+    DEMO_ON.store(config.sources.demo, Ordering::Relaxed);
+    ENABLED_AT.store(config.crash_reports.enabled_at.unwrap_or(-1), Ordering::Relaxed);
+}
+
+/// Whether asking after a crash is on.
+pub fn asking() -> bool {
+    ASK.load(Ordering::Relaxed)
+}
+
+/// When saving was switched on, if it was.
+pub fn enabled_at() -> Option<i64> {
+    Some(ENABLED_AT.load(Ordering::Relaxed)).filter(|at| *at >= 0)
+}
+
+/// The system's held records, shared by the offer and the add.
+pub fn held() -> &'static HeldCrashes {
+    HELD.get_or_init(HeldCrashes::default)
 }
 
 /// Whether saving is on, as the hook last heard.
@@ -273,13 +312,64 @@ pub fn save_panic(info: &PanicHookInfo<'_>) {
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let Some(store) = armed_store() else { return };
-        let now_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |since| i64::try_from(since.as_millis()).unwrap_or(0));
+        let now_ms = now_ms();
         let backtrace = std::backtrace::Backtrace::force_capture().to_string();
         let record = record_of_panic(info, &backtrace, now_ms);
         store.save(&record, true, now_ms);
     }));
+}
+
+// What the apps call, over the armed store. Each does nothing, and answers empty, until the
+// engine has started.
+
+/// Keep a crash the app caught itself (a signal, an uncaught exception), redacted, while saving
+/// is on. False when nothing was written.
+pub fn save_record(record: &CrashRecord) -> bool {
+    let Some(store) = armed_store() else { return false };
+    store.save(record, saving(), now_ms())
+}
+
+/// The saved reports, newest first.
+pub fn saved() -> Vec<CrashSummary> {
+    armed_store().map(|store| store.list(now_ms())).unwrap_or_default()
+}
+
+/// The whole text of one saved report.
+pub fn saved_text(id: &str) -> Option<String> {
+    armed_store()?.text(id)
+}
+
+/// The redacted summary of one saved report, for a public issue.
+pub fn saved_summary_text(id: &str) -> Option<String> {
+    armed_store()?.get(id).map(|record| anistream_model::crash::crash_summary_text(&record))
+}
+
+pub fn delete_saved(id: &str) {
+    if let Some(store) = armed_store() {
+        store.delete(id);
+    }
+}
+
+pub fn delete_all_saved() {
+    if let Some(store) = armed_store() {
+        store.delete_all();
+    }
+}
+
+/// The crash to tell the viewer about at launch, once, while saving and asking are on.
+pub fn pending_notice() -> Option<CrashSummary> {
+    armed_store()?.pending_notice(saving(), asking(), now_ms())
+}
+
+/// Offer what the system kept from the week before saving was switched on. Nothing is read
+/// into a report before `add_held`.
+pub fn offer_held(records: Vec<CrashRecord>) -> Vec<CrashSummary> {
+    held().offer(records, saving(), enabled_at())
+}
+
+pub fn add_held(id: &str) -> bool {
+    let Some(store) = armed_store() else { return false };
+    held().add(id, &store, saving(), now_ms())
 }
 
 #[cfg(test)]
