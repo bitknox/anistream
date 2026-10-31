@@ -247,12 +247,8 @@
   "accounts-adds-season": {
     "source": "6306074b12a7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: シーズンの作品 is vague for a season's titles, and 発表され次第 is a clumsy passive."
-    ],
-    "back": "{ $tracker } adds season titles as soon as they're announced."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-badge-sign-in": {
     "source": "80c775b5875d",
@@ -313,13 +309,8 @@
   "accounts-clash-detail": {
     "source": "67adc87faffe",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: { -device } is used bare, losing 'here' and unlike the この{ -device } wording used elsewhere.",
-      "meaning: それぞれ片方 is slightly awkward for keep one side of each."
-    ],
-    "back": "Some items changed on both { $tracker } and { -device } since the last sync. Keep one side for each."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-clash-row": {
     "source": "4f39f6153f0a",
@@ -366,12 +357,8 @@
   "accounts-code-expires": {
     "source": "8ad31cc893d3",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: Expires in a time is rendered as 時間で期限切れ, which does not clearly say after that long."
-    ],
-    "back": "Expires in { $time }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-code-expires-minutes": {
     "source": "66cd2fd98ae7",
@@ -435,22 +422,14 @@
   "accounts-conflict-keep-mine": {
     "source": "6fb8d8a859a5",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "length: 7 full-width characters is about 14 cells, over the max of 12 if cells are counted."
-    ],
-    "back": "Keep my value"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-conflict-keep-theirs": {
     "source": "f71efd97144b",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "length: tracker name plus 5 characters may exceed the max of 16 cells."
-    ],
-    "back": "Keep the { -tracker } value"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-conflict-row": {
     "source": "8b3b983631ba",
@@ -966,9 +945,8 @@
   "accounts-step-enter": {
     "source": "391b16ab04ff",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "2. Enter the code"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-step-open": {
     "source": "817bf2ee8eba",
@@ -1050,12 +1028,8 @@
   "accounts-tokens-file": {
     "source": "45c12f553a47",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: あなたのみ is stiff and unnatural in Japanese app copy."
-    ],
-    "back": "Sign-in tokens are stored in a file on this { -device }, readable only by you."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "accounts-tokens-keychain": {
     "source": "45f28ebb9e9f",
@@ -1095,12 +1069,8 @@
   "accounts-welcome-detail": {
     "source": "6d4e82cb6437",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 視聴の位置 is stiff translationese for where you stopped; a natural phrase would be 再生位置 or 続きから."
-    ],
-    "back": "Sign in to { $tracker } to sync your lists and watch position."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "action-back": {
     "source": "c16e00a7a8b2",
@@ -1322,12 +1292,8 @@
   "action-remove": {
     "source": "ea4f08110bb8",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 取り除く is a verb in dictionary form and reads oddly next to the noun-form buttons such as 削除; a noun like 削除 or 除外 fits a button better."
-    ],
-    "back": "Take away"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "action-replace": {
     "source": "2a8434b16dc2",
@@ -2004,12 +1970,8 @@
   "cause-no-source-could-list-show": {
     "source": "f82e7a4d3aae",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 一覧に表示できなかった is an unnatural rendering of 'could list this show'; something like finding the work's episodes reads more naturally."
-    ],
-    "back": "No { -source } could list this work, so it cannot be downloaded."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "cause-no-source-has-episode": {
     "source": "2ab4d7c7ff4d",
@@ -2360,12 +2322,8 @@
   "continue-row-caught-up-not-out": {
     "source": "61f5d7b1b829",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: uses 追いつきました while the sibling string uses 最新話まで視聴済み for the same 'Caught up' state."
-    ],
-    "back": "Caught up · episode { $episode } is not out yet"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "continue-row-caught-up-plain": {
     "source": "114c9158f1dd",
@@ -2769,12 +2727,8 @@
   "discussion-cancel-reply": {
     "source": "09c7e0ff5f4e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: the English name also covers stopping an edit, but the draft says only cancel the reply."
-    ],
-    "back": "Cancel reply"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "discussion-comment-menu": {
     "source": "3018792a916f",
@@ -2898,12 +2852,8 @@
   "discussion-offline-post": {
     "source": "772d36c9d9d4",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: ネットワークに接続されるまで投稿を待ちます is an unnatural phrase, as the app is not the one waiting; something like 投稿はネットワークに接続後に行われます is natural."
-    ],
-    "back": "Your post will wait until the network is connected"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "discussion-open": {
     "source": "3a54011ee939",
@@ -2929,9 +2879,8 @@
   "discussion-post-failed": {
     "source": "69f74ee36255",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Could not post. Please try again."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "discussion-rate-limited": {
     "source": "cc4e84447d19",
@@ -2985,9 +2934,8 @@
   "discussion-sign-in": {
     "source": "0fc7f95a9dcf",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Sign in to AniList to reply"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "discussion-spoiler": {
     "source": "9290f6af0caf",
@@ -3678,12 +3626,8 @@
   "downloads-remove-from-list": {
     "source": "e54d5a33026a",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 削除 can be read as deleting the file, but the file stays; it is easy to confuse with ファイルを削除."
-    ],
-    "back": "Delete from list"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "downloads-remove-from-queue": {
     "source": "d68705db148d",
@@ -3772,12 +3716,8 @@
   "downloads-seeding-open-only": {
     "source": "752d81351898",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: Seeding is rendered as 共有 here but シーディング in the headings, so the wording is inconsistent."
-    ],
-    "back": "Sharing happens only while { -app-name } is open."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "downloads-seeding-title": {
     "source": "f3677a38db4e",
@@ -3838,12 +3778,8 @@
   "downloads-state-done": {
     "source": "b87a1067596d",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "length: 8 full-width characters take about 16 terminal cells, over the max of 13 if cells are counted."
-    ],
-    "back": "Downloaded"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "downloads-state-failed": {
     "source": "bf9c5c5a8e5e",
@@ -4121,12 +4057,8 @@
   "episode-listed-by-anilist": {
     "source": "9221e42cf90e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: Adds 'only' and a second sentence 'cannot play yet' that EN does not say; EN is just 'Listed by AniList'."
-    ],
-    "back": "Listed only on AniList. It cannot be played yet."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "episode-long-dubbed": {
     "source": "304bb0e52b63",
@@ -4344,9 +4276,8 @@
   "episode-unsourced": {
     "source": "e2de7c448b8e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "No { -source } offers this episode"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "episode-watched": {
     "source": "fbe199a56777",
@@ -4386,12 +4317,8 @@
   "episodes-column-run": {
     "source": "9fbbc819fe7e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 時間 alone is ambiguous (time of day or hours); 再生時間 would show it is the running time."
-    ],
-    "back": "Duration"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "episodes-column-title": {
     "source": "99f110d27e30",
@@ -4704,12 +4631,8 @@
   "error-timed-out": {
     "source": "f5fc81f3c117",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 要求 is stiff translationese for a request; リクエスト or 接続がタイムアウトしました reads more natural in an app."
-    ],
-    "back": "The request took too long. Please try again."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "film-length-hours": {
     "source": "fb12680c5861",
@@ -4847,12 +4770,8 @@
   "filter-hide-obscure": {
     "source": "f4c0f127309c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: obscure became few ratings, which is a different criterion."
-    ],
-    "back": "Exclude titles with few ratings"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "filter-hint-remote": {
     "source": "aca1ba672162",
@@ -5011,12 +4930,8 @@
   "filter-origin": {
     "source": "9eecb8124fb0",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: 原産地 is used for produce and goods, not for where a show comes from; it also nearly duplicates 製作国."
-    ],
-    "back": "Place of origin"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "filter-picked-more": {
     "source": "ef062be93c27",
@@ -5525,22 +5440,14 @@
   "keys-action-filter-search": {
     "source": "6346054a3e70",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: Reads as searching for a narrowing, not searching within the filters; ambiguous."
-    ],
-    "back": "Search the narrowing"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "keys-action-fix-mapping": {
     "source": "3d5367243652",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 一致を修正 is stiff translationese for fixing a wrong match; a more natural phrase would say the matched title."
-    ],
-    "back": "Fix this match"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "keys-action-focus-search": {
     "source": "5d929ff1619a",
@@ -5552,12 +5459,8 @@
   "keys-action-force-resync": {
     "source": "b7a889277a90",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: Loses the sense of forcing the resync; only says fully resync."
-    ],
-    "back": "Fully resync"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "keys-action-fullscreen": {
     "source": "a3d326f1be34",
@@ -6048,9 +5951,8 @@
   "keys-hint-choose": {
     "source": "bf4808a055e7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Choose"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "keys-hint-clear-finished": {
     "source": "6d9adf35cd87",
@@ -6356,9 +6258,8 @@
   "keys-hint-use": {
     "source": "625ad019db84",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Use"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "keys-hint-watched": {
     "source": "fbe199a56777",
@@ -6940,36 +6841,26 @@
   "lists-episode-in": {
     "source": "850595347a34",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: 第{ $episode }話 is wrong if $episode is already formatted like E5; also a countdown such as 4d 20h after 公開まで needs checking."
-    ],
-    "back": "Episode { $episode } releases in { $countdown }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "lists-episode-out": {
     "source": "aeaae43027d4",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: 第{ $episode }話 is wrong if $episode is already formatted like E5 (as in the resume rows); check the value."
-    ],
-    "back": "Episode { $episode } released"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "lists-episode-out-ago": {
     "source": "e3a6891461e1",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Episode { $episode } released ({ $countdown } ago)"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "lists-episode-out-just-now": {
     "source": "5cf4fd702463",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Episode { $episode } released just now"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "lists-filter-any": {
     "source": "f999d4199ff4",
@@ -7135,19 +7026,14 @@
   "lists-preview-continue": {
     "source": "872aeaee6248",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: 第{ $episode }話 may double up if $episode is already formatted like E5."
-    ],
-    "back": "{ -continue-cap }: episode { $episode } { $clock }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "lists-preview-continue-percent": {
     "source": "351ac4cde5ec",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ -continue-cap }: episode { $episode } { $clock } ({ $percent }%)"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "lists-progress-aired": {
     "source": "278e72b5523d",
@@ -7967,12 +7853,8 @@
   "more-like-this": {
     "source": "7935a3ef7631",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 'この作品が好きな人が好む作品' is a heavy literal rendering of a short heading ('More like this')."
-    ],
-    "back": "Titles liked by people who like this title"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "more-rankings": {
     "source": "9b6cfa58a213",
@@ -7991,12 +7873,8 @@
   "more-role-background": {
     "source": "1efbfc3937d5",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 'その他' means 'other', losing the character role 'background'."
-    ],
-    "back": "Other"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "more-role-main": {
     "source": "49e763aed008",
@@ -8008,9 +7886,8 @@
   "more-role-supporting": {
     "source": "fa642a34f54d",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Supporting role"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "more-show-spoiler-tags": {
     "source": "64b121ef1445",
@@ -8127,12 +8004,8 @@
   "nav-overlay-disambiguate": {
     "source": "4ed2703cfee3",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "register: Overlay title is a sentence in です form; titles should be a noun or imperative form."
-    ],
-    "back": "Which one is it?"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "nav-overlay-download-range": {
     "source": "a8cddc8039f3",
@@ -8788,12 +8661,8 @@
   "notice-keep-next-full": {
     "source": "28a5ff430c0b",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: EN is about keeping the next episodes downloaded (keep next); TR only says space to save the glossary word Up next and loses 'keep' and 'more'."
-    ],
-    "back": "There is not enough free space to save { -up-next-cap }. Free up space to download."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-kitsu-signs-in-on-accounts": {
     "source": "656370937691",
@@ -8805,12 +8674,8 @@
   "notice-last-episode": {
     "source": "4372643034c8",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: EN says plain 'next episode' but TR uses the glossary word for Up next, while notice-no-previous-episode uses plain 前のエピソード; inconsistent."
-    ],
-    "back": "There is no { -up-next-cap }. Episode { $episode } is the last."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-mal-client-missing": {
     "source": "82c2e5c47c45",
@@ -8899,26 +8764,20 @@
   "notice-no-next-episode": {
     "source": "b0cfa1d552c7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: EN says plain 'next episode' but TR uses the glossary word for Up next, unlike the previous-episode message."
-    ],
-    "back": "There is no { -up-next-cap }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-no-party": {
     "source": "fee2a197265a",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ -watch-party-cap-pl } are not available in this version of { -app-name }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-no-player": {
     "source": "5399ab0041bd",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "This version of { -app-name } cannot play video."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-no-previous-episode": {
     "source": "896d95dac2c9",
@@ -8930,12 +8789,8 @@
   "notice-no-source-could-list": {
     "source": "1e680e9a4fb2",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 一覧に表示できませんでした is an unnatural rendering of 'could list this show'."
-    ],
-    "back": "No { -source } could list this work: { $reason }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-not-aired": {
     "source": "818deba44adc",
@@ -9129,12 +8984,8 @@
   "notice-sign-in-not-waiting": {
     "source": "c8cd8d2647c2",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: それを待っている is an unnatural, vague rendering of 'waiting for that'; reads as translationese."
-    ],
-    "back": "There is no sign-in to { $tracker } waiting for that. Start signing in over from the beginning."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-sign-in-stopped": {
     "source": "42f5f7fad35a",
@@ -9153,12 +9004,8 @@
   "notice-sign-in-wrong-request": {
     "source": "8039bf1dcb55",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: stiff translationese (そのサインイン ... この要求に対する応答); a plainer sentence would suit a toast."
-    ],
-    "back": "That sign-in to { $tracker } was not a response to this request. Start signing in over from the beginning."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notice-sign-out-failed": {
     "source": "9f87082b5020",
@@ -9331,24 +9178,14 @@
   "notif-episode-out-dubbed-next": {
     "source": "e0e6f2b05910",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: Uses 第{ $next }話 beside エピソード { $episode }, an inconsistent unit.",
-      "meaning: EN says Next for you, while { -up-next } is a glossary label that may read oddly mid-sentence."
-    ],
-    "back": "Episode { $episode } has been released in { -dubbed }. { -up-next } is episode { $next }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notif-episode-out-next": {
     "source": "e7a4468b02cd",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: Uses 第{ $next }話 beside エピソード { $episode } in the same sentence, an inconsistent unit.",
-      "meaning: EN says Next for you, while { -up-next } is a glossary label that may read oddly mid-sentence."
-    ],
-    "back": "Episode { $episode } has been released. { -up-next } is episode { $next }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "notif-hidden-text": {
     "source": "f30193d4f3cc",
@@ -9514,12 +9351,8 @@
   "overlays-heading-recommendations": {
     "source": "78cc95873bcb",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: loses 'because you liked'; 基づく reads as data-driven, not a taste-based reason."
-    ],
-    "back": "Recommendations based on { $name }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "overlays-heading-release": {
     "source": "4c3d11d7cf91",
@@ -10175,12 +10008,8 @@
   "party-leave": {
     "source": "ea8ed1399c9c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: を退出 is unnatural; 退出 takes から or stands alone, as in 退出する."
-    ],
-    "back": "Leave { -watch-party } (exit)"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "party-leave-and-close": {
     "source": "ef9c859077d8",
@@ -10269,12 +10098,8 @@
   "party-member-not-ready": {
     "source": "f3bac7dc9c15",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 未準備 is stiff for a status label; 準備中 reads more natural."
-    ],
-    "back": "Not ready"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "party-member-other-file": {
     "source": "0209f7d8c04b",
@@ -10328,12 +10153,8 @@
   "party-no-source-lists": {
     "source": "4b4ce9084006",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: bare { $episode } loses the word episode; it reads as a number or name, so 第N話 is missing."
-    ],
-    "back": "No { -source } lists { $episode }. { -source-cap-pl } come from { -plugin-pl }. { -plugin-pl } can be added in the { -plugin-store }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "party-no-source-still-in": {
     "source": "39d1974f4824",
@@ -10352,12 +10173,8 @@
   "party-nosource-missing-title": {
     "source": "e3f46c6cf59a",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: EN says none of your sources; the draft drops the possessive (お使いの)."
-    ],
-    "back": "No { -source } has this episode"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "party-nosource-none-detail": {
     "source": "56ba264ff19e",
@@ -10383,12 +10200,8 @@
   "party-nosource-unaired-plain": {
     "source": "726583b54955",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: どれかのソースに入ると is odd for a source gaining the episode; say the source has it (配信されると)."
-    ],
-    "back": "Until it airs, it isn't on your { -source-pl }. Once it enters any { -source }, it plays with the room."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "party-nosource-unaired-title": {
     "source": "c89fabdaff09",
@@ -10400,9 +10213,8 @@
   "party-nosource-unaired-when": {
     "source": "e575e246c89b",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ $when } Your { -source-pl } don't include it until then. Once one does, it will play along with the room."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "party-not-now": {
     "source": "275772c501fb",
@@ -10736,16 +10548,14 @@
   "playback-skip-ending": {
     "source": "a8744b0b4388",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "⟨ Skip ending: { $key } ⟩"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "playback-skip-opening": {
     "source": "fb18ac042421",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "⟨ Skip opening: { $key } ⟩"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "playback-state-paused": {
     "source": "95bc8722b270",
@@ -11341,12 +11151,8 @@
   "player-remembered": {
     "source": "00469a284b9d",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 記憶されます is stiff passive translationese; a natural app line would say 覚えています."
-    ],
-    "back": "Your choices for this title are remembered."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "player-resumed-at": {
     "source": "24773c8542ed",
@@ -12054,12 +11860,8 @@
   "relation-adaptation": {
     "source": "1854bd18b83f",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 翻案作品 is stiff and reads as a legal or literary term; a plainer word fits a relation label better."
-    ],
-    "back": "Adaptation"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "relation-alternative": {
     "source": "09baab5c9c3e",
@@ -12155,12 +11957,8 @@
   "relation-summary": {
     "source": "c9474bf7a066",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: Uses the glossary word { -batch } for a recap relation, which is a different concept (a recap or summary title)."
-    ],
-    "back": "{ -batch }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "release-pinned": {
     "source": "bb5b5c38cef0",
@@ -12179,12 +11977,8 @@
   "search-browse": {
     "source": "99fa943a22c1",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 一覧 (list) does not convey Browse as a tab/mode; 探す or ブラウズ is more natural."
-    ],
-    "back": "List"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "search-clear": {
     "source": "5f4586bc1e27",
@@ -12745,12 +12539,8 @@
   "settings-apple-comment-images-note": {
     "source": "84b8079a2d65",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: Uses the stiff pronoun あなたの, which natural Japanese app copy drops."
-    ],
-    "back": "Images are loaded from the site hosting them. That site can see your IP address."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-apple-discussions": {
     "source": "5dd5e8729e1d",
@@ -13185,12 +12975,8 @@
   "settings-group-advanced": {
     "source": "21b06c38fc41",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: 詳細 means details; the usual label for Advanced settings is 詳細設定 or 高度な設定."
-    ],
-    "back": "Details"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-group-ahead": {
     "source": "e72a4eb3e767",
@@ -13461,12 +13247,8 @@
   "settings-label-motion": {
     "source": "191bbfc4126e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: アニメーション can be read as anime or animation content rather than interface motion; a clearer term such as 動きの演出 may be needed."
-    ],
-    "back": "Animation"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-label-mpv-options": {
     "source": "aa7a82354a66",
@@ -15644,12 +15426,8 @@
   "shell-engine-stopped-body": {
     "source": "a40dee94cd5d",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 'もう一度開始すると、再開できます' repeats start and resume and reads awkwardly; 'carry on' is lost."
-    ],
-    "back": "The part in charge of processing has stopped. You can resume by starting again."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "shell-less": {
     "source": "a5ef80b4bb9b",
@@ -16109,12 +15887,8 @@
   "show-settings-never": {
     "source": "8b97ea84af17",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: なし reads as none rather than never, next to 常に; 使用しない or しない would parallel the Always option."
-    ],
-    "back": "None"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "show-settings-no-source": {
     "source": "b29a63113179",
@@ -16567,12 +16341,8 @@
   "sources-detail-off": {
     "source": "46a610a51d4a",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 試行されません is stiff passive; a plainer verb such as 試されません reads more naturally."
-    ],
-    "back": "It is off. The order is kept, but it will not be tried until you turn it back on."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "sources-detail-site": {
     "source": "f90500968be8",
@@ -16710,12 +16480,8 @@
   "sources-meta-state-failing": {
     "source": "d122dcdfd629",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 失敗中 reads stiff as a status; エラー中 or 失敗が続いています would be more natural."
-    ],
-    "back": "Failing"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "sources-meta-state-live": {
     "source": "3d1396b47ff4",
@@ -17294,12 +17060,8 @@
   "sources-vpn-unreachable": {
     "source": "2f8f1b6a7f23",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 確認できず says the check could not be done, but EN says the VPN is unreachable."
-    ],
-    "back": "VPN { $mark }  Cannot verify"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "sources-vpn-unreachable-paused": {
     "source": "221f0b7a1067",
@@ -17570,12 +17332,8 @@
   "store-joined-unnamed": {
     "source": "6ebad99aa14b",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: EN says joined without a name; TR drops that, which matters because it explains why no member name is kept."
-    ],
-    "back": "Joined { $store }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "store-key-damaged": {
     "source": "1a79d60fd75b",
@@ -18448,12 +18206,8 @@
   "stores-footer-show-link": {
     "source": "5db6693f02a4",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 'コピーと共有' after を表示して is unnatural; the 'to copy and share' purpose is not built cleanly."
-    ],
-    "back": "Enter: show the link and copy or share it"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-footer-update-hosts": {
     "source": "5e587bf39033",
@@ -19396,12 +19150,8 @@
   "stores-owner-no-answer-detail": {
     "source": "2eef5764f321",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 混み合っている suggests crowding or traffic; the store being busy would read more naturally as slow to respond."
-    ],
-    "back": "It may be busy, or the computer may be turned off."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-owner-sees-as": {
     "source": "362c1aeb5c41",
@@ -19413,9 +19163,8 @@
   "stores-owner-tag": {
     "source": "b971debc37bf",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Owner"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-owner-unreachable": {
     "source": "e1dcd221b07f",
@@ -19644,9 +19393,8 @@
   "stores-publish-none-hint": {
     "source": "37a7f27ad653",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ -plugin } you create or install on this { -device } appear here."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-publish-not-yet": {
     "source": "d539d96216d7",
@@ -19728,12 +19476,8 @@
   "stores-remove-devices-detail": {
     "source": "0c2a71070ac9",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: The subject is missing, so it is unclear what stops working with the name (the devices or the plugins)."
-    ],
-    "back": "They will immediately stop working with { $name }. Already installed { -plugin-cap-pl } remain as they are."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-remove-devices-title": {
     "source": "ed328e0d2331",
@@ -19829,12 +19573,8 @@
   "stores-seen-never": {
     "source": "8b97ea84af17",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 'Never' (never seen) became 'not confirmed', which reads as a verification state."
-    ],
-    "back": "Not confirmed"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-send-link-until": {
     "source": "7c24c820be1c",
@@ -19996,12 +19736,8 @@
   "stores-tv-no-network": {
     "source": "9d82577b6b99",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 'スマートフォンから届くネットワーク' is stiff; 'phone can reach' reads unnaturally."
-    ],
-    "back": "This TV is not connected to a network that a smartphone can reach."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "stores-type-link": {
     "source": "b384a1e8ef92",
@@ -20146,12 +19882,8 @@
   "time-now": {
     "source": "3763f519c347",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 今すぐ means 'right away' (urgent); EN is a wait that is over, so 'now' as a status is better."
-    ],
-    "back": "Right now"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "time-now-inline": {
     "source": "215ad519258e",
@@ -20341,9 +20073,8 @@
   "title-episodes-load-failed": {
     "source": "2795feb74f9b",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Could not list the episodes"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-episodes-no-source": {
     "source": "5edf5c8a3dec",
@@ -20488,12 +20219,8 @@
   "title-linux-play-on-tv-help": {
     "source": "adc0f696af94",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: テレビのこのエピソード reads as 'this episode of the TV'; should say play this episode on the TV."
-    ],
-    "back": "Play this episode on the TV with { -app-name }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-list-status": {
     "source": "5cecae9236cb",
@@ -20624,22 +20351,14 @@
   "title-play-on-tv-help": {
     "source": "adc0f696af94",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: テレビのこのエピソード reads as 'this episode of the TV'; should say play this episode on the TV."
-    ],
-    "back": "Play this episode on the TV with { -app-name }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-play-on-tv-tooltip": {
     "source": "adc0f696af94",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: EN says play on a TV with the app; the parenthesised app name could read as a label, not as the means."
-    ],
-    "back": "Play this episode on TV ({ -app-name })"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-play-trailer": {
     "source": "2a192ad23873",
@@ -20651,12 +20370,8 @@
   "title-progress-aired": {
     "source": "6f60404d9a16",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: the done count lacks 'watched', so it reads as { $aired } aired of which { $done } are something unspecified."
-    ],
-    "back": "{ $done } episodes of { $aired } aired"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-progress-watched": {
     "source": "aecab4e90a83",
@@ -20787,12 +20502,8 @@
   "title-relation-parent": {
     "source": "4eb514ebcb80",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: 原作 means source material such as a manga, narrower than parent story."
-    ],
-    "back": "Original work"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-relation-prequel": {
     "source": "c7df67cc4053",
@@ -20874,12 +20585,8 @@
   "title-source-failing": {
     "source": "d122dcdfd629",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 失敗中 reads stiff; a state like 応答なし or 利用不可 is more natural for a failing source."
-    ],
-    "back": "Failing"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "title-status-completed": {
     "source": "5033dab8c17f",
@@ -21191,12 +20898,8 @@
   "torrents-check-note": {
     "source": "fa8d2457b103",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: '動作中の毎分' and '通信の出口' are awkward translationese for 'every minute while it runs' and 'where traffic leaves from'."
-    ],
-    "back": "{ -app-name } checks where torrent traffic exits when torrents start and every minute while running. If the check fails, it pauses torrents. The VPN or proxy is what protects your traffic."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "torrents-check-note-stop": {
     "source": "a341759e366d",
@@ -21243,12 +20946,8 @@
   "torrents-check-running-line": {
     "source": "314e29eac637",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 'トレントの通信の出口を確認しています' is stiff; the exit wording is unnatural."
-    ],
-    "back": "Checking where torrent traffic exits"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "torrents-check-unmade": {
     "source": "1e3e5149e5ef",
@@ -21602,12 +21301,8 @@
   "torrents-protect-none-detail": {
     "source": "b1ef2985f6ba",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 'トレントの中のすべての人' is an unnatural rendering of 'everyone in the torrent'."
-    ],
-    "back": "Everyone in the torrent can see your address."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "torrents-protect-none-note": {
     "source": "3c59685444e4",
@@ -21626,12 +21321,8 @@
   "torrents-protect-proxy-detail": {
     "source": "8bbd2dc227c0",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 'お使いまたは契約しているプロキシ' is ungrammatical ('お使い' lacks a verb); EN is 'a proxy you run or rent'."
-    ],
-    "back": "Torrent traffic goes through a proxy you run or subscribe to."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "torrents-protect-proxy-name": {
     "source": "4eea8904a00a",
@@ -21853,12 +21544,8 @@
   "torrents-summary-none": {
     "source": "2855f746d012",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 'トレントの中のすべての人' is an unnatural rendering of 'everyone in the torrent'."
-    ],
-    "back": "Not protected. Everyone in the torrent can see your address."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "torrents-summary-proxy": {
     "source": "59c98e78b5d3",
@@ -21926,12 +21613,8 @@
   "torrents-warn-body": {
     "source": "a261dd3b267f",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: あなたのIPアドレス and 他の人 read as translationese; drop the pronoun."
-    ],
-    "back": "{ -app-name } warns without pausing. If the VPN or proxy is down, others can see your IP address."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "torrents-warn-instead": {
     "source": "a261dd3b267f",
@@ -21943,9 +21626,8 @@
   "torrents-warn-only-detail": {
     "source": "a261dd3b267f",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ -app-name } warns instead of pausing. If the VPN or proxy is down, others may be able to see your IP address."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "trailer-failed": {
     "source": "d2f8fd136b16",
@@ -22086,9 +21768,8 @@
   "tv-address-hint": {
     "source": "476c7113757e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "The TV shows its address on the phone pairing screen."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-after-pairing": {
     "source": "1a87364c92cf",
@@ -22239,11 +21920,8 @@
   "tv-continue-empty": {
     "source": "1a9a8e97e966",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 「のあるもの」 is an unnatural way to say there is nothing to continue; it reads as a stiff translation of the glossary word."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-continue-offline-failed": {
     "source": "d59f2d9ffcdf",
@@ -22254,9 +21932,8 @@
   "tv-device-code": {
     "source": "ea15a7546a7c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "On the TV, this { -device } appears with code { $code }. If you remove the TV here, this { -device } is removed too."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-discussion-count-read-only": {
     "source": "b6369bed1b89",
@@ -22317,9 +21994,8 @@
   "tv-fingerprint-note": {
     "source": "ea15a7546a7c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "On the TV, this { -device } appears with code { $code }. If you remove the TV here, this { -device } is removed too."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-forget-detail": {
     "source": "c183eb8b0c91",
@@ -22489,11 +22165,8 @@
   "tv-on-my-list": {
     "source": "32057ade64f4",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: 「自分のリスト」 loses the 'on' of 'On my list' and reads as a link to the list, not a filter chip."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-open-on-tv": {
     "source": "508ba5697971",
@@ -22633,11 +22306,8 @@
   "tv-page-step-open": {
     "source": "b44c3eca1ef5",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: draft is a full polite sentence but EN is a link followed by an instruction; the link wording may clash."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-page-step-paste": {
     "source": "41d710e63f2b",
@@ -22883,11 +22553,8 @@
   "tv-player-caption-note": {
     "source": "dc1821f3eeb1",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: EN says the style follows system caption settings; the draft says the display follows them, which also implies on/off."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-player-episode-playing": {
     "source": "308604b3ae13",
@@ -22941,12 +22608,8 @@
   "tv-problem-busy": {
     "source": "d323949eacb8",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: 接続できる...の数が上限に達しています is redundant and clumsy (can connect, number, limit); a simpler phrase such as 接続中のデバイスが上限です is more natural."
-    ],
-    "back": "This TV has reached its limit of connectable { -device-pl }. Please wait a while and try again."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-problem-full": {
     "source": "2db7b15d194d",
@@ -23255,11 +22918,8 @@
   "tv-seasonal-unlisted": {
     "source": "90612bca2c97",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: EN says nothing is on your lists; the draft says 'not on the list yet' and loses 'your'."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-seasons-count": {
     "source": "7b10ddf5522b",
@@ -23296,11 +22956,8 @@
   "tv-seeding-note": {
     "source": "268c24a870ae",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: 「最善を尽くす方式」 is stiff translationese for best effort; a plainer phrase like 保証はありません would read more naturally."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-seen-just-now": {
     "source": "84126fa92f00",
@@ -23333,12 +22990,8 @@
   "tv-settings-footnote": {
     "source": "ea15a7546a7c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: テレビにはコード…のこの{ -device }が表示されます is awkward and hard to parse."
-    ],
-    "back": "The TV shows this { -device } with code { $code }. If you remove the TV here, the record of this { -device } is also deleted."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-sheet-code-on": {
     "source": "c2afc1a88aea",
@@ -23357,12 +23010,8 @@
   "tv-sheet-footer": {
     "source": "ea15a7546a7c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "tone: Forgetting a TV is rendered literally as 忘れる, which sounds odd; apps say 削除 or 登録解除."
-    ],
-    "back": "On the TV, this { -device } appears with the code { $code }. If you forget the TV here, this { -device } is also forgotten on the TV side."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-sheet-not-listed": {
     "source": "80a19a6b04bd",
@@ -23388,12 +23037,8 @@
   "tv-sheet-pairing-button": {
     "source": "aadba46653e4",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: Pairing is rendered 接続中, the same word as tv-sheet-connecting; ペアリング中 would keep the two states apart."
-    ],
-    "back": "Connecting"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-sheet-position": {
     "source": "b6a991ee20d9",
@@ -23611,11 +23256,8 @@
   "tv-store-revoked": {
     "source": "9ecf566fe8de",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "meaning: Says participation is no longer permitted rather than that the store no longer lets this TV in, which reads as a rule instead of a status line."
-    ]
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "tv-talk-failed": {
     "source": "8e664aa6865a",
@@ -24044,9 +23686,8 @@
   "updates-download": {
     "source": "4e42a5a12275",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Download update"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "updates-downloading": {
     "source": "f7a9a85cecd3",
@@ -24149,9 +23790,8 @@
   "updates-no-self-update": {
     "source": "5e23cc31b18b",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "This build doesn't update automatically. Install the new version from that page."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "updates-not-checked": {
     "source": "6177f5906704",
@@ -24170,12 +23810,8 @@
   "updates-notes-on-page": {
     "source": "933c1512495c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: そのページ has no antecedent for the release page."
-    ],
-    "back": "The changes in this version are on that page."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "updates-notes-title": {
     "source": "f8fdbfb99558",
@@ -24382,29 +24018,20 @@
   "updates-version-out-appimage": {
     "source": "3a54a4339383",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Version { $version } has been published. The AppImage is on that page."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "updates-version-out-page": {
     "source": "d83b5683949c",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "context: そのページ has no antecedent, so it is unclear which page is meant."
-    ],
-    "back": "Version { $version } has been published. The installer is on that page."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "updates-version-out-software": {
     "source": "44ca0a240728",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: ソフトウェア alone reads as generic software, not the Linux Software app that installs it."
-    ],
-    "back": "Version { $version } has been published. Your software installs it."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "updates-view-version": {
     "source": "f1bc4488b4e1",
@@ -24885,12 +24512,8 @@
   "widget-caught-up-none": {
     "source": "10a92413fa22",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "grammar: { -continue }の対象はありません is unnatural for 'Nothing more to continue'; check the glossary form of -continue."
-    ],
-    "back": "Nothing for { -continue }."
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "widget-caught-up-title": {
     "source": "114c9158f1dd",
@@ -25066,9 +24689,8 @@
   "widget-in-your-list": {
     "source": "e8a5d9b24d0e",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "From your watch list"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "widget-line-left": {
     "source": "d5dcb346de92",

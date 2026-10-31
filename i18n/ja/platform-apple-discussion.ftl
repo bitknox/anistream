@@ -18,6 +18,6 @@ discussion-apple-player-note = { $count ->
 settings-apple-discussions = エピソードのディスカッション
 settings-apple-discussions-note = 視聴済みのエピソードについて、AniListのフォーラムにあるコメントを読み込みます。
 settings-apple-comment-images = コメントの画像を読み込む
-settings-apple-comment-images-note = 画像は、それをホストしているサイトから読み込まれます。そのサイトはあなたのIPアドレスを確認できます。
+settings-apple-comment-images-note = 画像は、それをホストしているサイトから読み込まれ、そのサイトにはIPアドレスが見えます。
 discussion-apple-key-hint = ⌘Returnで投稿、Returnで改行します。
 discussion-apple-pauses = 再生を一時停止します

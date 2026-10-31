@@ -115,7 +115,7 @@ cause-no-source-has-episode = どのソースにも第{ $episode }話があり�
 cause-source-cannot-download = このソースはストリーミングのみで、ダウンロードはできません。
 
 # Reason: the title was never listed by a source, so it can't be downloaded.
-cause-no-source-could-list-show = どのソースもこの作品を一覧に表示できなかったため、ダウンロードできません。
+cause-no-source-could-list-show = どのソースもこの作品のエピソードを見つけられなかったため、ダウンロードできません。
 
 # Part of a finished download's toast: subtitle files were merged into the video.
 cause-subtitles-merged =
@@ -157,7 +157,7 @@ notice-player-exited-silently = mpvは何も再生せず、理由も表示され
 notice-player-not-playing = { $seconds }秒経っても、mpvで再生が始まりません。ソースにデータがない可能性があります。mpvが単独でファイルを再生できるか確認してください。
 
 # Toast when a play is asked for in a build with no player.
-notice-no-player = このanistreamのバージョンでは動画を再生できません。
+notice-no-player = このバージョンのanistreamでは動画を再生できません。
 
 # Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
 notice-mpv-missing = { $binary }が見つかりませんでした。エピソードを再生するには、mpvをインストールしてください。
@@ -196,10 +196,10 @@ notice-audio-now-dubbed = 音声を吹替版に切り替えました。
 notice-already-first-episode = すでに最初のエピソードです。
 
 # Toast when the next-episode control is used on the last known episode.
-notice-last-episode = 次のエピソードはありません。エピソード{ $episode }が最後です。
+notice-last-episode = この先のエピソードはありません。エピソード{ $episode }が最後です。
 
 # Toast when the next-episode control is used and the next episode is not known.
-notice-no-next-episode = 次のエピソードはありません。
+notice-no-next-episode = この先のエピソードはありません。
 
 # Toast when the previous-episode control finds no previous episode.
 notice-no-previous-episode = 前のエピソードはありません。
@@ -226,7 +226,7 @@ notice-source-automatic = ソースの自動選択に戻しました。
 notice-source-choice-failed = その選択を保存できませんでした。{ $reason }
 
 # Toast when no source could list a show's episodes. The reason is what the sources said.
-notice-no-source-could-list = どのソースもこの作品を一覧に表示できませんでした：{ $reason }
+notice-no-source-could-list = どのソースもこの作品のエピソードを見つけられませんでした：{ $reason }
 
 # Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
 notice-episodes-failed = エピソードを読み込めませんでした。{ $reason }
@@ -307,7 +307,7 @@ notice-episodes-queued-existing-stopped =
     }
 
 # Toast when keep next found no room for another episode.
-notice-keep-next-full = 次のエピソードを保存するための空き容量が足りません。ダウンロードするには、空き容量を確保してください。
+notice-keep-next-full = この先のエピソードをダウンロードしたままにするための空き容量が足りません。さらにダウンロードするには、空き容量を確保してください。
 
 # Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
 party-needs-server = 先に同時視聴のサーバーを選んでください（syncplay.server）。{ $server }は{ $operator }が運営しています。
@@ -316,7 +316,7 @@ party-needs-server = 先に同時視聴のサーバーを選んでください�
 party-choose-server = 先に同時視聴のサーバーを選んでください。{ $server }は{ $operator }が運営しています。
 
 # Toast when a watch party is asked for in a build without watch parties.
-notice-no-party = このanistreamのバージョンでは同時視聴は利用できません。
+notice-no-party = このバージョンのanistreamでは同時視聴は利用できません。
 
 # Message when a watch party was asked for with no room named.
 party-needs-room = 同時視聴に参加する部屋を、先に選んでください。
@@ -334,7 +334,7 @@ party-left = 同時視聴から退出しました。
 store-joined = { $store }に{ $member }として参加しました。
 
 # Toast after joining a plugin store with its open link, which keeps no name.
-store-joined-unnamed = { $store }に参加しました。
+store-joined-unnamed = { $store }に名前なしで参加しました。
 
 # Toast after leaving a plugin store.
 store-left = { $store }から退出しました。インストール済みのプラグインはそのまま残ります。
@@ -565,10 +565,10 @@ notice-token-exchange-failed = { $tracker }からトークンを取得できま�
 notice-browser-not-opened = サインイン用のブラウザを開けませんでした。ブラウザがインストールされているか確認して、もう一度試してください。{ $reason }
 
 # Toast when a sign-in redirect arrives and no sign-in is waiting for it.
-notice-sign-in-not-waiting = それを待っている{ $tracker }へのサインインはありません。サインインを最初からやり直してください。
+notice-sign-in-not-waiting = 待機中の{ $tracker }のサインインはありません。サインインを最初からやり直してください。
 
 # Toast when a sign-in redirect does not match the request that was made.
-notice-sign-in-wrong-request = { $tracker }へのそのサインインは、この要求に対する応答ではありませんでした。サインインを最初からやり直してください。
+notice-sign-in-wrong-request = { $tracker }から戻ったサインイン情報が、今回の要求のものではありません。サインインを最初からやり直してください。
 
 # Toast when a tracker sent the person back without a token.
 notice-sign-in-no-token = { $tracker }へのサインインがトークンなしで戻ってきました。もう一度試してください。
@@ -823,7 +823,7 @@ library-linux-order = 並べ替え
 library-linux-list-count = { $list }（{ $count }）
 
 # Description read by a screen reader on the button that plays the shown episode on a TV.
-title-linux-play-on-tv-help = anistreamでテレビのこのエピソードを再生
+title-linux-play-on-tv-help = anistreamが動作するテレビで、このエピソードを再生
 
 # Description read by a screen reader on an episode's watched check box.
 title-linux-episode-watched = エピソード{ $episode }、視聴済み
@@ -1120,7 +1120,7 @@ tv-episode = 第{ $episode }話
 tv-episode-titled = 第{ $episode }話 · { $title }
 
 # Explains the code a TV lists this computer by, above the paired TVs in the settings.
-tv-fingerprint-note = テレビにはこのデバイスがコード { $code } で表示されます。ここでテレビを削除すると、このデバイスも削除されます。
+tv-fingerprint-note = テレビにはこのデバイスがコード { $code } で表示されます。ここでテレビの登録を解除すると、テレビ側でもこのデバイスの登録が解除されます。
 
 # Settings line of a paired TV: paired on a date, reached in the last minute.
 tv-paired-seen-now = { $paired } · たった今確認済み
@@ -1147,7 +1147,7 @@ stores-owner-unreachable = プラグインストアに接続できませんで�
 stores-owner-no-answer = プラグインストアから応答がありませんでした
 
 # Line under it.
-stores-owner-no-answer-detail = 混み合っているか、コンピューターの電源が切れている可能性があります。
+stores-owner-no-answer-detail = 応答が遅れているか、コンピューターの電源が切れている可能性があります。
 
 # Title of the status page in an owner's dialog when this device is offline.
 stores-owner-needs-connection = プラグインストアに接続が必要です
@@ -1183,7 +1183,7 @@ stores-device-never-seen = 参加後は確認されていません
 stores-publish-short = プラグインの公開
 
 # Line in the publish dialog when this device has no plugin to offer. Follows stores-publish-none.
-stores-publish-none-hint = このデバイスで作成またはインストールしたプラグインがここに表示されます。
+stores-publish-none-hint = 作成またはインストールしたプラグインがここに表示されます。
 
 # Line under a plugin in the publish dialog that the store does not have yet.
 stores-not-published = プラグインストアにはまだありません
@@ -1231,7 +1231,7 @@ activity-browse = 作品を読み込んでいます
 size-per-second = { $size }/秒
 
 # A wait that is over.
-time-now = 今すぐ
+time-now = 現在
 
 # How long ago, when it was inside the last minute.
 time-just-now = たった今
@@ -1258,7 +1258,7 @@ spoken-seconds =
 continue-row-caught-up-airs = 最新話まで視聴済み · E{ $episode } 放送: { $when }
 
 # Continue row: nothing new to watch, and the next episode has no date.
-continue-row-caught-up-not-out = 追いつきました · エピソード{ $episode }はまだ公開されていません
+continue-row-caught-up-not-out = 最新話まで視聴済み · E{ $episode }は未公開
 
 # Name of a language, in a list of subtitle languages.
 language-name-english = 英語
@@ -1378,7 +1378,7 @@ overlays-heading-disambiguate = { $name }の候補
 overlays-heading-watch-order = { $name }を中心に
 
 # Overlay heading, after the title "Recommended": the title the list came from.
-overlays-heading-recommendations = { $name }に基づくおすすめ
+overlays-heading-recommendations = { $name }が好きなあなたへ
 
 # Overlay heading, after the title of the release list.
 overlays-heading-release = ほかのソースで補完
@@ -1534,7 +1534,7 @@ title-season = シーズン { $number }
 title-relation-prequel = 前作
 
 # Place of a title in the watch order: it is the story this one comes from.
-title-relation-parent = 原作
+title-relation-parent = 元作品
 
 # Place of a title in the watch order: it comes after this one.
 title-relation-sequel = 続編
@@ -1543,7 +1543,7 @@ title-relation-sequel = 続編
 title-source-automatic = 自動（最適なソース）
 
 # Beside a { -source } in the picker when it is failing and so not used.
-title-source-failing = 失敗中
+title-source-failing = エラー
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = ソースが最上位に挙げるリリース
@@ -1561,7 +1561,7 @@ title-available-on = 配信先: { $services }
 title-up-next = 次のエピソード: 第{ $next }話
 
 # Beside the progress meter when the watched count is against the episodes that have aired so far.
-title-progress-aired = 放送済み{ $aired }話中{ $done }話
+title-progress-aired = 放送済み{ $aired }話のうち{ $done }話を視聴
 
 # Beside the progress meter when there is nothing to count against.
 title-progress-watched = { $done }話視聴済み
@@ -1573,7 +1573,7 @@ episodes-heading = エピソード
 episodes-column-title = タイトル
 
 # Column heading over the running time of each episode.
-episodes-column-run = 時間
+episodes-column-run = 再生時間
 
 # Column heading over how much of each episode is watched.
 episodes-column-watched = 視聴
@@ -1714,7 +1714,7 @@ keys-action-toggle-rail = ナビゲーションの幅を切り替え
 keys-action-refresh = この画面を更新
 
 # Action label in the help overlay and the command palette.
-keys-action-force-resync = 完全に再同期
+keys-action-force-resync = 強制的に完全再同期
 
 # Action label in the help overlay and the command palette.
 keys-action-toggle-translation = 字幕版と吹替版を切り替え
@@ -1822,7 +1822,7 @@ keys-action-hide-from-continue = 削除、または興味なし
 keys-action-show-episodes = エピソード
 
 # Action label in the help overlay and the command palette.
-keys-action-fix-mapping = この一致を修正
+keys-action-fix-mapping = 一致するタイトルを修正
 
 # Action label in the help overlay and the command palette.
 keys-action-download = ダウンロード
@@ -1867,7 +1867,7 @@ keys-action-mark-all-previous = これより前をすべて視聴済みに
 keys-action-filter = 絞り込み
 
 # Action label in the help overlay and the command palette.
-keys-action-filter-search = 絞り込みを検索
+keys-action-filter-search = 検索の絞り込み
 
 # Action label in the help overlay and the command palette.
 keys-action-play-pause = 再生または一時停止
@@ -2038,10 +2038,10 @@ keys-hint-rate = 評価
 keys-hint-pin = ピン留め
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
-keys-hint-use = 使う
+keys-hint-use = 使用
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
-keys-hint-choose = 選ぶ
+keys-hint-choose = 選択
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-resolve = 解決
@@ -2158,7 +2158,7 @@ nav-overlay-help = キー
 nav-overlay-release-for-title = この作品のリリース
 
 # Title of an overlay panel.
-nav-overlay-disambiguate = どれですか
+nav-overlay-disambiguate = 候補から選択
 
 # Title of an overlay panel.
 nav-overlay-manual-query = 手動で検索
@@ -2278,7 +2278,7 @@ downloads-state-active = ダウンロード中
 downloads-state-paused = 一時停止
 
 # A download's state in the table. A narrow column.
-downloads-state-done = ダウンロード済み
+downloads-state-done = 完了
 
 # A download's state in the table. A narrow column.
 downloads-state-failed = 失敗
@@ -2344,7 +2344,7 @@ accounts-finish-signing-in = { $tracker }へのサインインを完了
 accounts-step-open = 1. 開く   { $url }
 
 # Second step of the device-code sign-in: the code is shown after this, in the same row.
-accounts-step-enter = 2. コードを入力
+accounts-step-enter = 2. 入力
 
 # Under a device code that is about to run out, seconds left.
 accounts-code-expires-seconds = { $seconds }秒で期限切れ
@@ -2431,10 +2431,10 @@ accounts-row-queued =
 accounts-row-queued-held = 送信待ち{ $queued }件、IDの紐付け待ち{ $held }件
 
 # Action beside a sync difference in the overlay: Enter keeps the value on this device.
-accounts-conflict-keep-mine = 自分の値を残す
+accounts-conflict-keep-mine = 手元を残す
 
 # Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
-accounts-conflict-keep-theirs = 連携サービスの値を残す
+accounts-conflict-keep-theirs = 連携先を残す
 
 # A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 accounts-conflict-row = { $title }  ·  { $field }：自分 { $local } / 連携サービス { $remote }
@@ -2539,19 +2539,19 @@ lists-row-resume-percent = { $episode } · { $percent }%
 lists-row-resume-clock = { $episode } · { $clock }
 
 # A row for a show with an episode out that has not been watched.
-lists-episode-out = 第{ $episode }話 公開
+lists-episode-out = { $episode } 公開
 
 # A row, or a line in the preview, for the next episode and the time until it airs. The countdown is already formatted (such as "4d 20h").
-lists-episode-in = 第{ $episode }話 公開まで{ $countdown }
+lists-episode-in = { $episode } 公開まで { $countdown }
 
 # A row, or a line in the preview, for a show whose next episode number is not known.
 lists-next-in = 次回公開まで{ $countdown }
 
 # A line in the preview: an episode that came out a while ago. The countdown is already formatted.
-lists-episode-out-ago = 第{ $episode }話 公開（{ $countdown }前）
+lists-episode-out-ago = { $episode } 公開（{ $countdown }前）
 
 # A line in the preview: an episode that came out under a minute ago.
-lists-episode-out-just-now = 第{ $episode }話 たった今公開
+lists-episode-out-just-now = { $episode } たった今公開
 
 # The calendar's time column for an episode still to come. The countdown is already formatted.
 lists-time-in = あと{ $countdown }
@@ -2575,10 +2575,10 @@ lists-day-yesterday = 昨日
 lists-day-tomorrow = 明日
 
 # The line in the preview that says where the person stopped. The mark in front is added by the screen.
-lists-preview-continue-percent = 続きを見る：第{ $episode }話 { $clock }（{ $percent }%）
+lists-preview-continue-percent = 続きを見る：{ $episode } { $clock }（{ $percent }%）
 
 # The same line when the fraction is not known.
-lists-preview-continue = 続きを見る：第{ $episode }話 { $clock }
+lists-preview-continue = 続きを見る：{ $episode } { $clock }
 
 # Beside the progress meter: episodes watched out of the total.
 lists-progress-aired =
@@ -2710,10 +2710,10 @@ playback-status = { $state }  ·  { $source }
 playback-episode-number = エピソード { $number }
 
 # Prompt over the controls while an opening can be skipped. The key is the one bound to skipping.
-playback-skip-opening = ⟨ オープニングをスキップ: { $key } ⟩
+playback-skip-opening = ⟨ オープニングスキップ: { $key } ⟩
 
 # Prompt over the controls while an ending can be skipped. The key is the one bound to skipping.
-playback-skip-ending = ⟨ エンディングをスキップ: { $key } ⟩
+playback-skip-ending = ⟨ エンディングスキップ: { $key } ⟩
 
 # Note on the transition when finding a stream takes more than a moment. The time is how long it has taken so far.
 playback-still-finding = まだストリームを探しています  ·  { $time }
@@ -2824,7 +2824,7 @@ sources-meta-state-serving = 使用中
 sources-meta-state-standby = 待機中
 
 # State of a metadata service: failing.
-sources-meta-state-failing = 失敗中
+sources-meta-state-failing = エラー
 
 # Detail for a metadata service that failed, with no reason given.
 sources-meta-cause-failing = 失敗しています
@@ -2845,7 +2845,7 @@ sources-vpn-protected = VPN { $mark }  { $exit }
 sources-vpn-leaking = VPN { $mark }  漏れあり
 
 # Header chip when the VPN check could not be completed.
-sources-vpn-unreachable = VPN { $mark }  確認できず
+sources-vpn-unreachable = VPN { $mark }  接続不可
 
 # Header chip when the configuration runs with no VPN on purpose.
 sources-vpn-unprotected = VPN { $mark }  保護なし
@@ -2965,7 +2965,7 @@ settings-category-advanced = 詳細設定
 settings-label-theme = テーマ
 
 # Settings row: whether the interface moves.
-settings-label-motion = アニメーション
+settings-label-motion = 画面の動き
 
 # Settings row: which language titles are shown in.
 settings-label-titles = タイトル
@@ -3256,7 +3256,7 @@ stores-joined-as = { $name }として参加
 stores-footer-join = 受け取った招待かストアのリンクを貼り付けてください
 
 # Tag at the top right of a store's page when this person owns it. Up to seven cells wide.
-stores-owner-tag = オーナー
+stores-owner-tag = 所有者
 
 # Part of a store's note line when anyone with its link can join.
 stores-anyone-can-join = リンクを知っている人なら誰でも参加できます
@@ -3412,7 +3412,7 @@ stores-invites-heading = 未使用の招待
 stores-invite-another-device = { $name }、別のデバイス
 
 # When a member was last seen, when never. Column value.
-stores-seen-never = 未確認
+stores-seen-never = 記録なし
 
 # How long ago a member was last seen, under 1 hour. Column value.
 stores-ago-just-now = たった今
@@ -3502,7 +3502,7 @@ stores-footer-remove-member = ↵ アクセス権を削除
 stores-footer-cancel-invite = ↵ この招待を取り消す
 
 # Footer of the members screen on the store's link row.
-stores-footer-show-link = ↵ リンクを表示してコピーと共有
+stores-footer-show-link = ↵ リンクを表示（コピー・共有用）
 
 # Footer of the members screen on a device that joined with the store's link.
 stores-footer-remove-anonymous = ↵ 参加日時しか分からないこのデバイスを削除
@@ -3895,7 +3895,7 @@ action-back = 戻る
 action-delete = 削除
 
 # Button that takes something away from a list or from this device.
-action-remove = 取り除く
+action-remove = 削除
 
 # Button that stores what was typed or chosen.
 action-save = 保存
@@ -4096,7 +4096,7 @@ error-list-unreadable = リストを読み込めませんでした。もう一�
 error-service-unreachable = { $name }に接続できませんでした。接続を確認して、もう一度お試しください。
 
 # Failure when a request took too long.
-error-timed-out = 要求に時間がかかりすぎました。もう一度お試しください。
+error-timed-out = 接続がタイムアウトしました。もう一度お試しください。
 
 # Failure when a tracker rejects the saved sign-in.
 error-sign-in-expired = サインインの有効期限が切れました。アカウントから再度サインインしてください。
@@ -4270,7 +4270,7 @@ shortcuts-title = キーボードショートカット
 tv-paired-seen = { $paired } · 最終確認 { $ago }
 
 # The TV cannot take another connection now.
-tv-problem-busy = このテレビは接続できるデバイスの数が上限に達しています。しばらくしてから、もう一度お試しください。
+tv-problem-busy = このテレビは接続中のデバイスが上限です。しばらくしてから、もう一度お試しください。
 
 # The TV picked in the list has left the network.
 tv-problem-gone = そのテレビはもうネットワーク上にありません。
@@ -4303,7 +4303,7 @@ tv-volume-of = { $volume } / 100
 tv-volume-up = 音量を上げる
 
 # Button that downloads the new version of the app.
-updates-download = アップデートをダウンロード
+updates-download = 更新をダウンロード
 
 # Button that closes the app and opens the new version it has put in place.
 updates-restart = 再起動してアップデート
@@ -4366,16 +4366,16 @@ discussion-post = 投稿
 discussion-replying-to = { $name }への返信
 
 # Accessible name of the button that stops replying or editing.
-discussion-cancel-reply = 返信をキャンセル
+discussion-cancel-reply = キャンセル
 
 # Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
-discussion-sign-in = 返信するにはAniListにサインインしてください
+discussion-sign-in = 返信にはAniListへのサインインが必要です
 
 # Line in place of the field when the viewer is signed in but offline.
-discussion-offline-post = ネットワークに接続されるまで投稿を待ちます
+discussion-offline-post = 投稿はネットワークに接続後に行われます
 
 # Line under a comment AniList did not accept. The button beside it sends it again.
-discussion-post-failed = 投稿できませんでした。もう一度お試しください。
+discussion-post-failed = 投稿できませんでした。再試行を
 
 # Title of the question asked before deleting the viewer's own comment.
 discussion-delete-title = このコメントを削除しますか？
@@ -4516,7 +4516,7 @@ downloads-start-now-help = このダウンロードを待機列より先に開�
 downloads-remove-from-queue = 待機列から外す
 
 # Menu item that takes a finished row off the list. The file stays.
-downloads-remove-from-list = 一覧から削除
+downloads-remove-from-list = 一覧から外す
 
 # Menu item that removes the downloaded file.
 downloads-delete-file = ファイルを削除…
@@ -5008,7 +5008,7 @@ relation-spin-off = スピンオフ
 relation-alternative = 別バージョン
 
 # Relation of a related title: a recap.
-relation-summary = まとめ版
+relation-summary = ダイジェスト
 
 # Relation of a related title: a compilation of this one.
 relation-compilation = 総集編
@@ -5023,7 +5023,7 @@ relation-same-universe = 同じ世界観
 relation-shares-characters = 登場人物を共有
 
 # Relation of a related title: an adaptation of this one.
-relation-adaptation = 翻案作品
+relation-adaptation = 別媒体版
 
 # Relation of a related title: the work this show is based on.
 relation-original-work = 原作
@@ -5191,7 +5191,7 @@ party-start = 同時視聴を開始
 party-join = 同時視聴に参加
 
 # Button on the panel that leaves the party.
-party-leave = 同時視聴を退出
+party-leave = 同時視聴から退出
 
 # Label of the leave button while it works.
 party-leaving = 退出中…
@@ -5293,7 +5293,7 @@ party-you = あなた
 party-member-ready = 準備完了
 
 # Short word in the member list: this member is not ready.
-party-member-not-ready = 未準備
+party-member-not-ready = 準備中
 
 # Short word in the member list: ready state is not shared.
 party-member-no-ready-state = 準備状態なし
@@ -5374,7 +5374,7 @@ party-nosource-none-title = まだソースがありません
 party-nosource-none-detail = ソースはプラグインから提供されます。プラグインはプラグインストアで追加できます。{ $what }は、どれかのソースがエピソードを持つと、ルームと一緒に再生されます。
 
 # Title when no source has the episode.
-party-nosource-missing-title = どのソースにもこのエピソードがありません
+party-nosource-missing-title = お使いのどのソースにもこのエピソードがありません
 
 # Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
 party-nosource-missing-detail = { $why }。{ $what }は、このエピソードを持つソースを選ぶと、ルームと一緒に再生されます。
@@ -5383,7 +5383,7 @@ party-nosource-missing-detail = { $why }。{ $what }は、このエピソード�
 party-nosource-unaired = 放送前の第{ $episode }話は、お使いのソースにはありません。
 
 # Line under a title that says the episode has not aired and no date is known.
-party-nosource-unaired-plain = 放送されるまで、お使いのソースにはありません。どれかのソースに入ると、ルームと一緒に再生されます。
+party-nosource-unaired-plain = 放送されるまで、お使いのソースにはありません。どれかのソースで配信されると、ルームと一緒に再生されます。
 
 # Line over the list of sources that list the episode.
 party-sources-found =
@@ -5398,7 +5398,7 @@ party-sources-label = このエピソードのソース
 party-source-seeders = シーダー{ $seeders }
 
 # Line when no source lists the episode.
-party-no-source-lists = どのソースも{ $episode }を一覧に載せていません。ソースはプラグインから提供されます。プラグインはプラグインストアで追加できます。
+party-no-source-lists = どのソースも第{ $episode }話を一覧に載せていません。ソースはプラグインから提供されます。プラグインはプラグインストアで追加できます。
 
 # Button that plays the chosen source with the room.
 party-play-with = 同時視聴で再生
@@ -5557,7 +5557,7 @@ player-night-mode = 夜間モード
 player-night-mode-detail = 静かな部分を大きく、大きな音を小さくします。
 
 # Note under the track pickers: choices are kept per show.
-player-remembered = この作品の選択は記憶されます。
+player-remembered = この作品の選択を覚えています。
 
 # Button that shows the video over other windows.
 player-picture-in-picture = ピクチャーインピクチャー
@@ -5713,7 +5713,7 @@ search-searching = 「{ $query }」を検索しています
 search-results-for = 「{ $query }」の結果
 
 # Heading over the titles shown when nothing was typed.
-search-browse = 一覧
+search-browse = ブラウズ
 
 # Title of the state when a search finds nothing.
 search-nothing-found = 「{ $query }」は見つかりませんでした
@@ -5800,10 +5800,10 @@ filter-reception = 評価
 filter-score-at-least = 最低スコア
 
 # Filter name: hides titles few people rated.
-filter-hide-obscure = 評価の少ない作品を除外
+filter-hide-obscure = マイナーな作品を非表示
 
 # Filter group: where a show comes from.
-filter-origin = 原産地
+filter-origin = 国・地域
 
 # Filter name: the country a show was made in.
 filter-country = 製作国
@@ -5962,7 +5962,7 @@ settings-group-notifications = 通知
 settings-group-integrations = 連携
 
 # Group heading.
-settings-group-advanced = 詳細
+settings-group-advanced = 詳細設定
 
 # Group heading.
 settings-group-storage = ストレージ
@@ -6184,7 +6184,7 @@ show-settings-spoiler-detail = 次のエピソードより後の静止画をぼ�
 show-settings-always = 常に
 
 # Option: never.
-show-settings-never = なし
+show-settings-never = しない
 
 # Line under the subtitles row.
 show-settings-subs-remembered = 最後に見たエピソードの設定を記憶しています。
@@ -6229,7 +6229,7 @@ widget-nothing-today = 今日の放送はありません。
 widget-nothing-next = 放送はありません。次は{ $when }です。
 
 # Heading of the section that shows what is in the library.
-widget-in-your-list = 視聴リストから
+widget-in-your-list = リストに登録済み
 
 # Short word: an episode was watched.
 widget-watched = 視聴済み
@@ -6364,7 +6364,7 @@ source-picker-chosen = 選択中
 source-pin-unavailable = { $name }は現在利用できないため、この作品のエピソードは他のソースから取得します。
 
 # Under an episode that is out but that no source lists. The row is dimmed and can't be played.
-episode-unsourced = このエピソードを配信するソースはありません
+episode-unsourced = この話を扱うソースはありません
 
 # Heading of the order list.
 sources-order = ソースの順番
@@ -6787,7 +6787,7 @@ stores-page-closed = ページは10分後に閉じました。
 stores-new-code = 新しいコードを取得
 
 # Line when the TV has no reachable address.
-stores-tv-no-network = このテレビは、スマートフォンから届くネットワークに接続されていません。
+stores-tv-no-network = このテレビは、スマートフォンからアクセスできるネットワークに接続されていません。
 
 # Line under the QR code on the TV: when the page closes.
 stores-page-closes = このページは、この画面とともに閉じるか、10分後に閉じます。
@@ -6889,7 +6889,7 @@ stores-server-older = このプラグインストアのサーバーは古く、�
 stores-remove-devices-title = リンクから参加したデバイスを削除しますか？
 
 # Line under it.
-stores-remove-devices-detail = すぐに{ $name }で動作しなくなります。すでにインストールされているプラグインはそのまま残ります。
+stores-remove-devices-detail = それらのデバイスは、すぐに{ $name }で使えなくなります。すでにインストールされているプラグインはそのまま残ります。
 
 # Title of the publish sheet.
 stores-publish-title = { $name }にプラグインを公開
@@ -6979,7 +6979,7 @@ title-dubbed-to = 第{ $episode }話まで吹替版
 title-no-episodes = まだエピソードがありません
 
 # Line when the episodes could not be listed.
-title-episodes-load-failed = エピソードを一覧表示できませんでした
+title-episodes-load-failed = エピソードの一覧を取得できませんでした
 
 # Line under the episode list when it comes from AniList and no source can play them.
 title-episodes-no-source = エピソードはAniListから取得されます。再生するにはソースを追加してください。
@@ -7069,10 +7069,10 @@ more-cast-voices = 日本語版の声優
 more-role-main = 主役
 
 # Role of a character in the story.
-more-role-supporting = 準主役
+more-role-supporting = 脇役
 
 # Role of a character in the story.
-more-role-background = その他
+more-role-background = 端役
 
 # Heading of the staff list.
 more-staff = スタッフ
@@ -7093,7 +7093,7 @@ more-following-note = AniListより
 more-followed-score = { $score }/10
 
 # Heading of the list of titles people who liked this one also liked.
-more-like-this = この作品が好きな人が好む作品
+more-like-this = 似た作品
 
 # Line of a followed person's list entry: their status and how far they are. Both are already worded.
 more-followed-progress = { $status } · { $progress }
@@ -7174,13 +7174,13 @@ torrents-protect-proxy = プロキシ
 torrents-protect-vpn = VPN
 
 # Line under the proxy option.
-torrents-protect-proxy-detail = トレントの通信は、お使いまたは契約しているプロキシを経由します。
+torrents-protect-proxy-detail = トレントの通信は、ご自身で運用または契約しているプロキシを経由します。
 
 # Line under the VPN option.
 torrents-protect-vpn-detail = このデバイスですでに動作しているVPNを使用します。
 
 # Line under the no-protection option.
-torrents-protect-none-detail = トレントの中のすべての人に、あなたのアドレスが見えます。
+torrents-protect-none-detail = トレントに参加しているすべての人に、あなたのアドレスが見えます。
 
 # Line when no protection is set.
 torrents-protect-none-note = 保護がない場合、anistreamは接続を確認しません。
@@ -7195,7 +7195,7 @@ torrents-summary-proxy = SOCKS5プロキシで保護されています。
 torrents-summary-vpn = このデバイスのVPNで保護されています。
 
 # Summary: nothing protects.
-torrents-summary-none = 保護されていません。トレントの中のすべての人に、あなたのアドレスが見えます。
+torrents-summary-none = 保護されていません。トレントに参加しているすべての人に、あなたのアドレスが見えます。
 
 # Title of the question when torrents are turned on without protection.
 torrents-unprotected-title = 保護せずにトレントを使用しますか？
@@ -7306,7 +7306,7 @@ torrents-check-passed-exit = { $exit }経由で通信中
 torrents-check-passed = 合格
 
 # Check running: the line.
-torrents-check-running-line = トレントの通信の出口を確認しています
+torrents-check-running-line = トレントの通信がどこから出ていくかを確認しています
 
 # Check running: the short word.
 torrents-check-running = 確認中
@@ -7366,7 +7366,7 @@ torrents-page-unreadable = テレビでこの内容を読み取れませんで�
 torrents-page-needs-script = このページは、フォームの内容をテレビに安全に送るためにJavaScriptが必要です。
 
 # Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
-torrents-check-note = anistreamは、トレントの開始時と、動作中の毎分、トレントの通信の出口を確認します。確認に失敗した場合は、トレントを一時停止します。通信を守っているのは、VPNまたはプロキシです。
+torrents-check-note = anistreamは、トレントの開始時と、動作中は1分ごとに、通信がどこから出ていくかを確認します。確認に失敗した場合は、トレントを一時停止します。通信を守っているのは、VPNまたはプロキシです。
 
 # Notice after the protection was saved.
 torrents-protection-saved = トレントの保護設定を保存しました
@@ -7381,7 +7381,7 @@ accounts-other-trackers = その他の連携サービス
 accounts-other-trackers-note = その他の連携サービスはアカウントにあります。
 
 # Line on the welcome screen: why to sign in.
-accounts-welcome-detail = { $tracker }にサインインすると、リストと視聴の位置を同期できます。
+accounts-welcome-detail = { $tracker }にサインインすると、リストと再生位置を同期できます。
 
 # Line under a tracker that brings in lists.
 accounts-brings-lists = リストを読み込み、続きを見るに視聴中の作品を表示します。
@@ -7486,7 +7486,7 @@ accounts-sign-out-tv-detail = このテレビは{ $name }との同期を停止�
 accounts-tokens-keychain = サインイン用のトークンは、このデバイスのキーチェーンに保存されます。
 
 # Line telling where sign-in tokens are kept: in a file.
-accounts-tokens-file = サインイン用のトークンは、このデバイス上のファイルに保存され、あなたのみ読み取れます。
+accounts-tokens-file = サインイン用のトークンは、このデバイス上のファイルに保存され、読み取れるのはあなただけです。
 
 # Line telling where sign-in tokens are kept: sealed by the keystore.
 accounts-tokens-keystore = サインイン用のトークンは、このデバイスのキーストアにある鍵で保護されて保存されます。
@@ -7516,7 +7516,7 @@ accounts-code-label = コード { $code }
 accounts-code-waiting = { $tracker }の応答を待っています
 
 # Line telling when the code ends. The time is already formatted.
-accounts-code-expires = { $time }で期限切れ
+accounts-code-expires = { $time }後に期限切れ
 
 # Line when the code ended.
 accounts-code-ended = コードの有効期限が切れました
@@ -7546,7 +7546,7 @@ accounts-scan-password = スマートフォンで読み取ってから、この�
 accounts-clash-title = { $tracker }で内容が異なります
 
 # Line under it.
-accounts-clash-detail = { $tracker }とデバイスで、前回の同期後に変更された項目があります。それぞれ片方を残してください。
+accounts-clash-detail = { $tracker }とこのデバイスで、前回の同期後に変更された項目があります。それぞれ、どちらか一方を残してください。
 
 # One row of the clash sheet.
 accounts-clash-row = { $field }: このデバイスでは{ $local }、{ $tracker }では{ $remote }
@@ -7573,7 +7573,7 @@ accounts-no-extras = { $tracker }には、この作品のキャスト、スタ�
 accounts-episodes-from = エピソードは{ $tracker }から取得されます。再生するにはソースを追加してください。
 
 # Line on a list of seasonal titles.
-accounts-adds-season = { $tracker }は、シーズンの作品を発表され次第追加します。
+accounts-adds-season = { $tracker }には、そのシーズンの作品が発表され次第、追加されます。
 
 # Name of the setting that follows the tracker's own choice.
 accounts-tracker-choice = { $tracker }の設定
@@ -7645,7 +7645,7 @@ tv-none-found-detail = テレビでanistreamが開いていること、このデ
 tv-none-found-short = テレビでanistreamが開いていることを確認してください。
 
 # Line telling where the TV shows its address.
-tv-address-hint = テレビは、スマートフォンのペアリング画面にアドレスを表示します。
+tv-address-hint = アドレスはテレビの「スマートフォンをペアリング」画面に表示されます。
 
 # Line telling how to scan the TV's code.
 tv-scan-hint = カメラアプリでテレビのコードを読み取ってください。anistreamが開き、ペアリングされます。
@@ -7798,13 +7798,13 @@ updates-flatpak = anistreamはFlatpakで最新の状態に保たれます
 updates-version-out = バージョン { $version }が公開されています
 
 # Line when a version is out and the software centre installs it.
-updates-version-out-software = バージョン { $version }が公開されています。ソフトウェアがインストールします。
+updates-version-out-software = バージョン { $version }が公開されています。「ソフトウェア」アプリでインストールできます。
 
 # Line when a version is out and its page has the installer.
-updates-version-out-page = バージョン { $version }が公開されています。そのページにインストーラーがあります。
+updates-version-out-page = バージョン { $version }が公開されています。このバージョンのページにインストーラーがあります。
 
 # Line when a version is out and its page has the AppImage.
-updates-version-out-appimage = バージョン { $version }が公開されています。そのページにAppImageがあります。
+updates-version-out-appimage = バージョン { $version }が公開されています。このバージョンのページにAppImageがあります。
 
 # Title of the offer card.
 updates-available = anistream { $version }を利用できます
@@ -7819,10 +7819,10 @@ updates-update-to = { $version }にアップデート
 updates-this-has = このテレビのバージョンは { $version }です
 
 # Line when the notes are on the release page.
-updates-notes-on-page = このバージョンの変更点は、そのページにあります。
+updates-notes-on-page = このバージョンの変更点は、このバージョンのページに記載されています。
 
 # Line when this build cannot update itself.
-updates-no-self-update = このビルドは自動でアップデートされません。新しいバージョンをそのページからインストールしてください。
+updates-no-self-update = このビルドは自動でアップデートされません。新しいバージョンのページからインストールしてください。
 
 # Line on the TV: Android asks first.
 updates-android-asks = Androidが確認するまで、何もインストールされません。
