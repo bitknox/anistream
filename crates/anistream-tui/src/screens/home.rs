@@ -100,12 +100,20 @@ fn offline_line(app: &App, view: &HomeView) -> Option<String> {
     Some(t::home_offline(&time))
 }
 
+/// Between a heading and what it adds.
+const SEPARATOR: &str = " · ";
+
 /// A section's heading, with the count when Continue is cut and the season beside This season.
 fn heading(view: &HomeView, section: &HomeSection) -> String {
     let title = say(&section.title);
     match section.kind {
         SectionKind::Continue if section.total as usize > section.items.len() => {
-            format!("{title} · {}", t::home_continue_count(i64::from(section.total)))
+            format!(
+                "{}{}{}",
+                title,
+                SEPARATOR,
+                t::home_continue_count(i64::from(section.total))
+            )
         }
         SectionKind::ThisSeason => match view.season {
             Some(season) => {
@@ -115,7 +123,8 @@ fn heading(view: &HomeView, section: &HomeSection) -> String {
                     Season::Summer => t::season_summer(),
                     Season::Fall => t::season_autumn(),
                 };
-                format!("{title} · {}", t::season_with_year(&name, &season.year.to_string()))
+                let year = t::season_with_year(&name, &season.year.to_string());
+                format!("{}{}{}", title, SEPARATOR, year)
             }
             None => title,
         },
@@ -168,7 +177,7 @@ fn item_row(
 ) -> ObiRow {
     if section.kind == SectionKind::ThisWeek {
         let mut row =
-            ObiRow::new(format!("{:<days$}  {}", day_label(app, item), item.entry.title));
+            ObiRow::new(format!("{0:<1$}  {2}", day_label(app, item), days, item.entry.title));
         let time = item
             .airs_at
             .and_then(|at| app.clock.local(at))
@@ -197,7 +206,7 @@ fn item_row(
         if item.playable == Playable::NotFound { Some(t::home_not_found()) } else { said };
     if let Some(said) = said {
         row = if item.new {
-            row.trailing(format!("● {said}")).fresh(true)
+            row.trailing(format!("● {}", said)).fresh(true)
         } else {
             row.trailing(said)
         };
