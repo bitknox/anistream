@@ -510,6 +510,36 @@ pub fn load_script(trailer: &Trailer) -> Option<String> {
 /// gives up on a trailer: a number, or null while there is no player.
 pub const STATE_SCRIPT: &str = "window.trailer ? window.trailer.state() : null";
 
+/// The word [`CHROME_SCRIPT`] says to the app once its style is in YouTube's frame.
+pub const CHROME_MESSAGE: &str = "chrome:hidden";
+
+/// A script for the front end to run at the end of every frame's document in the preview's web
+/// view (a user script for all frames), never in Play trailer's: in YouTube's embed frame it adds
+/// a style that hides the player's own controls, the centre play and pause button, the bezel that
+/// flashes on play and pause, the pause overlay and its more videos panel, and the top and bottom
+/// chrome, then says [`CHROME_MESSAGE`]. The page's crop still covers the top and bottom if
+/// YouTube renames what this matches, so a style that stops matching only lets the centre button
+/// show again.
+pub const CHROME_SCRIPT: &str = r#"(function () {
+  if (window === window.top) { return; }
+  if (!/(^|\.)youtube(-nocookie)?\.com$/.test(location.hostname)) { return; }
+  if (document.getElementById("anistream-chrome")) { return; }
+  var style = document.createElement("style");
+  style.id = "anistream-chrome";
+  style.textContent = [
+    ".ytPlayerControlsContainerHost", ".player-controls-content", ".player-controls-top",
+    ".player-controls-background", "player-middle-controls", ".player-controls-middle",
+    ".player-control-play-pause-icon", ".player-controls-spinner", ".fullscreen-action-menu",
+    ".watch-on-youtube-button-wrapper", ".fullscreen-controls",
+    ".ytFullscreenVideoRecommendationsHost", ".ytp-large-play-button", ".ytp-bezel",
+    ".ytp-bezel-text-wrapper", ".ytp-pause-overlay", ".ytp-pause-overlay-container",
+    ".ytp-chrome-top", ".ytp-chrome-bottom", ".ytp-gradient-top", ".ytp-gradient-bottom",
+    ".ytp-watermark", ".ytp-spinner", ".ytp-ce-element", ".html5-endscreen"
+  ].join(", ") + " { display: none !important; }";
+  (document.head || document.documentElement).appendChild(style);
+  try { window.webkit.messageHandlers.anistream.postMessage("chrome:hidden"); } catch (e) {}
+})();"#;
+
 /// What the device says about itself with
 /// [`Command::DeviceState`](crate::command::Command::DeviceState), as the engine keeps it: the
 /// inputs to autoplay besides the network, and what other features (Picture in Picture, the
@@ -792,6 +822,25 @@ mod tests {
             assert!(control.script().contains(&format!("window.trailer.{name}()")));
             assert!(page.contains(&format!("    {name}: function ()")), "{name}");
         }
+    }
+
+    #[test]
+    fn the_chrome_style_acts_only_in_youtubes_frame_and_says_so() {
+        assert!(CHROME_SCRIPT.contains("if (window === window.top) { return; }"));
+        assert!(CHROME_SCRIPT.contains("youtube(-nocookie)?\\.com$"));
+        for hidden in [
+            "player-middle-controls",
+            ".player-control-play-pause-icon",
+            ".ytp-large-play-button",
+            ".ytp-bezel",
+            ".ytp-pause-overlay",
+            ".ytp-chrome-top",
+            ".ytp-chrome-bottom",
+        ] {
+            assert!(CHROME_SCRIPT.contains(&format!("\"{hidden}\"")), "{hidden}");
+        }
+        assert!(CHROME_SCRIPT.contains(&format!("postMessage(\"{CHROME_MESSAGE}\")")));
+        assert!(!CHROME_SCRIPT.contains(".ytp-caption"), "captions stay");
     }
 
     #[test]

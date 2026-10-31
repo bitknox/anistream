@@ -250,6 +250,14 @@ final class TrailerPage: NSObject {
         let bridge = Bridge()
         configuration.userContentController.add(bridge, name: "anistream") // i18n-skip: the page's bridge
         #if os(macOS)
+        // In a preview, YouTube's own controls are hidden in its frame; Play trailer keeps them.
+        if style == .banner {
+            configuration.userContentController.addUserScript(
+                WKUserScript(source: trailerChromeScript(), injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+            )
+        }
+        #endif
+        #if os(macOS)
         let view: WKWebView = style == .banner ? PassiveWebView(frame: .zero, configuration: configuration)
             : WKWebView(frame: .zero, configuration: configuration)
         view.setValue(false, forKey: "drawsBackground") // i18n-skip: transparent until it plays
@@ -315,7 +323,13 @@ final class TrailerPage: NSObject {
 
         func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
             guard let text = message.body as? String else { return }
-            Task { @MainActor in self.page?.hear?(text) }
+            Task { @MainActor in
+                if text == trailerChromeMessage() {
+                    AppLog.debug("trailer", "YouTube's controls hidden in the preview's player")
+                    return
+                }
+                self.page?.hear?(text)
+            }
         }
     }
 }
