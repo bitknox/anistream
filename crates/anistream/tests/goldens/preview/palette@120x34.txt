@@ -1,9 +1,9 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  Continue               │  ▌ Stardust Wayfarer         E4 · 21%   ░░░░░░░░░░░░░░░░░
-  ▤  Calendar               │                                         ░░░░░░░░░░░░░░░░░
-  ▦  Seasonal               │                                         ░░░░░░░░░░░░░░░░░
-  /  Search                 │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Home                   │    Continue watching  ───────────────────────────   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │  ▌ Stardust Wayfarer      Episode 4 · 19 min left   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │                                                     ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Continue  ────────────────────────────────────   ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Run   ep▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -20,15 +20,15 @@ anistream                                                                       
   Volume up                                                                                                        0
   Leave player running                                                                                             q
 
-                            │                                         ▏ Continue E4 at 5:00 (21%)
-                            │                                         █████░░░░░░░░░░░░░░░░░░░
+                            │                                                     ▏ Continue E4 at 5:00 (21%)
+                            │                                                     █████░░░░░░░░░░░░░░░░░░░
                             │
-                            │                                         A lamplighter with no memory of her home walks
-                            │                                         the old star roads, relighting the beacons
-                            │                                         that guide travellers between the towns. Each
-                            │                                         town she saves remembers a little of her, and
-                            │                                         she, a little less of herself.
+                            │                                                     A lamplighter with no memory of
+                            │                                                     her home walks the old star roads,
+                            │                                                     relighting the beacons that guide
+                            │                                                     travellers between the towns. Each
+                            │                                                     town she saves remembers a little…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
+                            │                                                     ████░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                                                     ↑↓ move   ↵ run   esc close

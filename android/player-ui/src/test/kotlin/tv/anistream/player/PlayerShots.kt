@@ -190,7 +190,7 @@ class PlayerShots {
                 val nav = androidx.navigation.compose.rememberNavController()
                 CompositionLocalProvider(
                     LocalAppStore provides store,
-                    LocalNavigator provides androidx.compose.runtime.remember(nav) { Navigator(nav, Destination.Continue) },
+                    LocalNavigator provides androidx.compose.runtime.remember(nav) { Navigator(nav, Destination.Home) },
                     LocalInspectionMode provides true,
                 ) {
                     PlayerScreen(model, video = { _, modifier, _ ->

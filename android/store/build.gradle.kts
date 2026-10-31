@@ -49,6 +49,8 @@ AnistreamSdk.engines.forEach { (flavour, engine) ->
         jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
         environment("HOME", home.path)
         environment("ANISTREAM_TOKEN_STORAGE", "file")
+        // Home's invented world, for the run that records its scenes.
+        providers.environmentVariable("ANISTREAM_FIXTURES_HOME_WORLD").orNull?.let { environment("ANISTREAM_FIXTURES_HOME_WORLD", it) }
         // android/scripts/scenes.sh: record the scenes into the test kit, every time it is run.
         if (providers.gradleProperty("anistream.scenes").isPresent) {
             systemProperty("anistream.scenes.out", rootDir.resolve("testkit/src/main/resources/tv/anistream/testkit/scenes").path)

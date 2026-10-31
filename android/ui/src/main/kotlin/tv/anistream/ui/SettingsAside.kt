@@ -84,6 +84,7 @@ internal fun SettingsAside(pane: SettingsPane, focus: String?) {
                 Aside(stringResource(R.string.sources_title), stringResource(R.string.settings_aside_sources))
             }
             SettingsPane.Accounts -> Aside(stringResource(R.string.accounts_title), stringResource(R.string.settings_aside_accounts))
+            SettingsPane.Hidden -> Aside(stringResource(R.string.settings_hidden_titles), stringResource(R.string.settings_hidden_titles_body))
             SettingsPane.About -> Aside("anistream", stringResource(R.string.legal_hosts_no_content)) // i18n-skip
         }
     }

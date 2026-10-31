@@ -1,6 +1,6 @@
 anistream                                                                                           torrent ○  plugins ●
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Tracker         State             Queued    Token
+  ▸  Home                   │  Tracker         State             Queued    Token
   ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
   ▦  Seasonal               │  No trackers enabled
   /  Search                 │
@@ -39,7 +39,7 @@ r00 c100-110 fg=text-dim
 r00 c111-119 fg=state
 r01 c00-119 fg=rule
 r02 c02-02 fg=text-dim
-r02 c05-12 fg=text-dim
+r02 c05-08 fg=text-dim
 r02 c28-28 fg=rule
 r02 c31-37 fg=text-dim
 r02 c47-51 fg=text-dim

@@ -4,8 +4,9 @@
 #   android/scripts/shots.sh <phone|phone-37|tablet|fold> [shot…]
 #
 # A shot is a scene, and optionally a screen: watching (the default), sourceless (watching with no
-# source set up), unsure (a source unsure of the match) or fresh, the fixtures flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
-# colon a section (continue, calendar, seasonal, library, search) or key=value, with more joined by
+# source set up), unsure (a source unsure of the match), fresh, or one of Home's scenes (suggested,
+# oneleft, continuefull, notfound, slow, failed, offline; add world=1 for Home's invented titles), the fixtures flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
+# colon a section (home, calendar, seasonal, library, search) or key=value, with more joined by
 # +: watched=<id>:<episodes> marks episodes watched as the shot starts, title=<id> opens a title
 # page, query=<words> searches, genre=<name> browses a genre on Search, sheet=filters opens
 # Search's filters, and sheet=<name> and player=<state> are passed on for the screens that take
@@ -54,7 +55,7 @@ shift
 shots=("$@")
 (( ${#shots[@]} )) || shots=(watching)
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | sourceless | fresh | unsure | app) ;; *) usage ;; esac
+  case "${shot%%:*}" in watching | sourceless | fresh | unsure | suggested | oneleft | continuefull | notfound | slow | failed | offline | app) ;; *) usage ;; esac
 done
 
 android="$(cd "$(dirname "$0")/.." && pwd)"

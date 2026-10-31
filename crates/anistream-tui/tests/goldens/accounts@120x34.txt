@@ -1,6 +1,6 @@
 anistream                                                   torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  ▌ Finish signing in to MyAnimeList
+  ▸  Home                   │  ▌ Finish signing in to MyAnimeList
   ▤  Calendar               │
   ▦  Seasonal               │    1. Open   https://auth.example/device
   /  Search                 │    2. Enter  K T Q 7 - M 2 W D
@@ -47,7 +47,7 @@ r00 c105-106 fg=text-dim
 r00 c107-119 fg=alert
 r01 c00-119 fg=rule
 r02 c02-02 fg=text-dim
-r02 c05-12 fg=text-dim
+r02 c05-08 fg=text-dim
 r02 c28-28 fg=rule
 r02 c31-31 fg=obi
 r02 c33-64 fg=text mod=BOLD

@@ -101,6 +101,9 @@ class AppStore(
 
     val titles = TitleCache()
     val continuing = ContinueModel()
+
+    /** Home: the spotlight and the shelves. */
+    val home = HomeModel()
     val seasonal = ListModel()
 
     /** A browse by filter alone, nothing typed: another season, sorted another way. Search's own stays. */
@@ -683,6 +686,35 @@ class AppStore(
         send(Command.NetworkPath(cellular, constrained, offline))
     }
 
+    /**
+     * Ask for Home. The engine answers at once with what is local and kept, and again as each
+     * part from AniList lands; asked again within the half hour it asks AniList nothing. A
+     * [refresh] drops what was kept: pull to refresh, and Try again.
+     */
+    fun loadHome(refresh: Boolean = false) {
+        send(Command.LoadHome(refresh))
+    }
+
+    /** Whether a source has [id], asked when it is on screen or focused. Answered in four seconds at most. */
+    fun probe(id: AnilistId) {
+        send(Command.ProbeTitle(id))
+    }
+
+    /** Not interested: [id] leaves Home and Up next for you until it is restored. */
+    fun dismissTitle(id: AnilistId) {
+        send(Command.DismissUpNext(id))
+    }
+
+    /** Undo of [dismissTitle], and Settings, Hidden titles, Restore. */
+    fun restoreTitle(id: AnilistId) {
+        send(Command.RestoreUpNext(id))
+    }
+
+    /** The titles hidden with Not interested, for Settings. */
+    fun loadHiddenTitles() {
+        send(Command.LoadHiddenTitles)
+    }
+
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
@@ -1008,6 +1040,9 @@ class AppStore(
             }
 
             is Event.Content -> content(event.content, event.view)
+            is Event.Home -> home.apply(event.v1, titles)
+            is Event.TitlePlayable -> home.playable(event.id, event.playable)
+            is Event.HiddenTitles -> home.hidden(event.v1, titles)
             is Event.Caption -> caption(event.text, event.view)
             is Event.Discussion -> discussion.view(event.v1)
             is Event.DiscussionFound -> discussion.found(event.media, event.episode, event.comments)

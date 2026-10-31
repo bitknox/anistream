@@ -148,18 +148,21 @@ class TvShots {
     }
 
     @Test
-    fun continue_home() = shoot("tv-continue") {
+    fun continue_home() = shoot("tv-home", scene = HOME_WATCHING) {
         assertTrue("the hero's play button takes the first focus", focusedText().startsWith("Resume") || focusedText().startsWith("Play"))
     }
 
-    /** Continue with a dub on its rows: "Resume episode 7 · Dub". */
+    /** Home's second case, a recommendation, and the third's not-found. */
     @Test
-    fun continue_dub() = shoot("tv-continue-dub", dub = true)
+    fun home_suggested() = shoot("tv-home-suggested", scene = "home-suggested")
+
+    @Test
+    fun home_not_found() = shoot("tv-home-not-found", scene = "home-notfound")
 
     @Test
     fun rail_opens_on_left() = shoot("tv-rail") {
         press(Key.DirectionLeft)
-        assertEquals("Continue", focusedText())
+        assertEquals("Home", focusedText())
     }
 
     @Test
@@ -368,10 +371,14 @@ class TvShots {
         assertEquals("Continue", focusedText())
     }
 
-    /** Continue offline: the quiet line under the hero, what was there kept. */
+    /** Home offline: the quiet line under the spotlight says from when it was kept. */
     @Test
-    fun continue_offline() = shoot("tv-continue-offline", offline = true) {
-        assertTrue(compose.onAllNodesWithText(context.getString(R.string.accounts_offline_changes_tv)).fetchSemanticsNodes().isNotEmpty())
+    fun home_offline() = shoot("tv-home-offline", scene = HOME_WATCHING, offline = true) {
+        val view = checkNotNull(shot.home.view.value)
+        shot.apply(listOf(Event.Home(view.copy(offline = true, offlineSince = 1_761_900_000L))))
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        assertTrue(compose.onAllNodesWithText("Offline. Showing Home from", substring = true).fetchSemanticsNodes().isNotEmpty())
     }
 
     /** Settings › Add a plugin store, from Settings: the QR code for a phone, and Type the link. */
@@ -388,6 +395,8 @@ class TvShots {
     fun sign_in_kitsu() = shoot("tv-sign-in-kitsu", start = Destination.Settings, pageHost = "192.0.2.10") {
         compose.runOnUiThread { nav.openSignIn("kitsu") }
         compose.mainClock.advanceTimeBy(3_000)
+        // The page's server starts on an IO thread, in real time the test clock does not hold.
+        compose.waitUntil(timeoutMillis = 15_000) { compose.onAllNodesWithText("#k=", substring = true).fetchSemanticsNodes().isNotEmpty() }
         compose.waitForIdle()
         compose.onNodeWithText("#k=", substring = true).assertExists()
     }
@@ -863,7 +872,7 @@ class TvShots {
      */
     private fun shoot(
         name: String?,
-        start: Destination = Destination.Continue,
+        start: Destination = Destination.Home,
         title: AnilistId? = null,
         query: String? = null,
         firstLaunch: Boolean = false,
@@ -976,6 +985,7 @@ class TvShots {
         const val TV = "w960dp-h540dp-land-television-xhdpi"
 
         const val WATCHING = "watching"
+        const val HOME_WATCHING = "home-watching"
 
         /** A pairing link as the engine writes one, with a made-up key. */
         const val PAIR_LINK = "anistream-remote://pair?addr=192.168.1.20:47811&fp=" +

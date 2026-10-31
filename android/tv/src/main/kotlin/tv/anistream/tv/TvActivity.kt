@@ -149,7 +149,7 @@ class TvActivity : ComponentActivity() {
             }
             is FrontIntent.Navigate -> when (intent.key) {
                 RemoteKey.BACK -> onBackPressedDispatcher.onBackPressed()
-                RemoteKey.HOME -> if (!playing) nav.go(Destination.Continue)
+                RemoteKey.HOME -> if (!playing) nav.go(Destination.Home)
                 else -> press(keyCode(intent.key))
             }
             else -> Unit

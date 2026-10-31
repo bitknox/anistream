@@ -49,7 +49,7 @@ class DownloadRemoveTest {
             AnistreamTheme {
                 CompositionLocalProvider(
                     LocalAppStore provides store,
-                    LocalNavigator provides Navigator(rememberNavController(), Destination.Continue),
+                    LocalNavigator provides Navigator(rememberNavController(), Destination.Home),
                 ) { DownloadsScreen() }
             }
         }

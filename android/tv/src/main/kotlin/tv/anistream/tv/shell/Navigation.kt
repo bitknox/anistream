@@ -21,7 +21,7 @@ import tv.anistream.tv.ui.TvIcons
 /** The rail's destinations, top to bottom: Search, then the phone's order, then Settings. */
 enum class Destination(@StringRes val label: Int, val icon: ImageVector) {
     Search(I18nR.string.nav_search, TvIcons.Search),
-    Continue(I18nR.string.nav_continue, TvIcons.Continue),
+    Home(I18nR.string.home_title, TvIcons.Continue),
     Calendar(I18nR.string.nav_calendar, TvIcons.Calendar),
     Seasonal(I18nR.string.nav_seasonal, TvIcons.Seasonal),
     Library(I18nR.string.nav_library, TvIcons.Library),
@@ -30,7 +30,8 @@ enum class Destination(@StringRes val label: Int, val icon: ImageVector) {
 
     companion object {
         /** A destination by the fixtures' section names: continue, search, library and so on. */
-        fun named(name: String?): Destination? = entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        fun named(name: String?): Destination? =
+            if (name.equals("continue", ignoreCase = true)) Home else entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
     }
 }
 
@@ -72,7 +73,7 @@ sealed interface Page {
  * Back asks it to go to its top.
  */
 @Stable
-class TvNavigator(start: Destination = Destination.Continue) {
+class TvNavigator(start: Destination = Destination.Home) {
     var destination by mutableStateOf(start)
         private set
 

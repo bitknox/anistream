@@ -22,7 +22,7 @@ class NavigatorTest {
         assertEquals(900001u, (nav.top as Page.Title).id)
         assertTrue(nav.pop())
         assertFalse(nav.pop())
-        assertEquals(Destination.Continue.name, nav.screenKey)
+        assertEquals(Destination.Home.name, nav.screenKey)
         assertEquals(2, forgotten.size)
     }
 

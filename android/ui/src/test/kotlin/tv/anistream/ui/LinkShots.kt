@@ -92,7 +92,7 @@ class LinkShots {
         follow("link-continue", AppLink.Continue(CONTINUED))
         val entry = requireNotNull(store.titles[CONTINUED])
         // Straight to the player, over Continue: no title page in between.
-        assertTrue(compose.onAllNodesWithText("In progress").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText("Home").fetchSemanticsNodes().isNotEmpty())
         assertEquals(listOf(CONTINUED to ContinueItem.of(entry).episode.toString()), played)
     }
 

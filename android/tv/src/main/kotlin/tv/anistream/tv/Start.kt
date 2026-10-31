@@ -7,7 +7,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.tv.shell.Destination
 
 data class Start(
-    val destination: Destination = Destination.Continue,
+    val destination: Destination = Destination.Home,
     val title: AnilistId? = null,
     val query: String? = null,
     /** Whether first launch's pages may show: always on a release; on fixtures, `--ez firstLaunch true`. */

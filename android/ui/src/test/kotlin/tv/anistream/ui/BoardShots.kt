@@ -101,43 +101,56 @@ class BoardShots {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_home() = shoot("phone-home", WATCHING)
+    fun phone_home() = shoot("phone-home", HOME_WATCHING)
 
-    /** Continue with a dub on its rows: "Resume E7 · Dub · 10:06". */
-    @Test
-    @Config(qualifiers = PHONE)
-    fun phone_continue_dub() = shoot("phone-continue-dub", WATCHING, dub = true)
+    // Home's other cases and states, on the scenes recorded with Home's invented world.
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_welcome() = shoot("phone-welcome", FRESH)
-
-    // The audit's states: failed, offline, first launch, the phone's Continue menu.
+    fun phone_home_suggested() = shoot("phone-home-suggested", "home-suggested")
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_continue_failed() = shoot("phone-continue-failed", WATCHING, exclude = ::continueList) {
-        compose.runOnUiThread { it.apply(listOf(Event.Content(ContentFor.Continue, ContentList.Failed(FAILURE)))) }
+    fun phone_home_oneleft() = shoot("phone-home-oneleft", "home-oneleft")
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_home_continue_full() = shoot("phone-home-continue-full", "home-continuefull")
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_home_not_found() = shoot("phone-home-not-found", "home-notfound")
+
+    /** One part of Home failed to load: one notice, with Try again. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_home_failed() = shoot("phone-home-failed", "home-failed")
+
+    /** The kept Home while offline: the line under the title says from when. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_home_offline() = shoot("phone-home-offline", HOME_WATCHING) {
+        compose.runOnUiThread { offline(it, since = 1_761_900_000L) }
     }
 
+    /** Offline with nothing kept: the state, and the way to what plays. */
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_continue_offline() = shoot("phone-continue-offline", WATCHING) {
-        compose.runOnUiThread { it.apply(listOf(Event.Connectivity(offline = true))) }
-    }
+    fun phone_home_offline_empty() = shoot("phone-home-offline-empty", "home-offline")
 
+    /** Signed out with nothing watched: Home still has a spotlight and shelves, and no empty state. */
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_continue_offline_failed() = shoot("phone-continue-offline-failed", WATCHING, exclude = ::continueList) {
-        compose.runOnUiThread {
-            it.apply(listOf(Event.Connectivity(offline = true), Event.Content(ContentFor.Continue, ContentList.Failed(FAILURE))))
-        }
-    }
+    fun phone_home_fresh() = shoot("phone-home-fresh", FRESH)
 
     @Test
     @Config(qualifiers = TABLET)
-    fun tablet_home_offline() = shoot("tablet-home-offline", WATCHING) {
-        compose.runOnUiThread { it.apply(listOf(Event.Connectivity(offline = true))) }
+    fun tablet_home() = shoot("tablet-home", HOME_WATCHING)
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_home_offline() = shoot("tablet-home-offline", HOME_WATCHING) {
+        compose.runOnUiThread { offline(it, since = 1_761_900_000L) }
     }
 
     @Test
@@ -174,9 +187,10 @@ class BoardShots {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_continue_menu() = shoot("phone-continue-menu", WATCHING, screen = true) { store ->
+    fun phone_continue_menu() = shoot("phone-continue-menu", HOME_WATCHING, screen = true) { store ->
         val lead = checkNotNull(store.continuing.queue(store.titles.entries.value).lead)
-        compose.onAllNodesWithText(lead.entry.showTitle)[0].performTouchInput { longClick() }
+        // The spotlight shows the same show first; the card is the last of its title on screen.
+        compose.onAllNodesWithText(lead.entry.showTitle).onLast().performTouchInput { longClick() }
     }
 
     @Test
@@ -346,14 +360,10 @@ class BoardShots {
     @Config(qualifiers = TABLET, fontScale = 2.0f)
     fun tablet_home_large_text() = shoot("tablet-home-large-text", WATCHING)
 
-    @Test
-    @Config(qualifiers = TABLET)
-    fun tablet_home() = shoot("tablet-home", WATCHING)
-
     /** AT2: the divider dragged past the middle settles on half the content. */
     @Test
     @Config(qualifiers = TABLET)
-    fun tablet_home_divider() = shoot("tablet-home-divider", WATCHING) {
+    fun tablet_home_divider() = shoot("tablet-home-divider", WATCHING, start = Destination.Library) {
         // The handle stands where the list pane ends: the rail's 96 and the list's 380 in.
         compose.onRoot().performTouchInput {
             val handle = Offset(483.dp.toPx(), height / 2f)
@@ -367,7 +377,7 @@ class BoardShots {
     /** AT2: another title picked, its fill on the row and its preview beside the list. */
     @Test
     @Config(qualifiers = TABLET)
-    fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING) {
+    fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING, start = Destination.Library) {
         compose.onNodeWithText("Resume E2", substring = true).performClick()
         compose.waitForIdle()
     }
@@ -520,7 +530,7 @@ class BoardShots {
     private fun shoot(
         name: String,
         scene: String,
-        start: Destination = Destination.Continue,
+        start: Destination = Destination.Home,
         title: AnilistId? = null,
         search: SearchQuery? = null,
         sheet: String? = null,
@@ -637,12 +647,19 @@ class BoardShots {
         /** A list's failure as the engine says it: a request error's whole chain. */
         const val FAILURE = "error sending request for url (https://graphql.anilist.example/): connection refused"
 
+        /** Home as it was last sent, offline: the kept Home from [since], or with nothing kept. */
+        fun offline(store: AppStore, since: Long?) {
+            val view = checkNotNull(store.home.view.value)
+            store.apply(listOf(Event.Connectivity(offline = true), Event.Home(view.copy(offline = true, offlineSince = since))))
+        }
+
         fun continueList(event: Event) = event is Event.Content && event.view == ContentFor.Continue
         fun calendarList(event: Event) =
             (event is Event.Content && event.view == ContentFor.Calendar) || event is Event.CalendarWindow || event is Event.CalendarBackfill
         fun seasonalList(event: Event) = event is Event.Content && event.view == ContentFor.Seasonal
 
         const val WATCHING = "watching"
+        const val HOME_WATCHING = "home-watching"
         const val FRESH = "fresh"
 
         /** The zone the shots read their days and times in, wherever they run. */

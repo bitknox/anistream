@@ -133,7 +133,7 @@ internal fun SettingSwitch(place: Place, key: SettingKey, title: String, note: S
 
 /** Groups 8 apart, so a header's own 8 above it makes 16. */
 @Composable
-private fun Pane(content: @Composable () -> Unit) {
+internal fun Pane(content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
 }
 

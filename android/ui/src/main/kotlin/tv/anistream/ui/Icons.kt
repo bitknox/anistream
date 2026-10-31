@@ -139,6 +139,7 @@ internal object Icons {
     ).apply { addPath(pathData = addPathNodes("M7 10 L12 15 L17 10 Z"), fill = SolidColor(Color.Black)) }.build()
     val Chevron = stroked("Chevron", "M10 7 L15 12 L10 17")
     val Check = stroked("Check", "M5 12.5 L10 17.5 L19 7")
+    val Plus = stroked("Plus", "M12 5 V19 M5 12 H19")
     val Trailer = stroked("Trailer", "M8 6.5 V17.5 L17 12 Z")
     val Hidden = stroked(
         "Hidden",

@@ -57,7 +57,7 @@ import tv.anistream.tv.remote.PairScreen
 import tv.anistream.tv.remote.TvRemoteHost
 import tv.anistream.tv.remote.grouped
 import tv.anistream.tv.screens.CalendarScreen
-import tv.anistream.tv.screens.ContinueScreen
+import tv.anistream.tv.screens.HomeScreen
 import tv.anistream.tv.screens.LibraryScreen
 import tv.anistream.tv.screens.SearchScreen
 import tv.anistream.tv.screens.SeasonalScreen
@@ -210,7 +210,7 @@ private fun BoxScope.RemoteOverlays(remote: TvRemoteHost, playing: Boolean, nav:
         else -> when (val top = nav.top) {
             is Page.Title -> FfiScreen.Title(top.id)
             else -> when (nav.destination) {
-                Destination.Continue -> FfiScreen.Home
+                Destination.Home -> FfiScreen.Home
                 Destination.Search -> FfiScreen.Search(nav.searchText)
                 Destination.Settings -> FfiScreen.Settings
                 else -> FfiScreen.Other
@@ -231,9 +231,9 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
     SideEffect { actions.onClosed = { nav.focus.enter() } }
 
     // Back from the rail on Continue leaves the app: the handler steps aside for the system's.
-    BackHandler(enabled = !(open && nav.pages.isEmpty() && nav.destination == Destination.Continue)) {
+    BackHandler(enabled = !(open && nav.pages.isEmpty() && nav.destination == Destination.Home)) {
         when {
-            open -> nav.go(Destination.Continue)
+            open -> nav.go(Destination.Home)
             nav.pop() -> Unit
             nav.toTop?.invoke() == true -> Unit
             else -> rail.open(nav.destination)
@@ -289,7 +289,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                                 is Page.JoinStore -> JoinStoreScreen(onDone = { nav.pop() })
                                 is Page.Torrents -> TorrentScreen(target.mode, target.start, onDone = { nav.pop() })
                                 is Page.Update -> UpdateScreen(target.memory, onDone = { nav.pop() })
-                                Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
+                                Destination.Home -> HomeScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
                                 Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
                                 Destination.Calendar -> CalendarScreen(nav, nav.memory(Destination.Calendar), onOpen = nav::openTitle)
                                 Destination.Seasonal -> SeasonalScreen(nav, nav.memory(Destination.Seasonal), onOpen = nav::openTitle)

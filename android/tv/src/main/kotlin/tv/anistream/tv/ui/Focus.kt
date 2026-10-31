@@ -116,6 +116,18 @@ class FocusMemory {
     /** Focus the item remembered under [key]; false when it is not on screen. */
     fun focus(key: String): Boolean = requesters[key]?.tryFocus() == true
 
+    /**
+     * Focus the item remembered under [key] once it is laid out, else the first focus: where focus
+     * goes when the item that held it leaves the screen.
+     */
+    suspend fun focusSoon(key: String?) {
+        repeat(FOCUS_ATTEMPTS) {
+            androidx.compose.runtime.withFrameNanos { }
+            if (key != null && focus(key) || key == null && focusFirst()) return
+        }
+        focusFirst()
+    }
+
     /** Focus the screen's first focus; false when it is not on screen. */
     fun focusFirst(): Boolean = first.tryFocus()
 

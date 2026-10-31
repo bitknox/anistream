@@ -40,6 +40,7 @@ internal object Flavour {
         val named = intent.getStringExtra("scene")
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(TvApp.TAG, "no scene named $named")
+        if (intent.getStringExtra("world") == "1") android.system.Os.setenv("ANISTREAM_FIXTURES_HOME_WORLD", "1", true)
         fixtureMedia = intent.getStringExtra("media") ?: File(context.cacheDir, EPISODE).path
         return EngineLaunch.fixtures(scene, context.cacheDir).copy(platform = enginePlatform(context))
     }
@@ -70,7 +71,7 @@ internal object Flavour {
         val query = intent.getStringExtra("query")
         val section = Destination.named(intent.getStringExtra("section"))
         return Start(
-            destination = section ?: if (query != null) Destination.Search else Destination.Continue,
+            destination = section ?: if (query != null) Destination.Search else Destination.Home,
             title = intent.getStringExtra("title")?.toUIntOrNull(),
             query = query,
             firstLaunch = intent.getBooleanExtra("firstLaunch", false),

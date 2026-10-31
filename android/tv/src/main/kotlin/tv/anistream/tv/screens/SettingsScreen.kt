@@ -206,6 +206,40 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
 private fun LazyListScope.general(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     item(key = "titles", contentType = "setting") { TitleLanguageRow(store, view, memory, first) }
     item(key = "language", contentType = "setting") { AppLanguageRow(memory) }
+    item(key = "hidden", contentType = "setting") { HiddenTitlesRow(store, memory) }
+}
+
+/** Hidden titles: the ones marked Not interested, in a sheet where choosing one restores it. */
+@Composable
+private fun HiddenTitlesRow(store: AppStore, memory: FocusMemory) {
+    val actions = LocalActions.current
+    val context = LocalContext.current
+    val hidden by store.home.hidden.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { store.loadHiddenTitles() }
+    TvListRow(
+        Strings.settingsHiddenTitles(context),
+        onClick = {
+            val titles = hidden.orEmpty()
+            actions?.open(
+                if (titles.isEmpty()) {
+                    ActionSheet(Strings.settingsHiddenTitles(context), body = { Text(Strings.settingsHiddenEmpty(context), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze) })
+                } else {
+                    ActionSheet(
+                        Strings.settingsHiddenTitles(context),
+                        titles.map { each ->
+                            CardAction(each.entry.title, supporting = listOfNotNull(tv.anistream.store.Wording.hiddenLine(context, each), Strings.settingsRestore(context)).joinToString(" · ")) { // i18n-skip
+                                store.restoreTitle(each.entry.id)
+                                store.loadHiddenTitles()
+                            }
+                        },
+                    )
+                },
+            )
+        },
+        supporting = Strings.settingsHiddenTitlesBody(context),
+        supportingLines = 2,
+        modifier = Modifier.remembered(memory, "row/hidden"),
+    )
 }
 
 /**

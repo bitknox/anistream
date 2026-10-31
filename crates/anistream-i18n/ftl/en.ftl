@@ -2138,6 +2138,9 @@ keys-hint-play = Play
 # Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
 keys-hint-not-interested = Not interested
 
+# Status line hint after Not interested on a suggestion: the key brings the last hidden title back.
+keys-hint-undo = Undo
+
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-list = List
 

@@ -5,6 +5,10 @@
 # events or its fixtures change; the screenshot tests replay what it wrote, with no engine.
 #
 #   android/scripts/scenes.sh
+#   ANISTREAM_FIXTURES_HOME_WORLD=1 android/scripts/scenes.sh
+#
+# The second run records Home's scenes (home-watching, home-suggested, home-oneleft and so on)
+# with the invented Home world on; the first records fresh and watching without it.
 #
 # It runs the store's SceneRecorder on this Mac's testing engine, under test.sh's home of its own.
 set -euo pipefail

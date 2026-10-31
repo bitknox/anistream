@@ -419,7 +419,7 @@ mod tests {
         let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains("anistream"), "header missing");
-        assert!(text.contains("Continue"), "rail missing");
+        assert!(text.contains("Home"), "rail missing");
         assert!(text.contains("Hoshikuzu"), "content missing");
         assert!(text.contains('─'), "hairlines missing");
         assert!(text.contains('│'), "divider missing");

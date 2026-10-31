@@ -43,7 +43,7 @@ use crate::{
     catalog::{
         browse,
         filter::{self, Viewer},
-        up_next::{self, Pick, Why},
+        up_next::{self, Pick},
     },
     data,
     dispatch::Lent,
@@ -485,7 +485,7 @@ fn continue_cards(meta: &Meta, store: &Store, now: i64, today: i64) -> Vec<HomeI
 }
 
 /// The Up next for you items, in Up next's own order, before the shelf is cut: the suggestions
-/// kept that are still allowed, with no Airing today among them.
+/// kept that are still allowed.
 fn suggestions(
     meta: &Meta,
     viewer: &Viewer<'_>,
@@ -493,8 +493,7 @@ fn suggestions(
     now: i64,
 ) -> Vec<(HomeItem, Entry)> {
     let store = viewer_store(viewer);
-    let picks: Vec<&Pick> =
-        part.picks.iter().filter(|p| p.reason != Why::AiringToday).collect();
+    let picks: Vec<&Pick> = part.picks.iter().collect();
     let ids: Vec<u32> = picks.iter().map(|p| p.id).collect();
     let found: HashMap<AnilistId, Entry> =
         entries(meta, store, &ids).into_iter().map(|e| (e.id, e)).collect();
@@ -514,7 +513,6 @@ fn suggestions(
             UpNextReason::NewSeason => Some(Msg::HomeReasonNewSeason),
             UpNextReason::Planning => Some(Msg::HomeReasonPlanning),
             UpNextReason::Recommended => Some(Msg::HomeReasonRecommended),
-            UpNextReason::AiringToday => None,
         };
         let home = HomeItem {
             entry: item.entry.clone(),
@@ -1201,8 +1199,7 @@ async fn load_personal(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), 
         zone: ask.zone.clone(),
     };
     // Every dismissal is left in, and taken out as Home is composed, so an Undo needs no request.
-    let found =
-        up_next::find(meta, store, &queue, &[], &up_ask, SUGGESTIONS_FOUND, false).await?;
+    let found = up_next::find(meta, store, &queue, &[], &up_ask, SUGGESTIONS_FOUND).await?;
     let because =
         match found.finished.iter().find(|e| e.score.is_some_and(|s| s >= BECAUSE_SCORE)) {
             Some(source) => match meta.recommended_titles(source.id, BECAUSE_ASKED).await {
@@ -1372,7 +1369,11 @@ pub async fn hidden_titles(meta: &Meta, store: &Store, tx: &Outbox) {
         .filter_map(|d| {
             let media = known.get(&AnilistId::new(d.id))?;
             let entry = data::entry_from(media, Some(store));
-            viewer.hidden(&entry).then_some(HiddenTitle { until_airs: d.waiting, entry })
+            viewer.hidden(&entry).then_some(HiddenTitle {
+                until_airs: d.waiting,
+                hidden_at: d.at,
+                entry,
+            })
         })
         .collect();
     let _ = tx.send(Event::HiddenTitles(rows));

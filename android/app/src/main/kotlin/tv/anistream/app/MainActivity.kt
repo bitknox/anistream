@@ -175,7 +175,7 @@ class MainActivity : ComponentActivity() {
         Flavour.started(this, app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
-            ?.let(Destination::named) ?: Destination.Continue
+            ?.let(Destination::named) ?: Destination.Home
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
         val genre = intent.getStringExtra(GENRE)?.takeIf { steerable }

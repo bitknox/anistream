@@ -204,10 +204,34 @@ enum class FixtureScene {
     UNSURE,
 
     /** A scene that plays, with the first six episodes of the first fixture watched. */
-    PLAYING;
+    PLAYING,
+
+    /** Home's second case: every episode of the first fixture watched, so the spotlight is from Up next for you. */
+    SUGGESTED,
+
+    /** Signed out with one show left in Continue, the spotlight's first case. */
+    ONE_LEFT,
+
+    /** Fifteen shows under way, so Continue shows twelve with View all. */
+    CONTINUE_FULL,
+
+    /** Nothing watched and no source has any title: Add to Planning on every main action. */
+    NOT_FOUND,
+
+    /** [WATCHING] with AniList slow for the discovery shelves. */
+    SLOW,
+
+    /** [WATCHING] with AniList failing for the discovery shelves. */
+    FAILED,
+
+    /** Offline from the start with nothing saved. */
+    OFFLINE;
 
     companion object {
         /** The scene [name] says, case aside; `null` for one there is none of. */
-        fun named(name: String): FixtureScene? = entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        fun named(name: String): FixtureScene? {
+            val plain = name.replace("_", "").replace("-", "")
+            return entries.firstOrNull { it.name.replace("_", "").equals(plain, ignoreCase = true) }
+        }
     }
 }

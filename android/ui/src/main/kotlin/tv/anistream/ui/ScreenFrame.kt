@@ -2,12 +2,23 @@
 
 package tv.anistream.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -22,10 +33,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import tv.anistream.design.Motion
 import tv.anistream.i18n.R as I18nR
 import androidx.compose.ui.res.stringResource
 
@@ -39,19 +53,31 @@ import androidx.compose.ui.res.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ScreenFrame(
+internal fun ScreenFrame(
     title: String,
     subtitle: String? = null,
     account: Account? = null,
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
+    /**
+     * Home's own words under the title, in place of the generic offline line and job activity:
+     * with [ownLine], the screen's line is the only one, and none stands when it is `null`.
+     */
+    line: FrameLine? = null,
+    ownLine: Boolean = false,
+    /**
+     * Home's activity once it runs past 4 s, in the account button's place in the bar's top row,
+     * so the bar keeps its height and nothing under it moves.
+     */
+    activity: String? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
     // Under the title: the offline line, a job past 4 s in words, or the screen's own line.
-    val line = frameLine(subtitle)
+    val generic = frameLine(subtitle)
+    val line = if (ownLine) line else line ?: generic
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         containerColor = colors.surface,
@@ -72,7 +98,19 @@ fun ScreenFrame(
                 },
                 actions = {
                     actions()
-                    if (account != null) AccountButton(account)
+                    AnimatedContent(
+                        targetState = activity,
+                        transitionSpec = {
+                            (fadeIn(Motion.fadeIn()) togetherWith fadeOut(Motion.fadeOut())).using(SizeTransform(clip = false) { _, _ -> snap() })
+                        },
+                        contentAlignment = Alignment.CenterEnd,
+                        label = "frame-activity", // i18n-skip
+                    ) { words ->
+                        when {
+                            words != null -> ActivityLabel(words)
+                            account != null -> AccountButton(account)
+                        }
+                    }
                 },
                 expandedHeight = if (line == null) 112.dp else 136.dp,
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -108,6 +146,23 @@ data class Account(
 )
 
 /** Accounts and settings: the user's initial on a raised circle, or the account glyph signed out. */
+/** Work running past 4 s, in words beside a small ring, read out once when it shows. */
+@Composable
+private fun ActivityLabel(words: String) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .heightIn(min = 48.dp)
+            .padding(end = 16.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        CircularProgressIndicator(Modifier.size(14.dp), color = colors.onSurface, strokeWidth = 1.5.dp, trackColor = colors.outlineVariant)
+        Text(words, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1)
+    }
+}
+
 @Composable
 private fun AccountButton(account: Account) {
     val label = account.name?.let { stringResource(I18nR.string.account_button_named, it) } ?: stringResource(I18nR.string.nav_accounts_and_settings)

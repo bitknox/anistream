@@ -114,6 +114,16 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_settings_general() = shoot("phone-settings-general", settingsRoute(SettingsPane.General))
 
+    /** Settings, Hidden titles: what Not interested put away, with a way back for each. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_hidden() = shoot("phone-settings-hidden", settingsRoute(SettingsPane.Hidden)) { store ->
+        val hidden = listOf(900002u, 900003u, 900004u).mapNotNull { store.titles[it] }.mapIndexed { i, entry ->
+            tv.anistream.engine.model.HiddenTitle(entry = entry, untilAirs = i == 0, hiddenAt = System.currentTimeMillis() / 1000 - (i + 1) * 3 * 86_400L)
+        }
+        store.apply(listOf(Event.HiddenTitles(hidden)))
+    }
+
     @Test
     @Config(qualifiers = PHONE)
     fun phone_settings_notifications() = shoot("phone-settings-notifications", settingsRoute(SettingsPane.Notifications)) { store ->
@@ -479,7 +489,7 @@ class SettingsShots {
 
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
         compose.setContent {
-            AnistreamTheme { AppRoot(store, Destination.Continue, startPage = page) }
+            AnistreamTheme { AppRoot(store, Destination.Home, startPage = page) }
         }
         compose.waitForIdle()
         compose.runOnUiThread { systemBars(compose.activity) }
