@@ -92,16 +92,12 @@ impl Prefs {
         }
     }
 
-    fn int(&self, key: &str, default: i32) -> i32 {
-        self.keys.borrow().integer(GROUP, key).unwrap_or(default)
-    }
-
-    pub fn width(&self) -> i32 {
-        self.int("width", 1280).max(360)
-    }
-
-    pub fn height(&self) -> i32 {
-        self.int("height", 800).max(360)
+    /// The size the window was last left at, when one was kept.
+    pub fn saved_size(&self) -> Option<(i32, i32)> {
+        let keys = self.keys.borrow();
+        let width = keys.integer(GROUP, "width").ok()?;
+        let height = keys.integer(GROUP, "height").ok()?;
+        Some((width.max(360), height.max(360)))
     }
 
     pub fn maximized(&self) -> bool {
@@ -221,7 +217,7 @@ mod tests {
         let file = dir.path().join("desktop.ini");
         let prefs = Prefs::open(file.clone());
         assert_eq!(prefs.close_choice(), CloseChoice::Ask);
-        assert_eq!((prefs.width(), prefs.height()), (1280, 800));
+        assert_eq!(prefs.saved_size(), None);
         prefs.set_close_choice(CloseChoice::KeepGoing);
         assert_eq!(Prefs::open(file.clone()).close_choice(), CloseChoice::KeepGoing);
         assert!(!prefs.welcomed());

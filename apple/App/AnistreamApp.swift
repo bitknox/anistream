@@ -28,7 +28,20 @@ struct AnistreamApp: App {
             content
                 .focusedSceneValue(\.playerInFront, delegate.player.inMainWindow)
         }
+        // The Fixtures app keeps the exact 1280 by 800 the shot scripts rely on. The real app opens
+        // at 80% of the display's usable area, centred; a remembered frame still wins over this.
+        #if FIXTURES
         .defaultSize(width: 1280, height: 800)
+        #else
+        .defaultWindowPlacement { _, context in
+            let area = context.defaultDisplay.visibleRect
+            let width = min(max(area.width * 0.8, 1280), area.width)
+            let height = min(max(area.height * 0.8, 800), area.height)
+            return WindowPlacement(
+                CGPoint(x: area.midX - width / 2, y: area.midY - height / 2),
+                size: CGSize(width: width, height: height))
+        }
+        #endif
         .windowResizability(.contentMinSize)
         // Up at every launch, whatever the launch restored or however it came about.
         .defaultLaunchBehavior(.presented)
