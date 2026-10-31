@@ -187,7 +187,6 @@
     <string name="torrent_check_failed_running">La verifica della connessione non è riuscita. I torrent continuano a funzionare.</string>
     <string name="torrent_vpn_waiting">I torrent partono quando il controllo VPN è superato. %1$s</string>
     <string name="torrent_vpn_unverified">I torrent partono quando il controllo VPN è superato. La connessione non è ancora stata verificata.</string>
-    <string name="torrent_no_index">I torrent richiedono un indice torrent. anistream non ne include nessuno, quindi aggiungi il tuo indirizzo nelle impostazioni.</string>
     <string name="torrent_interface_closed">anistream si è chiuso prima che partissero i torrent.</string>
     <string name="torrent_session_failed">Impossibile avviare la sessione torrent. %1$s</string>
     <string name="torrent_no_kill_switch">Nulla su questo dispositivo ferma il traffico torrent se la VPN cade. Esegui \"anistream --doctor\" per configurarlo.</string>

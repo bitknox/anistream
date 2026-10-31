@@ -105683,6 +105683,18 @@
         }
       }
     },
+    "sources-plays-torrents" : {
+      "comment" : "Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plays through torrent playback"
+          }
+        }
+      }
+    },
     "sources-rebuilding" : {
       "comment" : "Over the { -source } list while the { -source-pl } are set up again after a change.",
       "extractionState" : "manual",
@@ -126911,68 +126923,14 @@
         }
       }
     },
-    "torrent-no-index" : {
-      "comment" : "Error: torrents are on, but no torrent index is set.",
+    "torrent-link-unusable" : {
+      "comment" : "Error: the link or file given to open is not a magnet link, an info hash or a torrent file.",
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Torrents brauchen einen Torrent-Index. anistream liefert keinen mit, füge deshalb in den Einstellungen deine eigene Adresse hinzu."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torrents need a torrent index. anistream ships none, so add your own address in the settings."
-          }
-        },
-        "es-419" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los torrents necesitan un índice de torrents. anistream no trae ninguno, así que agrega tu propia dirección en la configuración."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les torrents ont besoin d’un index de torrents. anistream n’en fournit aucun : ajoutez votre propre adresse dans les réglages."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I torrent richiedono un indice torrent. anistream non ne include nessuno, quindi aggiungi il tuo indirizzo nelle impostazioni."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "トレントにはトレントインデックスが必要です。anistreamには含まれていないため、設定でアドレスを追加してください。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Torrenty wymagają indeks torrentów. anistream nie dołącza żadnego, więc dodaj własny adres w ustawieniach."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Os torrents precisam de um índice de torrents. A anistream não traz nenhum, então adicione o seu endereço nas configurações."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Торрентам нужен торрент-индекс. anistream не содержит ни одного, поэтому добавьте свой адрес в настройках."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Torrenter kräver ett torrentindex. anistream levererar inget, så lägg till din egen adress i inställningarna."
+            "value" : "That isn't a magnet link or a torrent file."
           }
         }
       }
@@ -127105,6 +127063,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Det gick inte att kontrollera anslutningen. %1$@"
+          }
+        }
+      }
+    },
+    "torrent-search-moved" : {
+      "comment" : "Notice, once, on the first launch after the update that removed built-in torrent search.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrent search is now a plugin. Your torrent index address was removed. Torrent playback and your protection settings are as they were."
           }
         }
       }

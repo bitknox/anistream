@@ -439,9 +439,6 @@ settings-label-presence-rich = Rich presence
 # Settings row: the torrent source on or off.
 settings-label-torrents = Torrent { -source }
 
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = { -torrent-index-cap }
-
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Seed after watching
 

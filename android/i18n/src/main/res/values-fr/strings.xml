@@ -187,7 +187,6 @@
     <string name="torrent_check_failed_running">La vérification de la connexion a échoué. Les torrents continuent de tourner.</string>
     <string name="torrent_vpn_waiting">Les torrents démarrent une fois le contrôle VPN validé. %1$s</string>
     <string name="torrent_vpn_unverified">Les torrents démarrent une fois le contrôle VPN validé. La connexion n’a pas encore été vérifiée.</string>
-    <string name="torrent_no_index">Les torrents ont besoin d’un index de torrents. anistream n’en fournit aucun : ajoutez votre propre adresse dans les réglages.</string>
     <string name="torrent_interface_closed">anistream s’est fermé avant le démarrage des torrents.</string>
     <string name="torrent_session_failed">Impossible de démarrer la session torrent. %1$s</string>
     <string name="torrent_no_kill_switch">Rien sur cet appareil n’arrête le trafic torrent si le VPN tombe. Lancez « anistream --doctor » pour le configurer.</string>

@@ -62,7 +62,6 @@ notice-choice-not-saved = Не удалось сохранить выбор. { $
 torrent-check-failed-running = Проверка подключения не прошла. Торренты продолжают работать.
 torrent-vpn-waiting = Торренты запустятся, когда пройдёт проверка VPN. { $reason }
 torrent-vpn-unverified = Торренты запустятся, когда пройдёт проверка VPN. Подключение ещё не проверено.
-torrent-no-index = Торрентам нужен { -torrent-index }. { -app-name } не содержит ни одного, поэтому добавьте свой адрес в настройках.
 torrent-interface-closed = { -app-name } закрылся до запуска торрентов.
 torrent-session-failed = Не удалось запустить сессию торрентов. { $reason }
 torrent-no-kill-switch = Ничто не останавливает торрент-трафик, если VPN отключится. Запустите «{ -app-name } --doctor», чтобы настроить защиту.

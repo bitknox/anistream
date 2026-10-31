@@ -329,7 +329,7 @@ async fn a_write_the_config_refuses_leaves_the_file_alone_and_alerts() {
     assert_eq!(shown(view, SettingKey::Torrents), "off");
     let said = toasts(&updates);
     assert!(
-        said[0].starts_with("alert: Couldn't save that setting. torrents need"),
+        said[0].starts_with("alert: Couldn't save that setting. providers.torrent.vpn.mode"),
         "{said:?}"
     );
     assert!(!h.paths().config_file.exists(), "nothing was written");
@@ -607,7 +607,7 @@ async fn a_refused_order_puts_the_provider_rows_back() {
 
     // The rows moved when the key was pressed; the chain did not, so its rows put them back.
     assert_eq!(h.trace(), ["Settings", "Toast", "Providers"]);
-    assert_eq!(settings(&updates[0]).sources.order, ["torrent", "plugins"], "the file's order");
+    assert_eq!(settings(&updates[0]).sources.order, ["plugins"], "the file's order");
     assert_eq!(provider_ids(&updates[2]), ["fixture"]);
     assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), BROKEN);
 }

@@ -509,9 +509,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Torrents starten, sobald der VPN-Wächter freigibt. Die Verbindung wurde noch nicht geprüft.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Torrents brauchen einen Torrent-Index. anistream liefert keinen mit, füge deshalb in den Einstellungen deine eigene Adresse hinzu.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream wurde geschlossen, bevor die Torrents starteten.</value>
   </data>

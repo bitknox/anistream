@@ -563,9 +563,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Торренты запустятся, когда пройдёт проверка VPN. Подключение ещё не проверено.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Торрентам нужен торрент-индекс. anistream не содержит ни одного, поэтому добавьте свой адрес в настройках.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream закрылся до запуска торрентов.</value>
   </data>

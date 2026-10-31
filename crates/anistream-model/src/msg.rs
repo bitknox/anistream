@@ -361,8 +361,10 @@ pub enum Msg {
     TorrentVpnWaiting { reason: String },
     /// Note on the sources screen: the VPN guard has no verdict yet.
     TorrentVpnUnverified,
-    /// Error: torrents are on, but no torrent index is set.
-    TorrentNoIndex,
+    /// Notice, once, on the first launch after the update that removed built-in torrent search.
+    TorrentSearchMoved,
+    /// Error: the link or file given to open is not a magnet link, an info hash or a torrent file.
+    TorrentLinkUnusable,
     /// Error: the torrent session did not start because the interface closed first.
     TorrentInterfaceClosed,
     /// Error: the torrent session could not start. The reason comes from the torrent engine.
@@ -680,7 +682,8 @@ impl Msg {
             Self::TorrentCheckFailedRunning => "torrent-check-failed-running",
             Self::TorrentVpnWaiting { .. } => "torrent-vpn-waiting",
             Self::TorrentVpnUnverified => "torrent-vpn-unverified",
-            Self::TorrentNoIndex => "torrent-no-index",
+            Self::TorrentSearchMoved => "torrent-search-moved",
+            Self::TorrentLinkUnusable => "torrent-link-unusable",
             Self::TorrentInterfaceClosed => "torrent-interface-closed",
             Self::TorrentSessionFailed { .. } => "torrent-session-failed",
             Self::TorrentNoKillSwitch => "torrent-no-kill-switch",
@@ -930,7 +933,8 @@ impl Msg {
             Self::TorrentCheckFailedRunning => Vec::new(),
             Self::TorrentVpnWaiting { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::TorrentVpnUnverified => Vec::new(),
-            Self::TorrentNoIndex => Vec::new(),
+            Self::TorrentSearchMoved => Vec::new(),
+            Self::TorrentLinkUnusable => Vec::new(),
             Self::TorrentInterfaceClosed => Vec::new(),
             Self::TorrentSessionFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::TorrentNoKillSwitch => Vec::new(),

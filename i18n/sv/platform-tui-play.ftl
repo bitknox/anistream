@@ -127,7 +127,6 @@ settings-label-presence = Discord-närvaro
 settings-label-presence-title = Närvaron visar titeln
 settings-label-presence-rich = Rik närvaro
 settings-label-torrents = Torrent { -source }
-settings-label-torrent-index = { -torrent-index-cap }
 settings-label-seed-ratio = Fortsätt dela efter visning
 settings-label-seed-hours = Delas högst i
 settings-label-upload-limit = Uppladdningsgräns

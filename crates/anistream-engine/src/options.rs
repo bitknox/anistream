@@ -9,7 +9,7 @@ use anistream_store::Store;
 /// Everything [`crate::engine::Engine::start`] needs to stand the engine up.
 ///
 /// [`Self::new`] gives the app's own launch: the source chain config describes, built by the
-/// engine with its torrent source and plugins coming up behind it, and the work the engine does
+/// engine with torrent playback and plugins coming up behind it, and the work the engine does
 /// on its own. A still frame or a test changes the fields after.
 pub struct EngineOptions {
     /// Where the config, the database, the caches and the tokens are.

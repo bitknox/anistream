@@ -59,6 +59,7 @@ impl MockProvider {
                 kind: ProviderKind::Native,
                 allowed_hosts: Vec::new(),
                 translations: vec![Translation::Sub],
+                torrents: false,
             },
             hits: Vec::new(),
             hits_for: HashMap::new(),
@@ -165,6 +166,12 @@ impl MockProvider {
     /// Report as withheld by local policy, e.g. a failing VPN guard.
     pub fn unavailable(mut self, reason: &str) -> Self {
         self.unavailable = Some(reason.to_owned());
+        self
+    }
+
+    /// Name torrents for the engine to play, as a plugin with the `torrents` capability does.
+    pub fn torrents(mut self) -> Self {
+        self.manifest.torrents = true;
         self
     }
 

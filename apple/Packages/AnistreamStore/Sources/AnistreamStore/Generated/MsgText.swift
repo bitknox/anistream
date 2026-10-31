@@ -184,7 +184,8 @@ extension Msg {
         case .torrentCheckFailedRunning: L.torrentCheckFailedRunning
         case .torrentVpnWaiting(let reason): L.torrentVpnWaiting(reason: reason)
         case .torrentVpnUnverified: L.torrentVpnUnverified
-        case .torrentNoIndex: L.torrentNoIndex
+        case .torrentSearchMoved: L.torrentSearchMoved
+        case .torrentLinkUnusable: L.torrentLinkUnusable
         case .torrentInterfaceClosed: L.torrentInterfaceClosed
         case .torrentSessionFailed(let reason): L.torrentSessionFailed(reason: reason)
         case .torrentNoKillSwitch: L.torrentNoKillSwitch

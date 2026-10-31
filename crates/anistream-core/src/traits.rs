@@ -27,9 +27,6 @@ pub enum ProviderKind {
     Plugin,
     /// A self-hosted HTTP API (Consumet-shaped). The escape hatch when a source goes away.
     Remote,
-    /// A configured indexer + embedded torrent session. Fails for entirely different reasons than
-    /// web sources do, which is why it exists.
-    Torrent,
     /// A licensed service we can browse and track but not decrypt — resolves to an
     /// external deep link. Crunchyroll is the case in point.
     Licensed,
@@ -41,7 +38,6 @@ impl ProviderKind {
             Self::Native => "native",
             Self::Plugin => "plugin",
             Self::Remote => "remote",
-            Self::Torrent => "torrent",
             Self::Licensed => "licensed",
         }
     }
@@ -62,6 +58,10 @@ pub struct ProviderManifest {
     /// registry for sources means running other people's code.
     pub allowed_hosts: Vec<String>,
     pub translations: Vec<Translation>,
+    /// Whether this source names torrents for the engine to play, as a plugin does by
+    /// declaring the `torrents` capability. Such a source plays only while torrent playback is
+    /// on, and a cast with torrents while casting off passes it over.
+    pub torrents: bool,
 }
 
 /// One selectable release a provider can offer for an episode.
@@ -82,9 +82,10 @@ pub struct SourceCandidate {
     /// Vertical resolution, when the listing states one.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub quality: Option<u32>,
-    /// Seeders, for swarm-backed sources. `None` where the concept does not apply.
+    /// One short line the source wrote about this candidate, shown under its title as written.
+    /// The engine reads nothing into it and ranks nothing by it.
     #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub seeders: Option<u32>,
+    pub label: Option<String>,
     /// Payload size as listed at the source, already human-readable (`"1.4 GiB"`).
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub size: Option<String>,
@@ -163,9 +164,9 @@ pub trait Provider: Send + Sync {
 
     /// Whether this provider is currently willing to serve.
     ///
-    /// Distinct from health: the torrent provider reports `false` here whenever the VPN
-    /// guard is failing, which is a local policy decision rather than a sign the source
-    /// is broken. Returning `false` keeps it out of resolution entirely.
+    /// Distinct from health: a source held back by local policy, such as the torrent
+    /// protection check, is not a broken source. Returning an error keeps it out of
+    /// resolution entirely.
     fn is_available(&self) -> Result<(), ProviderError> {
         Ok(())
     }
@@ -356,7 +357,7 @@ mod tests {
     fn provider_kind_labels_are_stable() {
         // These strings appear in config files and on the Providers screen, so they are
         // part of the user-facing contract.
-        assert_eq!(ProviderKind::Torrent.as_str(), "torrent");
+        assert_eq!(ProviderKind::Plugin.as_str(), "plugin");
         assert_eq!(ProviderKind::Licensed.as_str(), "licensed");
     }
 }

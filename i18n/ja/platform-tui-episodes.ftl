@@ -36,9 +36,6 @@ title-relation-sequel = 続編
 title-source-automatic = 自動（最適な{ -source }）
 title-source-failing = エラー
 title-release-first = { -source }が最上位に挙げる{ -release }
-title-release-seeders = { $count ->
-   *[other] シーダー { $count }
- }
 title-available-on = 配信先: { $services }
 title-up-next = { -up-next-cap }: 第{ $next }話
 title-progress-aired = 放送済み{ $aired }話のうち{ $done }話を視聴

@@ -43,8 +43,8 @@ impl App {
     /// before anything has played the first configured source that is ready, and failing that
     /// the first one that is not switched off.
     ///
-    /// Not simply the first entry in the order: torrents lead the default order and are off by
-    /// default, so that read "torrent" over a session that only plugins could serve.
+    /// Not simply the first entry in the order: one switched off would be named over a session
+    /// that only the others could serve.
     pub fn source_label(&self) -> String {
         if let Some(active) = &self.active_provider {
             return active.clone();
@@ -61,7 +61,7 @@ impl App {
     /// Each configured source, in the order failover walks them, and how it stands: see
     /// [`source_states`].
     pub fn source_states(&self) -> Vec<SourceChip> {
-        source_states(&self.settings.sources, &self.providers, self.provider_note.is_some())
+        source_states(&self.settings.sources, &self.providers)
     }
 
     /// The Providers table as it stands.
@@ -137,13 +137,9 @@ mod tests {
 
     #[test]
     fn the_source_named_is_one_that_is_not_switched_off() {
-        // The default order leads with torrents, which are off by default.
         let mut a = app();
         assert_eq!(a.source_label(), "plugins");
-        assert_eq!(
-            a.source_states(),
-            chips(&[("torrent", SourceState::Off), ("plugins", SourceState::Pending)])
-        );
+        assert_eq!(a.source_states(), chips(&[("plugins", SourceState::Pending)]));
         a.apply(Event::Providers(vec![ProviderRow {
             id: "someplugin".into(),
             kind: "plugin".into(),
@@ -154,7 +150,7 @@ mod tests {
             held_back: false,
             ..Default::default()
         }]));
-        assert_eq!(a.source_states()[1], chips(&[("plugins", SourceState::Ready)])[0]);
+        assert_eq!(a.source_states(), chips(&[("plugins", SourceState::Ready)]));
         // What actually served wins once something has played.
         a.apply(Event::ActiveProvider("someplugin".into()));
         assert_eq!(a.source_label(), "someplugin");
@@ -188,22 +184,20 @@ mod tests {
     fn a_named_plugin_adds_no_chip_of_its_own() {
         // The `"plugins"` chip speaks for every plugin, named in the order or not.
         let mut a = app();
+        // `torrent`, the torrent search that is no longer built in, adds none either.
         a.settings.sources.order = strings(&["alpha", "torrent", "plugins"]);
         a.apply(Event::Providers(vec![source_row("alpha", "plugin")]));
-        assert_eq!(
-            a.source_states(),
-            chips(&[("torrent", SourceState::Off), ("plugins", SourceState::Ready)])
-        );
+        assert_eq!(a.source_states(), chips(&[("plugins", SourceState::Ready)]));
     }
 
-    /// An app on Providers with the stage focused, showing a torrent source and two plugins.
+    /// An app on Providers with the stage focused, showing a remote source and two plugins.
     fn at_providers() -> App {
         let mut a = app();
-        a.settings.sources.order = strings(&["torrent", "plugins"]);
+        a.settings.sources.order = strings(&["remote", "plugins"]);
         a.go_to_section(Section::Providers);
         a.nav.focus_stage();
         a.apply(Event::Providers(vec![
-            source_row("torrent", "torrent"),
+            source_row("remote", "remote"),
             source_row("alpha", "plugin"),
             source_row("beta", "plugin"),
         ]));
@@ -236,18 +230,18 @@ mod tests {
         assert_eq!(a.cursor(), 1, "j moves the cursor, as on every table");
 
         let order = saved_order(press(&mut a, 'K'));
-        assert_eq!(order, strings(&["alpha", "torrent", "beta", "plugins"]));
-        assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"], "the rows move at once");
+        assert_eq!(order, strings(&["alpha", "remote", "beta", "plugins"]));
+        assert_eq!(row_ids(&a), ["alpha", "remote", "beta"], "the rows move at once");
         assert_eq!(a.cursor(), 0, "the cursor goes with its row");
         assert_eq!(a.settings.sources.order, order, "the next press starts from it");
 
         // At the top: nothing moves and nothing is saved.
         assert_eq!(press(&mut a, 'K'), None);
-        assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"]);
+        assert_eq!(row_ids(&a), ["alpha", "remote", "beta"]);
 
         let order = saved_order(press(&mut a, 'J'));
-        assert_eq!(order, strings(&["torrent", "alpha", "beta", "plugins"]));
-        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
+        assert_eq!(order, strings(&["remote", "alpha", "beta", "plugins"]));
+        assert_eq!(row_ids(&a), ["remote", "alpha", "beta"]);
         assert_eq!(a.cursor(), 1);
     }
 
@@ -257,7 +251,7 @@ mod tests {
         let mut a = at_providers();
         a.playing = Some(NowPlaying::default());
         let order = saved_order(press(&mut a, 'J'));
-        assert_eq!(order, strings(&["alpha", "torrent", "beta", "plugins"]));
+        assert_eq!(order, strings(&["alpha", "remote", "beta", "plugins"]));
     }
 
     #[test]
@@ -265,7 +259,7 @@ mod tests {
         let mut a = at_providers();
         a.nav.push(StageView::Stores);
         assert_eq!(press(&mut a, 'J'), None);
-        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
+        assert_eq!(row_ids(&a), ["remote", "alpha", "beta"]);
 
         let mut a = app();
         assert_eq!(a.handle(Action::RaiseSource, 20), None);
@@ -301,11 +295,11 @@ mod tests {
         let before = a.status.clone();
         a.apply(Event::Providers(vec![
             source_row("alpha", "plugin"),
-            source_row("torrent", "torrent"),
+            source_row("remote", "remote"),
             source_row("beta", "plugin"),
         ]));
         assert_eq!(a.status, before);
-        assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"]);
+        assert_eq!(row_ids(&a), ["alpha", "remote", "beta"]);
     }
 
     #[test]
@@ -313,7 +307,7 @@ mod tests {
         let mut a = at_providers();
         a.handle(Action::Bottom, 20);
         assert_eq!(a.cursor(), 2);
-        a.apply(Event::Providers(vec![source_row("torrent", "torrent")]));
+        a.apply(Event::Providers(vec![source_row("remote", "remote")]));
         assert_eq!(a.cursor(), 0);
     }
 

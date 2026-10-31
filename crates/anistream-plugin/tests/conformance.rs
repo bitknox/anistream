@@ -1,6 +1,6 @@
 //! The conformance suite: does a real component actually load, run, and stay inside its box?
 //!
-//! Integration tests against **three** compiled components, because everything interesting about a
+//! Integration tests against **four** compiled components, because everything interesting about a
 //! plugin host is in the parts unit tests cannot reach — whether bindgen's glue matches the WIT,
 //! whether epoch interruption really stops a loop, whether the allowlist holds when a guest
 //! genuinely tries to leave.
@@ -10,6 +10,7 @@
 //! | `example-rust` | Rust | The reference implementation. |
 //! | `example-ts` | JavaScript | Proves the ABI is language-agnostic rather than Rust-shaped. |
 //! | `test-hostile` | Rust | Attacks the host: spins, allocates, tries to escape. |
+//! | `test-torrent-index` | Rust | A made-up index on `index.example` that names torrents. |
 //!
 //! [`assert_reference_behaviour`] is the load-bearing one: the *same* assertions run against the
 //! Rust and JavaScript components. Two guests sharing nothing but a `.wit` file, producing
@@ -23,6 +24,7 @@
 //! ```sh
 //! cargo build --release --target wasm32-wasip2 --manifest-path plugins/example-rust/Cargo.toml
 //! cargo build --release --target wasm32-wasip2 --manifest-path plugins/test-hostile/Cargo.toml
+//! cargo build --release --target wasm32-wasip2 --manifest-path plugins/test-torrent-index/Cargo.toml
 //! cd plugins/example-ts && npm install && npm run build
 //! cargo test -p anistream-plugin
 //! ```
@@ -593,4 +595,69 @@ async fn a_load_failure_names_the_file() {
     let error = host.load(&path).await.unwrap_err();
     assert!(matches!(error, PluginError::Load { .. }));
     assert!(error.to_string().contains("broken.wasm"), "{error}");
+}
+
+// ── a source that names torrents ─────────────────────────────────────────────────────────────
+//
+// `plugins/test-torrent-index` is a made-up index. anistream finds no torrents of its own: a
+// plugin names them, in its own order, and the host turns each into a magnet link for torrent
+// playback without ranking anything.
+
+fn torrent_index() -> Option<PathBuf> {
+    built(
+        plugins_dir().join(
+            "test-torrent-index/target/wasm32-wasip2/release/anistream_torrent_index_fixture.wasm",
+        ),
+        "cargo build --release --target wasm32-wasip2 \
+         --manifest-path plugins/test-torrent-index/Cargo.toml",
+    )
+}
+
+async fn torrent_source() -> Option<anistream_plugin::WasmProvider> {
+    let path = torrent_index()?;
+    let plugin = default_host().load(&path).await.expect("load");
+    Some(anistream_plugin::WasmProvider::new(plugin))
+}
+
+#[tokio::test]
+async fn a_source_that_declares_torrents_names_them_as_magnet_links_with_the_file() {
+    use anistream_core::{
+        ids::ProviderKey, media::Translation, stream::StreamKind, traits::Provider,
+    };
+    let Some(source) = torrent_source().await else { return };
+    assert!(source.manifest().torrents, "the capability crosses");
+    assert_eq!(source.manifest().allowed_hosts, ["index.example"]);
+
+    let key = ProviderKey::new("hoshikuzu");
+    // Episode 1 is in the season torrent only, the plugin's pick, given as a bare hash.
+    let streams = source.resolve(&key, "1", Translation::Sub).await.expect("resolve");
+    assert_eq!(streams.len(), 1);
+    assert_eq!(streams[0].kind, StreamKind::Torrent, "not started by the plugin call");
+    assert_eq!(
+        streams[0].url, "magnet:?xt=urn:btih:1111111111111111111111111111111111111111&so=0",
+        "a hash becomes a magnet link, with the file the plugin named"
+    );
+
+    // Episode 2 has two, and the plugin's pick is its own: the one with more peers.
+    let streams = source.resolve(&key, "2", Translation::Sub).await.expect("resolve");
+    assert_eq!(
+        streams[0].url,
+        "magnet:?xt=urn:btih:2222222222222222222222222222222222222222&dn=Hoshikuzu%2002"
+    );
+}
+
+#[tokio::test]
+async fn a_torrent_sources_candidates_keep_its_order_and_its_own_words() {
+    use anistream_core::{ids::ProviderKey, media::Translation, traits::Provider};
+    let Some(source) = torrent_source().await else { return };
+    let key = ProviderKey::new("hoshikuzu");
+    let candidates = source.sources(&key, "2", Translation::Sub).await.expect("sources");
+    let shown: Vec<_> =
+        candidates.iter().map(|c| (c.id.as_str(), c.label.as_deref())).collect();
+    assert_eq!(shown, [("single-2", Some("40 peers")), ("season", Some("12 peers"))]);
+
+    // The season torrent, picked by hand for episode 2, plays its second file.
+    let streams =
+        source.resolve_source(&key, "2", Translation::Sub, "season").await.expect("resolve");
+    assert!(streams[0].url.ends_with("&so=1"), "{}", streams[0].url);
 }

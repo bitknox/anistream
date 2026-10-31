@@ -129,7 +129,6 @@ settings-label-presence = Presenza su Discord
 settings-label-presence-title = La presenza mostra il titolo
 settings-label-presence-rich = Presenza completa
 settings-label-torrents = { -source-cap } torrent
-settings-label-torrent-index = { -torrent-index-cap }
 settings-label-seed-ratio = Condividi dopo la visione
 settings-label-seed-hours = Condividi per al massimo
 settings-label-upload-limit = Limite di caricamento

@@ -225,8 +225,11 @@ torrent-vpn-waiting = Torrents start once the VPN guard passes. { $reason }
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = Torrents start once the VPN guard passes. The connection hasn't been verified yet.
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = Torrents need a { -torrent-index }. { -app-name } ships none, so add your own address in the settings.
+# Notice, once, on the first launch after the update that removed built-in torrent search.
+torrent-search-moved = Torrent search is now a { -plugin }. Your { -torrent-index } address was removed. Torrent playback and your protection settings are as they were.
+
+# Error: the link or file given to open is not a magnet link, an info hash or a torrent file.
+torrent-link-unusable = That isn't a magnet link or a torrent file.
 
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = { -app-name } closed before torrents started.

@@ -125,7 +125,6 @@ settings-label-presence = Discordの再生状況
 settings-label-presence-title = 再生状況にタイトルを表示
 settings-label-presence-rich = 詳細な再生状況
 settings-label-torrents = トレント{ -source }
-settings-label-torrent-index = { -torrent-index-cap }
 settings-label-seed-ratio = 視聴後のシード
 settings-label-seed-hours = シードの上限時間
 settings-label-upload-limit = アップロード上限

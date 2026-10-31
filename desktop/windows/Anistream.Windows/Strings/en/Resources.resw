@@ -835,9 +835,13 @@
     <value>Torrents start once the VPN guard passes. The connection hasn't been verified yet.</value>
     <comment>Note on the sources screen: the VPN guard has no verdict yet.</comment>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Torrents need a torrent index. anistream ships none, so add your own address in the settings.</value>
-    <comment>Error: torrents are on, but no torrent index is set.</comment>
+  <data name="TorrentSearchMoved" xml:space="preserve">
+    <value>Torrent search is now a plugin. Your torrent index address was removed. Torrent playback and your protection settings are as they were.</value>
+    <comment>Notice, once, on the first launch after the update that removed built-in torrent search.</comment>
+  </data>
+  <data name="TorrentLinkUnusable" xml:space="preserve">
+    <value>That isn't a magnet link or a torrent file.</value>
+    <comment>Error: the link or file given to open is not a magnet link, an info hash or a torrent file.</comment>
   </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream closed before torrents started.</value>
@@ -6010,6 +6014,10 @@
   <data name="MatchRowLabel" xml:space="preserve">
     <value>{title}, {facts}, {closeness}</value>
     <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
+  </data>
+  <data name="SourcesPlaysTorrents" xml:space="preserve">
+    <value>Plays through torrent playback</value>
+    <comment>Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>Joined</value>

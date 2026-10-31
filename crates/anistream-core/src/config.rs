@@ -832,11 +832,8 @@ pub struct ProvidersConfig {
 impl Default for ProvidersConfig {
     fn default() -> Self {
         Self {
-            // Torrent first, plugins second — the order failover walks.
-            //
-            // `plugins` after it: a dropped-in `.wasm` is a source you chose to install, so it
-            // should be tried, but not ahead of one that is known to work.
-            order: vec!["torrent".into(), "plugins".into()],
+            // The plugins you installed, in the order they arrive. anistream ships no source.
+            order: vec!["plugins".into()],
             disabled: Vec::new(),
             torrent: TorrentConfig::default(),
             plugins: PluginsConfig::default(),
@@ -876,32 +873,20 @@ impl Default for PluginsConfig {
     }
 }
 
-/// Torrent source settings.
+/// Torrent playback settings: how the engine plays a torrent a source names or a link you open.
 ///
-/// Disabled by default. Torrent traffic exposes your IP to every peer in the swarm, so
-/// this stays off until a VPN mode has been chosen deliberately.
+/// anistream finds no torrents itself. A source plugin that declares the `torrents` capability
+/// names them, and the engine plays them here. Off by default. Torrent traffic shows your IP
+/// address to every peer in the swarm, so this stays off until a protection mode is chosen.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TorrentConfig {
     pub enabled: bool,
     pub vpn: VpnConfig,
-    /// RSS search endpoint, supplied by you.
-    ///
-    /// anistream ships no indexer and no default: the torrent source stays inert until this
-    /// is set. `{query}` is replaced with the URL-encoded search terms; a template without
-    /// it gets `q=` appended. The response is expected to be RSS whose items carry seeders
-    /// and an info hash.
-    pub rss_url: Option<String>,
-    /// Trackers added to every magnet, supplied by you.
+    /// Trackers added to every torrent played, supplied by you.
     ///
     /// Proxy mode disables DHT, so with none of these there is no way to find peers.
     pub trackers: Vec<String>,
-    /// Optional curation endpoint, supplied by you: which release of a title is the good
-    /// one. `{anilist_id}` is replaced with the AniList id. Unset means raw ranking decides.
-    pub curation_url: Option<String>,
-    /// Reserved. Accepted so existing configs keep parsing; currently has no effect —
-    /// ranking always trusts the feed's live seeder counts.
-    pub max_seeders_age_days: Option<u32>,
     /// Giving back after an episode has been watched.
     pub seeding: SeedingConfig,
     /// How much of what has been streamed stays on disk, in gigabytes.
@@ -925,10 +910,7 @@ impl Default for TorrentConfig {
         Self {
             enabled: false,
             vpn: VpnConfig::default(),
-            rss_url: None,
             trackers: Vec::new(),
-            curation_url: None,
-            max_seeders_age_days: None,
             seeding: SeedingConfig::default(),
             // Room for a dozen episodes at 1080p: enough that resuming or rewatching last
             // night's episodes is instant, small enough that nobody's disk fills over a season.
@@ -978,42 +960,12 @@ impl TorrentConfig {
     pub fn cache_limit_bytes(&self) -> u64 {
         u64::from(self.cache_limit_gb).saturating_mul(1_000_000_000)
     }
-
-    /// Host of the configured indexer, used to keep curated picks on the same service.
-    pub fn indexer_host(&self) -> Option<String> {
-        let url = self.rss_url.as_deref()?;
-        let rest = url.split_once("://")?.1;
-        let authority = rest.split(['/', '?', '#']).next()?;
-        let host = authority.rsplit('@').next()?.split(':').next()?;
-        (!host.is_empty()).then(|| host.to_ascii_lowercase())
-    }
 }
 
 impl TorrentConfig {
     fn validate(&self) -> Result<(), crate::Error> {
-        // An indexer set is held to being one whether or not torrents are on: the native apps'
-        // torrent index is filled in before the source is turned on, and a typo kept until then
-        // would be refused only by the switch, which says nothing of the address.
-        let indexer = self.rss_url.as_deref().map(str::trim).filter(|url| !url.is_empty());
-        if let Some(url) = indexer
-            && !url.starts_with("http://")
-            && !url.starts_with("https://")
-        {
-            return Err(crate::Error::Config(
-                "providers.torrent.rss_url must be an http or https URL".into(),
-            ));
-        }
         if !self.enabled {
             return Ok(());
-        }
-        // No indexer ships with anistream, so an enabled source with no endpoint would be
-        // silently inert. Say so instead — in words, and short: it is what the Settings toggle
-        // answers with in one toast line, which cut the dotted keys it used to quote before the
-        // part that said what to do.
-        if indexer.is_none() {
-            return Err(crate::Error::Config(
-                "torrents need an indexer; set rss_url under [providers.torrent]".into(),
-            ));
         }
         match self.vpn.mode {
             VpnMode::Socks5 => {
@@ -1453,7 +1405,6 @@ mod tests {
         let on = r#"
             [providers.torrent]
             enabled = true
-            rss_url = "https://indexer.example/rss?q={query}"
             [providers.torrent.vpn]
             mode = "external"
             on_leak = "warn"
@@ -1608,66 +1559,26 @@ mod tests {
     }
 
     #[test]
-    fn enabling_torrents_without_an_indexer_is_rejected() {
-        // anistream ships no indexer, so an enabled source with no endpoint would sit
-        // there doing nothing. Say so rather than failing silently at search time.
-        let err = Config::from_toml(
-            r#"
+    fn torrent_playback_needs_no_index_and_the_retired_keys_are_read_past() {
+        // anistream finds no torrents itself, so turning playback on asks only for protection.
+        let on = r#"
             [providers.torrent]
             enabled = true
+            rss_url = "https://index.example/rss?q={query}"
+            curation_url = "https://index.example/pick?id={anilist_id}"
+            max_seeders_age_days = 3
             [providers.torrent.vpn]
-            mode = "none"
-            i_understand_my_ip_is_exposed = true
-            "#,
-        )
-        .expect_err("must not enable a source with nothing to search");
-        assert!(err.to_string().contains("rss_url"), "got: {err}");
-        // Said for a person, and short enough for the Settings toast at 80 columns.
-        let crate::Error::Config(reason) = err else { panic!("not a config error: {err}") };
-        assert!(!reason.contains("enabled is true"), "got: {reason}");
-        assert!(format!("not saved: {reason}").chars().count() <= 75, "got: {reason}");
-    }
-
-    #[test]
-    fn an_indexer_url_has_to_be_http() {
-        let err = Config::from_toml(
-            r#"
-            [providers.torrent]
-            enabled = true
-            rss_url = "file:///etc/passwd"
-            [providers.torrent.vpn]
-            mode = "none"
-            i_understand_my_ip_is_exposed = true
-            "#,
-        )
-        .expect_err("only http(s) is transport");
-        assert!(err.to_string().contains("http"), "got: {err}");
-    }
-
-    #[test]
-    fn an_indexer_set_is_checked_with_torrents_off_and_none_is_no_indexer() {
-        // Filled in on the native apps' torrent sheet before the source is turned on.
-        let off =
-            |url: &str| Config::from_toml(&format!("[providers.torrent]\nrss_url = {url:?}\n"));
-        let err = off("indexer.example/rss").expect_err("not an address").to_string();
-        assert!(err.contains("http or https"), "got: {err}");
-        assert!(off("https://indexer.example/rss?q={query}").is_ok());
-        // Blank is unset, with torrents off as with them on.
-        assert!(off("  ").is_ok());
-        let on = "[providers.torrent]\nenabled = true\nrss_url = \" \"\n\
-                  [providers.torrent.vpn]\nmode = \"external\"\n";
-        let err = Config::from_toml(on).expect_err("no indexer").to_string();
-        assert!(err.contains("torrents need an indexer"), "got: {err}");
-    }
-
-    #[test]
-    fn the_indexer_host_is_extracted_for_matching_curated_picks() {
-        let config = TorrentConfig {
-            rss_url: Some("https://Indexer.Example:8080/rss?q={query}".into()),
-            ..Default::default()
-        };
-        assert_eq!(config.indexer_host().as_deref(), Some("indexer.example"));
-        assert_eq!(TorrentConfig::default().indexer_host(), None);
+            mode = "external"
+        "#;
+        let cfg = Config::from_toml(on).expect("an older file still loads");
+        assert!(cfg.providers.torrent.enabled);
+        let unknown = unknown_keys(on, &cfg);
+        for key in ["rss_url", "curation_url", "max_seeders_age_days"] {
+            assert!(
+                unknown.iter().any(|k| k == &format!("providers.torrent.{key}")),
+                "{key} is no longer a setting: {unknown:?}"
+            );
+        }
     }
 
     #[test]
@@ -1686,7 +1597,6 @@ mod tests {
             r#"
             [providers.torrent]
             enabled = true
-            rss_url = "https://indexer.example/?q={query}"
             [providers.torrent.vpn]
             mode = "socks5"
             "#,
@@ -1700,7 +1610,6 @@ mod tests {
         let base = r#"
             [providers.torrent]
             enabled = true
-            rss_url = "https://indexer.example/?q={query}"
             [providers.torrent.vpn]
             mode = "none"
         "#;

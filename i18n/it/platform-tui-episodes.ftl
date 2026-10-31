@@ -36,11 +36,6 @@ title-relation-sequel = Seguito
 title-source-automatic = Automatica (la migliore { -source } disponibile)
 title-source-failing = In errore
 title-release-first = Quella che la { -source } mette per prima
-title-release-seeders = { $count ->
-    [one] { $count } seeder
-    [many] { $count } seeder
-   *[other] { $count } seeder
- }
 title-available-on = Disponibile su { $services }
 title-up-next = { -up-next-cap }: episodio { $next }
 title-progress-aired = { $done } di { $aired } già usciti

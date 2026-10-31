@@ -13431,13 +13431,6 @@
     "at": "2026-10-31",
     "back": "Token storage"
   },
-  "settings-label-torrent-index": {
-    "source": "3e137d7a1f87",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrent index"
-  },
   "settings-label-torrents": {
     "source": "f515eb43cad3",
     "state": "draft",
@@ -20586,13 +20579,6 @@
     "at": "2026-10-31",
     "back": "The release that the source orders first"
   },
-  "title-release-seeders": {
-    "source": "23dcf20126cb",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ $count } seed / { $count } seeds / { $count } seeds"
-  },
   "title-season": {
     "source": "a88e71fd292f",
     "state": "draft",
@@ -20872,13 +20858,6 @@
     "by": "haiku",
     "at": "2026-10-31",
     "back": "anistream closed before the torrents started."
-  },
-  "torrent-no-index": {
-    "source": "ac7603f0872a",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrents need a torrent index. anistream does not bring any, so add your own address in the settings."
   },
   "torrent-no-kill-switch": {
     "source": "dfcde0ae51dc",

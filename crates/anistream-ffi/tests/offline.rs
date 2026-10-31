@@ -68,8 +68,7 @@ fn the_connection_check_in_device_mode_is_answered_from_the_fixtures() {
     std::fs::create_dir_all(&dirs.config).unwrap();
     std::fs::write(
         std::path::Path::new(&dirs.config).join("config.toml"),
-        "[providers.torrent]\nenabled = true\nrss_url = \"https://index.example/rss\"\n\
-         [providers.torrent.vpn]\nmode = \"external\"\n",
+        "[providers.torrent]\nenabled = true\n[providers.torrent.vpn]\nmode = \"external\"\n",
     )
     .unwrap();
     // The engine's own clients resolve no name, and the fixture guard makes no request, so a

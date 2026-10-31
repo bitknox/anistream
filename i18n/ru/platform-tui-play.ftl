@@ -131,7 +131,6 @@ settings-label-presence = Статус в Discord
 settings-label-presence-title = Название в статусе
 settings-label-presence-rich = Расширенный статус
 settings-label-torrents = Торрент-{ -source }
-settings-label-torrent-index = { -torrent-index-cap }
 settings-label-seed-ratio = Раздавать после просмотра
 settings-label-seed-hours = Раздавать не дольше
 settings-label-upload-limit = Лимит отдачи

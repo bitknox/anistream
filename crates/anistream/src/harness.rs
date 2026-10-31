@@ -634,9 +634,7 @@ impl Harness {
     fn handled(&mut self, message: Internal) {
         // What `sources::torrent_wanted` asks of the config, of the sources the App was told.
         let configured = &self.app.settings.sources;
-        let torrent_wanted = configured.torrent
-            && configured.order.iter().any(|id| id == "torrent")
-            && !configured.disabled.iter().any(|id| id == "torrent");
+        let torrent_wanted = configured.torrent;
         assert!(
             message != Internal::SourcesChanged || !torrent_wanted,
             "the harness has no torrent session or VPN guard to bring up"

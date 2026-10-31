@@ -13636,13 +13636,6 @@
     "at": "2026-10-31",
     "back": "Token storage"
   },
-  "settings-label-torrent-index": {
-    "source": "3e137d7a1f87",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ -torrent-index-cap }"
-  },
   "settings-label-torrents": {
     "source": "f515eb43cad3",
     "state": "draft",
@@ -20908,13 +20901,6 @@
     "at": "2026-10-31",
     "back": "The { -release } that { -source } ranks first"
   },
-  "title-release-seeders": {
-    "source": "23dcf20126cb",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ $count } seeder / { $count } seeders"
-  },
   "title-season": {
     "source": "a88e71fd292f",
     "state": "draft",
@@ -21197,13 +21183,6 @@
     "by": "haiku",
     "at": "2026-10-31",
     "back": "{ -app-name } closed before the torrents started."
-  },
-  "torrent-no-index": {
-    "source": "ac7603f0872a",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrents require a { -torrent-index }. { -app-name } ships none, so add your own address in the settings."
   },
   "torrent-no-kill-switch": {
     "source": "dfcde0ae51dc",

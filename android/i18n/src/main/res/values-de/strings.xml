@@ -178,7 +178,6 @@
     <string name="torrent_check_failed_running">Die Verbindungsprüfung ist fehlgeschlagen. Torrents laufen weiter.</string>
     <string name="torrent_vpn_waiting">Torrents starten, sobald der VPN-Wächter freigibt. %1$s</string>
     <string name="torrent_vpn_unverified">Torrents starten, sobald der VPN-Wächter freigibt. Die Verbindung wurde noch nicht geprüft.</string>
-    <string name="torrent_no_index">Torrents brauchen einen Torrent-Index. anistream liefert keinen mit, füge deshalb in den Einstellungen deine eigene Adresse hinzu.</string>
     <string name="torrent_interface_closed">anistream wurde geschlossen, bevor die Torrents starteten.</string>
     <string name="torrent_session_failed">Die Torrent-Sitzung konnte nicht gestartet werden. %1$s</string>
     <string name="torrent_no_kill_switch">Auf diesem Gerät stoppt nichts den Torrent-Verkehr, wenn das VPN ausfällt. Führe „anistream --doctor“ aus, um das einzurichten.</string>

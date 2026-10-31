@@ -563,9 +563,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Torrenty ruszą po przejściu kontroli VPN. Połączenie nie zostało jeszcze sprawdzone.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Torrenty wymagają indeks torrentów. anistream nie dołącza żadnego, więc dodaj własny adres w ustawieniach.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>Zamknięto anistream, zanim ruszyły torrenty.</value>
   </data>

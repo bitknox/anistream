@@ -131,7 +131,6 @@ settings-label-presence = Obecność w Discordzie
 settings-label-presence-title = Obecność pokazuje tytuł
 settings-label-presence-rich = Rozbudowana obecność
 settings-label-torrents = { -source-cap }: torrenty
-settings-label-torrent-index = { -torrent-index-cap }
 settings-label-seed-ratio = Udostępniaj po obejrzeniu
 settings-label-seed-hours = Udostępniaj najwyżej
 settings-label-upload-limit = Limit wysyłania

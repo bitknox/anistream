@@ -482,9 +482,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>VPNガードを通過すると、トレントが開始されます。接続はまだ確認されていません。</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>トレントにはトレントインデックスが必要です。anistreamには含まれていないため、設定でアドレスを追加してください。</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>トレントが開始される前にanistreamが終了しました。</value>
   </data>

@@ -536,9 +536,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>I torrent partono quando il controllo VPN è superato. La connessione non è ancora stata verificata.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>I torrent richiedono un indice torrent. anistream non ne include nessuno, quindi aggiungi il tuo indirizzo nelle impostazioni.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream si è chiuso prima che partissero i torrent.</value>
   </data>

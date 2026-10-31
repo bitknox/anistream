@@ -474,9 +474,6 @@ torrent-vpn-waiting = VPNガードを通過すると、トレントが開始さ�
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = VPNガードを通過すると、トレントが開始されます。接続はまだ確認されていません。
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = トレントにはトレントインデックスが必要です。anistreamには含まれていないため、設定でアドレスを追加してください。
-
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = トレントが開始される前にanistreamが終了しました。
 
@@ -1523,12 +1520,6 @@ title-source-failing = エラー
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = ソースが最上位に挙げるリリース
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-       *[other] シーダー { $count }
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = 配信先: { $services }
@@ -3020,9 +3011,6 @@ settings-label-presence-rich = 詳細な再生状況
 
 # Settings row: the torrent source on or off.
 settings-label-torrents = トレントソース
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = トレントインデックス
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = 視聴後のシード

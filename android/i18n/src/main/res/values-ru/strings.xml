@@ -196,7 +196,6 @@
     <string name="torrent_check_failed_running">Проверка подключения не прошла. Торренты продолжают работать.</string>
     <string name="torrent_vpn_waiting">Торренты запустятся, когда пройдёт проверка VPN. %1$s</string>
     <string name="torrent_vpn_unverified">Торренты запустятся, когда пройдёт проверка VPN. Подключение ещё не проверено.</string>
-    <string name="torrent_no_index">Торрентам нужен торрент-индекс. anistream не содержит ни одного, поэтому добавьте свой адрес в настройках.</string>
     <string name="torrent_interface_closed">anistream закрылся до запуска торрентов.</string>
     <string name="torrent_session_failed">Не удалось запустить сессию торрентов. %1$s</string>
     <string name="torrent_no_kill_switch">Ничто не останавливает торрент-трафик, если VPN отключится. Запустите «anistream --doctor», чтобы настроить защиту.</string>

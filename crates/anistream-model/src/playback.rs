@@ -243,7 +243,9 @@ impl From<StreamKind> for PlayableKind {
         match kind {
             StreamKind::Hls => Self::Hls,
             StreamKind::Mp4 => Self::Mp4,
-            StreamKind::TorrentHttp => Self::TorrentHttp,
+            // A torrent nothing has started never reaches a player: torrent playback starts it
+            // first. Named as the kind it becomes, should one cross all the same.
+            StreamKind::TorrentHttp | StreamKind::Torrent => Self::TorrentHttp,
             StreamKind::ExternalDeepLink => Self::ExternalDeepLink,
         }
     }

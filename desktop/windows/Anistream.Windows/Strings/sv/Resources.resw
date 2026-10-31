@@ -509,9 +509,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Torrenterna startar när VPN-skyddet godkänns. Anslutningen har inte verifierats än.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Torrenter kräver ett torrentindex. anistream levererar inget, så lägg till din egen adress i inställningarna.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream stängdes innan torrenterna startade.</value>
   </data>

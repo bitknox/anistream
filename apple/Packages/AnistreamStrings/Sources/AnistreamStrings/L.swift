@@ -814,8 +814,11 @@ public enum L {
     /// Note on the sources screen: the VPN guard has no verdict yet.
     public static var torrentVpnUnverified: String { string("torrent-vpn-unverified", fallback: "Torrents start once the VPN guard passes. The connection hasn't been verified yet.") }
 
-    /// Error: torrents are on, but no torrent index is set.
-    public static var torrentNoIndex: String { string("torrent-no-index", fallback: "Torrents need a torrent index. anistream ships none, so add your own address in the settings.") }
+    /// Notice, once, on the first launch after the update that removed built-in torrent search.
+    public static var torrentSearchMoved: String { string("torrent-search-moved", fallback: "Torrent search is now a plugin. Your torrent index address was removed. Torrent playback and your protection settings are as they were.") }
+
+    /// Error: the link or file given to open is not a magnet link, an info hash or a torrent file.
+    public static var torrentLinkUnusable: String { string("torrent-link-unusable", fallback: "That isn't a magnet link or a torrent file.") }
 
     /// Error: the torrent session did not start because the interface closed first.
     public static var torrentInterfaceClosed: String { string("torrent-interface-closed", fallback: "anistream closed before torrents started.") }
@@ -6364,6 +6367,9 @@ public enum L {
     public static func matchRowLabel(title: String, facts: String, closeness: String) -> String {
         Self.format("match-row-label", fallback: "%1$@, %2$@, %3$@", title, facts, closeness)
     }
+
+    /// Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.
+    public static var sourcesPlaysTorrents: String { string("sources-plays-torrents", fallback: "Plays through torrent playback") }
 
     /// Short label for a joined store, on a row.
     public static var storesJoined: String { string("stores-joined", fallback: "Joined") }

@@ -121,7 +121,7 @@ async fn main() {
         println!("    [{}] {:>10} bytes  {}", f.index, f.length, f.name);
     }
 
-    match choose_file(&files, None) {
+    match choose_file(&files, None, None) {
         Some(pick) => println!("  selected: {}", pick.name),
         None => {
             println!("  ✕ nothing playable found");

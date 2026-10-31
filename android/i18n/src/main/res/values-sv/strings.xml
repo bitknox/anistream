@@ -178,7 +178,6 @@
     <string name="torrent_check_failed_running">Anslutningskontrollen misslyckades. Torrenterna fortsätter att köra.</string>
     <string name="torrent_vpn_waiting">Torrenterna startar när VPN-skyddet godkänns. %1$s</string>
     <string name="torrent_vpn_unverified">Torrenterna startar när VPN-skyddet godkänns. Anslutningen har inte verifierats än.</string>
-    <string name="torrent_no_index">Torrenter kräver ett torrentindex. anistream levererar inget, så lägg till din egen adress i inställningarna.</string>
     <string name="torrent_interface_closed">anistream stängdes innan torrenterna startade.</string>
     <string name="torrent_session_failed">Det gick inte att starta torrentsessionen. %1$s</string>
     <string name="torrent_no_kill_switch">Ingenting på den här enheten stoppar torrenttrafiken om VPN:en tappas. Kör \"anistream --doctor\" för att ställa in det.</string>

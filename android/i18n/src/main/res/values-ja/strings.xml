@@ -169,7 +169,6 @@
     <string name="torrent_check_failed_running">接続の確認に失敗しました。トレントは動き続けています。</string>
     <string name="torrent_vpn_waiting">VPNガードを通過すると、トレントが開始されます。%1$s</string>
     <string name="torrent_vpn_unverified">VPNガードを通過すると、トレントが開始されます。接続はまだ確認されていません。</string>
-    <string name="torrent_no_index">トレントにはトレントインデックスが必要です。anistreamには含まれていないため、設定でアドレスを追加してください。</string>
     <string name="torrent_interface_closed">トレントが開始される前にanistreamが終了しました。</string>
     <string name="torrent_session_failed">トレントのセッションを開始できませんでした。%1$s</string>
     <string name="torrent_no_kill_switch">VPNが切断された場合にトレントの通信を止める仕組みが、このデバイスにはありません。「anistream --doctor」を実行すると設定できます。</string>

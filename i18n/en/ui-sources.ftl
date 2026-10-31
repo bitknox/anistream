@@ -351,3 +351,6 @@ match-cleared = Matching automatically again.
 # @arg facts: text
 # @arg closeness: text
 match-row-label = { $title }, { $facts }, { $closeness }
+
+# Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.
+sources-plays-torrents = Plays through torrent playback

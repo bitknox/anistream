@@ -187,7 +187,6 @@
     <string name="torrent_check_failed_running">La revisión de la conexión falló. Los torrents siguen activos.</string>
     <string name="torrent_vpn_waiting">Los torrents empiezan cuando pase la protección de VPN. %1$s</string>
     <string name="torrent_vpn_unverified">Los torrents empiezan cuando pase la protección de VPN. Todavía no se verificó la conexión.</string>
-    <string name="torrent_no_index">Los torrents necesitan un índice de torrents. anistream no trae ninguno, así que agrega tu propia dirección en la configuración.</string>
     <string name="torrent_interface_closed">anistream se cerró antes de que empezaran los torrents.</string>
     <string name="torrent_session_failed">No se pudo iniciar la sesión de torrents. %1$s</string>
     <string name="torrent_no_kill_switch">Nada en este dispositivo detiene el tráfico de torrents si cae la VPN. Ejecuta \"anistream --doctor\" para configurarlo.</string>

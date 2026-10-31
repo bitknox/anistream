@@ -26,7 +26,7 @@ pub async fn check_providers(lent: Lent) {
 
 /// Switch the plugin `id` off, or back on, without removing it: written to `providers.disabled`
 /// and put in effect on the chain at once, where it keeps its place and is not tried while off.
-/// Said with the settings, the Providers rows and a notice. Only a plugin: the torrent source is
+/// Said with the settings, the Providers rows and a notice. Only a plugin: torrent playback is
 /// turned off in the settings, where turning it on asks how to protect it.
 pub fn disable_plugin(
     id: String,

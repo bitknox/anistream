@@ -1,4 +1,4 @@
-//! The torrent source's protection, as a native app's torrent sheet asks for it: written to the
+//! Torrent playback's protection, as a native app's torrent sheet asks for it: written to the
 //! file as one change and the proxy's password to the host's secret store; and that password
 //! put back into the proxy's URL on the copy of the config a torrent session is brought up on,
 //! and nowhere else.
@@ -27,7 +27,7 @@ use crate::{
 /// leaves them, and a notice. Refused in words, with nothing written, when the rules say no:
 /// no protection or warn only unconfirmed, or a proxy with no address.
 ///
-/// The torrent source is brought back up on what was written when it is on.
+/// Torrent playback is brought back up on what was written when it is on.
 pub fn set_torrent_protection(
     mode: TorrentProtection,
     proxy: Option<TorrentProxy>,

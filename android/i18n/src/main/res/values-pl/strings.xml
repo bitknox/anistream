@@ -196,7 +196,6 @@
     <string name="torrent_check_failed_running">Sprawdzenie połączenia nie powiodło się. Torrenty działają dalej.</string>
     <string name="torrent_vpn_waiting">Torrenty ruszą po przejściu kontroli VPN. %1$s</string>
     <string name="torrent_vpn_unverified">Torrenty ruszą po przejściu kontroli VPN. Połączenie nie zostało jeszcze sprawdzone.</string>
-    <string name="torrent_no_index">Torrenty wymagają indeks torrentów. anistream nie dołącza żadnego, więc dodaj własny adres w ustawieniach.</string>
     <string name="torrent_interface_closed">Zamknięto anistream, zanim ruszyły torrenty.</string>
     <string name="torrent_session_failed">Nie udało się uruchomić sesji torrentów. %1$s</string>
     <string name="torrent_no_kill_switch">Żadna reguła zapory nie zatrzyma ruchu torrentów, jeśli VPN się rozłączy. Uruchom „anistream --doctor”, aby to skonfigurować.</string>

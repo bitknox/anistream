@@ -426,6 +426,8 @@ Torrents are off by default and live in Settings > Sources as “Torrent source�
 - Every new or changed proxy goes through that check before it is saved: turning torrents on with a proxy, switching “Protect with” to one, and Edit proxy. The sheet says “Checking the proxy” while it runs. Only a passed check saves the settings and turns torrents on, and a notice says what was saved (“Proxy saved”). A failed one saves nothing and says why, and the sheet stays open. VoiceOver hears both lines as they come. One check runs at a time: a check asked for while an earlier one is out waits for that one's verdict, so a verdict can only ever answer the check its sheet is waiting for.
 - The seeding settings (seed after watching, seed for at most, upload limit) appear only once the source is on.
 
+The switch turns on torrent playback, not a source. anistream finds no torrents: a source plugin that declares the `torrents` capability names them, and they play through this switch and its check. There is no index address. Such a plugin's row on Sources says “Plays through torrent playback”, and the release picker shows each candidate's own line (`label`) as the plugin wrote it, in the plugin's order.
+
 On iPhone and iPad, torrents run while the app is open:
 
 - Streaming and downloading run in the foreground. When the app goes to the background, the torrent session pauses. When it comes back, the check runs again and then the session resumes, so the check never runs in the background.

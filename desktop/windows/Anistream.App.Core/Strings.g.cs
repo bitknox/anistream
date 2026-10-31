@@ -588,8 +588,11 @@ public static partial class T
     /// <summary>Note on the sources screen: the VPN guard has no verdict yet.</summary>
     public static string TorrentVpnUnverified => Get("TorrentVpnUnverified");
 
-    /// <summary>Error: torrents are on, but no torrent index is set.</summary>
-    public static string TorrentNoIndex => Get("TorrentNoIndex");
+    /// <summary>Notice, once, on the first launch after the update that removed built-in torrent search.</summary>
+    public static string TorrentSearchMoved => Get("TorrentSearchMoved");
+
+    /// <summary>Error: the link or file given to open is not a magnet link, an info hash or a torrent file.</summary>
+    public static string TorrentLinkUnusable => Get("TorrentLinkUnusable");
 
     /// <summary>Error: the torrent session did not start because the interface closed first.</summary>
     public static string TorrentInterfaceClosed => Get("TorrentInterfaceClosed");
@@ -4386,6 +4389,9 @@ public static partial class T
     /// <summary>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</summary>
     public static string MatchRowLabel(string title, string facts, string closeness) => Fill(Get("MatchRowLabel"), ("title", title), ("facts", facts), ("closeness", closeness));
 
+    /// <summary>Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.</summary>
+    public static string SourcesPlaysTorrents => Get("SourcesPlaysTorrents");
+
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
 
@@ -6058,7 +6064,8 @@ public static partial class T
         ["TorrentCheckFailedRunning"] = "The connection check failed. Torrents keep running.",
         ["TorrentVpnWaiting"] = "Torrents start once the VPN guard passes. {reason}",
         ["TorrentVpnUnverified"] = "Torrents start once the VPN guard passes. The connection hasn't been verified yet.",
-        ["TorrentNoIndex"] = "Torrents need a torrent index. anistream ships none, so add your own address in the settings.",
+        ["TorrentSearchMoved"] = "Torrent search is now a plugin. Your torrent index address was removed. Torrent playback and your protection settings are as they were.",
+        ["TorrentLinkUnusable"] = "That isn't a magnet link or a torrent file.",
         ["TorrentInterfaceClosed"] = "anistream closed before torrents started.",
         ["TorrentSessionFailed"] = "Couldn't start the torrent session. {reason}",
         ["TorrentNoKillSwitch"] = "Nothing on this device stops torrent traffic if the VPN drops. Run \"anistream --doctor\" to set that up.",
@@ -7352,6 +7359,7 @@ public static partial class T
         ["MatchAutomaticDetail"] = "Forget your choice and let anistream match this title again.",
         ["MatchCleared"] = "Matching automatically again.",
         ["MatchRowLabel"] = "{title}, {facts}, {closeness}",
+        ["SourcesPlaysTorrents"] = "Plays through torrent playback",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",

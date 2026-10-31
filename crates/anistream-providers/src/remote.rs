@@ -43,6 +43,7 @@ impl RemoteHttpProvider {
                 kind: ProviderKind::Remote,
                 allowed_hosts: vec![host],
                 translations: vec![Translation::Sub, Translation::Dub],
+                torrents: false,
             },
             base_url,
             http,

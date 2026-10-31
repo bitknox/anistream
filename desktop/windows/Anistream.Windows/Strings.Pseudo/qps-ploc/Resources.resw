@@ -835,9 +835,13 @@
     <value>[Ţöŕŕéñţš šţàŕţ öñçé ţĥé ṼÞÑ ĝüàŕð þàššéš. Ţĥé çöññéçţîöñ ĥàšñ'ţ ƀééñ ṽéŕîƒîéð ýéţ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Note on the sources screen: the VPN guard has no verdict yet.</comment>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>[Ţöŕŕéñţš ñééð à ţöŕŕéñţ îñðéẋ. àñîšţŕéàɱ šĥîþš ñöñé, šö àðð ýöüŕ öŵñ àððŕéšš îñ ţĥé šéţţîñĝš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Error: torrents are on, but no torrent index is set.</comment>
+  <data name="TorrentSearchMoved" xml:space="preserve">
+    <value>[Ţöŕŕéñţ šéàŕçĥ îš ñöŵ à þļüĝîñ. Ýöüŕ ţöŕŕéñţ îñðéẋ àððŕéšš ŵàš ŕéɱöṽéð. Ţöŕŕéñţ þļàýƀàçķ àñð ýöüŕ þŕöţéçţîöñ šéţţîñĝš àŕé àš ţĥéý ŵéŕé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Notice, once, on the first launch after the update that removed built-in torrent search.</comment>
+  </data>
+  <data name="TorrentLinkUnusable" xml:space="preserve">
+    <value>[Ţĥàţ îšñ'ţ à ɱàĝñéţ ļîñķ öŕ à ţöŕŕéñţ ƒîļé.~~~~~~~~~~~~~]</value>
+    <comment>Error: the link or file given to open is not a magnet link, an info hash or a torrent file.</comment>
   </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>[àñîšţŕéàɱ çļöšéð ƀéƒöŕé ţöŕŕéñţš šţàŕţéð.~~~~~~~~~~~~~]</value>
@@ -6010,6 +6014,10 @@
   <data name="MatchRowLabel" xml:space="preserve">
     <value>[{title}, {facts}, {closeness}~~~~]</value>
     <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
+  </data>
+  <data name="SourcesPlaysTorrents" xml:space="preserve">
+    <value>[Þļàýš ţĥŕöüĝĥ ţöŕŕéñţ þļàýƀàçķ~~~~~~~~~]</value>
+    <comment>Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>[Ĵöîñéð~~]</value>

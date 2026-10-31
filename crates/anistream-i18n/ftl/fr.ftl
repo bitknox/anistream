@@ -492,9 +492,6 @@ torrent-vpn-waiting = Les torrents démarrent une fois le contrôle VPN validé.
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = Les torrents démarrent une fois le contrôle VPN validé. La connexion n’a pas encore été vérifiée.
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = Les torrents ont besoin d’un index de torrents. anistream n’en fournit aucun : ajoutez votre propre adresse dans les réglages.
-
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = anistream s’est fermé avant le démarrage des torrents.
 
@@ -1575,14 +1572,6 @@ title-source-failing = En panne
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = La release que la source classe en premier
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-        [one] { $count } seeder
-        [many] { $count } seeders
-       *[other] { $count } seeders
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = Disponible sur { $services }
@@ -3087,9 +3076,6 @@ settings-label-presence-rich = Présence enrichie
 
 # Settings row: the torrent source on or off.
 settings-label-torrents = Source torrent
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = Index de torrents
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Partage après visionnage
