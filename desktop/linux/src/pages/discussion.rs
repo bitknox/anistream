@@ -1052,6 +1052,16 @@ impl Sheet {
             like.add_css_class("liked");
         }
         like.set_child(Some(&words));
+        like.update_property(&[gtk::accessible::Property::Label(&if count == 0 {
+            t::discussion_like()
+        } else {
+            t::discussion_like_named(i64::from(count))
+        })]);
+        like.update_state(&[gtk::accessible::State::Pressed(if liked {
+            gtk::AccessibleTristate::True
+        } else {
+            gtk::AccessibleTristate::False
+        })]);
         let id = comment.id;
         like.connect_clicked({
             let hub = Rc::clone(&self.ctx.hub);

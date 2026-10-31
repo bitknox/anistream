@@ -877,6 +877,7 @@ impl Page {
             bar.set_margin_top(4);
             bar.set_size_request(120, -1);
             bar.set_halign(gtk::Align::Start);
+            crate::widgets::name_progress(&bar);
             text.append(&bar);
             line.append(&text);
 

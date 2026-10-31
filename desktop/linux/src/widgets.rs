@@ -47,18 +47,34 @@ fn parse_hex(hex: &str) -> Option<[u8; 3]> {
 }
 
 /// Art in a rounded box: `url`'s once it is here, fading in over a placeholder in `color`.
+/// Give a progress bar a name and a spoken percent, kept in step with its fraction.
+pub fn name_progress(bar: &gtk::ProgressBar) {
+    let say = |bar: &gtk::ProgressBar| {
+        bar.update_property(&[gtk::accessible::Property::ValueText(&t::progress_percent(
+            (bar.fraction() * 100.0).round() as i64,
+        ))]);
+    };
+    bar.update_property(&[gtk::accessible::Property::Label(&t::progress_name())]);
+    say(bar);
+    bar.connect_fraction_notify(say);
+}
+
 pub fn art(
     hub: &Hub,
     url: Option<&str>,
     color: Option<&str>,
     class: &str,
 ) -> (gtk::Box, gtk::Picture) {
-    let plate = gtk::Picture::for_paintable(&swatch(color));
+    let plate = gtk::Picture::builder()
+        .paintable(&swatch(color))
+        .accessible_role(gtk::AccessibleRole::Presentation)
+        .build();
     plate.set_content_fit(gtk::ContentFit::Fill);
     plate.set_can_shrink(true);
     plate.set_hexpand(true);
     plate.set_vexpand(true);
-    let picture = gtk::Picture::new();
+    let picture =
+        gtk::Picture::builder().accessible_role(gtk::AccessibleRole::Presentation).build();
     picture.set_content_fit(gtk::ContentFit::Cover);
     picture.set_can_shrink(true);
     hub.art(&picture, url);
@@ -357,6 +373,7 @@ impl PosterGrid {
         widget.set_min_columns(2);
         widget.set_single_click_activate(true);
         widget.add_css_class("posters");
+        widget.update_property(&[gtk::accessible::Property::Label(&t::poster_grid_name())]);
         widget.set_vexpand(true);
         widget.connect_activate({
             let store = store.clone();

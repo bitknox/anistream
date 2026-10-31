@@ -625,6 +625,7 @@ impl Page {
             bar.set_valign(gtk::Align::Center);
             bar.set_size_request(if narrow { 60 } else { 120 }, -1);
             bar.add_css_class("water");
+            widgets::name_progress(&bar);
             row.add_suffix(&bar);
             self.seeding.add(&row);
             drawn.seeds.push(SeedLine { row, bar });
@@ -726,6 +727,7 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> EpisodeRow {
         bar.set_size_request(if narrow { 60 } else { 120 }, -1);
         bar.add_css_class(if row.state == DownloadState::Active { "water" } else { "waiting" });
         bar.set_visible(shows_bar(row));
+        widgets::name_progress(&bar);
         line.add_suffix(&bar);
         bar
     });

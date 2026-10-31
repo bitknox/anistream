@@ -101,3 +101,43 @@ player-channels = { $count ->
 # @only linux
 # @max 30
 player-translation-label = { -subbed-cap } or { -dubbed }
+
+# What a screen reader says for the seek bar's value. Both times are already spoken in full.
+# @only linux
+# @arg position: text
+# @arg duration: text
+player-position-spoken = { $position } of { $duration }
+
+# What a screen reader says for the volume slider's value.
+# @only linux
+# @arg percent: int
+player-volume-percent = { $percent } percent
+
+# Said to a screen reader when the Up next card appears with its countdown running.
+# @only linux
+# @arg title: text
+# @arg seconds: int
+player-announce-up-next-counting = { -up-next-cap }, { $title }. Plays in { $seconds } seconds. Press Escape to cancel.
+
+# Said to a screen reader when the Up next card appears and waits.
+# @only linux
+# @arg title: text
+player-announce-up-next-waiting = { -up-next-cap }, { $title }. Press Enter to play it, or Escape to cancel.
+
+# Said to a screen reader when the Skip opening or Skip ending card appears. The label is the card's button.
+# @only linux
+# @arg label: text
+player-announce-skip = { $label }. Press S.
+
+# Said to a screen reader when a skip has just happened and can be taken back. The line is "Skipped opening".
+# @only linux
+# @arg line: text
+player-announce-undo = { $line }. Press U to undo.
+
+# Accessible name of a comment's like button: the word Like and how many likes it has.
+# @only linux
+# @arg count: int
+discussion-like-named = { $count ->
+    [one] Like, one like
+   *[other] Like, { $count } likes
+ }

@@ -372,6 +372,9 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
             button.clipboard().set_text(&text);
             button.set_icon_name("object-select-symbolic");
             button.set_tooltip_text(Some(&t::action_copied()));
+            button
+                .upcast_ref::<gtk::Widget>()
+                .announce(&t::action_copied(), gtk::AccessibleAnnouncementPriority::Medium);
             let button = button.downgrade();
             glib::timeout_add_seconds_local_once(2, move || {
                 if let Some(button) = button.upgrade() {

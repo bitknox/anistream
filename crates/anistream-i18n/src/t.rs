@@ -1585,6 +1585,41 @@ pub fn player_translation_label() -> String {
     text("player-translation-label", &[])
 }
 
+/// What a screen reader says for the seek bar's value. Both times are already spoken in full.
+pub fn player_position_spoken(position: &str, duration: &str) -> String {
+    text("player-position-spoken", &[("position", Arg::Text(position)), ("duration", Arg::Text(duration))])
+}
+
+/// What a screen reader says for the volume slider's value.
+pub fn player_volume_percent(percent: i64) -> String {
+    text("player-volume-percent", &[("percent", Arg::Int(percent))])
+}
+
+/// Said to a screen reader when the Up next card appears with its countdown running.
+pub fn player_announce_up_next_counting(title: &str, seconds: i64) -> String {
+    text("player-announce-up-next-counting", &[("title", Arg::Text(title)), ("seconds", Arg::Int(seconds))])
+}
+
+/// Said to a screen reader when the Up next card appears and waits.
+pub fn player_announce_up_next_waiting(title: &str) -> String {
+    text("player-announce-up-next-waiting", &[("title", Arg::Text(title))])
+}
+
+/// Said to a screen reader when the Skip opening or Skip ending card appears. The label is the card's button.
+pub fn player_announce_skip(label: &str) -> String {
+    text("player-announce-skip", &[("label", Arg::Text(label))])
+}
+
+/// Said to a screen reader when a skip has just happened and can be taken back. The line is "Skipped opening".
+pub fn player_announce_undo(line: &str) -> String {
+    text("player-announce-undo", &[("line", Arg::Text(line))])
+}
+
+/// Accessible name of a comment's like button: the word Like and how many likes it has.
+pub fn discussion_like_named(count: i64) -> String {
+    text("discussion-like-named", &[("count", Arg::Int(count))])
+}
+
 /// Tooltip on the button that opens a setting's preview on a page of its own, and accessible name of the preview.
 pub fn settings_preview() -> String {
     text("settings-preview", &[])
@@ -2268,6 +2303,21 @@ pub fn continue_preview() -> String {
 /// Under a suggestion that airs later today when no episode number is known: the time it airs.
 pub fn up_next_airs_at(time: &str) -> String {
     text("up-next-airs-at", &[("time", Arg::Text(time))])
+}
+
+/// Accessible name of a progress bar on a row that has no better name, such as a download's.
+pub fn progress_name() -> String {
+    text("progress-name", &[])
+}
+
+/// What a screen reader says for a progress bar's value.
+pub fn progress_percent(percent: i64) -> String {
+    text("progress-percent", &[("percent", Arg::Int(percent))])
+}
+
+/// Accessible name of a grid of show covers.
+pub fn poster_grid_name() -> String {
+    text("poster-grid-name", &[])
 }
 
 /// Header title on a terminal too narrow for the rail: the product name, then the section on screen.

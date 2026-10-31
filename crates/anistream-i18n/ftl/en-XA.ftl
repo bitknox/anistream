@@ -1016,6 +1016,31 @@ player-channels =
 # Accessible label of the two buttons that switch between subbed and dubbed audio.
 player-translation-label = [Šüƀƀéð öŕ ðüƀƀéð~~~~~]
 
+# What a screen reader says for the seek bar's value. Both times are already spoken in full.
+player-position-spoken = [{ $position } öƒ { $duration }~~~]
+
+# What a screen reader says for the volume slider's value.
+player-volume-percent = [{ $percent } þéŕçéñţ~~~~]
+
+# Said to a screen reader when the Up next card appears with its countdown running.
+player-announce-up-next-counting = [Ûþ ñéẋţ, { $title }. Þļàýš îñ { $seconds } šéçöñðš. Þŕéšš Éšçàþé ţö çàñçéļ.~~~~~~~~~~~~~~~~~~]
+
+# Said to a screen reader when the Up next card appears and waits.
+player-announce-up-next-waiting = [Ûþ ñéẋţ, { $title }. Þŕéšš Éñţéŕ ţö þļàý îţ, öŕ Éšçàþé ţö çàñçéļ.~~~~~~~~~~~~~~~~~~]
+
+# Said to a screen reader when the Skip opening or Skip ending card appears. The label is the card's button.
+player-announce-skip = [{ $label }. Þŕéšš Š.~~~~]
+
+# Said to a screen reader when a skip has just happened and can be taken back. The line is "Skipped opening".
+player-announce-undo = [{ $line }. Þŕéšš Û ţö üñðö.~~~~~~~]
+
+# Accessible name of a comment's like button: the word Like and how many likes it has.
+discussion-like-named =
+    { $count ->
+        [one] [Ļîķé, öñé ļîķé~~~~~]
+       *[other] [Ļîķé, { $count } ļîķéš~~~~~]
+    }
+
 # Tooltip on the button that opens a setting's preview on a page of its own, and accessible name of the preview.
 settings-preview = [Þŕéṽîéŵ~~~]
 
@@ -1462,6 +1487,15 @@ continue-preview = [Þŕéṽîéŵ~~~]
 
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = [Åîŕš àţ { $time }~~~~]
+
+# Accessible name of a progress bar on a row that has no better name, such as a download's.
+progress-name = [Þŕöĝŕéšš~~~]
+
+# What a screen reader says for a progress bar's value.
+progress-percent = [{ $percent } þéŕçéñţ~~~~]
+
+# Accessible name of a grid of show covers.
+poster-grid-name = [Ţîţļéš~~]
 
 # Header title on a terminal too narrow for the rail: the product name, then the section on screen.
 chrome-header-section = [àñîšţŕéàɱ · { $section }~~~~~]

@@ -610,6 +610,7 @@ impl Page {
             let bar = gtk::ProgressBar::new();
             bar.set_fraction(fraction);
             bar.set_margin_top(4);
+            widgets::name_progress(&bar);
             text.append(&bar);
         }
         line.append(&text);
@@ -992,9 +993,8 @@ impl Page {
         let banner = widgets::banner(hub, entry, 360, "preview");
         banner.set_halign(gtk::Align::Fill);
         banner.set_cursor_from_name(Some("pointer"));
-        banner.upcast_ref::<gtk::Widget>().update_property(&[
-            gtk::accessible::Property::Label(&t::title_open_named(&entry.title)),
-        ]);
+        // The queue row and the primary button open the title; the banner is a pointer twin.
+        banner.set_accessible_role(gtk::AccessibleRole::Presentation);
         let open = gtk::GestureClick::new();
         open.connect_released({
             let banner = banner.clone();
@@ -1050,6 +1050,7 @@ impl Page {
             bar.set_fraction(fraction);
             bar.set_hexpand(true);
             bar.set_valign(gtk::Align::Center);
+            widgets::name_progress(&bar);
             meter.append(&bar);
             if let Some(left) = item.left.clone() {
                 let left = widgets::haze(&left, "caption");
