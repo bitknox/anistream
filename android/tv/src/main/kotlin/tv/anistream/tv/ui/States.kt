@@ -128,6 +128,29 @@ fun EngineDown() {
     val activity = androidx.activity.compose.LocalActivity.current
     val first = remember { androidx.compose.ui.focus.FocusRequester() }
     androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    val unusable = (shown as? AppStore.Phase.Failed)?.settingsUnusable == true
+    var confirming by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    if (confirming && unusable) {
+        // Resetting is a decision of its own: what it does, then Reset or Cancel. Focus starts on Cancel.
+        val cancel = remember { androidx.compose.ui.focus.FocusRequester() }
+        androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { cancel.requestFocus() } }
+        Column(
+            Modifier.fillMaxSize().background(ObiSilk.Ground),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            StateBlock(
+                line = stringResource(R.string.settings_reset_title),
+                detail = stringResource(R.string.settings_reset_detail),
+                action = stringResource(R.string.action_cancel),
+                onAction = { confirming = false },
+                actionModifier = Modifier.focusRequester(cancel),
+            )
+            Spacer(Modifier.height(12.dp))
+            TonalButton(onClick = { confirming = false; store.resetSettings() }) { ButtonLabel(stringResource(R.string.settings_reset)) }
+        }
+        return
+    }
     Column(
         Modifier.fillMaxSize().background(ObiSilk.Ground),
         verticalArrangement = Arrangement.Center,
@@ -140,6 +163,10 @@ fun EngineDown() {
             onAction = store::restartEngine,
             actionModifier = Modifier.focusRequester(first),
         )
+        if (unusable) {
+            Spacer(Modifier.height(12.dp))
+            TonalButton(onClick = { confirming = true }) { ButtonLabel(stringResource(R.string.settings_reset)) }
+        }
         Spacer(Modifier.height(12.dp))
         TonalButton(onClick = { activity?.finishAffinity() }) { ButtonLabel(stringResource(R.string.engine_down_quit)) }
     }
