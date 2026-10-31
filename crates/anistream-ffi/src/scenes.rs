@@ -4,11 +4,11 @@
 
 use std::sync::Arc;
 
-use anistream_core::media::Translation;
+use anistream_core::media::{Episode, MediaFormat, SearchHit, Translation};
 use anistream_core::stream::{Stream, StreamKind};
 use anistream_engine::clock::Clock;
 use anistream_model::Msg;
-use anistream_providers::ProviderRegistry;
+use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::Store;
 use anistream_testkit::{
     FakeAniList,
@@ -62,6 +62,13 @@ pub enum FfiScene {
     /// on a fixture resumes episode 7 at once from a file it can seek, where the test kit's clip
     /// is a test pattern mpv must play through to the resume point.
     WatchingMedia { media: String },
+    /// [`Self::Watching`] with a second source ahead of the fixture one, Hotaru Open Archive,
+    /// which lists four titles for Hoshikuzu no Tabibito and is sure of none: two could be it
+    /// and two are ruled out, one by its year and one by its format. So its page asks for the
+    /// match. A search there for "Stardust Wayfarer" finds the show itself, whose episodes play,
+    /// and its specials, ruled out. Every other title it has nothing for, so the fixture source
+    /// answers for them as in [`Self::Watching`].
+    Unsure,
 }
 
 #[uniffi::export]
@@ -106,7 +113,10 @@ impl FfiEngine {
         clock: Clock,
     ) -> Result<Arc<Self>, FfiError> {
         match scene {
-            FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless => {
+            FfiScene::Watching
+            | FfiScene::WatchingMedia { .. }
+            | FfiScene::Sourceless
+            | FfiScene::Unsure => {
                 sign_in_config(&dirs)?;
             }
             FfiScene::Playing { .. } => offer_skips(&dirs)?,
@@ -117,7 +127,10 @@ impl FfiEngine {
         seed_scene(&opened.store, &scene, now);
         if matches!(
             scene,
-            FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless
+            FfiScene::Watching
+                | FfiScene::WatchingMedia { .. }
+                | FfiScene::Sourceless
+                | FfiScene::Unsure
         ) {
             // Where the testing engine keeps tokens: files under the data directory.
             TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
@@ -141,7 +154,7 @@ impl FfiEngine {
                 server.add_catalogue(fixtures::catalogue_titles());
             }
             let sources = Some(scene_sources(&scene, &server.art_base()));
-            let testing = testing::Testing { server, clock };
+            let testing = testing::Testing::new(server, clock);
             let options = testing::options(opened, &testing, start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
@@ -200,6 +213,12 @@ fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
         for media in fixtures::long_franchise_media() {
             provider = provider.with_streams_for(sources::key(media.id), vec![clip.clone()]);
         }
+        if *scene == FfiScene::Unsure {
+            return ProviderRegistry::new(vec![
+                unsure_source(art, &clip).arc(),
+                provider.arc(),
+            ]);
+        }
         return ProviderRegistry::new(vec![provider.arc()]);
     };
     let web = media.starts_with("http")
@@ -215,6 +234,57 @@ fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
     }
     ProviderRegistry::new(vec![provider.arc()])
 }
+
+/// The source [`FfiScene::Unsure`] puts first: an invented archive that lists four titles for
+/// Hoshikuzu no Tabibito, none close enough to choose, and the show itself for a search by its
+/// English title. The show's episodes are the fixture's, streaming `clip`.
+fn unsure_source(art: &str, clip: &Stream) -> MockProvider {
+    let hit =
+        |key: &str, title: &str, episodes: u32, year: u16, format: MediaFormat| SearchHit {
+            episode_count: Some(episodes),
+            year: Some(year),
+            format: Some(format),
+            ..SearchHit::new(format!("{UNSURE_SOURCE}:{key}"), title)
+        };
+    let show = format!("{UNSURE_SOURCE}:stardust-wayfarer");
+    let episodes = sources::episodes(FINISHED)
+        .into_iter()
+        .map(|e| Episode {
+            thumbnail: e.thumbnail.map(|t| t.replacen(fixtures::ART_HOST, art, 1)),
+            ..e
+        })
+        .collect();
+    let clip = Stream { provider_id: UNSURE_SOURCE.into(), ..clip.clone() };
+    MockProvider::new(UNSURE_SOURCE)
+        .named("Hotaru Open Archive")
+        .with_hits_for(
+            "Hoshikuzu no Tabibito",
+            vec![
+                hit("hoshi-tabi", "Hoshi Tabi Diaries", 12, 2024, MediaFormat::Tv),
+                hit("tabibito-hoshikuzu", "Tabibito to Hoshikuzu", 13, 2025, MediaFormat::Tv),
+                hit("hoshikuzu-2019", "Hoshikuzu no Tabibito", 10, 2019, MediaFormat::Tv),
+                hit("hoshikuzu-ova", "Hoshikuzu no Tabibito: Yoru", 1, 2024, MediaFormat::Ova),
+            ],
+        )
+        .with_hits_for(
+            "Stardust Wayfarer",
+            vec![
+                hit("stardust-wayfarer", "Stardust Wayfarer", 12, 2024, MediaFormat::Tv),
+                hit(
+                    "stardust-specials",
+                    "Stardust Wayfarer Specials",
+                    2,
+                    2024,
+                    MediaFormat::Special,
+                ),
+            ],
+        )
+        .with_episodes_for(show.clone(), episodes)
+        .with_streams_for(show, vec![clip])
+}
+
+/// The id of [`FfiScene::Unsure`]'s first source.
+pub const UNSURE_SOURCE: &str = "hotaru-open-archive";
 
 /// The referer a Playing scene's web stream is locked to: an invented source's.
 pub const SCENE_REFERER: &str = "https://lantern-archive.example/";
@@ -256,7 +326,10 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
     match scene {
         FfiScene::Fresh => {}
         FfiScene::Playing { .. } => seed::watched(store, FINISHED, 6, now - HOUR),
-        FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless => {
+        FfiScene::Watching
+        | FfiScene::WatchingMedia { .. }
+        | FfiScene::Sourceless
+        | FfiScene::Unsure => {
             // Oldest first, since each watch moves its title to the top.
             seed::watched(store, AIRING_NO_MAL, 7, now - 3 * DAY);
             seed::watched(store, AIRING, 3, now - 2 * DAY);
@@ -299,6 +372,45 @@ mod tests {
         assert_eq!(store.continue_list(15).expect("the rail").len(), 4);
         let none = scene_sources(&FfiScene::Sourceless, "http://127.0.0.1:9/art/");
         assert!(none.is_empty());
+    }
+
+    #[test]
+    fn unsure_asks_about_the_finished_title_and_finds_it_by_its_english_one() {
+        use anistream_core::Provider;
+        use anistream_meta::title::{MatchTarget, Rejection, rank};
+        let target = MatchTarget {
+            titles: vec![
+                "Hoshikuzu no Tabibito".into(),
+                "Stardust Wayfarer".into(),
+                "Hoshitabi".into(),
+            ],
+            episode_count: Some(12),
+            year: Some(2024),
+            format: Some(MediaFormat::Tv),
+        };
+        let source = unsure_source("http://127.0.0.1:9/art/", &sources::episode_clip());
+        let runtime =
+            tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let search =
+            |query: &str| runtime.block_on(source.search(query, Translation::Sub)).unwrap();
+
+        let ladder = search("Hoshikuzu no Tabibito");
+        let ranked = rank(&target, &ladder);
+        let open: Vec<_> = ranked.iter().filter(|s| s.rejected.is_none()).collect();
+        assert_eq!(open.len(), 2, "{ranked:?}");
+        assert!(open.iter().all(|s| !s.is_confident()), "{ranked:?}");
+        let mut out: Vec<_> = ranked.iter().filter_map(|s| s.rejected).collect();
+        out.sort_by_key(|r| format!("{r:?}"));
+        assert_eq!(out, [Rejection::Format, Rejection::Year]);
+
+        let asked = search("  stardust WAYFARER ");
+        let ranked = rank(&target, &asked);
+        assert!(ranked[0].is_confident(), "{ranked:?}");
+        assert_eq!(ranked[0].hit.title, "Stardust Wayfarer");
+        assert!(search("Kumo no Ue no Toshokan").is_empty());
+
+        let registry = scene_sources(&FfiScene::Unsure, "http://127.0.0.1:9/art/");
+        assert_eq!(registry.ids(), [UNSURE_SOURCE, sources::PROVIDER_ID]);
     }
 
     #[test]

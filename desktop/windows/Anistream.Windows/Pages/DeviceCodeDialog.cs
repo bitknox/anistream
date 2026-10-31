@@ -110,10 +110,8 @@ sealed class DeviceCodeDialog
                 dialog.IsSecondaryButtonEnabled = false;
                 return;
             }
-            var data = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
-            data.SetText(this.prompt.Code);
-            global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
-            dialog.SecondaryButtonText = T.ActionCopied;
+            if (Ui.TryCopy(this.prompt.Code))
+                dialog.SecondaryButtonText = T.ActionCopied;
         };
         Fill(prompt);
     }
@@ -163,17 +161,17 @@ sealed class DeviceCodeDialog
     {
         try
         {
-            await dialog.ShowAsync();
-        }
-        catch (Exception)
-        {
-            // Another dialog is up: the engine has opened the page itself, and the code is in its toast.
+            await Dialogs.Show(dialog);
         }
         finally
         {
             tick.Stop();
+            // Closed here rather than by the engine's word that the wait is over: the engine stops polling.
             if (open == this)
+            {
                 open = null;
+                Ctx.Current.Send(new Command.CancelSignIn(prompt.Tracker));
+            }
         }
     }
 }

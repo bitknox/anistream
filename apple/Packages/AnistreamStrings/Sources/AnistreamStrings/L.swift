@@ -318,6 +318,21 @@ public enum L {
         Self.format("notice-source-search-empty", fallback: "Nothing found for “%1$@”. Try a different search.", query)
     }
 
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+    public static var matchRuledOutFormat: String { string("match-ruled-out-format", fallback: "Different format") }
+
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+    public static var matchRuledOutEpisodes: String { string("match-ruled-out-episodes", fallback: "More episodes than this title") }
+
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+    public static var matchRuledOutYear: String { string("match-ruled-out-year", fallback: "Different year") }
+
+    /// Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+    public static var matchSearchTimedOut: String { string("match-search-timed-out", fallback: "It didn't answer in time.") }
+
+    /// Why a search of a source for a show's match failed: the source isn't installed or switched on.
+    public static var matchSearchSourceOff: String { string("match-search-source-off", fallback: "It isn't switched on.") }
+
     /// Toast after the person picked a source for one title.
     public static func noticeSourcePinned(source: String) -> String {
         Self.format("notice-source-pinned", fallback: "%1$@ will be used for this title.", source)
@@ -982,6 +997,11 @@ public enum L {
         Self.format("start-failed-config", fallback: "%1$@ has a setting anistream can't use: %2$@. Fix or remove it, then try again.", path, problem)
     }
 
+    /// Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+    public static func configResetFailed(path: String, reason: String) -> String {
+        Self.format("config-reset-failed", fallback: "anistream couldn't move %1$@ aside to reset the settings. %2$@", path, reason)
+    }
+
     /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
     public static func startFailedDatabase(path: String, reason: String) -> String {
         Self.format("start-failed-database", fallback: "anistream couldn't open its database at %1$@. If another anistream app is open on this folder, quit it and try again. %2$@", path, reason)
@@ -1100,6 +1120,12 @@ public enum L {
         Self.format("access-download", fallback: "%1$@, %2$@, %3$@", title, episode, standing)
     }
 
+    /// VoiceOver: the heading of a cover's more content that holds its facts line, such as "TV · 12 episodes · Autumn 2026".
+    public static var accessHoverFacts: String { string("access-hover-facts", fallback: "Facts") }
+
+    /// VoiceOver: the heading of a cover's more content that holds the show's synopsis.
+    public static var accessHoverSynopsis: String { string("access-hover-synopsis", fallback: "Synopsis") }
+
     /// Short episode name for a dubbed episode, in a row or a widget.
     public static func titleEpisodeShortDubbed(episode: Int) -> String {
         Self.format("title-episode-short-dubbed", fallback: "E%1$lld dubbed", episode)
@@ -1147,6 +1173,24 @@ public enum L {
     public static func calendarTimeApproximate(time: String) -> String {
         Self.format("calendar-time-approximate", fallback: "~%1$@", time)
     }
+
+    /// Name of a day with nothing airing, in the calendar's columns and agenda.
+    public static var calendarDayEmptyApple: String { string("calendar-day-empty-apple", fallback: "Nothing airs") }
+
+    /// Activity line in the first column of a week that is loading.
+    public static var calendarLoadingWeek: String { string("calendar-loading-week", fallback: "Loading this week") }
+
+    /// Line where the rest of the week would be when it could not be loaded.
+    public static var calendarLoadWeekFailed: String { string("calendar-load-week-failed", fallback: "Couldn't load this week") }
+
+    /// Line in the iPhone agenda, under Today, when My list is chosen and nothing on it airs in the next four weeks.
+    public static var calendarEmptyMineAheadApple: String { string("calendar-empty-mine-ahead-apple", fallback: "Nothing on your list airs in the next 4 weeks.") }
+
+    /// Calendar filter on the Mac and iPad, in title case like the menus: every airing show.
+    public static var calendarFilterAllTitle: String { string("calendar-filter-all-title", fallback: "All Airing") }
+
+    /// Calendar filter on the Mac and iPad, in title case like the menus: only the person's list.
+    public static var calendarFilterMineTitle: String { string("calendar-filter-mine-title", fallback: "My List") }
 
     /// Name of the week before this one, in the calendar's toolbar.
     public static var calendarLastWeek: String { string("calendar-last-week", fallback: "Last week") }
@@ -1997,6 +2041,15 @@ public enum L {
     /// Mac menu bar item that opens the command palette.
     public static var menuCommandPalette: String { string("menu-command-palette", fallback: "Command Palette") }
 
+    /// Mac and iPad View menu item that shows the calendar's current week.
+    public static var menuGoToToday: String { string("menu-go-to-today", fallback: "Go to Today") }
+
+    /// Mac and iPad View menu item that shows the calendar's week before.
+    public static var menuPreviousWeek: String { string("menu-previous-week", fallback: "Previous Week") }
+
+    /// Mac and iPad View menu item that shows the calendar's week after.
+    public static var menuNextWeek: String { string("menu-next-week", fallback: "Next Week") }
+
     /// Mac menu bar item that syncs with the tracker accounts now.
     public static var menuSyncNow: String { string("menu-sync-now", fallback: "Sync Now") }
 
@@ -2771,6 +2824,9 @@ public enum L {
 
     /// Mac menu bar item that opens the source picker for the title on screen. Title Case, as the menu bar's items are. Everywhere else the picker is called source-picker-title.
     public static var menuSourceForTitle: String { string("menu-source-for-title", fallback: "Source for This Title") }
+
+    /// Mac menu bar item that opens the sheet for choosing which of a source's titles this show is. Title Case, as the menu bar's items are. Everywhere else it is match-fix.
+    public static var menuFixMatch: String { string("menu-fix-match", fallback: "Fix This Match…") }
 
     /// Under a release in the source picker: how many people share it right now.
     public static func sourceReleaseSeeders(count: Int) -> String {
@@ -5096,6 +5152,9 @@ public enum L {
     /// Title of the filters sheet and panel.
     public static var filtersTitle: String { string("filters-title", fallback: "Filters") }
 
+    /// Accessible label and tooltip of the button that closes the filters panel.
+    public static var filtersClose: String { string("filters-close", fallback: "Close filters") }
+
     /// Button that opens the filters, with how many are on.
     public static func filtersButtonCount(count: Int) -> String {
         Self.format("filters-button-count", fallback: "All filters · %1$lld", count)
@@ -5323,7 +5382,7 @@ public enum L {
     /// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
     public static var settingsValueTrailersWifiOnly: String { string("settings-value-trailers-wifi-only", fallback: "Wi-Fi only") }
 
-    /// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+    /// Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
     public static var settingsLabelTrailers: String { string("settings-label-trailers", fallback: "Play trailers") }
 
     /// Settings row: whether the TV picker lists TVs with Chromecast built in.
@@ -5637,6 +5696,12 @@ public enum L {
     /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
     public static var settingsUpscalingNatural: String { string("settings-upscaling-natural", fallback: "Natural · ArtCNN") }
 
+    /// Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+    public static var settingsLabelHoverCards: String { string("settings-label-hover-cards", fallback: "Expand covers on hover") }
+
+    /// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+    public static var settingsHoverCardsNote: String { string("settings-hover-cards-note", fallback: "Shows a larger card with the trailer when you rest the pointer on a cover.") }
+
     /// Preview note under the upscaling frame for the natural look.
     public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
 
@@ -5683,6 +5748,20 @@ public enum L {
 
     /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
     public static var settingsTrailersWifiOnly: String { string("settings-trailers-wifi-only", fallback: "Wi-Fi only") }
+
+    /// Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+    public static var settingsReset: String { string("settings-reset", fallback: "Reset settings") }
+
+    /// Title of the confirmation for resetting the settings.
+    public static var settingsResetTitle: String { string("settings-reset-title", fallback: "Reset settings?") }
+
+    /// Line under it. The old settings file is moved aside, not deleted.
+    public static var settingsResetDetail: String { string("settings-reset-detail", fallback: "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.") }
+
+    /// Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+    public static func settingsResetDone(file: String) -> String {
+        Self.format("settings-reset-done", fallback: "Settings are back to their defaults. The old file is kept as %1$@.", file)
+    }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
@@ -5908,6 +5987,97 @@ public enum L {
     /// Value of a plugin's response time, in milliseconds.
     public static func sourcesResponseMs(ms: Int) -> String {
         Self.format("sources-response-ms", fallback: "%1$lld ms", ms)
+    }
+
+    /// Menu, palette and source picker entry that opens the sheet.
+    public static var matchFix: String { string("match-fix", fallback: "Fix this match") }
+
+    /// The title page's main action while the source couldn't choose, and the sheet's title.
+    public static var matchChoose: String { string("match-choose", fallback: "Choose the match") }
+
+    /// The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+    public static func matchUncertain(count: Int, source: String) -> String {
+        Self.format("match-uncertain", fallback: "%2$@ lists %1$lld titles that could be this one. Choose one to play its episodes.", count, source)
+    }
+
+    /// The line on a title page when the source listed no title that fits, so the person searches.
+    public static func matchUncertainNone(source: String) -> String {
+        Self.format("match-uncertain-none", fallback: "%1$@ has no title that fits this one. Choose one anyway, or search.", source)
+    }
+
+    /// The last row of the source picker, which opens the match sheet.
+    public static var matchSourcePickerRow: String { string("match-source-picker-row", fallback: "Wrong title? Fix this match") }
+
+    /// Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+    public static func matchAnilistFacts(facts: String) -> String {
+        Self.format("match-anilist-facts", fallback: "On AniList: %1$@", facts)
+    }
+
+    /// Heading over the titles a source offers.
+    public static func matchSectionSource(source: String) -> String {
+        Self.format("match-section-source", fallback: "On %1$@", source)
+    }
+
+    /// Heading over the title the show is matched to now.
+    public static var matchNow: String { string("match-now", fallback: "Matched now") }
+
+    /// Beside the title matched now: the person chose it.
+    public static var matchChosenByYou: String { string("match-chosen-by-you", fallback: "Chosen by you") }
+
+    /// Beside the title matched now: anistream chose it.
+    public static var matchChosenAutomatically: String { string("match-chosen-automatically", fallback: "Chosen automatically") }
+
+    /// How closely a source's title matches the show, at the end of its row.
+    public static func matchSimilarity(similarity: String) -> String {
+        Self.format("match-similarity", fallback: "%1$@ match", similarity)
+    }
+
+    /// Placeholder of the search field in the sheet.
+    public static func matchSearchField(source: String) -> String {
+        Self.format("match-search-field", fallback: "Search %1$@", source)
+    }
+
+    /// While a search of the source runs.
+    public static func matchSearching(source: String, query: String) -> String {
+        Self.format("match-searching", fallback: "Searching %1$@ for “%2$@”", source, query)
+    }
+
+    /// A search of the source that found nothing.
+    public static func matchSearchEmpty(source: String, query: String) -> String {
+        Self.format("match-search-empty", fallback: "Nothing on %1$@ for “%2$@”.", source, query)
+    }
+
+    /// Under match-search-empty: what to try.
+    public static var matchSearchEmptyHint: String { string("match-search-empty-hint", fallback: "Try fewer words, or the title in another language.") }
+
+    /// A search of the source that failed. The reason follows on its own line.
+    public static func matchSearchFailed(source: String) -> String {
+        Self.format("match-search-failed", fallback: "Couldn't search %1$@.", source)
+    }
+
+    /// On the row picked, while the source lists its episodes.
+    public static var matchPicking: String { string("match-picking", fallback: "Matching") }
+
+    /// A pick that failed. The reason follows on its own line.
+    public static var matchFixFailed: String { string("match-fix-failed", fallback: "Couldn't use that match.") }
+
+    /// Notice once a picked title's episodes arrive.
+    public static func matchPicked(title: String, source: String) -> String {
+        Self.format("match-picked", fallback: "Matched to %1$@ on %2$@.", title, source)
+    }
+
+    /// Button that forgets the person's choice, shown only while the match is one they chose.
+    public static var matchAutomatic: String { string("match-automatic", fallback: "Match automatically") }
+
+    /// Under "Match automatically", on iPhone, iPad and Android.
+    public static var matchAutomaticDetail: String { string("match-automatic-detail", fallback: "Forget your choice and let anistream match this title again.") }
+
+    /// Notice after "Match automatically".
+    public static var matchCleared: String { string("match-cleared", fallback: "Matching automatically again.") }
+
+    /// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+    public static func matchRowLabel(title: String, facts: String, closeness: String) -> String {
+        Self.format("match-row-label", fallback: "%1$@, %2$@, %3$@", title, facts, closeness)
     }
 
     /// Short label for a joined store, on a row.
@@ -6896,7 +7066,7 @@ public enum L {
 
     /// Line under the accounts screen when the library needs a tracker.
     public static func accountsLibraryNeeds(tracker: String) -> String {
-        Self.format("accounts-library-needs", fallback: "Library and sync need a %1$@ account", tracker)
+        Self.format("accounts-library-needs", fallback: "Library and sync need your %1$@ account", tracker)
     }
 
     /// Line on the settings page: where the library gets its lists.
@@ -7040,6 +7210,11 @@ public enum L {
 
     /// Button label while the sign-in runs.
     public static var accountsSigningInAction: String { string("accounts-signing-in-action", fallback: "Signing in") }
+
+    /// Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+    public static func accountsCredentialsRefused(tracker: String) -> String {
+        Self.format("accounts-credentials-refused", fallback: "%1$@ didn't accept that user name and password. Check them and try again.", tracker)
+    }
 
     /// Line under the title: what to do.
     public static func accountsCodeDetail(host: String) -> String {

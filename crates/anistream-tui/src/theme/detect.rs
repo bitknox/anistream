@@ -48,7 +48,7 @@ pub fn detect_background() -> Option<Rgb> {
 /// would have used is irrelevant.
 pub fn resolve(mode: ThemeMode) -> Palette {
     let detected = match mode {
-        ThemeMode::Immersive => None,
+        ThemeMode::Immersive | ThemeMode::Light | ThemeMode::Dark => None,
         ThemeMode::Adaptive => detect_background(),
     };
     let palette = resolve_with(mode, detected);

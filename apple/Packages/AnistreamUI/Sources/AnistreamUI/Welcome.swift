@@ -37,7 +37,7 @@ struct AiringToday: View {
         if !today.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Button {
-                    navigator.calendarMine = false
+                    store.setSwitch(.calendarMine, on: false)
                     navigator.open(.calendar)
                 } label: {
                     HStack(spacing: 8) {

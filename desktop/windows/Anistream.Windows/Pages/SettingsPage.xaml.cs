@@ -177,23 +177,16 @@ public sealed partial class SettingsPage : Page
         };
         State.ActivityText = T.SettingsLoading;
         // "· 2 min ago" moves on while the Last check card is on screen.
-        guardClock = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().CreateTimer();
-        guardClock.Interval = TimeSpan.FromSeconds(30);
-        guardClock.Tick += (_, _) => ShowGuard();
-        savedClock = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().CreateTimer();
-        savedClock.Interval = TimeSpan.FromSeconds(8);
-        savedClock.IsRepeating = false;
-        savedClock.Tick += (_, _) => ShowSaved();
+        guardClock = Timers.Weak(this, TimeSpan.FromSeconds(30), true, static page => page.ShowGuard());
+        savedClock = Timers.Weak(this, TimeSpan.FromSeconds(8), false, static page => page.ShowSaved());
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
         ctx.Tv.Changed += TvChanged;
-        Unloaded += (_, _) =>
+        ctx.Hear(this, Heard, () =>
         {
-            ctx.Batch -= Heard;
             ctx.Tv.Changed -= TvChanged;
             guardClock.Stop();
             savedClock.Stop();
-        };
+        });
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -876,7 +869,14 @@ public sealed partial class SettingsPage : Page
             {
                 description = tracker is "simkl" or "trakt" ? T.SettingsSignedOutCode : T.AccountsStateSignedOut;
                 action = new Button { Content = T.AccountsSignIn };
-                action.Click += (_, _) => ctx.Send(new Command.Connect(tracker));
+                // Kitsu takes a user name and password here; the others sign in in the browser or with a code.
+                action.Click += (_, _) =>
+                {
+                    if (tracker == "kitsu")
+                        KitsuDialog.Show(ctx, XamlRoot);
+                    else
+                        ctx.Send(new Command.Connect(tracker));
+                };
             }
             Cards.Children.Add(CardFrame(name, description, action));
         }

@@ -70,7 +70,12 @@ pub struct HttpClient {
     emulated: wreq::Client,
     plain: reqwest::Client,
     profile: Profile,
+    /// The host names an offline client was asked to resolve and refused, in order; `None` on a
+    /// client that resolves.
+    refused: Option<Refused>,
 }
+
+type Refused = std::sync::Arc<std::sync::Mutex<Vec<String>>>;
 
 impl std::fmt::Debug for HttpClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -95,7 +100,7 @@ impl HttpClient {
             .build()
             .map_err(|e| NetError::Build(format!("plain client: {e}")))?;
 
-        Ok(Self { emulated, plain, profile })
+        Ok(Self { emulated, plain, profile, refused: None })
     }
 
     /// A client that can reach no host by name, for tests that stand the app up whole.
@@ -116,11 +121,12 @@ impl HttpClient {
         let profile = Profile::parse(&config.emulation)?;
         let timeout = Duration::from_secs(config.timeout_secs.max(1));
 
+        let refused = Refused::default();
         let emulated = wreq::Client::builder()
             .emulation(profile.emulation())
             .timeout(timeout)
             .no_proxy()
-            .dns_resolver(std::sync::Arc::new(Unresolved))
+            .dns_resolver(std::sync::Arc::new(Unresolved(refused.clone())))
             .build()
             .map_err(|e| NetError::Build(format!("emulated client: {e}")))?;
 
@@ -128,11 +134,11 @@ impl HttpClient {
             .timeout(timeout)
             .user_agent(concat!("anistream/", env!("CARGO_PKG_VERSION")))
             .no_proxy()
-            .dns_resolver(std::sync::Arc::new(Unresolved))
+            .dns_resolver(std::sync::Arc::new(Unresolved(refused.clone())))
             .build()
             .map_err(|e| NetError::Build(format!("plain client: {e}")))?;
 
-        Ok(Self { emulated, plain, profile })
+        Ok(Self { emulated, plain, profile, refused: Some(refused) })
     }
 
     /// Client with a browser TLS/HTTP2 fingerprint. Use for provider hosts behind bot
@@ -145,6 +151,16 @@ impl HttpClient {
     /// behaviour is easier to reason about.
     pub fn plain(&self) -> &reqwest::Client {
         &self.plain
+    }
+
+    /// The host names this offline client was asked for and refused, oldest first: empty on a
+    /// client that resolves names. A fixture build's tests read it to see that nothing aimed at a
+    /// real host.
+    pub fn refused_names(&self) -> Vec<String> {
+        self.refused
+            .as_ref()
+            .and_then(|refused| refused.lock().ok().map(|names| names.clone()))
+            .unwrap_or_default()
     }
 
     pub fn profile(&self) -> Profile {
@@ -179,11 +195,19 @@ fn bundled_roots() -> Vec<reqwest::Certificate> {
         .collect()
 }
 
-/// The resolver behind [`HttpClient::offline`]: every name is refused, without asking anyone.
+/// The resolver behind [`HttpClient::offline`]: every name is refused, without asking anyone,
+/// and kept, for a test to see which hosts something tried to reach.
 #[derive(Debug)]
-struct Unresolved;
+struct Unresolved(Refused);
 
 impl Unresolved {
+    fn refuse(&self, name: &str) -> Box<dyn std::error::Error + Send + Sync> {
+        if let Ok(mut refused) = self.0.lock() {
+            refused.push(name.to_owned());
+        }
+        Self::refusal(name)
+    }
+
     /// What a refused name fails with. Says which client refused it, so a test that trips over
     /// it learns that the request was for a real host rather than that the network is down.
     fn refusal(name: &str) -> Box<dyn std::error::Error + Send + Sync> {
@@ -196,13 +220,13 @@ impl Unresolved {
 
 impl reqwest::dns::Resolve for Unresolved {
     fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
-        Box::pin(std::future::ready(Err(Self::refusal(name.as_str()))))
+        Box::pin(std::future::ready(Err(self.refuse(name.as_str()))))
     }
 }
 
 impl wreq::dns::Resolve for Unresolved {
     fn resolve(&self, name: wreq::dns::Name) -> wreq::dns::Resolving {
-        Box::pin(std::future::ready(Err(Self::refusal(name.as_str()))))
+        Box::pin(std::future::ready(Err(self.refuse(name.as_str()))))
     }
 }
 
@@ -276,6 +300,9 @@ mod tests {
         let emulated =
             client.emulated().get("https://guard.example/").send().await.unwrap_err();
         assert!(chain(&emulated).contains(refused), "{}", chain(&emulated));
+        // And kept, both times, for a test to see what was aimed at.
+        assert_eq!(client.refused_names(), ["guard.example", "guard.example"]);
+        assert!(HttpClient::new(&NetworkConfig::default()).unwrap().refused_names().is_empty());
 
         // An address is not a name, so a server on loopback answers both clients.
         let listener =

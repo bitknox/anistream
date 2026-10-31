@@ -31,7 +31,8 @@
 # sources some other worktree has built already copies that build in and runs no cargo at all,
 # which is most app work, since it rarely changes crates/. An entry is written whole and then
 # renamed into place, so two builds at once never leave half of one, and entries unused for 14
-# days are removed. It says "engine: reused <hash>" or "engine: built <hash>".
+# days, or past the newest four of their slice, are removed. It says "engine: reused <hash>" or
+# "engine: built <hash>".
 #
 # The Android libraries need the NDK (the newest under $ANDROID_HOME/ndk, or $ANDROID_NDK_HOME).
 # Without one the host library and the bindings are still built, so Gradle and the unit tests run,
@@ -159,13 +160,24 @@ cache="${ANISTREAM_ENGINE_CACHE:-$HOME/.cache/anistream-engine}/android"
 machine="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
 entry="$cache/$flavour/$profile/$abis-$machine/$hash"
 
-# Entries, and the leftovers of a store that was cut off, unused for 14 days.
+# Entries unused for 14 days, the leftovers of a store that was cut off, and in each slice's
+# folder every entry but the newest $keep. Each set of sources costs from under a GB to several,
+# and a day of branches makes dozens.
+keep="${ANISTREAM_ENGINE_CACHE_KEEP:-4}"
 prune_cache() {
   [[ -d "$cache" ]] || return 0
   find "$cache" -mindepth 4 -maxdepth 4 -mtime +14 -prune -exec rm -rf {} + 2>/dev/null || true
+  local slot old
+  while IFS= read -r slot; do
+    while IFS= read -r old; do
+      rm -rf "${slot:?}/$old"
+    done < <(ls -t "$slot" | tail -n +$((keep + 1)))
+  done < <(find "$cache" -mindepth 3 -maxdepth 3 -type d 2>/dev/null)
 }
 
 if [[ -f "$entry/stamp" && -d "$entry/kotlin" && -d "$entry/host" ]]; then
+  # Used now, so kept another 14 days, and newest in its slice before another build prunes.
+  touch "$entry"
   stage="$out.partial"
   rm -rf "$stage"
   # A fresh worktree has no android/.engine yet.
@@ -173,8 +185,6 @@ if [[ -f "$entry/stamp" && -d "$entry/kotlin" && -d "$entry/host" ]]; then
   cp -R "$entry" "$stage"
   rm -rf "$out"
   mv "$stage" "$out"
-  # Used now, so kept another 14 days.
-  touch "$entry"
   prune_cache
   echo "engine: reused $hash"
   echo "engine.sh: wrote $out, from $entry"

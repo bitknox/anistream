@@ -1,8 +1,8 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+▌▸ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ Watch order   Around Kaze no Tegami. Enter opens.
+▌ Watch order   Around Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────
   Kaze no Tegami  ·  TV                                             Season 1
   Kaze no Tegami Season 2  ·  TV                                    Season 2
@@ -27,12 +27,14 @@ colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 ale
 r00 c00-08 fg=rule mod=BOLD
 r00 c09-79 fg=rule
 r01 c00-79 fg=rule
-r02 c00-79 fg=rule
+r02 c00-00 fg=rule
+r02 c01-01 fg=rule mod=BOLD
+r02 c02-79 fg=rule
 r03 c00-79 fg=rule bg=ground
 r04 c00-00 fg=obi bg=ground
 r04 c01-01 fg=rule bg=ground
-r04 c02-50 fg=text bg=ground mod=BOLD
-r04 c51-79 fg=rule bg=ground
+r04 c02-36 fg=text bg=ground mod=BOLD
+r04 c37-79 fg=rule bg=ground
 r05 c00-79 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground
 r06 c02-22 fg=text-dim bg=ground

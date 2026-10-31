@@ -18,7 +18,7 @@ use anistream_i18n::t;
 use anistream_model::{catalog::Entry, command::Command};
 use gtk::glib;
 
-use super::{Stage, may_autoplay, stage::Slot};
+use super::{Stage, may_autoplay};
 use crate::{fit::Fit, hub::Hub, say, widgets};
 
 const DWELL: Duration = Duration::from_millis(800);
@@ -34,18 +34,8 @@ const WIDTH: i32 = 384;
 thread_local! {
     /// The preview on screen, if any: there is one at a time.
     static OPEN: RefCell<Option<Rc<Preview>>> = const { RefCell::new(None) };
-    /// Whether a title page has its own trailer playing, which gets no previews over it.
-    static PAGE_PLAYING: Cell<bool> = const { Cell::new(false) };
     /// When the last preview closed, for the shorter wait while scanning a row.
     static CLOSED: Cell<Option<Instant>> = const { Cell::new(None) };
-}
-
-/// A title page's trailer is on screen or is not: no preview opens while it is.
-pub fn page_playing(playing: bool) {
-    PAGE_PLAYING.with(|c| c.set(playing));
-    if playing {
-        close();
-    }
 }
 
 /// The preview on screen and where it stands in the window, for a shot, which draws the window
@@ -203,7 +193,7 @@ pub fn show(hub: &Rc<Hub>, target: &gtk::Widget, id: u32) {
 }
 
 fn open(hub: &Rc<Hub>, target: &gtk::Widget, id: u32) {
-    if PAGE_PLAYING.with(Cell::get) || !target.is_mapped() {
+    if !target.is_mapped() {
         return;
     }
     let Some(entry) = hub.entry(anistream_core::ids::AnilistId::new(id)) else { return };
@@ -288,7 +278,7 @@ fn open(hub: &Rc<Hub>, target: &gtk::Widget, id: u32) {
     if let Some(trailer) = entry.trailer.clone()
         && may_autoplay(hub, &entry)
     {
-        stage.start(&trailer, Slot::Fill);
+        stage.start(&trailer);
     }
 }
 

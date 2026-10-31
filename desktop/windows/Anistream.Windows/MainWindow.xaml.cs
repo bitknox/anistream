@@ -109,10 +109,10 @@ public sealed partial class MainWindow : Window
         session.Known.FixtureTrailers = options.Fixture;
         session.Batch += batch =>
         {
-            art.Take(batch);
-            Player.Heard(batch);
-            media?.Heard(batch);
-            Heard(batch);
+            Ctx.Guarded("the art", () => art.Take(batch));
+            Ctx.Guarded("the player", () => Player.Heard(batch));
+            Ctx.Guarded("the media controls", () => media?.Heard(batch));
+            Ctx.Guarded("the window", () => Heard(batch));
             ctx.Heard(batch);
         };
         session.Stopped += () => { if (!closing) Close(); };
@@ -187,6 +187,18 @@ public sealed partial class MainWindow : Window
         };
         Closed += (_, _) => Shutdown();
         Root.Loaded += (_, _) => FirstPage();
+        Root.SizeChanged += (_, e) => FitTitleBar(e.NewSize.Width);
+    }
+
+    /// <summary>
+    /// The title bar at the smallest widths: the name gives way and the search box shrinks, so
+    /// the box stays whole beside the caption buttons instead of running under them.
+    /// </summary>
+    void FitTitleBar(double width)
+    {
+        var narrow = width < 760;
+        SearchBox.MinWidth = narrow ? 140 : 320;
+        AppTitleBar.Title = narrow ? "" : T.AppName;
     }
 
     /// <summary>
@@ -242,6 +254,9 @@ public sealed partial class MainWindow : Window
     {
         var start = EngineSession.AppStart();
 #if ANISTREAM_TESTING
+        // --show=start-failed: the window a refused start shows, for a screenshot.
+        if (options.Show == "start-failed")
+            throw new FfiException.Config("unknown key", new Msg.StartFailedConfig(@"C:\Users\viewer\AppData\Roaming\anistream\config.toml", "unknown field `player.speeed`"));
         if (options.Scene is { } name)
         {
             var root = AppDirs.NewScratchRoot("app");
@@ -256,7 +271,7 @@ public sealed partial class MainWindow : Window
                 "playing" => new FfiScene.Playing(options.Media ?? @"C:\setup\sdr-testsrc.mp4"),
                 _ => new FfiScene.Watching(),
             };
-            return (FfiEngine.StartScene(scratch, host, scene, start), scratch);
+            return (FfiEngine.StartScene(scratch, host, scene, EngineSession.AppStart(signIn: false)), scratch);
         }
 #endif
         var user = AppDirs.User();
@@ -388,15 +403,8 @@ public sealed partial class MainWindow : Window
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
             {
                 await Task.Delay(600);
-                try
-                {
-                    Directory.CreateDirectory(dirs.Config);
-                    File.WriteAllText(welcomed, "");
-                }
-                catch (IOException)
-                {
-                    // Not kept: it shows again next time, which is harmless.
-                }
+                // Not kept on a disk that refuses it: it shows again next time, which is harmless.
+                SmallFiles.Write(welcomed, "");
                 var welcome = welcoming = new WelcomeDialog(ctx, Root.XamlRoot);
                 if (options.Welcome && options.Show is { } step)
                     welcome.Step(step);
@@ -435,6 +443,11 @@ public sealed partial class MainWindow : Window
                 case Event.DeviceCode code:
                     Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
                     break;
+                case Event.Authorize authorize:
+                    // AniList and MyAnimeList: their page in the browser, which comes back as
+                    // anistream://auth/<tracker> (OpenLink).
+                    OpenSignIn(authorize.Url);
+                    break;
                 case Event.Update update:
                     ctx.Updater.Heard(update.V1);
                     break;
@@ -457,6 +470,22 @@ public sealed partial class MainWindow : Window
                     break;
             }
         }
+    }
+
+    /// <summary>A tracker's sign-in page in the browser; a toast when no browser takes it.</summary>
+    async void OpenSignIn(string url)
+    {
+        var opened = false;
+        try
+        {
+            opened = Uri.TryCreate(url, UriKind.Absolute, out var uri) && await global::Windows.System.Launcher.LaunchUriAsync(uri);
+        }
+        catch (Exception)
+        {
+            // Said below.
+        }
+        if (!opened)
+            ShowToast(InfoBarSeverity.Warning, T.AccountsBrowserFailed);
     }
 
     /// <summary>The tracker the window syncs with, by its own name, which no language changes.</summary>
@@ -501,7 +530,7 @@ public sealed partial class MainWindow : Window
         {
             NoticeHint.StopPlayback => (T.ActionStop, (Action)(() => { if (Player.Showing) Player.Close(); })),
             NoticeHint.OpenStores => (T.ToastOpenStores, () => Go("stores")),
-            NoticeHint.KitsuCredentials => (T.ActionSignIn, () => ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo())),
+            NoticeHint.KitsuCredentials => (T.ActionSignIn, () => KitsuDialog.Show(ctx, Root.XamlRoot)),
             _ => (null, null),
         };
         ShowToast(notice.Kind == NoticeKind.Alert ? InfoBarSeverity.Warning : InfoBarSeverity.Informational, text, button, act);
@@ -637,8 +666,13 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    object? framePage;
+
     void OnFrameNavigated(object sender, NavigationEventArgs e)
     {
+        if (framePage != e.Content)
+            ctx.Left(framePage);
+        framePage = e.Content;
         HoverPreview.Close();
         AppTitleBar.IsBackButtonEnabled = ContentFrame.CanGoBack;
         selecting = true;
@@ -819,7 +853,8 @@ public sealed partial class MainWindow : Window
             CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Primary,
         };
-        var answer = await dialog.ShowAsync();
+        // The question comes first: a dialog already up closes for it.
+        var answer = await Dialogs.Show(dialog, first: true);
         askedClose = false;
         if (answer == ContentDialogResult.None)
             return;
@@ -863,14 +898,8 @@ public sealed partial class MainWindow : Window
         };
         var told = Path.Combine(dirs.Config, "windows-told-tray");
         tray.Show(tell: !File.Exists(told));
-        try
-        {
-            File.WriteAllText(told, "");
-        }
-        catch (IOException)
-        {
-            // Told again next time: harmless.
-        }
+        // Told again next time when it can't be kept: harmless.
+        SmallFiles.Write(told, "");
         keepGoing?.Stop();
         keepGoing = ui.CreateTimer();
         keepGoing.Interval = TimeSpan.FromSeconds(5);
@@ -1030,6 +1059,12 @@ public sealed partial class MainWindow : Window
                     Player.Close();
                 ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo());
                 break;
+            case Link.Auth auth:
+                ctx.Send(new Command.FinishSignIn(auth.Tracker, auth.Callback));
+                if (Player.Showing)
+                    Player.Close();
+                ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo());
+                break;
             case Link.Download download:
                 // A finished download plays, from its title's page; otherwise Downloads, where it is.
                 if (ctx.Known.Downloads.FirstOrDefault(r => r.Id == download.Id && r.State == DownloadState.Done) is { Path: { } path } row)
@@ -1088,32 +1123,25 @@ public sealed partial class MainWindow : Window
     {
         get
         {
-            try
-            {
-                if (File.Exists(WhenClosingPath))
-                    return File.ReadAllText(WhenClosingPath).Trim() switch
-                    {
-                        "keep-going" => CloseChoice.KeepGoing,
-                        "stop" => CloseChoice.Stop,
-                        _ => CloseChoice.Ask,
-                    };
-                return File.Exists(Path.Combine(dirs.Config, "windows-close-without-asking")) ? CloseChoice.Stop : CloseChoice.Ask;
-            }
-            catch (IOException)
-            {
-                return CloseChoice.Ask;
-            }
+            if (SmallFiles.Read(WhenClosingPath) is { } kept)
+                return kept switch
+                {
+                    "keep-going" => CloseChoice.KeepGoing,
+                    "stop" => CloseChoice.Stop,
+                    _ => CloseChoice.Ask,
+                };
+            return File.Exists(Path.Combine(dirs.Config, "windows-close-without-asking")) ? CloseChoice.Stop : CloseChoice.Ask;
         }
         set
         {
-            Directory.CreateDirectory(dirs.Config);
-            File.WriteAllText(WhenClosingPath, value switch
+            // A choice the disk won't keep is asked again next time.
+            SmallFiles.Write(WhenClosingPath, value switch
             {
                 CloseChoice.KeepGoing => "keep-going",
                 CloseChoice.Stop => "stop",
                 _ => "ask",
             });
-            File.Delete(Path.Combine(dirs.Config, "windows-close-without-asking"));
+            SmallFiles.Delete(Path.Combine(dirs.Config, "windows-close-without-asking"));
         }
     }
 
@@ -1152,7 +1180,9 @@ public sealed partial class MainWindow : Window
         Key(VirtualKey.F5, VirtualKeyModifiers.None, SyncNow);
         Key(VirtualKey.M, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, () => (ContentFrame.Content as IPageKeys)?.MarkWatched(), typing: false);
         Key(VirtualKey.Delete, VirtualKeyModifiers.None, () => (ContentFrame.Content as IPageKeys)?.Delete(), typing: false);
+        // Ctrl+/ is the slash key on US layouts only; F1 opens the list on every layout.
         Key((VirtualKey)0xBF, VirtualKeyModifiers.Control, ShowShortcuts);
+        Key(VirtualKey.F1, VirtualKeyModifiers.None, ShowShortcuts, inPlayer: true);
         // The mouse's back button, as Alt+Left.
         Root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, e) =>
         {
@@ -1248,14 +1278,7 @@ public sealed partial class MainWindow : Window
             CloseButtonText = T.ActionClose,
             DefaultButton = ContentDialogButton.Close,
         };
-        try
-        {
-            await dialog.ShowAsync();
-        }
-        catch (Exception)
-        {
-            // Another dialog is open: one at a time.
-        }
+        await Dialogs.Show(dialog);
     }
 }
 

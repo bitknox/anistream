@@ -503,9 +503,7 @@ sealed partial class CommentRow
         var copy = new MenuFlyoutItem { Text = T.DiscussionCopyText };
         copy.Click += (_, _) =>
         {
-            var package = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
-            package.SetText(PlainText(c));
-            global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+            Pages.Ui.TryCopy(PlainText(c));
         };
         flyout.Items.Add(copy);
         var open = new MenuFlyoutItem { Text = T.TitleOpenAnilist };

@@ -507,6 +507,16 @@ static void *event_thread(void *arg) {
             deliver(env, c, event->event_id, NULL, &data);
             break;
         }
+        case MPV_EVENT_START_FILE: {
+            // The playlist entry starting, which names the load it is: mpv starts only the newest
+            // of several replace loads it takes back to back.
+            mpv_event_start_file *start = event->data;
+            char num[64];
+            snprintf(num, sizeof num, "{\"playlist_entry_id\":%lld}", (long long)start->playlist_entry_id);
+            buf_str(&data, num);
+            deliver(env, c, event->event_id, mpv_event_name(event->event_id), &data);
+            break;
+        }
         case MPV_EVENT_SHUTDOWN:
             deliver(env, c, event->event_id, NULL, NULL);
             atomic_store(&c->exiting, true);
@@ -619,6 +629,37 @@ static jint n_command_node(JNIEnv *env, jclass cls, jlong handle, jbyteArray jso
         mpv_free_node_contents(&result);
     free_node(&args);
     return r;
+}
+
+// A command with named arguments, as commandNode, answering mpv's result as JSON:
+// {"code": r, "result": …}. `loadfile`'s result names the playlist entry it made.
+static jbyteArray n_command_node_result(JNIEnv *env, jclass cls, jlong handle, jbyteArray json) {
+    struct client *c = client_of(handle);
+    struct buf out = {0};
+    mpv_node args;
+    int r = MPV_ERROR_INVALID_PARAMETER;
+    mpv_node result = {.format = MPV_FORMAT_NONE};
+    if (node_of(env, json, &args)) {
+        r = mpv_command_node(c->mpv, &args, &result);
+        free_node(&args);
+    } else {
+        LOGW("command: not JSON");
+    }
+    if (r < 0)
+        LOGW("command node: %s", mpv_error_string(r));
+    char num[32];
+    snprintf(num, sizeof num, "{\"code\":%d,\"result\":", r);
+    buf_str(&out, num);
+    if (r >= 0) {
+        json_node(&out, &result);
+        mpv_free_node_contents(&result);
+    } else {
+        buf_str(&out, "null");
+    }
+    buf_str(&out, "}");
+    jbyteArray array = bytes_of(env, &out);
+    free(out.data);
+    return array;
 }
 
 // A property set to a node, from JSON: a list of shader paths, the engine's chapter-list.
@@ -756,6 +797,7 @@ static const JNINativeMethod methods[] = {
     {"command", "(J[Ljava/lang/String;)I", n_command},
     {"setProperty", "(JLjava/lang/String;Ljava/lang/String;)I", n_set_property},
     {"commandNode", "(J[B)I", n_command_node},
+    {"commandNodeResult", "(J[B)[B", n_command_node_result},
     {"setPropertyNode", "(JLjava/lang/String;[B)I", n_set_property_node},
     {"getProperty", "(JLjava/lang/String;)[B", n_get_property},
     {"observe", "(JLjava/lang/String;J)I", n_observe},

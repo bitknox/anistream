@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  subtitles. Enter saves, Esc leaves it as it is.
+  Type a new value for subtitles.
 
                             │    Skip filler automatically   Off
                             │    Mark opening and ending     On
@@ -27,9 +27,9 @@ anistream                                                                       
                             │    Keep seeding                Off
                             │    After each download         None
                             │
-                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Press Enter to type a language code. There are too many values to cycle through.
+                            │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                                                             ↵ save   esc cancel
 === styles ===
@@ -56,8 +56,8 @@ r11 c61-63 fg=rule bg=ground mod=BOLD
 r11 c64-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-48 fg=text-dim bg=ground
-r13 c49-119 fg=rule bg=ground
+r13 c02-32 fg=text-dim bg=ground
+r13 c33-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

@@ -247,6 +247,46 @@ struct PictureInPictureTests {
         withExtendedLifetime(pip) {}
     }
 
+    /// Resume on the title page for the episode floating: the picture comes back into the
+    /// player and plays on, with nothing sent to start it again.
+    @Test func resumingTheEpisodeFloatingBringsItBackAsItPlays() async throws {
+        let (rig, pip, system) = try await playing()
+        rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1))
+        rig.model.togglePictureInPicture()
+        system.say(.started)
+        #expect(!rig.model.inMainWindow)
+
+        #expect(rig.model.playAsked(.play(id: 900_001, episode: "7", fromStart: false)), "the episode playing")
+        #expect(system.stops == 1, "the floating window asked to close")
+        system.say(.restore)
+        system.say(.stopped)
+        #expect(rig.model.inMainWindow)
+        #expect(rig.model.pictureInPicturePhase == .inline)
+        #expect(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == 1, "nothing loaded again")
+        // In the player again, a play is the engine's.
+        #expect(!rig.model.playAsked(.play(id: 900_001, episode: "7", fromStart: false)))
+        withExtendedLifetime(pip) {}
+    }
+
+    /// Another episode, or the same from the start: the picture comes back for it, and the play
+    /// goes to the engine.
+    @Test func anotherPlayWhileFloatingBringsThePlayerBackForIt() async throws {
+        for asked: Command in [
+            .play(id: 900_001, episode: "8", fromStart: false), .play(id: 900_001, episode: "7", fromStart: true),
+            .play(id: 900_002, episode: "7", fromStart: false),
+        ] {
+            let (rig, pip, system) = try await playing()
+            rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1))
+            rig.model.togglePictureInPicture()
+            system.say(.started)
+            #expect(!rig.model.playAsked(asked), "\(asked) is sent")
+            #expect(system.stops == 1, "the floating window asked to close for \(asked)")
+            system.say(.restore)
+            #expect(rig.model.inMainWindow)
+            withExtendedLifetime(pip) {}
+        }
+    }
+
     @Test func closingTheWindowStopsThePlayback() async throws {
         let (rig, pip, system) = try await playing()
         var broughtBack = 0

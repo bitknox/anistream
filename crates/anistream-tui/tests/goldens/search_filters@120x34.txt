@@ -7,7 +7,7 @@ anistream                                                                       
   ▥  Library                │      ▀▀▀▀▀▀▀▀
   ↓  Downloads              │    ▀▄▀▀▀▀▀▀▀ ▄▄
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ Filters   ←/→ pick. Enter searches. Esc keeps them.
+▌ Filters
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Genre                                                                                                       Comedy
   Year                                                                                                          2026
@@ -63,8 +63,8 @@ r07 c42-119 fg=rule
 r08 c00-119 fg=rule bg=ground
 r09 c00-00 fg=obi bg=ground
 r09 c01-01 fg=rule bg=ground
-r09 c02-52 fg=text bg=ground mod=BOLD
-r09 c53-119 fg=rule bg=ground
+r09 c02-08 fg=text bg=ground mod=BOLD
+r09 c09-119 fg=rule bg=ground
 r10 c00-119 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
 r11 c02-06 fg=text-dim bg=ground

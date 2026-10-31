@@ -8,17 +8,17 @@ anistream                                                   torrent ○  plugins
   ↓  Downloads              │
   ◇  Sources                │  ───────────────────────────────────────────────────────────────────────────────────────
 ▌ ◎  Accounts               │
-  ⚙  Settings               │  Tracker         State             Queued    Token
+  ≡  Settings               │  Tracker         State             Queued    Token
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    AniList       ● Connected       2         OS keychain
                             │    Kitsu         ○ Not connected   0         0600 file
                             │  ▌ MyAnimeList   ✕ Sign in again   0         OS keychain
                             │                  Fetching your list failed at 19:24: the token was refused
                             │
-                            │    Tokens are stored in files with 0600 permissions because the OS keychain is unavai…
+                            │    Tokens are stored in files with 0600 permissions because the OS keychain is
+                            │    unavailable.
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    ↵ Sign in
-                            │
                             │
                             │
                             │
@@ -62,7 +62,7 @@ r05 c02-02 fg=text-dim
 r05 c05-10 fg=text-dim
 r05 c28-28 fg=rule
 r05 c33-40 fg=text-dim
-r05 c43-59 fg=obi mod=BOLD
+r05 c43-59 fg=text mod=BOLD
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
@@ -107,12 +107,13 @@ r15 c28-28 fg=rule
 r15 c47-103 fg=alert
 r16 c28-28 fg=rule
 r17 c28-28 fg=rule
-r17 c33-115 fg=text-dim
+r17 c33-107 fg=text-dim
 r18 c28-28 fg=rule
-r18 c31-117 fg=rule
+r18 c33-44 fg=text-dim
 r19 c28-28 fg=rule
-r19 c33-41 fg=text-dim
+r19 c31-117 fg=rule
 r20 c28-28 fg=rule
+r20 c33-41 fg=text-dim
 r21 c28-28 fg=rule
 r22 c28-28 fg=rule
 r23 c28-28 fg=rule

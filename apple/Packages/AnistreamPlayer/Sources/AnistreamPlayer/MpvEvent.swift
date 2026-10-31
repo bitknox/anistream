@@ -8,7 +8,8 @@ public enum MpvEvent: Sendable, Equatable {
     /// An observed property changed; `.none` when it became unavailable.
     case property(name: String, value: MpvValue)
     case log(MpvLogLine)
-    case startFile
+    /// mpv starts the file of playlist entry `entry`, the id its `loadfile` answered with.
+    case startFile(entry: Int64)
     case fileLoaded
     /// The first frame after a load or a seek is up.
     case playbackRestart
@@ -78,7 +79,9 @@ extension MpvEvent {
                 MpvLogLine(
                     prefix: String(cString: message.prefix), level: String(cString: message.level),
                     text: String(cString: message.text).trimmingCharacters(in: .newlines)))
-        case MPV_EVENT_START_FILE: self = .startFile
+        case MPV_EVENT_START_FILE:
+            let start = event.data.assumingMemoryBound(to: mpv_event_start_file.self).pointee
+            self = .startFile(entry: start.playlist_entry_id)
         case MPV_EVENT_FILE_LOADED: self = .fileLoaded
         case MPV_EVENT_PLAYBACK_RESTART: self = .playbackRestart
         case MPV_EVENT_VIDEO_RECONFIG: self = .videoReconfig

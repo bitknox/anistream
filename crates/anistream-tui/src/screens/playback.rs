@@ -8,7 +8,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 use crate::{
     app::App,
     theme::{Role, glyph},
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, truncate},
 };
 
 use super::{chrome::render_placeholder, line, set_meter};
@@ -61,7 +61,7 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     };
     // The provider that is actually serving this stream, not the configured first choice.
     let right = t::playback_status(&state, &app.source_label());
-    let right_x = column.right().saturating_sub(right.chars().count() as u16);
+    let right_x = column.right().saturating_sub(right.cells() as u16);
     if right_x > column.left() + 14 {
         line(buf, right_x, column.top(), &right, app.palette.style(Role::TextDim));
     }
@@ -95,12 +95,12 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
         y,
         truncate(
             &playing.title,
-            body.width.saturating_sub(episode.chars().count() as u16 + 2) as usize,
+            body.width.saturating_sub(episode.cells() as u16 + 2) as usize,
         ),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     buf.set_string(
-        body.right().saturating_sub(episode.chars().count() as u16),
+        body.right().saturating_sub(episode.cells() as u16),
         y,
         &episode,
         app.palette.style(Role::TextDim),
@@ -123,7 +123,7 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     // The clock is right-aligned under the episode number and the speed, so the block has a
     // real right edge rather than three ragged ends.
     let clock = format!("{} / {}", playing.elapsed(), playing.total());
-    let clock_width = clock.chars().count() as u16;
+    let clock_width = clock.cells() as u16;
     let meter_width = body.width.saturating_sub(clock_width + 3);
     // Dimmed while paused: a quiet, legible state change that needs no badge.
     set_meter(
@@ -156,7 +156,7 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     }
     let speed = format!("×{:.2}", playing.speed);
     buf.set_string(
-        body.right().saturating_sub(speed.chars().count() as u16),
+        body.right().saturating_sub(speed.cells() as u16),
         y,
         &speed,
         app.palette.style(Role::TextDim),
@@ -190,7 +190,7 @@ pub(super) fn render_eyecatch(buf: &mut Buffer, app: &App, area: Rect) {
     if eyecatch.shows_label() {
         let room = (right - left).saturating_sub(4) as usize;
         let text = truncate(&eyecatch.label, room);
-        let x = left + (right - left).saturating_sub(text.chars().count() as u16) / 2;
+        let x = left + (right - left).saturating_sub(text.cells() as u16) / 2;
         let y = area.top() + area.height / 2;
         buf.set_string(
             x,
@@ -205,7 +205,7 @@ pub(super) fn render_eyecatch(buf: &mut Buffer, app: &App, area: Rect) {
         if let Some(secs) = eyecatch.waited_secs() {
             let note = t::playback_still_finding(&t::duration_seconds(secs as i64));
             let note = truncate(&note, room);
-            let note_x = left + (right - left).saturating_sub(note.chars().count() as u16) / 2;
+            let note_x = left + (right - left).saturating_sub(note.cells() as u16) / 2;
             if y + 2 < area.bottom() {
                 buf.set_string(note_x, y + 2, &note, app.palette.on_fill(Role::Obi));
             }

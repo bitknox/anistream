@@ -3,18 +3,18 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Keys
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Global                              Lists and grids                     Downloads
+  Global                              Lists                               Downloads
     Show keys                      ?    Open                           ↵    Clear finished downloads       c
     Run a command         : / ctrl+k    Play next unwatched        space    Delete download and its file   X
     Quit                  Q / ctrl+c    Set list status                a  Sources
     Back                     q / esc    Rate this title                *    Move source up                 K
     Toggle rail width            tab    Expand synopsis                i    Move source down               J
-    Refresh this view              r    Hide from Continue             x  Now playing
+    Refresh this view              r    Remove, or not interested      x  Now playing
     Force a full resync            R    Search filters            ctrl+f    Play or pause              space
     Subbed or dubbed               t  Title                                 Back 5 seconds                 ←
     Go to section                1–9    Episodes                       e    Forward 5 seconds              →
     Search                         /    Sources                        s    Back 30 seconds                H
-    Recent messages                L    Source for this title          P    Forward 30 seconds             L
+    Recent messages                !    Source for this title          P    Forward 30 seconds             L
   Movement                              Fix this match                 m    Next episode                   n
     Move up                    k / ↑    Download                       d    Previous episode               N
     Move down                  j / ↓    Watch order                    w    Skip opening                   S
@@ -50,8 +50,8 @@ r04 c00-119 fg=rule bg=ground
 r05 c00-01 fg=rule bg=ground
 r05 c02-07 fg=text bg=ground
 r05 c08-37 fg=rule bg=ground
-r05 c38-52 fg=text bg=ground
-r05 c53-73 fg=rule bg=ground
+r05 c38-42 fg=text bg=ground
+r05 c43-73 fg=rule bg=ground
 r05 c74-82 fg=text bg=ground
 r05 c83-119 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground
@@ -122,8 +122,8 @@ r11 c02-20 fg=text-dim bg=ground
 r11 c21-34 fg=rule bg=ground
 r11 c35-35 fg=text bg=ground
 r11 c36-37 fg=rule bg=ground
-r11 c38-57 fg=text-dim bg=ground
-r11 c58-70 fg=rule bg=ground
+r11 c38-64 fg=text-dim bg=ground
+r11 c65-70 fg=rule bg=ground
 r11 c71-71 fg=text bg=ground
 r11 c72-73 fg=rule bg=ground
 r11 c74-84 fg=text bg=ground

@@ -59,10 +59,12 @@ static class HoverPreview
         // A container reused for another title keeps its handlers, and takes the new id.
         if (state.Timer is not null)
             return;
-        state.Timer = target.DispatcherQueue.CreateTimer();
-        state.Timer.Interval = Dwell;
-        state.Timer.IsRepeating = false;
-        state.Timer.Tick += (_, _) => Show(target, state.Id());
+        // The timer reaches its cover weakly: a handler holding it would keep the page alive.
+        state.Timer = Timers.Weak(target, Dwell, false, static at =>
+        {
+            if (targets.TryGetValue(at, out var resting))
+                Show(at, resting.Id());
+        });
         target.PointerEntered += (_, e) => Resume(target, state, e);
         target.PointerMoved += (_, e) =>
         {
@@ -116,7 +118,7 @@ static class HoverPreview
     public static void Show(FrameworkElement target, uint id)
     {
         var ctx = Ctx.Current;
-        if (target.XamlRoot is null || !ctx.Window.InFront || TrailerHub.PageShowing)
+        if (target.XamlRoot is null || !ctx.Window.InFront)
             return;
         if (ctx.Known.Entry(id) is not { } entry)
             return;
@@ -219,9 +221,9 @@ static class HoverPreview
             presenter.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(0)));
             presenter.Setters.Add(new Setter(FrameworkElement.MaxWidthProperty, Width + 8d));
             presenter.Setters.Add(new Setter(Control.CornerRadiusProperty, new CornerRadius(8)));
-            // The canvas's Raised with its hairline, not the system's grey.
+            // The canvas's Raised with the system's flyout hairline.
             presenter.Setters.Add(new Setter(Control.BackgroundProperty, Application.Current.Resources["RaisedBrush"]));
-            presenter.Setters.Add(new Setter(Control.BorderBrushProperty, new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x43, 0x46, 0x53))));
+            presenter.Setters.Add(new Setter(Control.BorderBrushProperty, Application.Current.Resources["SurfaceStrokeColorFlyoutBrush"]));
             presenter.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
             flyout.FlyoutPresenterStyle = presenter;
             flyout.Content = column;

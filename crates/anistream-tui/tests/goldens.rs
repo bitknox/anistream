@@ -31,7 +31,11 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_model::{
-    catalog::{Aired, ContentList, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    Msg,
+    catalog::{
+        Aired, AiringFact, ContentList, Entry, FuzzyDate, LibrarySegment, RelatedTitle,
+        ResumePoint, Season,
+    },
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::{EpisodeKind, EpisodeRow},
@@ -40,7 +44,7 @@ use anistream_model::{
     playback::SkipKind,
     progress::TitleProgress,
     settings::{self, SettingsView},
-    sources::{MatchCandidate, MetaSourceRow, ProviderRow},
+    sources::{MatchCandidate, MatchQuestion, MetaSourceRow, ProviderRow},
     stores::{
         AnonymousDeviceRow, InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow,
         OpenJoinView, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
@@ -59,6 +63,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier},
 };
+use unicode_width::UnicodeWidthStr;
 
 // ── The harness ────────────────────────────────────────────────────────────────────────────────
 
@@ -326,7 +331,15 @@ fn snapshot(buffer: &Buffer) -> String {
     let Rect { width, height, .. } = buffer.area;
     let mut out = String::new();
     for y in 0..height {
-        let row: String = (0..width).map(|x| buffer[(x, y)].symbol()).collect();
+        // A wide character's second cell is written as nothing, the way a terminal shows it,
+        // so a row of native script reads at its true width.
+        let mut row = String::new();
+        let mut x = 0;
+        while x < width {
+            let symbol = buffer[(x, y)].symbol();
+            row.push_str(symbol);
+            x += UnicodeWidthStr::width(symbol).max(1) as u16;
+        }
         out.push_str(row.trim_end());
         out.push('\n');
     }
@@ -434,6 +447,8 @@ macro_rules! scenarios {
 
 scenarios! {
     continue_watching,
+    continue_native,
+    continue_up_next,
     continue_loading,
     calendar,
     seasonal,
@@ -773,6 +788,53 @@ fn continue_watching(s: &mut Screen) {
     s.list(vec![hoshikuzu(), kaze(), yoru(), tsuki()]);
 }
 
+/// Continue with titles in Japanese script, two cells a character: each is cut at its column,
+/// never running into the trailing text, and the long one ends in an ellipsis.
+fn continue_native(s: &mut Screen) {
+    settled_on(s, 1);
+    let named = |entry: Entry, title: &str| Entry { title: title.into(), ..entry };
+    s.list(vec![
+        named(hoshikuzu(), "星屑の旅人"),
+        named(kaze(), "風の手紙"),
+        named(yoru(), "夜の図書館と眠らない司書たちの長い長い夜の物語"),
+        named(tsuki(), "月と鯨の歌"),
+    ]);
+}
+
+/// Continue longer than the screen with Up next under it, the cursor on the last suggestion:
+/// the window follows it down, and a reason too long for the row cuts the title it names
+/// rather than running over the rail.
+fn continue_up_next(s: &mut Screen) {
+    use anistream_model::up_next::{UpNextAction, UpNextItem, UpNextReason};
+    settled_on(s, 1);
+    let continuing = catalogue(16);
+    let suggestions = catalogue(20).split_off(16);
+    let item = |entry: Entry, reason: UpNextReason, because: Option<&str>| UpNextItem {
+        entry,
+        reason,
+        because: because.map(Into::into),
+        starts: None,
+        action: UpNextAction::PlayFirstEpisode,
+        airs_at: None,
+        fallback: false,
+    };
+    let mut rail = suggestions.into_iter();
+    let mut next = || rail.next().expect("four suggestions");
+    let items = vec![
+        item(next(), UpNextReason::NewSeason, None),
+        item(next(), UpNextReason::Planning, None),
+        item(
+            next(),
+            UpNextReason::Recommended,
+            Some("Ame Furu Machi no Robotto to Chiisana Hoshi no Yakusoku"),
+        ),
+        item(next(), UpNextReason::Recommended, Some("Kumo no Ue no Gakkou")),
+    ];
+    s.list(continuing);
+    s.apply(Event::UpNext(items));
+    s.press(&["j"; 19]);
+}
+
 /// The first frame after launch: Continue asked for, nothing back yet, the skeleton's shimmer a
 /// few ticks down its rows.
 fn continue_loading(s: &mut Screen) {
@@ -1089,6 +1151,10 @@ fn kaze_detail() -> Entry {
             .into(),
         banner_url: Some("https://img.example/banner/kaze.jpg".into()),
         available_on: vec!["Hikari Stream".into()],
+        season: Some(Season::Summer),
+        airing: Some(AiringFact::Airing {
+            since: Some(FuzzyDate { year: 2026, month: Some(7), day: Some(3) }),
+        }),
         trailer_url: Some("https://video.example/kaze-pv".into()),
         related: vec![
             related(110, "Kaze no Tegami: Hajimari no Fuukei", "prequel", "OVA"),
@@ -1447,20 +1513,25 @@ fn logs(s: &mut Screen) {
 /// The match ladder could not choose: three candidates, two ruled out and saying why.
 fn disambiguate(s: &mut Screen) {
     on_kaze(s);
-    let candidate = |title: &str, similarity: f64, rejected: Option<&str>| MatchCandidate {
+    let candidate = |title: &str, similarity: f64, rejected: Option<Msg>| MatchCandidate {
         title: title.into(),
         key: ProviderKey::new(title.to_lowercase().replace(' ', "-")),
         similarity,
-        rejected: rejected.map(Into::into),
+        rejected,
+        year: None,
+        episodes: None,
+        format: None,
     };
     s.apply(Event::MatchChoices {
         id: id(102),
         provider_id: "yamabiko".into(),
         candidates: vec![
             candidate("Kaze no Tegami", 0.62, None),
-            candidate("Kaze no Tegami (2019)", 0.61, Some("aired 2019, not 2026")),
-            candidate("Kaze no Tegami Recap", 0.44, Some("a special, not the series")),
+            candidate("Kaze no Tegami (2019)", 0.61, Some(Msg::MatchRuledOutYear)),
+            candidate("Kaze no Tegami Recap", 0.44, Some(Msg::MatchRuledOutFormat)),
         ],
+        answers: MatchQuestion::Ladder,
+        source: "Yamabiko".into(),
     });
 }
 
@@ -1493,7 +1564,7 @@ fn sources(s: &mut Screen) {
         SourceCandidate {
             dual_audio: true,
             ..release(
-                "[Tsuki] Hoshikuzu no Tabibito 04 [Dual]",
+                "[Lanternlight] Hoshikuzu no Tabibito 04 [Dual]",
                 "torrent",
                 Some(14),
                 Some("2.1 GiB"),

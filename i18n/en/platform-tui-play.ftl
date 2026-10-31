@@ -280,6 +280,12 @@ settings-value-theme-adaptive = Adaptive
 # Value of the theme setting: draws its own background.
 settings-value-theme-immersive = Immersive
 
+# Value of the theme setting: the terminal's background, with colours for a light one.
+settings-value-theme-light = Light
+
+# Value of the theme setting: the terminal's background, with colours for a dark one.
+settings-value-theme-dark = Dark
+
 # Value of the titles setting: use the language AniList picks for the signed-in account.
 settings-value-titles-anilist = AniList's choice
 
@@ -499,7 +505,7 @@ settings-label-calendar-mine = Calendar shows only my list
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
 
 # Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = The apps play trailers muted in place of the banner. The terminal keeps the setting and plays none.
+settings-note-trailers = The desktop apps play trailers muted in hover previews. The terminal keeps the setting and plays none.
 
 # Note under the subtitles row.
 settings-note-subtitles = Press Enter to type a language code. There are too many values to cycle through.

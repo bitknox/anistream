@@ -115,7 +115,7 @@ mod tests {
             SearchSort, TagGroup,
         },
         settings::SettingKey,
-        sources::MatchCandidate,
+        sources::{CurrentMatch, MatchCandidate, MatchQuestion},
         stores::{InvitePreview, InvitedStore, Secret},
         sync::{PullError, SyncState},
     };
@@ -149,6 +149,12 @@ mod tests {
                 id: AnilistId::new(900_001),
                 provider_id: "yamabiko".into(),
                 key: ProviderKey::new("hoshikuzu-no-tabibito"),
+                title: Some("Hoshikuzu no Tabibito".into()),
+            },
+            Command::ManualSearch {
+                id: AnilistId::new(900_001),
+                query: "stardust wayfarer".into(),
+                provider_id: Some("yamabiko".into()),
             },
             Command::SetTranslation { translation: Translation::Dub },
             Command::SetSetting {
@@ -1130,8 +1136,31 @@ mod tests {
                 title: "Hoshikuzu no Tabibito OVA".into(),
                 key: ProviderKey::new("ova"),
                 similarity: 0.61,
-                rejected: Some("different format".into()),
+                rejected: Some(anistream_model::Msg::MatchRuledOutFormat),
+                year: Some(2026),
+                episodes: Some(1),
+                format: Some(MediaFormat::Ova),
             }],
+            answers: MatchQuestion::Search { query: "hoshikuzu".into() },
+            source: "Yamabiko".into(),
+        });
+        crosses_intact(Event::MatchSearchFailed {
+            id: AnilistId::new(900_001),
+            query: "hoshikuzu".into(),
+            reason: anistream_model::Msg::MatchSearchTimedOut,
+        });
+        crosses_intact(Event::MatchFixFailed {
+            id: AnilistId::new(900_001),
+            reason: anistream_model::Msg::NoticeMatchDidNotStick,
+        });
+        crosses_intact(Event::TitleMatch {
+            id: AnilistId::new(900_001),
+            current: Some(CurrentMatch {
+                provider_id: "yamabiko".into(),
+                source: "Yamabiko".into(),
+                title: Some("Hoshikuzu no Tabibito".into()),
+                chosen_by_you: true,
+            }),
         });
     }
 }

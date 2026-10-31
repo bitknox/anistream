@@ -170,18 +170,20 @@ impl App {
         None
     }
 
-    /// The highlighted disagreement settled for the value kept here.
+    /// The highlighted disagreement settled for the side highlighted: each has two rows, keep
+    /// mine and keep theirs, and the tracker is told either way so the merge stops asking.
     pub(super) fn confirm_conflict(&mut self) -> Option<Command> {
-        // Enter takes the local value; the remote one is already what the tracker has,
-        // so "keep remote" is just dismissing the row.
-        let row = self.conflicts.get(self.cursors.overlay.selected)?.clone();
-        self.conflicts.remove(self.cursors.overlay.selected);
+        let selected = self.cursors.overlay.selected;
+        let (at, keep_local) = (selected / 2, selected.is_multiple_of(2));
+        let row = self.conflicts.get(at)?.clone();
+        self.conflicts.remove(at);
+        // Onto the next difference's first row, or the last one's when this was the end.
         self.cursors.overlay.selected =
-            self.cursors.overlay.selected.min(self.conflicts.len().saturating_sub(1));
+            (at * 2).min((self.conflicts.len() * 2).saturating_sub(2));
         if self.conflicts.is_empty() {
             self.nav.close_overlay();
         }
-        Some(Command::ResolveConflict { id: row.anilist_id, keep_local: true })
+        Some(Command::ResolveConflict { id: row.anilist_id, keep_local })
     }
 }
 
@@ -291,6 +293,19 @@ mod tests {
         a.handle(Action::Open, 20);
         assert!(a.conflicts.is_empty());
         assert!(!a.nav.has_overlay(), "nothing left to resolve, so it closes");
+    }
+
+    /// The row under each difference keeps the tracker's value instead.
+    #[test]
+    fn the_second_row_of_a_difference_keeps_theirs() {
+        let mut a = app();
+        a.apply(Event::Conflicts(vec![conflict("Hoshikuzu"), conflict("Tsukiakari")]));
+        a.handle(Action::ShowConflicts, 20);
+        a.handle(Action::Down, 20);
+        let task = a.handle(Action::Open, 20);
+        assert!(matches!(task, Some(Command::ResolveConflict { keep_local: false, .. })));
+        assert_eq!(a.conflicts.len(), 1);
+        assert_eq!(a.cursors.overlay.selected, 0, "on the next difference's first row");
     }
 
     #[test]

@@ -21,9 +21,9 @@
         <TextBlock x:Name="Subtitle" Style="{StaticResource HazeBodyStyle}" />
       </StackPanel>
       <StackPanel x:Name="Actions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <Button x:Name="PauseAll" Content="{x:Bind app:T.DownloadsPauseAll}" Click="OnPauseAll" Height="32" />
-        <Button x:Name="ClearDone" Content="{x:Bind app:T.DownloadsClearFinished}" Click="OnClearCompleted" Height="32" />
-        <Button Content="{x:Bind app:T.DownloadsOpenFolder}" Click="OnOpenFolder" Height="32" />
+        <Button x:Name="PauseAll" Content="{x:Bind app:T.DownloadsPauseAll}" Click="OnPauseAll" MinHeight="32" />
+        <Button x:Name="ClearDone" Content="{x:Bind app:T.DownloadsClearFinished}" Click="OnClearCompleted" MinHeight="32" />
+        <Button Content="{x:Bind app:T.DownloadsOpenFolder}" Click="OnOpenFolder" MinHeight="32" />
       </StackPanel>
     </Grid>
     <ProgressBar x:Name="Meter" Grid.Row="1" Minimum="0" Maximum="1" Height="4" AutomationProperties.Name="{x:Bind app:T.DownloadsSpaceLabel}" />

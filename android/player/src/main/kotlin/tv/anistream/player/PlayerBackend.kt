@@ -22,6 +22,12 @@ interface PlayerBackend {
     suspend fun perform(call: MpvCall): List<PlayerReport>
 
     /**
+     * Load a file, replacing what plays: the playlist entry mpv made for it, which its
+     * `START_FILE` names, or `null` when mpv did not say.
+     */
+    suspend fun load(call: MpvCall.Load): Long?
+
+    /**
      * Decode in software from now on, if mpv answers within [timeoutMs]: false when it does not,
      * its core stuck behind a hardware decoder that stalled.
      */
@@ -59,13 +65,7 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
 
     override suspend fun perform(call: MpvCall): List<PlayerReport> {
         when (call) {
-            is MpvCall.Load -> {
-                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("replace")) // i18n-skip
-                if (call.options.isNotEmpty()) {
-                    arguments["options"] = MpvValue.Map(call.options.mapValues { MpvValue.Text(it.value) })
-                }
-                mpv.command("loadfile", arguments)
-            }
+            is MpvCall.Load -> load(call)
             is MpvCall.AddSubtitle -> {
                 val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("auto")) // i18n-skip
                 call.title?.let { arguments["title"] = MpvValue.Text(it) }
@@ -83,6 +83,14 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
             }
         }
         return emptyList()
+    }
+
+    override suspend fun load(call: MpvCall.Load): Long? {
+        val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("replace")) // i18n-skip
+        if (call.options.isNotEmpty()) {
+            arguments["options"] = MpvValue.Map(call.options.mapValues { MpvValue.Text(it.value) })
+        }
+        return mpv.commandResult("loadfile", arguments)["playlist_entry_id"].long
     }
 
     override suspend fun decodeInSoftware(timeoutMs: Long): Boolean = mpv.setWithin("hwdec", "no", timeoutMs)

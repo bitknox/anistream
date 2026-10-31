@@ -1,4 +1,5 @@
-// One visit of a title page's trailer: when the banner gives way, and when the view is let go.
+// One visit of a hover preview's trailer: when the art gives way, when the view is let go, the
+// sound carried from one trailer to the next, and when YouTube is no longer asked.
 
 import AnistreamKit
 @testable import AnistreamUI
@@ -9,17 +10,29 @@ import Testing
 private final class FakeSurface: TrailerSurface {
     var controls: [TrailerControl] = []
     var released = false
+    var gaveUp = 0
     var signal: (@MainActor (TrailerSignal) -> Void)?
 
     func control(_ control: TrailerControl) { controls.append(control) }
     func tearDown() { released = true }
+    func gaveUp(after: Duration) { gaveUp += 1 }
+}
+
+/// A sound preference of the test's own, in defaults no other test or the app reads.
+@MainActor
+private func sound() -> TrailerSound {
+    let suite = "trailer-sound-\(UUID().uuidString)" // i18n-skip: a test's defaults suite
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    return TrailerSound(defaults: defaults)
 }
 
 @MainActor
 private func visit(
-    load: Duration = .seconds(5), away: Duration = .seconds(5), fade: Duration = .milliseconds(30)
+    load: Duration = .seconds(5), fade: Duration = .milliseconds(30),
+    sound: TrailerSound = sound()
 ) -> (TrailerVisit, FakeSurface) {
-    let visit = TrailerVisit(loadTimeout: load, awayLimit: away, fade: fade)
+    let visit = TrailerVisit(loadTimeout: load, fade: fade, sound: sound)
     let surface = FakeSurface()
     visit.begin { signal in
         surface.signal = signal
@@ -44,7 +57,7 @@ private func until(_ condition: () -> Bool) async throws {
 
 @MainActor
 struct TrailerVisitTests {
-    @Test func theBannerStaysUntilAFrameIsOnScreen() {
+    @Test func theArtStaysUntilAFrameIsOnScreen() {
         let (visit, surface) = visit()
         #expect(visit.live)
         #expect(!visit.shown)
@@ -52,7 +65,8 @@ struct TrailerVisitTests {
         #expect(!visit.shown, "ready is not a picture")
         surface.signal?(.playing)
         #expect(visit.shown)
-        #expect(visit.muted, "sound is off at every start")
+        #expect(visit.muted, "sound is off until it is turned on")
+        #expect(surface.controls.isEmpty)
     }
 
     @Test func soundTogglesThroughThePage() {
@@ -62,12 +76,57 @@ struct TrailerVisitTests {
         #expect(surface.controls == [.unmute, .mute])
     }
 
-    @Test func nothingPlayingInTimeLeavesTheBannerAndLetsGo() async throws {
+    @Test func soundTurnedOnCarriesToTheNextTrailer() {
+        let preference = sound()
+        let (first, _) = visit(sound: preference)
+        first.toggleSound()
+        first.release()
+        #expect(preference.on)
+
+        let (next, surface) = visit(sound: preference)
+        #expect(!next.muted, "it starts as the last one was left")
+        #expect(surface.controls == [.unmute], "the page comes up with its sound")
+
+        next.toggleSound()
+        let (third, quiet) = visit(sound: preference)
+        #expect(third.muted)
+        #expect(quiet.controls.isEmpty, "muted is how the page starts")
+    }
+
+    @Test func aHeldTrailerStaysSilentUntilItIsSeen() {
+        let preference = sound()
+        preference.on = true
+        let visit = TrailerVisit(sound: preference)
+        let surface = FakeSurface()
+        visit.begin(held: true) { signal in
+            surface.signal = signal
+            return surface
+        }
+        surface.signal?(.playing)
+        #expect(!visit.muted, "the toggle shows the person's choice")
+        #expect(surface.controls.isEmpty, "loading ahead of its card, with no sound")
+        visit.unhold()
+        #expect(surface.controls == [.unmute])
+        visit.unhold()
+        #expect(surface.controls == [.unmute], "once")
+    }
+
+    @Test func nothingPlayingInTimeLeavesTheArtAndLetsGo() async throws {
         let (visit, surface) = visit(load: .milliseconds(40))
         try await until { !visit.live }
         #expect(!visit.live)
         #expect(!visit.shown)
         #expect(surface.released)
+        #expect(surface.gaveUp == 1, "said in the log")
+    }
+
+    @Test func playingInTimeShowsAtOnceAndIsNotGivenUp() async throws {
+        let (visit, surface) = visit(load: .milliseconds(60))
+        surface.signal?(.playing)
+        #expect(visit.shown, "out from under the art as soon as it plays")
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(visit.live)
+        #expect(surface.gaveUp == 0)
     }
 
     @Test func anErrorLetsGoAtOnce() {
@@ -76,69 +135,90 @@ struct TrailerVisitTests {
         #expect(!visit.live)
         #expect(surface.released)
         #expect(visit.failure == 150)
+        #expect(surface.gaveUp == 0, "the error is its own log line")
     }
 
-    @Test func theBannerReturnsBeforeTheEndAndTheViewIsReleasedUnderIt() async throws {
+    @Test func theArtReturnsBeforeTheEndAndTheViewIsReleasedUnderIt() async throws {
         let (visit, surface) = visit()
         surface.signal?(.playing)
         surface.signal?(.ending)
         #expect(!visit.shown)
-        #expect(visit.live, "kept while the banner fades back")
+        #expect(visit.live, "kept while the art fades back")
         try await until { !visit.live }
         #expect(!visit.live)
         #expect(surface.released)
         #expect(surface.controls.isEmpty, "never paused: no end screen to show")
     }
 
-    @Test func scrollingAwayFadesFirstThenPauses() async throws {
-        let (visit, surface) = visit(fade: .milliseconds(60))
-        surface.signal?(.playing)
-        visit.scrolledAway(true)
-        #expect(!visit.shown)
-        #expect(surface.controls.isEmpty, "the banner is fading back over a playing video")
-        try await until { !surface.controls.isEmpty }
-        #expect(surface.controls == [.pause])
+    @Test func captionsShowWhileThePageSaysSoAndNotAfterLetGo() {
+        let (visit, surface) = visit()
+        #expect(!visit.captions)
+        surface.signal?(.captions(true))
+        #expect(visit.captions)
+        surface.signal?(.captions(false))
+        #expect(!visit.captions)
+        surface.signal?(.captions(true))
+        visit.release()
+        #expect(!visit.captions)
     }
 
-    @Test func scrollingBackPlaysAgainAndFadesInOnlyOnAPicture() async throws {
-        let (visit, surface) = visit(fade: .milliseconds(20))
-        surface.signal?(.playing)
-        visit.scrolledAway(true)
-        try await until { surface.controls == [.pause] }
-        visit.scrolledAway(false)
-        #expect(surface.controls == [.pause, .play])
-        #expect(!visit.shown)
-        surface.signal?(.playing)
-        #expect(visit.shown)
-    }
-
-    @Test func scrollingBackBeforeThePauseLandedKeepsTheVideoPlaying() async throws {
-        let (visit, surface) = visit(fade: .milliseconds(150))
-        surface.signal?(.playing)
-        visit.scrolledAway(true)
-        visit.scrolledAway(false)
-        #expect(visit.shown)
-        try await Task.sleep(for: .milliseconds(500))
-        #expect(surface.controls.isEmpty)
-    }
-
-    @Test func awayForTooLongReleasesTheViewForTheRestOfTheVisit() async throws {
-        let (visit, surface) = visit(away: .milliseconds(60), fade: .milliseconds(10))
-        surface.signal?(.playing)
-        visit.scrolledAway(true)
-        try await until { !visit.live }
-        #expect(!visit.live)
-        #expect(surface.released)
-        visit.begin { _ in FakeSurface() }
-        #expect(!visit.live, "it does not restart on this visit")
-    }
-
-    @Test func leavingReleasesAtOnce() {
+    @Test func leavingReleasesAtOnceAndTheVisitDoesNotRestart() {
         let (visit, surface) = visit()
         surface.signal?(.playing)
         visit.release()
         #expect(!visit.live)
         #expect(!visit.shown)
         #expect(surface.released)
+        visit.begin { _ in FakeSurface() }
+        #expect(!visit.live, "it does not restart on this visit")
+    }
+}
+
+@MainActor
+struct TrailerGateTests {
+    @Test func aRefusedVideoIsNeverAskedForAgain() {
+        let gate = TrailerGate()
+        #expect(gate.mayAsk("abc"))
+        #expect(!gate.failed("abc", code: 150))
+        #expect(!gate.mayAsk("abc"))
+        #expect(gate.mayAsk("def"), "one owner's refusal stops only that video")
+        #expect(!gate.closed)
+    }
+
+    @Test func twoRefusalsOfDifferentVideosInARowStopTrailersForTheRun() {
+        let gate = TrailerGate()
+        gate.failed("abc", code: 150)
+        #expect(gate.failed("def", code: 101))
+        #expect(gate.closed)
+        #expect(!gate.mayAsk("ghi"))
+        gate.played()
+        #expect(!gate.mayAsk("ghi"), "nothing opens it again this run")
+    }
+
+    @Test func aTrailerPlayedBetweenRefusalsKeepsTrailersOn() {
+        let gate = TrailerGate()
+        gate.failed("abc", code: 150)
+        gate.played()
+        #expect(!gate.failed("def", code: 150))
+        #expect(!gate.closed)
+        #expect(gate.mayAsk("ghi"))
+    }
+
+    @Test func theSameVideoRefusedTwiceCountsOnce() {
+        let gate = TrailerGate()
+        gate.failed("abc", code: 150)
+        #expect(!gate.failed("abc", code: 150))
+        #expect(!gate.closed)
+    }
+
+    @Test func errorsThatAreNotRefusalsAskAgain() {
+        let gate = TrailerGate()
+        for (id, code) in [("abc", 0), ("def", 2), ("ghi", 5), ("jkl", 100)] {
+            #expect(!gate.failed(id, code: code))
+            #expect(gate.mayAsk(id), "\(code)")
+        }
+        #expect(!gate.closed)
+        gate.failed("mno", code: 153)
+        #expect(gate.failed("pqr", code: 152), "the app's identity refused")
     }
 }

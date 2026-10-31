@@ -8,12 +8,12 @@ anistream                                   torrent ○  plugins ·  ·  anilist
  ↓ │    002   Letter No. 2                            24:00   ██████████  Done
  ◇ │    003   Letter No. 3                            24:00   ██████████  Done
  ◎ │    004   Letter No. 4                            24:00   ██████████  Done
- ⚙ │    005   Letter No. 5                            24:00   ██████████  Done
+ ≡ │    005   Letter No. 5                            24:00   ██████████  Done
    │    006   Letter No. 6                            24:00   ██████████  Done
    │  ▌ 007   Letter No. 7                            24:00   ░░░░░░░░░░
    │    008   Letter No. 8                            24:00   ░░░░░░░░░░
    │    009   Letter No. 9                            24:00   ░░░░░░░░░░
-   │    010   —                                       24:00   In 3 h 2 min
+   │    010   Episode 10                              24:00   In 3 h 2 min
    │
    │
    │
@@ -104,7 +104,7 @@ r14 c54-58 fg=text-dim
 r14 c62-71 fg=rule
 r15 c03-03 fg=rule
 r15 c08-10 fg=text-dim
-r15 c14-14 fg=text-dim
+r15 c14-23 fg=text-dim
 r15 c54-58 fg=text-dim
 r15 c62-73 fg=text-dim
 r16 c03-03 fg=rule

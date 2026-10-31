@@ -27,7 +27,9 @@ colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 ale
 r00 c00-08 fg=rule mod=BOLD
 r00 c09-79 fg=rule
 r01 c00-79 fg=rule
-r02 c00-07 fg=rule bg=ground
+r02 c00-00 fg=rule bg=ground
+r02 c01-01 fg=rule bg=ground mod=BOLD
+r02 c02-07 fg=rule bg=ground
 r02 c08-28 fg=rule bg=ground mod=BOLD
 r02 c29-79 fg=rule bg=ground
 r03 c00-00 fg=obi bg=ground

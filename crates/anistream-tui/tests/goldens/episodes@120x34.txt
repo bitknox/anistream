@@ -4,18 +4,18 @@ anistream                                                                       
  ▤ │
  ▦ │    #     Title                                                Run     Watched
  / │  ─────────────────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                                  23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ↓ │    002   A Town Under Glass                                   23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◎ │  ▌ 004   The Cartographer's Daughter                          23:55   █████▊░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
- ⚙ │    005   Rain on the Rails                                    23:55   ░░░░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
-   │    006   Two Letters, One Name                                23:55   ░░░░░░░░░░  Mixed ░░░░░░░░░░░░░░░░░░░░░░░░░
-   │    007   The Festival of Small Stars                          23:55   ░░░░░░░░░░  Filler░░░░░░░░░░░░░░░░░░░░░░░░░
-   │    008   Where the Road Ends                                  23:55   ░░░░░░░░░░
-   │    009   Postmarked Yesterday                                 23:55   ░░░░░░░░░░        A girl who draws maps of
-   │    010   The Comet's Wake                                     23:55   ░░░░░░░░░░        places that are not there
-   │    011   Every Lamp at Once                                   23:55   ░░░░░░░░░░        yet asks for passage, and
-   │    012   The Stardust Traveller                               --:--   ░░░░░░░░░░        the coach takes a road
+ ▥ │    001   The Last Mail Coach                                  23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │    002   A Town Under Glass                                   23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◇ │    003   Lamplight, Lamplight                                 23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◎ │  ▌ 004   The Cartographer's Daughter                          23:55   ████▌░░░          ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ≡ │    005   Rain on the Rails                                    23:55   ░░░░░░░░          ░░░░░░░░░░░░░░░░░░░░░░░░░
+   │    006   Two Letters, One Name                                23:55   ░░░░░░░░  Mixed   ░░░░░░░░░░░░░░░░░░░░░░░░░
+   │    007   The Festival of Small Stars                          23:55   ░░░░░░░░  Filler  ░░░░░░░░░░░░░░░░░░░░░░░░░
+   │    008   Where the Road Ends                                  23:55   ░░░░░░░░
+   │    009   Postmarked Yesterday                                 23:55   ░░░░░░░░          A girl who draws maps of
+   │    010   The Comet's Wake                                     23:55   ░░░░░░░░          places that are not there
+   │    011   Every Lamp at Once                                   23:55   ░░░░░░░░          yet asks for passage, and
+   │    012   The Stardust Traveller                               --:--   ░░░░░░░░          the coach takes a road
    │                                                                                         nobody has charted.
    │
    │
@@ -62,24 +62,24 @@ r06 c03-03 fg=rule
 r06 c08-10 fg=text-dim
 r06 c14-32 fg=text-dim
 r06 c67-71 fg=text-dim
-r06 c75-84 fg=state
-r06 c87-90 fg=text-dim
+r06 c75-82 fg=state
+r06 c85-88 fg=text-dim
 r06 c93-117 fg=rule
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r07 c08-10 fg=text-dim
 r07 c14-31 fg=text-dim
 r07 c67-71 fg=text-dim
-r07 c75-84 fg=state
-r07 c87-90 fg=text-dim
+r07 c75-82 fg=state
+r07 c85-88 fg=text-dim
 r07 c93-117 fg=rule
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r08 c08-10 fg=text-dim
 r08 c14-33 fg=text-dim
 r08 c67-71 fg=text-dim
-r08 c75-84 fg=state
-r08 c87-90 fg=text-dim
+r08 c75-82 fg=state
+r08 c85-88 fg=text-dim
 r08 c93-117 fg=rule
 r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
@@ -87,58 +87,58 @@ r09 c06-06 fg=obi
 r09 c08-10 fg=text mod=BOLD
 r09 c14-40 fg=text mod=BOLD
 r09 c67-71 fg=text-dim
-r09 c75-80 fg=obi
-r09 c81-84 fg=rule
+r09 c75-79 fg=text
+r09 c80-82 fg=rule
 r09 c93-117 fg=rule
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-10 fg=text-dim
 r10 c14-30 fg=text-dim
 r10 c67-71 fg=text-dim
-r10 c75-84 fg=rule
+r10 c75-82 fg=rule
 r10 c93-117 fg=rule
 r11 c03-03 fg=rule
 r11 c08-10 fg=text-dim
 r11 c14-34 fg=text-dim
 r11 c67-71 fg=text-dim
-r11 c75-84 fg=rule
-r11 c87-91 fg=text-dim
+r11 c75-82 fg=rule
+r11 c85-89 fg=text-dim
 r11 c93-117 fg=rule
 r12 c03-03 fg=rule
 r12 c08-10 fg=text-dim
 r12 c14-40 fg=text-dim
 r12 c67-71 fg=text-dim
-r12 c75-84 fg=rule
-r12 c87-92 fg=alert
+r12 c75-82 fg=rule
+r12 c85-90 fg=text-dim
 r12 c93-117 fg=rule
 r13 c03-03 fg=rule
 r13 c08-10 fg=text-dim
 r13 c14-32 fg=text-dim
 r13 c67-71 fg=text-dim
-r13 c75-84 fg=rule
+r13 c75-82 fg=rule
 r14 c03-03 fg=rule
 r14 c08-10 fg=text-dim
 r14 c14-33 fg=text-dim
 r14 c67-71 fg=text-dim
-r14 c75-84 fg=rule
+r14 c75-82 fg=rule
 r14 c93-116 fg=text-dim
 r15 c03-03 fg=rule
 r15 c08-10 fg=text-dim
 r15 c14-29 fg=text-dim
 r15 c67-71 fg=text-dim
-r15 c75-84 fg=rule
+r15 c75-82 fg=rule
 r15 c93-117 fg=text-dim
 r16 c03-03 fg=rule
 r16 c08-10 fg=text-dim
 r16 c14-31 fg=text-dim
 r16 c67-71 fg=text-dim
-r16 c75-84 fg=rule
+r16 c75-82 fg=rule
 r16 c93-117 fg=text-dim
 r17 c03-03 fg=rule
 r17 c08-10 fg=text-dim
 r17 c14-35 fg=text-dim
-r17 c67-71 fg=rule
-r17 c75-84 fg=rule
+r17 c67-71 fg=text-dim
+r17 c75-82 fg=rule
 r17 c93-114 fg=text-dim
 r18 c03-03 fg=rule
 r18 c93-111 fg=text-dim

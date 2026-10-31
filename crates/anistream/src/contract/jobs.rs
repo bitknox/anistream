@@ -110,6 +110,7 @@ async fn a_job_ends_last_on_every_way_out_of_its_work() {
                 id: FINISHED,
                 provider_id: sources::PROVIDER_ID.into(),
                 key: sources::key(FINISHED),
+                title: None,
             },
         ),
         ("sources", Plain, Command::LoadSources { id: FINISHED, episode: "1".into() }),
@@ -121,12 +122,12 @@ async fn a_job_ends_last_on_every_way_out_of_its_work() {
         (
             "manual search",
             Plain,
-            Command::ManualSearch { id: FINISHED, query: "tabibito".into() },
+            Command::ManualSearch { id: FINISHED, query: "tabibito".into(), provider_id: None },
         ),
         (
             "manual search, nothing",
             NothingFound,
-            Command::ManualSearch { id: FINISHED, query: "tabibito".into() },
+            Command::ManualSearch { id: FINISHED, query: "tabibito".into(), provider_id: None },
         ),
         ("providers", Plain, Command::CheckProviders),
         ("library, signed out", Plain, Command::LoadLibrary(LibrarySegment::Watching)),

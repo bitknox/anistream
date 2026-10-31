@@ -6,6 +6,7 @@ anistream                                                                       
   /  Search                 │    Plugin                      Version       State
   ▥  Library                │  ───────────────────────────────────────────────────────────────────────────────────────
   ↓  Downloads              │  ▌ Yamabiko                    1.4.0         ● Installed
+▌ ◇  Sources                │    Kawasemi                    2.1.0         ⇅ Update from 2.0.3
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Invite link   For Kai
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -14,7 +15,6 @@ anistream                                                                       
   Copied to the clipboard where the terminal allows it, or select it to copy.
   Works once. Expires in 6 days.
   Opening it in a browser shows how to join and does not use it up.
-  Enter closes
 
                             │
                             │
@@ -47,30 +47,28 @@ r06 c00-119 fg=rule
 r07 c00-32 fg=rule
 r07 c33-40 fg=rule mod=BOLD
 r07 c41-119 fg=rule
-r08 c00-04 fg=rule bg=ground
-r08 c05-11 fg=rule bg=ground mod=BOLD
-r08 c12-119 fg=rule bg=ground
-r09 c00-00 fg=obi bg=ground
-r09 c01-01 fg=rule bg=ground
-r09 c02-22 fg=text bg=ground mod=BOLD
-r09 c23-119 fg=rule bg=ground
-r10 c00-119 fg=rule bg=ground
-r11 c00-01 fg=rule bg=ground
-r11 c02-80 fg=text bg=ground mod=BOLD
-r11 c81-119 fg=rule bg=ground
-r12 c00-119 fg=rule bg=ground
-r13 c00-01 fg=rule bg=ground
-r13 c02-76 fg=text-dim bg=ground
-r13 c77-119 fg=rule bg=ground
+r08 c00-04 fg=rule
+r08 c05-11 fg=rule mod=BOLD
+r08 c12-119 fg=rule
+r09 c00-119 fg=rule bg=ground
+r10 c00-00 fg=obi bg=ground
+r10 c01-01 fg=rule bg=ground
+r10 c02-22 fg=text bg=ground mod=BOLD
+r10 c23-119 fg=rule bg=ground
+r11 c00-119 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-80 fg=text bg=ground mod=BOLD
+r12 c81-119 fg=rule bg=ground
+r13 c00-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
-r14 c02-31 fg=text-dim bg=ground
-r14 c32-119 fg=rule bg=ground
+r14 c02-76 fg=text-dim bg=ground
+r14 c77-119 fg=rule bg=ground
 r15 c00-01 fg=rule bg=ground
-r15 c02-66 fg=text-dim bg=ground
-r15 c67-119 fg=rule bg=ground
+r15 c02-31 fg=text-dim bg=ground
+r15 c32-119 fg=rule bg=ground
 r16 c00-01 fg=rule bg=ground
-r16 c02-13 fg=text-dim bg=ground
-r16 c14-119 fg=rule bg=ground
+r16 c02-66 fg=text-dim bg=ground
+r16 c67-119 fg=rule bg=ground
 r17 c00-119 fg=rule bg=ground
 r18 c00-119 fg=rule
 r19 c00-119 fg=rule

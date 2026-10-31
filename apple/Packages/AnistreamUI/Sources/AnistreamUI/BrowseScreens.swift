@@ -32,6 +32,9 @@ struct SeasonalScreen: View {
             .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
         }
         .scrollIndicators(.never)
+        #if os(macOS)
+        .hoverCards()
+        #endif
         .pullToRefresh(store, .seasonal)
         .task { if store.seasonal.state == .idle { store.loadSeasonal() } }
     }
@@ -112,6 +115,9 @@ struct LibraryScreen: View {
                     grid.padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
                 }
                 .scrollIndicators(.never)
+                #if os(macOS)
+                .hoverCards()
+                #endif
             }
         }
         .task {

@@ -1,4 +1,5 @@
 using Anistream.App;
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 
 namespace Anistream.Windows;
@@ -33,7 +34,54 @@ sealed class Ctx
         foreach (var e in batch)
             if (e is Event.ProtectionChecked checkedNow)
                 Trials.Heard(checkedNow.V1);
-        Batch?.Invoke(batch);
+        // Each listener on its own: one page that throws leaves the rest of the batch to the others.
+        if (Batch is { } listeners)
+            foreach (var heard in listeners.GetInvocationList().Cast<Action<IReadOnlyList<Event>>>())
+                Guarded(heard.Target?.GetType().Name ?? "a listener", () => heard(batch));
+    }
+
+    /// <summary>Runs <paramref name="act"/>, logging what it throws instead of ending the app.</summary>
+    public static void Guarded(string who, Action act)
+    {
+        try
+        {
+            act();
+        }
+        catch (Exception error)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Error, "windows", $"{who} failed on an engine batch: {error}");
+        }
+    }
+
+    readonly Dictionary<object, Action> leaving = [];
+
+    /// <summary>
+    /// <paramref name="page"/> hears every batch from now until the frame leaves it; then
+    /// <paramref name="leave"/> runs, once. The frame's leaving is the signal rather than
+    /// Unloaded, which a page left before it loaded never raises: such a page would stay in
+    /// memory as a listener for the rest of the run.
+    /// </summary>
+    public void Hear(Microsoft.UI.Xaml.Controls.Page page, Action<IReadOnlyList<Event>> heard, Action? leave = null)
+    {
+        Batch += heard;
+        var gone = false;
+        void Leave()
+        {
+            if (gone)
+                return;
+            gone = true;
+            Batch -= heard;
+            leaving.Remove(page);
+            leave?.Invoke();
+        }
+        leaving[page] = Leave;
+    }
+
+    /// <summary>The frame has moved on from <paramref name="page"/>: it stops hearing.</summary>
+    public void Left(object? page)
+    {
+        if (page is not null && leaving.TryGetValue(page, out var leave))
+            leave();
     }
 
     public ulong? Send(Command command)

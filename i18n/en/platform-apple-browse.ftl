@@ -54,6 +54,27 @@ title-also-on = Also on { $places }
 # @arg time: text
 calendar-time-approximate = ~{ $time }
 
+# Name of a day with nothing airing, in the calendar's columns and agenda.
+calendar-day-empty-apple = Nothing airs
+
+# Activity line in the first column of a week that is loading.
+calendar-loading-week = Loading this week
+
+# Line where the rest of the week would be when it could not be loaded.
+calendar-load-week-failed = Couldn't load this week
+
+# Line in the iPhone agenda, under Today, when My list is chosen and nothing on it airs in the next
+# four weeks.
+# @only apple
+# @max 60
+calendar-empty-mine-ahead-apple = Nothing on your list airs in the next 4 weeks.
+
+# Calendar filter on the Mac and iPad, in title case like the menus: every airing show.
+calendar-filter-all-title = All Airing
+
+# Calendar filter on the Mac and iPad, in title case like the menus: only the person's list.
+calendar-filter-mine-title = My List
+
 # Name of the week before this one, in the calendar's toolbar.
 calendar-last-week = Last week
 

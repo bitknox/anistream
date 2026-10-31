@@ -632,6 +632,58 @@ pub fn spoiler_runs(raw: &str) -> Vec<(&str, bool)> {
     }
 }
 
+/// Decode HTML entities in one pass, so `&amp;lt;` becomes `&lt;` and not `<`. Handles the named
+/// entities AniList emits and numeric ones (`&#8212;`, `&#x2014;`); anything else stays as written.
+/// A non-breaking space becomes a plain one.
+fn decode_entities(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find('&') {
+        out.push_str(&rest[..at]);
+        rest = &rest[at..];
+        let decoded = rest[1..].find(';').filter(|end| *end <= 10).and_then(|end| {
+            let name = &rest[1..=end];
+            let ch = match name {
+                "amp" => '&',
+                "quot" => '"',
+                "apos" => '\'',
+                "lt" => '<',
+                "gt" => '>',
+                "nbsp" => ' ',
+                "mdash" => '\u{2014}',
+                "ndash" => '\u{2013}',
+                "hellip" => '\u{2026}',
+                "rsquo" => '\u{2019}',
+                "lsquo" => '\u{2018}',
+                "ldquo" => '\u{201C}',
+                "rdquo" => '\u{201D}',
+                _ => {
+                    let digits = name.strip_prefix('#')?;
+                    let code = match digits.strip_prefix(['x', 'X']) {
+                        Some(hex) => u32::from_str_radix(hex, 16).ok()?,
+                        None => digits.parse().ok()?,
+                    };
+                    let ch = char::from_u32(code)?;
+                    if ch == '\u{a0}' { ' ' } else { ch }
+                }
+            };
+            Some((ch, end + 2))
+        });
+        match decoded {
+            Some((ch, len)) => {
+                out.push(ch);
+                rest = &rest[len..];
+            }
+            None => {
+                out.push('&');
+                rest = &rest[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// AniList's HTML as plain text, keeping its line structure: tags out, the entities it uses put
 /// back, spaces collapsed within a line and trimmed at its ends.
 ///
@@ -660,12 +712,7 @@ fn plain_text(raw: &str) -> String {
             (Some(name), c) => name.push(c),
         }
     }
-    let marked = marked
-        .replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#039;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">");
+    let marked = decode_entities(&marked);
 
     let break_text = |hard: usize, soft: usize| match if hard > 0 { hard } else { soft } {
         0 => "",
@@ -1124,6 +1171,35 @@ mod tests {
             ]
         }))
         .unwrap()
+    }
+
+    #[test]
+    fn entities_decode_once_after_tags_are_stripped() {
+        assert_eq!(plain_text("remembering nothing&mdash;"), "remembering nothing\u{2014}");
+        assert_eq!(
+            plain_text(
+                "a&ndash;b &hellip; &rsquo;x&lsquo; &ldquo;y&rdquo; &#39;z&apos; &#8212;&#x2014;"
+            ),
+            "a\u{2013}b \u{2026} \u{2019}x\u{2018} \u{201C}y\u{201D} 'z' \u{2014}\u{2014}"
+        );
+        assert_eq!(
+            plain_text("Tom &amp; Jo&nbsp;say &quot;hi&quot; &lt;b&gt;"),
+            "Tom & Jo say \"hi\" <b>"
+        );
+        // Double-encoded text loses one layer only, and an encoded tag is not stripped.
+        assert_eq!(plain_text("&amp;lt;i&amp;gt; &amp;mdash;"), "&lt;i&gt; &mdash;");
+        assert_eq!(plain_text("&lt;br&gt;"), "<br>");
+        // Unknown and unterminated entities stay as written.
+        assert_eq!(
+            plain_text("R&D &bogus; &#xZZ; a & b &amp"),
+            "R&D &bogus; &#xZZ; a & b &amp"
+        );
+    }
+
+    #[test]
+    fn a_paragraph_break_beside_an_entity_survives() {
+        assert_eq!(plain_text("one&mdash;<br><br>&hellip;two"), "one\u{2014}\n\n\u{2026}two");
+        assert_eq!(plain_text("<p>a&amp;b</p><p>c</p>").trim_matches('\n'), "a&b\n\nc");
     }
 
     #[test]

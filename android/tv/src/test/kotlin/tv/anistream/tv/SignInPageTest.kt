@@ -7,6 +7,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.RobolectricTestRunner
 import org.junit.runner.RunWith
 import java.net.URI
+import kotlin.concurrent.thread
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import org.junit.After
@@ -61,6 +62,63 @@ class SignInPageTest {
         connection.outputStream.use { it.write(body.toByteArray()) }
         val code = connection.responseCode
         return code to (if (code < 400) connection.inputStream else connection.errorStream).bufferedReader().readText()
+    }
+
+    /** A client that sends a header line every [every] ms and never ends its request, as one on the network could. */
+    private fun trickle(port: Int, every: Long = 200): java.net.Socket {
+        val socket = java.net.Socket("127.0.0.1", port)
+        thread(isDaemon = true) {
+            runCatching {
+                val out = socket.getOutputStream()
+                out.write("GET / HTTP/1.1\r\n".toByteArray())
+                while (true) {
+                    Thread.sleep(every)
+                    out.write("X-Slow: 1\r\n".toByteArray())
+                    out.flush()
+                }
+            }
+        }
+        return socket
+    }
+
+    private fun portOf(url: String) = URI(url).port
+
+    @Test
+    fun a_slow_client_holds_no_one_else_up() {
+        val url = start(PageForm.Password)
+        val slow = List(SignInPage.MAX_CLIENTS - 1) { trickle(portOf(url)) }
+        Thread.sleep(300)
+        val connection = URI(url).toURL().openConnection() as HttpURLConnection
+        connection.connectTimeout = 3_000
+        connection.readTimeout = 3_000
+        assertEquals("answered while the others trickle", 200, connection.responseCode)
+        slow.forEach { it.close() }
+    }
+
+    @Test
+    fun a_client_that_trickles_is_cut_off_at_its_deadline() {
+        val started = SignInPage(context, "Kitsu", PageForm.Password, authorizeUrl = null, clientDeadlineMillis = 500) { answers.add(it) }
+        page = started
+        val port = started.start(port = 0)!!
+        val slow = trickle(port, every = 100)
+        slow.soTimeout = 3_000
+        val began = System.nanoTime()
+        val read = runCatching { slow.getInputStream().read() }.getOrDefault(-1)
+        val waited = (System.nanoTime() - began) / 1_000_000
+        assertEquals("closed, unanswered", -1, read)
+        assertTrue("at its deadline, not the read timeout: $waited ms", waited < 2_000)
+    }
+
+    @Test
+    fun the_page_ends_at_its_lifetime_whatever_its_clients_do() {
+        val started = SignInPage(context, "Kitsu", PageForm.Password, authorizeUrl = null, lifetimeMillis = 600) { answers.add(it) }
+        page = started
+        val port = started.start(port = 0)!!
+        val slow = trickle(port, every = 100)
+        Thread.sleep(1_200)
+        val refused = runCatching { java.net.Socket("127.0.0.1", port).close() }.isFailure
+        assertTrue("no one is let in after ten minutes, even with a client trickling", refused)
+        slow.close()
     }
 
     @Test

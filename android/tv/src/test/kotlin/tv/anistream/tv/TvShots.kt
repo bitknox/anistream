@@ -495,7 +495,7 @@ class TvShots {
         compose.onNodeWithText("Protect torrent traffic").assertExists()
         compose.onNodeWithText("http://192.0.2.10:", substring = true).assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-change.png")
-        compose.mainClock.advanceTimeBy(SignInPage.LIFETIME_NANOS / 1_000_000 + 1_000)
+        compose.mainClock.advanceTimeBy(SignInPage.LIFETIME_MILLIS + 1_000)
         settle()
         compose.onNodeWithText("Code expired").assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-code-expired.png")

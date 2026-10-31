@@ -40,19 +40,28 @@ public sealed class EngineSession : IDisposable
     public static FfiEngine StartUser(FfiHost host, FfiStart start) =>
         FfiEngine.Start(AppDirs.User(), host, new FfiBackground(), start);
 
-    /// <summary>What the app tells the engine about itself: its palette and that it is Windows.</summary>
     /// <summary>
-    /// How the app starts the engine: its palette, its platform, and the Simkl and Trakt clients
-    /// the apps ship with, which turn on those trackers' device sign-in. These ids are public, as
-    /// every app's are. AniList and MyAnimeList stay on the loopback sign-in, which needs no
-    /// <c>anistream://</c> scheme registered.
+    /// How the app starts the engine: its palette, its platform, and the clients the apps ship
+    /// with. AniList's implicit grant and MyAnimeList's PKCE redirect to
+    /// <c>anistream://auth/&lt;tracker&gt;</c>, which the installer registers for this app; Simkl
+    /// and Trakt sign in with a code typed on their site. These ids are public, as every app's
+    /// are. A fixture run passes <paramref name="signIn"/> false: its trackers are the fake's,
+    /// and a sign-in must not open the real AniList.
     /// </summary>
-    public static FfiStart AppStart() => new(
+    public static FfiStart AppStart(bool signIn = true) => new(
         Theme: Palette.PlayerTheme,
         Platform: FfiPlatform.Windows,
+        AnilistClientId: signIn ? AnilistClient : null,
+        MalClientId: signIn ? MalClient : null,
         SimklClientId: SimklClient,
         TraktClientId: TraktClient,
         Language: T.Language);
+
+    /// <summary>anistream's AniList client: implicit grant, redirecting to <c>anistream://auth/anilist</c>.</summary>
+    public const string AnilistClient = "54537";
+
+    /// <summary>anistream's MyAnimeList client: PKCE, redirecting to <c>anistream://auth/mal</c>.</summary>
+    public const string MalClient = "0ccc4725381aca9513f26d32107a94cd";
 
     /// <summary>The Simkl and Trakt clients registered for the apps, as the Apple apps ship them.</summary>
     public const string SimklClient = "016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b";
@@ -82,20 +91,42 @@ public sealed class EngineSession : IDisposable
             var forUi = new List<Event>(events.Length);
             foreach (var e in events)
             {
-                if (OffThread?.Invoke(e) == true)
+                // One event the app can't take is logged and skipped; the next still arrive.
+                try
+                {
+                    if (OffThread?.Invoke(e) == true)
+                        continue;
+                }
+                catch (Exception error)
+                {
+                    Failed("the player", e, error);
                     continue;
+                }
                 forUi.Add(e);
             }
             if (forUi.Count > 0)
                 post(() =>
                 {
                     foreach (var e in forUi)
-                        Known.Take(e);
+                    {
+                        try
+                        {
+                            Known.Take(e);
+                        }
+                        catch (Exception error)
+                        {
+                            Failed("the app", e, error);
+                        }
+                    }
                     Batch?.Invoke(forUi);
                 });
         }
         post(() => Stopped?.Invoke());
     }
+
+    /// <summary>Logs an event that something could not take, by the event's kind.</summary>
+    public static void Failed(string who, Event e, Exception error) =>
+        AnistreamFfiMethods.LogLine(FfiLogLevel.Error, "windows", $"{who} could not take {e.GetType().Name}: {error}");
 
     /// <summary>Ask the engine for <paramref name="command"/>. Never waits.</summary>
     public ulong? Send(Command command) => disposed ? null : Engine.Send(command);

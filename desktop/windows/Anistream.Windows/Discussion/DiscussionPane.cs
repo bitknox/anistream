@@ -59,8 +59,8 @@ sealed class DiscussionPane : Grid
     readonly TextBlock modeText = Ui.Text("", "HazeCaptionStyle", wrap: false);
     readonly Grid field = new() { ColumnSpacing = 8 };
     readonly TextBox box = new() { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 32, MaxHeight = 120, VerticalAlignment = VerticalAlignment.Bottom };
-    readonly Button post = new() { Style = Ui.Res<Style>("AccentButtonStyle"), Height = 32, MinWidth = 64, VerticalAlignment = VerticalAlignment.Bottom, IsEnabled = false };
-    readonly Button signIn = new() { Content = T.DiscussionSignIn, Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Stretch, Height = 32 };
+    readonly Button post = new() { Style = Ui.Res<Style>("AccentButtonStyle"), MinHeight = 32, MinWidth = 64, VerticalAlignment = VerticalAlignment.Bottom, IsEnabled = false };
+    readonly Button signIn = new() { Content = T.DiscussionSignIn, Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
     readonly TextBlock waitsForNetwork = Ui.Text(T.DiscussionOfflinePost, "HazeCaptionStyle");
 
     readonly Dictionary<uint, CommentRow> rows = [];
@@ -167,7 +167,7 @@ sealed class DiscussionPane : Grid
         words.Children.Add(count);
         head.Children.Add(words);
         open.Content = T.TitleOpenAnilist;
-        open.Height = 32;
+        open.MinHeight = 32;
         open.VerticalAlignment = VerticalAlignment.Top;
         open.Click += (_, _) => ctx.Send(new Command.OpenExternal(view is { Url.Length: > 0 } v ? v.Url : $"https://anilist.co/anime/{media}"));
         Grid.SetColumn(open, 1);
@@ -370,7 +370,7 @@ sealed class DiscussionPane : Grid
             DefaultButton = ContentDialogButton.Close,
             RequestedTheme = ElementTheme.Dark,
         };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await Dialogs.Show(dialog) == ContentDialogResult.Primary)
             ctx.Send(new Command.DeleteComment(id));
     }
 

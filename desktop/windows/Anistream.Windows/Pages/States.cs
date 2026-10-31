@@ -29,15 +29,8 @@ public sealed partial class StateHost : Grid
 
     public StateHost()
     {
-        var queue = DispatcherQueue.GetForCurrentThread();
-        silence = queue.CreateTimer();
-        silence.Interval = Silence;
-        silence.IsRepeating = false;
-        silence.Tick += (_, _) => ShowWaiting();
-        activity = queue.CreateTimer();
-        activity.Interval = Activity;
-        activity.IsRepeating = false;
-        activity.Tick += (_, _) => Motion.Show(activityLine);
+        silence = Timers.Weak(this, Silence, false, static host => host.ShowWaiting());
+        activity = Timers.Weak(this, Activity, false, static host => Motion.Show(host.activityLine));
         activityLine = Ui.Text("", "HazeCaptionStyle");
         activityLine.Visibility = Visibility.Collapsed;
         AutomationProperties.SetLiveSetting(activityLine, AutomationLiveSetting.Polite);
@@ -316,7 +309,7 @@ public sealed partial class OfflineLine : StackPanel
         Margin = new Thickness(0, 4, 0, 0);
         Visibility = Visibility.Collapsed;
         Children.Add(new FontIcon { Glyph = "", FontSize = 14, Foreground = Ui.Res<Brush>("HazeBrush"), VerticalAlignment = VerticalAlignment.Center });
-        Children.Add(Ui.Text("Offline. Downloaded episodes still play.", "HazeBodyStyle", wrap: false));
+        Children.Add(Ui.Text(T.StateOfflineLine, "HazeBodyStyle", wrap: false));
         AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Polite);
         Loaded += (_, _) =>
         {
