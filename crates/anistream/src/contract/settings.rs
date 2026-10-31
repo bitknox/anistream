@@ -29,6 +29,15 @@ use super::toasts;
 use crate::harness::{Harness, Options};
 
 /// A file that does not load: the app runs on the defaults and says so.
+/// The config file as the settings wrote it, without the line that remembers a new install has the
+/// demo: [`a_first_write_remembers_the_demo`] covers that.
+fn written_config(h: &Harness) -> String {
+    std::fs::read_to_string(&h.paths().config_file)
+        .unwrap()
+        .replace("\n[sources]\ndemo = true\n", "")
+        .replace("[sources]\ndemo = true\n\n", "")
+}
+
 const BROKEN: &str = "[playback]\nquality = \"high\"\n";
 
 fn order(entries: &[&str]) -> Vec<String> {
@@ -83,7 +92,7 @@ async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
     assert!(!on_disk(&h).playback.auto_next);
     assert_eq!(view.refused, None);
     assert_eq!(toasts(&updates), ["info: Saved auto-play next."]);
-    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    let file = written_config(&h);
     assert_eq!(file, "[playback]\nauto_next = false\n");
     let row = h.app().setting_rows().into_iter().find(|row| row.key == SettingKey::AutoNext);
     assert_eq!(row.unwrap().value, "Off", "the screen shows the file");
@@ -103,7 +112,7 @@ async fn the_calendar_opens_on_all_and_remembers_the_pick() {
     let updates = h.settle().await;
     assert_eq!(native(settings(&updates[0]), SettingKey::CalendarMine), "on");
     assert!(on_disk(&h).meta.calendar_mine);
-    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    let file = written_config(&h);
     assert_eq!(file, "[meta]\ncalendar_mine = true\n");
 
     h.send(Command::SetSetting {
@@ -145,7 +154,7 @@ async fn a_speed_the_player_remembers_is_saved_without_a_word() {
 
     assert_eq!(h.trace(), ["PlaybackSpeed", "Settings", "SettingsSaved"]);
     assert_eq!(settings(&updates[1]).speed, Some(1.25));
-    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    let file = written_config(&h);
     assert_eq!(file, "[playback]\npersisted_speed = 1.25\n");
 }
 
@@ -160,7 +169,7 @@ async fn a_speed_is_not_saved_when_the_config_says_not_to_remember_it() {
     // Remembered for the next episode all the same, which the interface used to keep itself.
     assert_eq!(h.trace(), ["PlaybackSpeed", "Settings"]);
     assert_eq!(settings(&updates[1]).speed, Some(1.25));
-    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), config);
+    assert_eq!(written_config(&h), config);
 }
 
 #[tokio::test]
@@ -175,7 +184,7 @@ async fn a_choice_made_in_the_player_is_saved_however_the_front_end_reads_its_ev
     h.player_says(Event::PlayerNightMode(true));
     let updates = h.settle_in_one_batch().await;
 
-    let file = std::fs::read_to_string(&h.paths().config_file).unwrap_or_default();
+    let file = written_config(&h);
     assert_eq!(file, "[playback]\nnight_mode = true\n", "night mode was not saved");
     assert_eq!(toasts(&updates), ["info: Saved night mode."]);
 }
@@ -277,7 +286,7 @@ async fn an_order_that_only_moves_sources_reorders_the_chain_in_place() {
     // The chain's own rows go up before the reorder itself is applied, as the loop has it.
     assert_eq!(
         h.trace(),
-        ["Settings", "Toast", "SettingsSaved", "Providers", "SourcesReordered"]
+        ["Settings", "Toast", "SettingsSaved", "Providers", "Demo", "SourcesReordered"]
     );
     assert_eq!(toasts(&updates), ["info: Saved source order."]);
     assert_eq!(provider_ids(&updates[2]), ["alt", "fixture"]);
@@ -302,17 +311,19 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
             "Toast",
             "SettingsSaved",
             "SourcesChanged",
+            "Demo",
             "Vpn",
             "ProviderNote",
             "Providers"
         ]
     );
-    assert!(matches!(&updates[3], Event::Vpn(None)));
-    let Event::ProviderNote(note) = &updates[4] else { unreachable!() };
+    assert!(matches!(&updates[4], Event::Vpn(None)));
+    let Event::ProviderNote(note) = &updates[5] else { unreachable!() };
     assert_eq!(note.english(), "Torrents are off. The session was stopped.");
     // Rebuilt from the config, which describes no source the fixture one could be.
-    assert!(provider_ids(&updates[5]).is_empty());
-    assert!(h.registry().is_empty());
+    // The demo is the one source the config describes on a new install.
+    assert_eq!(provider_ids(&updates[6]), ["demo"]);
+    assert_eq!(h.registry().ids(), ["demo"]);
 }
 
 #[tokio::test]
@@ -355,7 +366,7 @@ async fn a_protection_is_written_as_one_change_and_read_back_as_the_terminal_rea
     );
     assert_eq!(shown(view, SettingKey::VpnMode), "external", "the terminal's row says it too");
     assert_eq!(toasts(&updates), ["info: Saved torrent protection."]);
-    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    let file = written_config(&h);
     assert_eq!(
         file,
         "[providers.torrent.vpn]\nmode = \"external\"\ni_understand_my_ip_is_exposed = false\n\
@@ -411,7 +422,7 @@ async fn a_failed_check_leaves_the_file_and_the_kept_password_as_they_were() {
         matches!(&updates[..], [Event::ProtectionChecked(GuardView::Leaking)]),
         "{updates:?}"
     );
-    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), file);
+    assert_eq!(written_config(&h), file);
     assert_eq!(h.secrets().get(PROXY_SECRET).unwrap().as_deref(), Some("before"));
 
     // A proxy with no address is not checked at all, and the notice says why.
@@ -429,7 +440,7 @@ async fn a_failed_check_leaves_the_file_and_the_kept_password_as_they_were() {
         toasts(&updates),
         ["alert: Couldn't check the torrent protection. A proxy needs a host and a port."]
     );
-    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), file);
+    assert_eq!(written_config(&h), file);
     assert_eq!(h.secrets().get(PROXY_SECRET).unwrap().as_deref(), Some("before"));
 }
 
@@ -595,7 +606,7 @@ async fn a_file_that_does_not_load_is_not_written_over() {
         said[0].starts_with("alert: Couldn't save that setting. config.toml is left as it is"),
         "{said:?}"
     );
-    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), BROKEN);
+    assert_eq!(written_config(&h), BROKEN);
 }
 
 #[tokio::test]
@@ -609,5 +620,15 @@ async fn a_refused_order_puts_the_provider_rows_back() {
     assert_eq!(h.trace(), ["Settings", "Toast", "Providers"]);
     assert_eq!(settings(&updates[0]).sources.order, ["torrent", "plugins"], "the file's order");
     assert_eq!(provider_ids(&updates[2]), ["fixture"]);
-    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), BROKEN);
+    assert_eq!(written_config(&h), BROKEN);
+}
+
+#[tokio::test]
+async fn a_first_write_remembers_the_demo() {
+    let mut h = Harness::new().await;
+    assert!(!h.paths().config_file.exists(), "a new install has no file");
+    h.send(Command::SetSetting { key: SettingKey::AutoNext, value: SettingValue::Bool(false) });
+    h.settle().await;
+    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    assert!(file.contains("[sources]\ndemo = true"), "the demo is written down: {file}");
 }

@@ -366,6 +366,7 @@ fn category_text(category: &str) -> String {
         "integrations" => t::settings_category_integrations(),
         "notifications" => t::settings_category_notifications(),
         "advanced" => t::settings_category_advanced(),
+        "about" => t::settings_group_crashes(),
         other => other.to_owned(),
     }
 }

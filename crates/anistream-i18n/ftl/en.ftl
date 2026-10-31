@@ -154,7 +154,7 @@ home-because = Because you finished { $title }
 home-more-genre = More { $genre }
 
 # Line over the spotlight's title when it is the built-in demo.
-home-spotlight-demo = Demo · Shared under CC BY 4.0
+home-spotlight-demo = Demo, free to share
 
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = { $reason }
@@ -2020,6 +2020,12 @@ keys-action-raise-source = Move source up
 
 # Action label in the help overlay and the command palette.
 keys-action-lower-source = Move source down
+
+# Action label in the help overlay and the command palette.
+keys-action-play-demo = Play the demo
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-demo = Remove or add the demo
 
 # Action label in the help overlay and the command palette.
 keys-action-download-range = Download a range of episodes
@@ -5631,8 +5637,8 @@ onboarding-invite-hint = Invite link
 # Heading of the welcome page that explains where episodes come from.
 onboarding-where-title = Where episodes come from
 
-# First line of that page. States that the app hosts no content.
-onboarding-where-hosts = anistream hosts no content. It plays episodes from sources, which are plugins.
+# First line of that page, shown after legal-hosts-no-content. Says where episodes come from.
+onboarding-where-hosts = Episodes play from sources, which are plugins.
 
 # Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
 onboarding-where-stores = Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.
@@ -6875,7 +6881,7 @@ settings-subs-preview-line = I left the lantern at the station.
 settings-subs-preview-line-2 = Can you bring it back before dark?
 
 # Sample of a typeset sign at the top of the styled preview.
-settings-subs-preview-sign = Kumo no Ue Library
+settings-subs-preview-sign = Kumo no Ue Reading Room
 
 # Link under the rows that show the system's caption style.
 settings-subs-system-change = Change in Accessibility settings

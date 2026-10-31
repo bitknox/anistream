@@ -9,24 +9,24 @@ anistream                                                                       
     Quit                  Q / ctrl+c    Set list status                a  Sources
     Back                     q / esc    Rate this title                *    Move source up                 K
     Toggle rail width            tab    Expand synopsis                i    Move source down               J
-    Refresh this view              r    Remove, or not interested      x  Now playing
-    Force a full resync            R    Search filters            ctrl+f    Play or pause              space
-    Subbed or dubbed               t  Title                                 Back 5 seconds                 ←
-    Go to section                1–9    Episodes                       e    Forward 5 seconds              →
-    Search                         /    Sources                        s    Back 30 seconds                H
-    Recent messages                !    Source for this title          P    Forward 30 seconds             L
-  Movement                              Fix this match                 m    Next episode                   n
-    Move up                    k / ↑    Download                       d    Previous episode               N
-    Move down                  j / ↓    Watch order                    w    Skip opening                   S
-    Move left                  h / ←    Recommendations                b    Slower                         [
-    Move right                 l / →    Play the trailer               v    Faster                         ]
-    Jump to top                    g    Open on AniList                o    Volume down                    9
-    Jump to bottom                 G    Play in a watch party          y    Volume up                      0
-    Jump to today                  T  Episodes                              Full screen                    F
-    Jump to previous day           {    Download a range of episodes   D    Leave player running           q
-    Jump to next day               }    Toggle watched                 u    Stop playback                  x
-    Page up                   ctrl+u    Mark all previous watched      M
-    Page down                 ctrl+d    Filter                         f
+    Refresh this view              r    Remove, or not interested      x    Play the demo                  B
+    Force a full resync            R    Search filters            ctrl+f    Remove or add the demo         Y
+    Subbed or dubbed               t  Title                               Now playing
+    Go to section                1–9    Episodes                       e    Play or pause              space
+    Search                         /    Sources                        s    Back 5 seconds                 ←
+    Recent messages                !    Source for this title          P    Forward 5 seconds              →
+  Movement                              Fix this match                 m    Back 30 seconds                H
+    Move up                    k / ↑    Download                       d    Forward 30 seconds             L
+    Move down                  j / ↓    Watch order                    w    Next episode                   n
+    Move left                  h / ←    Recommendations                b    Previous episode               N
+    Move right                 l / →    Play the trailer               v    Skip opening                   S
+    Jump to top                    g    Open on AniList                o    Slower                         [
+    Jump to bottom                 G    Play in a watch party          y    Faster                         ]
+    Jump to today                  T  Episodes                              Volume down                    9
+    Jump to previous day           {    Download a range of episodes   D    Volume up                      0
+    Jump to next day               }    Toggle watched                 u    Full screen                    F
+    Page up                   ctrl+u    Mark all previous watched      M    Leave player running           q
+    Page down                 ctrl+d    Filter                         f    Stop playback                  x
 
                             │
                             │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes

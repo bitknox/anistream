@@ -161,8 +161,8 @@ impl CrashRecord {
             .frames
             .iter()
             .map(|frame| CrashFrame {
-                module: short_text(module_name(&frame.module), 60),
-                symbol: frame.symbol.as_deref().map(|s| short_text(s, 120)),
+                module: frame_text(module_name(&frame.module), 60),
+                symbol: frame.symbol.as_deref().map(|s| frame_text(s, 120)),
                 offset: frame.offset,
             })
             .filter(CrashFrame::relevant)
@@ -177,7 +177,7 @@ impl CrashRecord {
                 .collect(),
             at_ms: self.at_ms,
             uptime_secs: self.uptime_secs,
-            platform: short_text(&self.platform, 40),
+            platform: known_platform(&self.platform),
             os_version: short_text(&self.os_version, 40),
             app_version: short_text(&self.app_version, 40),
             arch: short_text(&self.arch, 20),
@@ -202,6 +202,42 @@ impl CrashFrame {
         };
         ours(&self.module) || self.symbol.as_deref().is_some_and(ours)
     }
+}
+
+/// The platform's name when it is one of ours, and "Other" for anything else: a device's own
+/// name, which an owner may have put their own in, is never kept.
+fn known_platform(platform: &str) -> String {
+    const KNOWN: [&str; 14] = [
+        "Mac",
+        "macOS",
+        "iPhone",
+        "iPad",
+        "iOS",
+        "Apple TV",
+        "tvOS",
+        "Android",
+        "Android TV",
+        "Windows",
+        "Linux",
+        "Terminal",
+        "Fixtures",
+        "Other",
+    ];
+    KNOWN
+        .iter()
+        .find(|known| known.eq_ignore_ascii_case(platform.trim()))
+        .map_or("Other", |known| known)
+        .to_owned()
+}
+
+/// A module or symbol name as a frame carries it: only the characters names are made of, so
+/// nothing path-like or address-like survives, and bounded. Module names are kept whole where
+/// the general redaction would take `libmpv.2.dylib` for a file.
+fn frame_text(text: &str, chars: usize) -> String {
+    text.chars()
+        .filter(|c| c.is_alphanumeric() || " _:.()<>$&,@*+-".contains(*c))
+        .take(chars)
+        .collect()
 }
 
 /// A module's file name from a path, in either separator.

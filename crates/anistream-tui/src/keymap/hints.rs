@@ -386,6 +386,11 @@ fn overlay_hints(
         O::Help if help_pages > 1 => vec![hint("↑↓", hint_page()), hint(ESC, hint_close())],
         O::Help => vec![hint(ESC, hint_close())],
         O::InviteLink | O::OpenLink => vec![hint("↵", hint_close())],
+        O::FirstRun => vec![
+            hint("↵", super::said(anistream_i18n::t::onboarding_play_demo())),
+            hint("i", super::said(anistream_i18n::t::onboarding_invite_heading())),
+            hint("s", super::said(anistream_i18n::t::onboarding_skip())),
+        ],
         O::Logs if app.logs.is_empty() => vec![hint(ESC, hint_close())],
         O::Logs => vec![hint("↑↓", hint_move()), hint(ESC, hint_close())],
         O::SearchFilters => {

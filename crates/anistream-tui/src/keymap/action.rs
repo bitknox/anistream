@@ -85,6 +85,10 @@ pub enum Action {
     RaiseSource,
     /// Try the selected source after the one below it.
     LowerSource,
+    /// Play part 1 of the demo, from Sources.
+    PlayDemo,
+    /// Take the demo out of the sources, or add it back.
+    ToggleDemo,
 
     // Episodes
     /// Queue a typed range of episodes for download: `4`, `1-12`, `7-`.
@@ -178,6 +182,8 @@ impl Action {
         Self::DeleteDownload,
         Self::RaiseSource,
         Self::LowerSource,
+        Self::PlayDemo,
+        Self::ToggleDemo,
         Self::DownloadRange,
         Self::PlayParty,
         Self::ToggleWatched,
@@ -260,6 +266,8 @@ impl Action {
             Self::DeleteDownload => t::keys_action_delete_download(),
             Self::RaiseSource => t::keys_action_raise_source(),
             Self::LowerSource => t::keys_action_lower_source(),
+            Self::PlayDemo => t::keys_action_play_demo(),
+            Self::ToggleDemo => t::keys_action_toggle_demo(),
             Self::DownloadRange => t::keys_action_download_range(),
             Self::PlayParty => t::keys_action_play_party(),
             Self::ToggleWatched => t::keys_action_toggle_watched(),
@@ -370,7 +378,9 @@ impl Action {
 
             Self::ClearCompleted | Self::DeleteDownload => Scope::Downloads,
 
-            Self::RaiseSource | Self::LowerSource => Scope::Providers,
+            Self::RaiseSource | Self::LowerSource | Self::PlayDemo | Self::ToggleDemo => {
+                Scope::Providers
+            }
 
             _ => Scope::Playback,
         }

@@ -33,7 +33,7 @@ use crate::{
     clock::Clock,
     eyecatch::Eyecatch,
     keymap::{Action, Keymap},
-    nav::{Nav, Section, StageView},
+    nav::{Nav, Overlay, Section, StageView},
     theme::Palette,
 };
 
@@ -156,6 +156,8 @@ pub struct App {
     /// Whether the demo is a source, offered, the only one, and played: what the first run and
     /// the Sources screen word.
     pub demo: anistream_model::sources::DemoState,
+    /// Whether the first-run question has been asked this session.
+    first_run_shown: bool,
     /// The metadata ladder's rungs, for the Providers screen and the header chip.
     pub meta_status: Vec<MetaSourceRow>,
     /// The source pinned for the title on screen. `None` means automatic.
@@ -400,6 +402,7 @@ impl App {
             vpn_leaking: false,
             providers: Vec::new(),
             demo: anistream_model::sources::DemoState::default(),
+            first_run_shown: false,
             meta_status: Vec::new(),
             provider_preference: None,
             source_options: Vec::new(),
@@ -535,7 +538,14 @@ impl App {
             Event::ArtworkReady { .. } => {}
             Event::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
             Event::Providers(rows) => self.apply_providers(rows),
-            Event::Demo(state) => self.demo = state,
+            Event::Demo(state) => {
+                let first_run = state.on && state.only && !state.played;
+                self.demo = state;
+                if first_run && !self.first_run_shown && !self.nav.has_overlay() {
+                    self.first_run_shown = true;
+                    self.nav.open_overlay(Overlay::FirstRun);
+                }
+            }
             Event::MetaStatus(rows) => self.meta_status = rows,
             Event::Stores(rows) => self.apply_stores(rows),
             Event::StorePreview(outcome) => self.apply_store_preview(outcome),

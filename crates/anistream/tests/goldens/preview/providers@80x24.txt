@@ -7,18 +7,18 @@ anistream                                       torrent ○  plugins ·  ·  kit
  ▥ │  ▌ fixture             Built in    Ready           0 ms
  ↓ │
 ▌◇ │
- ◎ │  Plugin stores
- ≡ │    Plugins shared by people you know. Join with an invite link.   ↵ Open
+ ◎ │    About the demo
+ ≡ │    こ う し す ！  · CC BY 4.0 · from Wikimedia Commons
+   │    Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wi…
+   │    The demo never signs in anywhere and never writes to AniList.
+   │    B  Play the demo   Y  Remove demo
+   │
+   │  Plugin stores
+   │    Plugins shared by people you know. Join with an invite link.   ↵ Open
    │
    │  Metadata
    │
    │    anilist             Live
    │    tenrai              Not in use
-   │    cache               ready       1 title
-   │
-   │
-   │
-   │
-   │
 ────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                    r refresh   ↵ plugin stores   ? keys

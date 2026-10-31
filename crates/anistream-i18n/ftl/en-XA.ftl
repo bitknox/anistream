@@ -154,7 +154,7 @@ home-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
 home-more-genre = [Ṁöŕé { $genre }~~~]
 
 # Line over the spotlight's title when it is the built-in demo.
-home-spotlight-demo = [Ðéɱö · Šĥàŕéð üñðéŕ ÇÇ ƁÝ 4.0~~~~~~~~~]
+home-spotlight-demo = [Ðéɱö, ƒŕéé ţö šĥàŕé~~~~~~]
 
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = [{ $reason }~]
@@ -2020,6 +2020,12 @@ keys-action-raise-source = [Ṁöṽé šöüŕçé üþ~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-lower-source = [Ṁöṽé šöüŕçé ðöŵñ~~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-play-demo = [Þļàý ţĥé ðéɱö~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-demo = [Ŕéɱöṽé öŕ àðð ţĥé ðéɱö~~~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-download-range = [Ðöŵñļöàð à ŕàñĝé öƒ éþîšöðéš~~~~~~~~~]
@@ -5631,8 +5637,8 @@ onboarding-invite-hint = [Îñṽîţé ļîñķ~~~~]
 # Heading of the welcome page that explains where episodes come from.
 onboarding-where-title = [Ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ~~~~~~~~]
 
-# First line of that page. States that the app hosts no content.
-onboarding-where-hosts = [àñîšţŕéàɱ ĥöšţš ñö çöñţéñţ. Îţ þļàýš éþîšöðéš ƒŕöɱ šöüŕçéš, ŵĥîçĥ àŕé þļüĝîñš.~~~~~~~~~~~~~~~~~~~~~~~~]
+# First line of that page, shown after legal-hosts-no-content. Says where episodes come from.
+onboarding-where-hosts = [Éþîšöðéš þļàý ƒŕöɱ šöüŕçéš, ŵĥîçĥ àŕé þļüĝîñš.~~~~~~~~~~~~~~]
 
 # Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
 onboarding-where-stores = [Þļüĝîñš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš. Å þļüĝîñ šţöŕé îš ŕüñ ƀý öñé þéŕšöñ ƒöŕ ţĥé þéöþļé ţĥéý îñṽîţé, šö ýöü ĵöîñ öñé ŵîţĥ àñ îñṽîţé ļîñķ ƒŕöɱ îţš öŵñéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -6875,7 +6881,7 @@ settings-subs-preview-line = [Î ļéƒţ ţĥé ļàñţéŕñ àţ ţĥé šţ
 settings-subs-preview-line-2 = [Çàñ ýöü ƀŕîñĝ îţ ƀàçķ ƀéƒöŕé ðàŕķ?~~~~~~~~~~~]
 
 # Sample of a typeset sign at the top of the styled preview.
-settings-subs-preview-sign = [Ķüɱö ñö Ûé Ļîƀŕàŕý~~~~~~]
+settings-subs-preview-sign = [Ķüɱö ñö Ûé Ŕéàðîñĝ Ŕööɱ~~~~~~~]
 
 # Link under the rows that show the system's caption style.
 settings-subs-system-change = [Çĥàñĝé îñ Åççéššîƀîļîţý šéţţîñĝš~~~~~~~~~~]

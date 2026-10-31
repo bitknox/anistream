@@ -3075,7 +3075,7 @@ public static partial class T
     /// <summary>Heading of the welcome page that explains where episodes come from.</summary>
     public static string OnboardingWhereTitle => Get("OnboardingWhereTitle");
 
-    /// <summary>First line of that page. States that the app hosts no content.</summary>
+    /// <summary>First line of that page, shown after legal-hosts-no-content. Says where episodes come from.</summary>
     public static string OnboardingWhereHosts => Get("OnboardingWhereHosts");
 
     /// <summary>Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.</summary>
@@ -6275,7 +6275,7 @@ public static partial class T
         ["HomeThisSeason"] = "This season",
         ["HomeBecause"] = "Because you finished {title}",
         ["HomeMoreGenre"] = "More {genre}",
-        ["HomeSpotlightDemo"] = "Demo · Shared under CC BY 4.0",
+        ["HomeSpotlightDemo"] = "Demo, free to share",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",
@@ -7273,7 +7273,7 @@ public static partial class T
         ["OnboardingJoin"] = "Join",
         ["OnboardingInviteHint"] = "Invite link",
         ["OnboardingWhereTitle"] = "Where episodes come from",
-        ["OnboardingWhereHosts"] = "anistream hosts no content. It plays episodes from sources, which are plugins.",
+        ["OnboardingWhereHosts"] = "Episodes play from sources, which are plugins.",
         ["OnboardingWhereStores"] = "Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.",
         ["OnboardingDemoHeading"] = "Try it now",
         ["OnboardingDemoDetail"] = "The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons.",
@@ -7686,7 +7686,7 @@ public static partial class T
         ["SettingsSubsPreviewStyled"] = "Styled",
         ["SettingsSubsPreviewLine"] = "I left the lantern at the station.",
         ["SettingsSubsPreviewLine2"] = "Can you bring it back before dark?",
-        ["SettingsSubsPreviewSign"] = "Kumo no Ue Library",
+        ["SettingsSubsPreviewSign"] = "Kumo no Ue Reading Room",
         ["SettingsSubsSystemChange"] = "Change in Accessibility settings",
         ["SettingsSubsSystemValue"] = "From your system",
         ["SettingsSubsSize"] = "Size",

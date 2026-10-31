@@ -42,8 +42,8 @@ onboarding-invite-hint = Invite link
 # Heading of the welcome page that explains where episodes come from.
 onboarding-where-title = Where episodes come from
 
-# First line of that page. States that the app hosts no content.
-onboarding-where-hosts = { -app-name } hosts no content. It plays episodes from { -source-pl }, which are { -plugin-pl }.
+# First line of that page, shown after legal-hosts-no-content. Says where episodes come from.
+onboarding-where-hosts = Episodes play from { -source-pl }, which are { -plugin-pl }.
 
 # Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
 onboarding-where-stores = { -plugin-cap-pl } come from { -plugin-store-pl }. A { -plugin-store } is run by one person for the people they invite, so you join one with an invite link from its owner.

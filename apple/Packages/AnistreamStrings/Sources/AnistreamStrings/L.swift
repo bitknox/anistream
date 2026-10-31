@@ -215,7 +215,7 @@ public enum L {
     }
 
     /// Line over the spotlight's title when it is the built-in demo.
-    public static var homeSpotlightDemo: String { string("home-spotlight-demo", fallback: "Demo · Shared under CC BY 4.0") }
+    public static var homeSpotlightDemo: String { string("home-spotlight-demo", fallback: "Demo, free to share") }
 
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
@@ -4890,8 +4890,8 @@ public enum L {
     /// Heading of the welcome page that explains where episodes come from.
     public static var onboardingWhereTitle: String { string("onboarding-where-title", fallback: "Where episodes come from") }
 
-    /// First line of that page. States that the app hosts no content.
-    public static var onboardingWhereHosts: String { string("onboarding-where-hosts", fallback: "anistream hosts no content. It plays episodes from sources, which are plugins.") }
+    /// First line of that page, shown after legal-hosts-no-content. Says where episodes come from.
+    public static var onboardingWhereHosts: String { string("onboarding-where-hosts", fallback: "Episodes play from sources, which are plugins.") }
 
     /// Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
     public static var onboardingWhereStores: String { string("onboarding-where-stores", fallback: "Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.") }
@@ -6242,7 +6242,7 @@ public enum L {
     public static var settingsSubsPreviewLine2: String { string("settings-subs-preview-line-2", fallback: "Can you bring it back before dark?") }
 
     /// Sample of a typeset sign at the top of the styled preview.
-    public static var settingsSubsPreviewSign: String { string("settings-subs-preview-sign", fallback: "Kumo no Ue Library") }
+    public static var settingsSubsPreviewSign: String { string("settings-subs-preview-sign", fallback: "Kumo no Ue Reading Room") }
 
     /// Link under the rows that show the system's caption style.
     public static var settingsSubsSystemChange: String { string("settings-subs-system-change", fallback: "Change in Accessibility settings") }

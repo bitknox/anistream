@@ -36,18 +36,6 @@ pub fn state(engine: &EngineState, services: &Services) -> DemoState {
     }
 }
 
-/// Write the first-run choice: a config file that does not exist yet reads as having the demo
-/// on, and a file written from then on must say so, or the next launch would read it as off.
-pub fn remember_fresh_install(engine: &mut EngineState, paths: &anistream_core::config::Paths) {
-    if paths.config_file.exists() || !engine.config.effective().sources.demo {
-        return;
-    }
-    let written = engine.config.write(paths, &["sources"], "demo", SettingValue::Bool(true));
-    if let Err(error) = written {
-        tracing::warn!(%error, "could not write the demo's first-run choice");
-    }
-}
-
 /// Add the demo to the chain, or take it out, and write the choice. Said with the demo's state,
 /// the sources, the settings, and a notice when it was removed.
 pub fn set(on: bool, engine: &mut EngineState, services: &Services, tx: &Outbox) {

@@ -86,7 +86,12 @@ mod tests {
         assert_eq!(Scope::Providers.heading(), anistream_i18n::t::keys_scope_sources());
         assert_eq!(
             providers,
-            [("K".to_string(), "Move source up"), ("J".to_string(), "Move source down")]
+            [
+                ("K".to_string(), "Move source up"),
+                ("J".to_string(), "Move source down"),
+                ("B".to_string(), "Play the demo"),
+                ("Y".to_string(), "Remove or add the demo"),
+            ]
         );
         let entries = keymap.palette_entries("move source", Context::Browsing);
         assert!(entries.contains(&(Action::RaiseSource, "K".into())), "{entries:?}");

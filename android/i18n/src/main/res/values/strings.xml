@@ -105,7 +105,7 @@
     <!-- Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha". -->
     <string name="home_more_genre">More %1$s</string>
     <!-- Line over the spotlight's title when it is the built-in demo. -->
-    <string name="home_spotlight_demo">Demo · Shared under CC BY 4.0</string>
+    <string name="home_spotlight_demo">Demo, free to share</string>
     <!-- A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. -->
     <string name="notice_reason">%1$s</string>
     <!-- Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. -->
@@ -2552,8 +2552,8 @@
     <string name="onboarding_invite_hint">Invite link</string>
     <!-- Heading of the welcome page that explains where episodes come from. -->
     <string name="onboarding_where_title">Where episodes come from</string>
-    <!-- First line of that page. States that the app hosts no content. -->
-    <string name="onboarding_where_hosts">anistream hosts no content. It plays episodes from sources, which are plugins.</string>
+    <!-- First line of that page, shown after legal-hosts-no-content. Says where episodes come from. -->
+    <string name="onboarding_where_hosts">Episodes play from sources, which are plugins.</string>
     <!-- Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link. -->
     <string name="onboarding_where_stores">Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.</string>
     <!-- Heading above the Play the demo button on the welcome page. -->
@@ -3383,7 +3383,7 @@
     <!-- Second sample line in the subtitle preview. -->
     <string name="settings_subs_preview_line_2">Can you bring it back before dark?</string>
     <!-- Sample of a typeset sign at the top of the styled preview. -->
-    <string name="settings_subs_preview_sign">Kumo no Ue Library</string>
+    <string name="settings_subs_preview_sign">Kumo no Ue Reading Room</string>
     <!-- Link under the rows that show the system's caption style. -->
     <string name="settings_subs_system_change">Change in Accessibility settings</string>
     <!-- Value shown, dimmed, for a row while the system's caption style applies. -->

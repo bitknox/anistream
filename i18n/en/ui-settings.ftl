@@ -498,7 +498,7 @@ settings-subs-preview-line = I left the lantern at the station.
 settings-subs-preview-line-2 = Can you bring it back before dark?
 
 # Sample of a typeset sign at the top of the styled preview.
-settings-subs-preview-sign = Kumo no Ue Library
+settings-subs-preview-sign = Kumo no Ue Reading Room
 
 # Link under the rows that show the system's caption style.
 settings-subs-system-change = Change in Accessibility settings

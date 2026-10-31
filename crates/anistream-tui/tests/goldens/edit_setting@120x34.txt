@@ -20,13 +20,13 @@ anistream                                                                       
                             │    Upscaling                   Natural · ArtCNN
                             │    Player interface            anistream
                             │    Night mode                  Off
-                            │
-                            │  Downloads  ───────────────────────────────────────────────────────────────────────────
-                            │    Download folder             Kept with the torrent cache
-                            │    Merge subtitles in          On
-                            │    Keep seeding                Off
-                            │    After each download         None
-                            │
+                            │    Size                        100%
+                            │    Font                        default
+                            │    Text colour                 white
+                            │    Edge                        outline
+                            │    Thickness                   medium
+                            │    Background                  none
+                            │    Opacity                     75%
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Press Enter to type a language code. There are too many values to cycle through.
                             │

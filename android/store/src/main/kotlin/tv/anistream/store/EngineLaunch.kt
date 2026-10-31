@@ -204,7 +204,31 @@ enum class FixtureScene {
     UNSURE,
 
     /** A scene that plays, with the first six episodes of the first fixture watched. */
-    PLAYING;
+    PLAYING,
+
+    /** A first launch with the demo as the only source. */
+    DEMO_ONLY,
+
+    /** [DEMO_ONLY] after part 1 was played. */
+    DEMO_PLAYED,
+
+    /** The fixture source beside the demo. */
+    DEMO_AND_STORE,
+
+    /** No source, and the demo taken out: Sources offers Add the demo. */
+    DEMO_REMOVED,
+
+    /** [WATCHING] with a styled subtitle look. */
+    SUBTITLE_STYLED,
+
+    /** A first launch with crash reports off. */
+    CRASH_OFF,
+
+    /** Crash reports on, with one saved report. */
+    CRASH_SAVED,
+
+    /** Crash reports on since yesterday; the app offers the system's own records. */
+    CRASH_HELD;
 
     companion object {
         /** The scene [name] says, case aside; `null` for one there is none of. */

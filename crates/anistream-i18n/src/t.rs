@@ -3181,6 +3181,16 @@ pub fn keys_action_lower_source() -> String {
 }
 
 /// Action label in the help overlay and the command palette.
+pub fn keys_action_play_demo() -> String {
+    text("keys-action-play-demo", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_toggle_demo() -> String {
+    text("keys-action-toggle-demo", &[])
+}
+
+/// Action label in the help overlay and the command palette.
 pub fn keys_action_download_range() -> String {
     text("keys-action-download-range", &[])
 }
@@ -9030,7 +9040,7 @@ pub fn onboarding_where_title() -> String {
     text("onboarding-where-title", &[])
 }
 
-/// First line of that page. States that the app hosts no content.
+/// First line of that page, shown after legal-hosts-no-content. Says where episodes come from.
 pub fn onboarding_where_hosts() -> String {
     text("onboarding-where-hosts", &[])
 }

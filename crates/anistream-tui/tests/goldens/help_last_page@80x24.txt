@@ -3,14 +3,14 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Keys                                                             Page 3 of 3
 ────────────────────────────────────────────────────────────────────────────────
+    Skip opening                   S
+    Slower                         [
     Faster                         ]
     Volume down                    9
     Volume up                      0
     Full screen                    F
     Leave player running           q
     Stop playback                  x
-
-
 
 
 
@@ -40,18 +40,18 @@ r03 c67-77 fg=text-dim bg=ground
 r03 c78-79 fg=rule bg=ground
 r04 c00-79 fg=rule bg=ground
 r05 c00-01 fg=rule bg=ground
-r05 c02-09 fg=text-dim bg=ground
-r05 c10-34 fg=rule bg=ground
+r05 c02-15 fg=text-dim bg=ground
+r05 c16-34 fg=rule bg=ground
 r05 c35-35 fg=text bg=ground
 r05 c36-79 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground
-r06 c02-14 fg=text-dim bg=ground
-r06 c15-34 fg=rule bg=ground
+r06 c02-09 fg=text-dim bg=ground
+r06 c10-34 fg=rule bg=ground
 r06 c35-35 fg=text bg=ground
 r06 c36-79 fg=rule bg=ground
 r07 c00-01 fg=rule bg=ground
-r07 c02-12 fg=text-dim bg=ground
-r07 c13-34 fg=rule bg=ground
+r07 c02-09 fg=text-dim bg=ground
+r07 c10-34 fg=rule bg=ground
 r07 c35-35 fg=text bg=ground
 r07 c36-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
@@ -60,17 +60,25 @@ r08 c15-34 fg=rule bg=ground
 r08 c35-35 fg=text bg=ground
 r08 c36-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
-r09 c02-23 fg=text-dim bg=ground
-r09 c24-34 fg=rule bg=ground
+r09 c02-12 fg=text-dim bg=ground
+r09 c13-34 fg=rule bg=ground
 r09 c35-35 fg=text bg=ground
 r09 c36-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-16 fg=text-dim bg=ground
-r10 c17-34 fg=rule bg=ground
+r10 c02-14 fg=text-dim bg=ground
+r10 c15-34 fg=rule bg=ground
 r10 c35-35 fg=text bg=ground
 r10 c36-79 fg=rule bg=ground
-r11 c00-79 fg=rule bg=ground
-r12 c00-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-23 fg=text-dim bg=ground
+r11 c24-34 fg=rule bg=ground
+r11 c35-35 fg=text bg=ground
+r11 c36-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-16 fg=text-dim bg=ground
+r12 c17-34 fg=rule bg=ground
+r12 c35-35 fg=text bg=ground
+r12 c36-79 fg=rule bg=ground
 r13 c00-79 fg=rule bg=ground
 r14 c00-79 fg=rule bg=ground
 r15 c00-79 fg=rule bg=ground

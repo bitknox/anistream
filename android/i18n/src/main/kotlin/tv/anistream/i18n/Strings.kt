@@ -4857,7 +4857,7 @@ object Strings {
     fun onboardingWhereTitle(context: Context): String =
         context.getString(R.string.onboarding_where_title)
 
-    /** First line of that page. States that the app hosts no content. */
+    /** First line of that page, shown after legal-hosts-no-content. Says where episodes come from. */
     fun onboardingWhereHosts(context: Context): String =
         context.getString(R.string.onboarding_where_hosts)
 

@@ -336,4 +336,56 @@ mod tests {
         a.apply(Event::MetaStatus(vec![row("anilist", false), row("tenrai", true)]));
         assert!(a.meta_degraded());
     }
+
+    fn demo_state(on: bool, only: bool, played: bool) -> anistream_model::sources::DemoState {
+        anistream_model::sources::DemoState { on, offer: !on, only, played }
+    }
+
+    #[test]
+    fn the_first_run_asks_once_and_enter_plays_the_demo() {
+        let mut a = app();
+        a.apply(Event::Demo(demo_state(true, true, false)));
+        assert_eq!(a.nav.overlay(), Some(&crate::nav::Overlay::FirstRun));
+        let played = a.press(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), 20);
+        assert_eq!(played, Some(Command::PlayDemo));
+        assert!(!a.nav.has_overlay());
+        a.apply(Event::Demo(demo_state(true, true, false)));
+        assert!(!a.nav.has_overlay(), "asked once a session");
+    }
+
+    #[test]
+    fn the_first_run_can_be_skipped_or_go_to_an_invite() {
+        let mut skipped = app();
+        skipped.apply(Event::Demo(demo_state(true, true, false)));
+        assert_eq!(press(&mut skipped, 's'), None);
+        assert!(!skipped.nav.has_overlay());
+
+        let mut invited = app();
+        invited.apply(Event::Demo(demo_state(true, true, false)));
+        assert_eq!(press(&mut invited, 'i'), None);
+        assert_eq!(invited.nav.overlay(), Some(&crate::nav::Overlay::JoinStore));
+    }
+
+    #[test]
+    fn nothing_asks_when_the_demo_is_not_the_only_source_or_was_played() {
+        for state in [
+            demo_state(true, false, false),
+            demo_state(true, true, true),
+            demo_state(false, false, false),
+        ] {
+            let mut a = app();
+            a.apply(Event::Demo(state));
+            assert!(!a.nav.has_overlay());
+        }
+    }
+
+    #[test]
+    fn the_demo_keys_play_it_and_take_it_out_or_bring_it_back() {
+        let mut a = at_providers();
+        a.apply(Event::Demo(demo_state(true, false, false)));
+        assert_eq!(press(&mut a, 'B'), Some(Command::PlayDemo));
+        assert_eq!(press(&mut a, 'Y'), Some(Command::RemoveDemo));
+        a.apply(Event::Demo(demo_state(false, false, false)));
+        assert_eq!(press(&mut a, 'Y'), Some(Command::AddDemo));
+    }
 }

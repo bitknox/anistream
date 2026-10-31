@@ -240,7 +240,7 @@
     <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
   </data>
   <data name="HomeSpotlightDemo" xml:space="preserve">
-    <value>Demo · Shared under CC BY 4.0</value>
+    <value>Demo, free to share</value>
     <comment>Line over the spotlight's title when it is the built-in demo.</comment>
   </data>
   <data name="NoticeReason" xml:space="preserve">
@@ -4232,8 +4232,8 @@
     <comment>Heading of the welcome page that explains where episodes come from.</comment>
   </data>
   <data name="OnboardingWhereHosts" xml:space="preserve">
-    <value>anistream hosts no content. It plays episodes from sources, which are plugins.</value>
-    <comment>First line of that page. States that the app hosts no content.</comment>
+    <value>Episodes play from sources, which are plugins.</value>
+    <comment>First line of that page, shown after legal-hosts-no-content. Says where episodes come from.</comment>
   </data>
   <data name="OnboardingWhereStores" xml:space="preserve">
     <value>Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.</value>
@@ -5884,7 +5884,7 @@
     <comment>Second sample line in the subtitle preview.</comment>
   </data>
   <data name="SettingsSubsPreviewSign" xml:space="preserve">
-    <value>Kumo no Ue Library</value>
+    <value>Kumo no Ue Reading Room</value>
     <comment>Sample of a typeset sign at the top of the styled preview.</comment>
   </data>
   <data name="SettingsSubsSystemChange" xml:space="preserve">

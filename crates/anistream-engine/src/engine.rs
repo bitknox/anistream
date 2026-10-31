@@ -323,8 +323,6 @@ impl Engine {
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
         state.config.set_handheld(handheld);
-        // A new install has the demo on; the choice is written down before anything else is.
-        crate::demo::remember_fresh_install(&mut state, &services.paths);
         crate::crash::arm_from(&services.paths.data_dir, state.config.effective());
         #[cfg(feature = "cast")]
         {

@@ -155,6 +155,12 @@ keys-action-raise-source = Move { -source } up
 keys-action-lower-source = Move { -source } down
 
 # Action label in the help overlay and the command palette.
+keys-action-play-demo = Play the demo
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-demo = Remove or add the demo
+
+# Action label in the help overlay and the command palette.
 keys-action-download-range = Download a range of episodes
 
 # Action label in the help overlay and the command palette.

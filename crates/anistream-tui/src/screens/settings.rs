@@ -164,7 +164,7 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         // Tall enough for every group — scrolling has its own test below.
-        let text = text_of(&render_to_buffer(&mut app, 120, 48));
+        let text = text_of(&render_to_buffer(&mut app, 120, 72));
         assert!(text.contains("Adaptive"), "theme mode");
         assert!(text.contains("1080p"));
         assert!(text.contains("85%"), "commit threshold");
@@ -183,7 +183,7 @@ mod tests {
         app.go_to_section(Section::Settings);
         app.set_cursor(anistream_model::settings::SettingKey::ROWS.len() - 1);
         let text = text_of(&render_to_buffer(&mut app, 120, 12));
-        assert!(text.contains("Token storage"), "the last row must be visible:\n{text}");
+        assert!(text.contains("Ask after a crash"), "the last row must be visible:\n{text}");
     }
 
     #[test]
