@@ -880,7 +880,7 @@ mod tests {
             playable: Playable::NotFound,
             because: Some("Stardust Wayfarer".into()),
         };
-        crosses_intact(Event::Home(HomeView {
+        crosses_intact(Event::Home(Box::new(HomeView {
             spotlight: Some(Spotlight {
                 case: SpotlightCase::Suggested,
                 label: Msg::HomeSpotlightNewSeason { title: "Stardust Wayfarer".into() },
@@ -915,8 +915,8 @@ mod tests {
             offline: true,
             offline_since: Some(1_799_990_000),
             failed: true,
-        }));
-        crosses_intact(Event::Home(HomeView::default()));
+        })));
+        crosses_intact(Event::Home(Box::default()));
         crosses_intact(Event::TitlePlayable {
             id: AnilistId::new(900_002),
             playable: Playable::NotFound,

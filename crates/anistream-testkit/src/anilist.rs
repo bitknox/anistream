@@ -197,6 +197,8 @@ struct State {
     requests: Vec<Request>,
     next: VecDeque<Failure>,
     always: Option<Failure>,
+    /// Failures for one operation each, until healed: see [`FakeAniList::fail_operation`].
+    failing: HashMap<Operation, Failure>,
     now: i64,
     /// How far the clock has moved on past `now` without the broadcasts moving with it: see
     /// [`FakeAniList::advance`].
@@ -255,6 +257,7 @@ impl FakeAniList {
             catalogue: Vec::new(),
             broadcasts: Vec::new(),
             slow: HashMap::new(),
+            failing: HashMap::new(),
             art: None,
             art_trouble: ArtTrouble::default(),
             art_asked: HashMap::new(),
@@ -334,11 +337,19 @@ impl FakeAniList {
         lock(&self.state).always = Some(failure);
     }
 
+    /// Answer every request for `operation` with `failure` until [`Self::heal`], and every
+    /// other as ever: an AniList that fails one kind of query, such as Home's discovery while its
+    /// queue's titles still load. [`Self::fail_next`] and [`Self::fail_always`] come first.
+    pub fn fail_operation(&self, operation: Operation, failure: Failure) {
+        lock(&self.state).failing.insert(operation, failure);
+    }
+
     /// Drop every queued and standing failure.
     pub fn heal(&self) {
         let mut state = lock(&self.state);
         state.next.clear();
         state.always = None;
+        state.failing.clear();
     }
 
     /// Serve the fixture titles' art ([`crate::art`]) under `/art/`, and point every image URL
@@ -741,7 +752,11 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             variables: variables.clone(),
             authorization: head.authorization.clone(),
         });
-        let failure = state.next.pop_front().or_else(|| state.always.clone());
+        let failure = state
+            .next
+            .pop_front()
+            .or_else(|| state.always.clone())
+            .or_else(|| state.failing.get(&operation).cloned());
         let clock = (state.now, state.ahead);
         let extra = state.extra.clone();
         let pool = state.catalogue.clone();

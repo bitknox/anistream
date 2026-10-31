@@ -144,7 +144,8 @@ pub(crate) async fn fetch_rails(
     (season, year): (Season, u16),
     extra: &[SearchQuery],
 ) -> Result<(Vec<Vec<Media>>, Vec<Vec<Media>>), String> {
-    let queries: Vec<SearchQuery> = rails(season, year).into_iter().map(|(_, _, q)| q).collect();
+    let queries: Vec<SearchQuery> =
+        rails(season, year).into_iter().map(|(_, _, q)| q).collect();
     let filters: Vec<_> =
         queries.iter().chain(extra).map(|q| browse_filter(q, adult)).collect();
     let asked: Vec<(&str, &anistream_meta::BrowseFilter)> =

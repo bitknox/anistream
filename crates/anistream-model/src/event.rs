@@ -10,6 +10,7 @@ use crate::{
     discussion::DiscussionView,
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
+    home::{HiddenTitle, HomeView, Playable},
     hosted::{PlayerOp, PlayerStats, PlayerUi},
     jobs::JobId,
     notice::Notice,
@@ -28,7 +29,6 @@ use crate::{
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
     trailer::AutoplayView,
-    home::{HiddenTitle, HomeView, Playable},
     up_next::UpNextItem,
     updates::UpdateStatus,
     widgets::WidgetData,
@@ -141,7 +141,7 @@ pub enum Event {
     /// Home, whole, in answer to [`Command::LoadHome`](crate::command::Command::LoadHome) and
     /// whenever what it shows changes. Each replaces the one before; the spotlight crossfades
     /// when [`HomeView::spotlight_moved`] says it moved.
-    Home(HomeView),
+    Home(Box<HomeView>),
     /// What the sources check found for title `id`.
     TitlePlayable {
         id: AnilistId,

@@ -112,7 +112,8 @@ pub(crate) fn finished_here(meta: &Meta, store: &Store, listed: bool) -> HashSet
     let watched = store.watched_titles(200).unwrap_or_default();
     let ids: Vec<AnilistId> = watched.iter().map(|p| p.anilist_id).collect();
     for media in meta.cached(&ids) {
-        let done = watched.iter().find(|p| p.anilist_id == media.id).map_or(0, |p| p.episodes_done);
+        let done =
+            watched.iter().find(|p| p.anilist_id == media.id).map_or(0, |p| p.episodes_done);
         if media.episodes.is_some_and(|total| total > 0 && done >= total) {
             finished.insert(media.id);
         }

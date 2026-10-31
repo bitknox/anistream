@@ -953,7 +953,13 @@ impl Actor {
             return;
         }
         let tx = self.inbox.sender();
-        dispatch(Command::LoadHome { refresh: false }, None, &mut self.state, &self.services, &tx);
+        dispatch(
+            Command::LoadHome { refresh: false },
+            None,
+            &mut self.state,
+            &self.services,
+            &tx,
+        );
     }
 
     /// One item of the inbox, in its place.

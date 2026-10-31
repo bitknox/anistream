@@ -140,7 +140,7 @@ fn homes(updates: &[Event]) -> Vec<HomeView> {
     updates
         .iter()
         .filter_map(|u| match u {
-            Event::Home(home) => Some(home.clone()),
+            Event::Home(home) => Some(home.as_ref().clone()),
             _ => None,
         })
         .collect()
@@ -169,7 +169,9 @@ fn kinds(home: &HomeView) -> Vec<SectionKind> {
 }
 
 fn shelf(home: &HomeView, kind: SectionKind) -> Vec<u32> {
-    home.section(kind).map(|s| s.items.iter().map(|i| i.entry.id.get()).collect()).unwrap_or_default()
+    home.section(kind)
+        .map(|s| s.items.iter().map(|i| i.entry.id.get()).collect())
+        .unwrap_or_default()
 }
 
 fn everywhere(home: &HomeView) -> Vec<u32> {
@@ -188,7 +190,10 @@ async fn a_show_with_an_episode_waiting_is_the_spotlight_and_first_in_continue()
     let home = sent.last().unwrap();
 
     let spotlight = home.spotlight.as_ref().expect("a spotlight");
-    assert_eq!((spotlight.entry.id.get(), spotlight.case), (WATCHING, SpotlightCase::Continuing));
+    assert_eq!(
+        (spotlight.entry.id.get(), spotlight.case),
+        (WATCHING, SpotlightCase::Continuing)
+    );
     assert_eq!(spotlight.episode, 4);
     assert_eq!(spotlight.action, HomeAction::Play);
     assert_eq!(spotlight.label, Msg::HomeSpotlightContinuing);
@@ -235,7 +240,10 @@ async fn with_nothing_waiting_a_suggestion_comes_before_the_popular_pick() {
     let home = sent.last().unwrap();
 
     let spotlight = home.spotlight.as_ref().expect("a spotlight");
-    assert_eq!((spotlight.entry.id.get(), spotlight.case), (NEW_SEASON, SpotlightCase::Suggested));
+    assert_eq!(
+        (spotlight.entry.id.get(), spotlight.case),
+        (NEW_SEASON, SpotlightCase::Suggested)
+    );
     assert_eq!(spotlight.reason, Some(UpNextReason::NewSeason));
     assert_eq!(
         spotlight.label,
@@ -244,7 +252,11 @@ async fn with_nothing_waiting_a_suggestion_comes_before_the_popular_pick() {
     assert_eq!(spotlight.action, HomeAction::Play);
     assert_eq!(spotlight.line, None);
     // The spotlight's title is on no shelf below it: not Up next for you, not This season.
-    assert!(!everywhere(home).iter().skip(1).any(|n| *n == NEW_SEASON), "{:?}", everywhere(home));
+    assert!(
+        !everywhere(home).iter().skip(1).any(|n| *n == NEW_SEASON),
+        "{:?}",
+        everywhere(home)
+    );
     let mut shown: Vec<_> = sent.iter().filter_map(spotlit).collect();
     shown.dedup();
     assert_eq!(shown, [(NEW_SEASON, SpotlightCase::Suggested)], "decided once");
@@ -499,7 +511,10 @@ async fn a_title_dismissed_before_it_airs_is_hidden_until_it_does() {
 }
 
 /// The fixture source's search, answered by one made-up source.
-fn source(hits: Vec<SearchHit>, latency: Duration) -> (ProviderRegistry, Arc<std::sync::atomic::AtomicUsize>) {
+fn source(
+    hits: Vec<SearchHit>,
+    latency: Duration,
+) -> (ProviderRegistry, Arc<std::sync::atomic::AtomicUsize>) {
     let provider = MockProvider::new("source.example").with_hits(hits).with_latency(latency);
     let calls = provider.call_count();
     (ProviderRegistry::new(vec![provider.arc()]), calls)
@@ -583,7 +598,8 @@ async fn a_source_that_does_not_answer_in_time_marks_nothing() {
 async fn no_title_is_on_two_discovery_shelves() {
     let now = noon(2030, 12, 25);
     let mut h = at(now, None).await;
-    let mut finished = show(FINISHED, "FINISHED", ("SUMMER", 2030), 10, &[("SEQUEL", NEW_SEASON)]);
+    let mut finished =
+        show(FINISHED, "FINISHED", ("SUMMER", 2030), 10, &[("SEQUEL", NEW_SEASON)]);
     finished["averageScore"] = json!(82);
     season(
         &h,

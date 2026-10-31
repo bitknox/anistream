@@ -19,10 +19,9 @@ use crate::{
         browse,
         calendar::{load_calendar, load_calendar_ahead, load_calendar_past},
         detail::{load_detail, open_external, play_trailer},
-        lists::{hide_from_continue, load_continue, load_seasonal},
-        recents, search,
         home::{self, HomeAsk, HomeMemory},
-        probe,
+        lists::{hide_from_continue, load_continue, load_seasonal},
+        probe, recents, search,
         up_next::{self, Ask},
     },
     data,
@@ -184,7 +183,13 @@ fn home_ask(engine: &EngineState, services: &Services, refresh: bool) -> HomeAsk
 
 /// After a dismissal or its Undo: Home again from what is kept, and the hidden titles when
 /// Settings has them open.
-async fn after_dismissal(meta: Meta, store: Store, tx: Outbox, ask: HomeAsk, memory: HomeMemory) {
+async fn after_dismissal(
+    meta: Meta,
+    store: Store,
+    tx: Outbox,
+    ask: HomeAsk,
+    memory: HomeMemory,
+) {
     home::changed(&meta, &store, &tx, &ask, &memory);
     if memory.hidden_asked() {
         home::hidden_titles(&meta, &store, &tx).await;
@@ -216,7 +221,8 @@ pub(crate) fn dispatch(
             let ask = up_next_ask(engine, services);
             let (home, memory) = (home_ask(engine, services, false), engine.home.clone());
             spawn(job, services, tx, move |lent| async move {
-                let (meta, store, tx) = (lent.meta.clone(), lent.store.clone(), lent.tx.clone());
+                let (meta, store, tx) =
+                    (lent.meta.clone(), lent.store.clone(), lent.tx.clone());
                 up_next::restore(lent, id, ask).await;
                 after_dismissal(meta, store, tx, home, memory).await;
             })
@@ -224,7 +230,8 @@ pub(crate) fn dispatch(
         Command::DismissUpNext { id } => {
             let (home, memory) = (home_ask(engine, services, false), engine.home.clone());
             spawn(job, services, tx, move |lent| async move {
-                let (meta, store, tx) = (lent.meta.clone(), lent.store.clone(), lent.tx.clone());
+                let (meta, store, tx) =
+                    (lent.meta.clone(), lent.store.clone(), lent.tx.clone());
                 up_next::dismiss(lent, id).await;
                 after_dismissal(meta, store, tx, home, memory).await;
             })
@@ -459,9 +466,17 @@ pub(crate) fn dispatch(
         }
         Command::NetworkPath { cellular, constrained, offline } => {
             let network = crate::phases::Network { cellular, constrained, offline };
+            let moved = engine.network.offline != offline;
             services.offline.store(offline, std::sync::atomic::Ordering::Relaxed);
             crate::phases::network_path(network, engine, tx);
             ahead::top_up(engine, services, tx);
+            // Home open says it is offline, and since when, or stops saying so, at once.
+            if moved && engine.home.asked() {
+                let (ask, memory) = (home_ask(engine, services, false), engine.home.clone());
+                spawn(job, services, tx, move |lent| async move {
+                    home::changed(&lent.meta, &lent.store, &lent.tx, &ask, &memory);
+                });
+            }
         }
         Command::DeviceState {
             reduce_motion,

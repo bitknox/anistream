@@ -28,8 +28,8 @@ use anistream_model::{
     event::Event,
     home::{
         CONTINUE_SHOWN, HiddenTitle, HomeAction, HomeEnd, HomeItem, HomeLink, HomePart,
-        HomeSection, HomeView, Playable, SHELF_SHOWN, SUGGESTIONS_SHOWN, SectionKind, Spotlight,
-        SpotlightCase, WEEK_DAYS,
+        HomeSection, HomeView, Playable, SHELF_SHOWN, SUGGESTIONS_SHOWN, SectionKind,
+        Spotlight, SpotlightCase, WEEK_DAYS,
     },
     present::{Casing, QueueItem},
     search::{SearchQuery, SearchSort},
@@ -293,10 +293,15 @@ pub fn queue_mark(store: &Store) -> u64 {
 
 /// The genre most common among the titles finished, when at least [`GENRE_AT_LEAST`] of them
 /// share it, from what is cached. Ties go to the genre of the most recently finished title.
-fn favourite_genre(meta: &Meta, store: &Store, finished: &HashSet<AnilistId>) -> Option<String> {
+fn favourite_genre(
+    meta: &Meta,
+    store: &Store,
+    finished: &HashSet<AnilistId>,
+) -> Option<String> {
     let mut order: Vec<AnilistId> =
         store.watched_titles(200).unwrap_or_default().iter().map(|p| p.anilist_id).collect();
-    let mut rest: Vec<AnilistId> = finished.iter().copied().filter(|id| !order.contains(id)).collect();
+    let mut rest: Vec<AnilistId> =
+        finished.iter().copied().filter(|id| !order.contains(id)).collect();
     rest.sort_unstable_by_key(|id| id.get());
     order.extend(rest);
     let ids: Vec<AnilistId> = order.into_iter().filter(|id| finished.contains(id)).collect();
@@ -451,7 +456,9 @@ fn continue_card(entry: &Entry, store: &Store, now: i64, today: i64) -> Option<H
         }
         // Part way through an episode whose length is not known: the action says Resume.
         (Some(_), _, _) => None,
-        (None, _, Some(ago)) if now - ago >= today => Some(Msg::HomeEpisodeOutToday { episode }),
+        (None, _, Some(ago)) if now - ago >= today => {
+            Some(Msg::HomeEpisodeOutToday { episode })
+        }
         (None, _, _) => Some(Msg::HomeEpisodeOut { episode }),
     };
     Some(HomeItem {
@@ -490,7 +497,8 @@ fn suggestions(
     now: i64,
 ) -> Vec<(HomeItem, Entry)> {
     let store = viewer_store(viewer);
-    let picks: Vec<&Pick> = part.picks.iter().filter(|p| p.reason != Why::AiringToday).collect();
+    let picks: Vec<&Pick> =
+        part.picks.iter().filter(|p| p.reason != Why::AiringToday).collect();
     let ids: Vec<u32> = picks.iter().map(|p| p.id).collect();
     let found: HashMap<AnilistId, Entry> =
         entries(meta, store, &ids).into_iter().map(|e| (e.id, e)).collect();
@@ -533,7 +541,12 @@ fn suggestions(
 }
 
 /// The label over a suggested spotlight: why Up next for you has it.
-fn suggested_label(meta: &Meta, viewer: &Viewer<'_>, item: &HomeItem, pick: Option<&Pick>) -> Msg {
+fn suggested_label(
+    meta: &Meta,
+    viewer: &Viewer<'_>,
+    item: &HomeItem,
+    pick: Option<&Pick>,
+) -> Msg {
     match item.reason {
         Some(UpNextReason::NewSeason) => {
             // The season before, as the viewer finished it.
@@ -552,12 +565,10 @@ fn suggested_label(meta: &Meta, viewer: &Viewer<'_>, item: &HomeItem, pick: Opti
             }
         }
         Some(UpNextReason::Planning) => Msg::HomeSpotlightPlanning,
-        Some(UpNextReason::Recommended) => {
-            match pick.and_then(|p| p.because.clone()) {
-                Some(title) => Msg::HomeSpotlightBecause { title },
-                None => Msg::HomeSpotlightRecommended,
-            }
-        }
+        Some(UpNextReason::Recommended) => match pick.and_then(|p| p.because.clone()) {
+            Some(title) => Msg::HomeSpotlightBecause { title },
+            None => Msg::HomeSpotlightRecommended,
+        },
         _ => Msg::HomeSpotlightPopular,
     }
 }
@@ -643,7 +654,8 @@ fn compose(
         pending.push(HomePart::Season);
     }
 
-    let suggested = personal.as_ref().map(|p| suggestions(meta, &viewer, p, now)).unwrap_or_default();
+    let suggested =
+        personal.as_ref().map(|p| suggestions(meta, &viewer, p, now)).unwrap_or_default();
     // A title shows on one discovery shelf only: the first that has it.
     let mut seen: HashSet<AnilistId> = HashSet::new();
     let shelf = |items: Vec<HomeItem>, most: usize, seen: &mut HashSet<AnilistId>| {
@@ -655,13 +667,13 @@ fn compose(
     // The next season, in the two weeks before it starts.
     let (this_season, this_year) = season_on(now, &ask.zone);
     let (next, next_year) = next_season(this_season, this_year);
-    let starting = next_season_starts(now, &ask.zone).is_some_and(|at| at - now <= STARTING_BEFORE);
+    let starting =
+        next_season_starts(now, &ask.zone).is_some_and(|at| at - now <= STARTING_BEFORE);
     if starting && let Some(part) = &season {
         let in_next = |entry: &Entry| {
             let by_season = entry.season == Some(next) && entry.year == Some(next_year);
             let by_date = entry.start_date.is_some_and(|d| {
-                d.year == next_year
-                    && d.month.is_some_and(|m| season_of_month(m as i8) == next)
+                d.year == next_year && d.month.is_some_and(|m| season_of_month(m as i8) == next)
             });
             by_season || by_date
         };
@@ -686,14 +698,17 @@ fn compose(
                 title: starting_title(next),
                 total: items.len() as u32,
                 items,
-                view_all: Some(HomeLink::Browse { query: SearchQuery::season(next, next_year) }),
+                view_all: Some(HomeLink::Browse {
+                    query: SearchQuery::season(next, next_year),
+                }),
             });
         }
     }
 
     // This week, or for a first run signed out, what airs today.
     if first {
-        let part = kept::<SchedulePart>(store, TODAY_KEY).filter(|p| p.from == day_mark(ask) as u64);
+        let part =
+            kept::<SchedulePart>(store, TODAY_KEY).filter(|p| p.from == day_mark(ask) as u64);
         match part {
             Some(part) => {
                 let items = broadcast_cards(meta, store, &part, ask, false)
@@ -835,8 +850,8 @@ fn compose(
             && !season_waits
             && let Some(part) = &season
         {
-            let entry =
-                popular(meta, &viewer, &part.this).or_else(|| popular(meta, &viewer, &part.previous));
+            let entry = popular(meta, &viewer, &part.this)
+                .or_else(|| popular(meta, &viewer, &part.previous));
             spotlight = entry.map(|entry| {
                 let item = poster(entry, &viewer, None, now);
                 Spotlight {
@@ -865,7 +880,9 @@ fn compose(
         sections.retain(|s| !s.items.is_empty());
     }
 
-    let end = pending.is_empty().then_some(if !ask.sources {
+    // The end waits for Continue's own titles too, so a front end that reads it as settled has
+    // the whole queue.
+    let end = (pending.is_empty() && !continuing).then_some(if !ask.sources {
         HomeEnd::NoSources
     } else if ask.listed {
         HomeEnd::Everything
@@ -957,14 +974,21 @@ fn broadcast_cards(
 
 /// Compose Home and send it, unless it is what was sent last. `failed` marks this send as the
 /// one after a part failed.
-fn send(meta: &Meta, store: &Store, tx: &Outbox, ask: &HomeAsk, memory: &HomeMemory, failed: bool) {
+fn send(
+    meta: &Meta,
+    store: &Store,
+    tx: &Outbox,
+    ask: &HomeAsk,
+    memory: &HomeMemory,
+    failed: bool,
+) {
     let mut mem = memory.lock();
     let home = compose(meta, store, ask, &mem.loading, mem.continuing);
     if !failed && mem.last.as_ref() == Some(&home) {
         return;
     }
     mem.last = Some(home.clone());
-    let _ = tx.send(Event::Home(HomeView { failed, ..home }));
+    let _ = tx.send(Event::Home(Box::new(HomeView { failed, ..home })));
 }
 
 /// Send Home again from what is kept, asking nothing: after a dismissal, a restore, or an
@@ -982,21 +1006,26 @@ fn due(meta: &Meta, store: &Store, ask: &HomeAsk) -> HashSet<HomePart> {
     let fresh = |at: i64| !ask.refresh && ask.now - at < KEPT_FOR && ask.now >= at;
     let finished = viewer(meta, store, ask).finished;
     let genre = favourite_genre(meta, store, &finished);
-    if !season_part(store, ask).is_some_and(|p| fresh(p.at) && p.genre.as_ref().map(|r| &r.name) == genre.as_ref()) {
+    if !season_part(store, ask)
+        .is_some_and(|p| fresh(p.at) && p.genre.as_ref().map(|r| &r.name) == genre.as_ref())
+    {
         due.insert(HomePart::Season);
     }
     let from = personal_signature(store, ask);
-    if !kept::<PersonalPart>(store, PERSONAL_KEY).is_some_and(|p| fresh(p.at) && p.from == from) {
+    if !kept::<PersonalPart>(store, PERSONAL_KEY).is_some_and(|p| fresh(p.at) && p.from == from)
+    {
         due.insert(HomePart::Suggestions);
     }
     if first_run(store, ask) {
         let day = day_mark(ask) as u64;
-        if !kept::<SchedulePart>(store, TODAY_KEY).is_some_and(|p| fresh(p.at) && p.from == day) {
+        if !kept::<SchedulePart>(store, TODAY_KEY).is_some_and(|p| fresh(p.at) && p.from == day)
+        {
             due.insert(HomePart::Today);
         }
     } else {
         let from = week_signature(&week_candidates(store, ask), ask);
-        if !kept::<SchedulePart>(store, WEEK_KEY).is_some_and(|p| fresh(p.at) && p.from == from) {
+        if !kept::<SchedulePart>(store, WEEK_KEY).is_some_and(|p| fresh(p.at) && p.from == from)
+        {
             due.insert(HomePart::Week);
         }
     }
@@ -1078,7 +1107,11 @@ fn stale_continue(store: &Store) -> Vec<AnilistId> {
     continue_ids(store)
         .into_iter()
         .filter(|id| {
-            store.cached_media(*id).ok().flatten().is_none_or(|(_, at)| wall - at >= CONTINUE_FRESH)
+            store
+                .cached_media(*id)
+                .ok()
+                .flatten()
+                .is_none_or(|(_, at)| wall - at >= CONTINUE_FRESH)
         })
         .collect()
 }
@@ -1095,8 +1128,8 @@ async fn load_season(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), St
     let finished = viewer(meta, store, ask).finished;
     let genre = favourite_genre(meta, store, &finished);
     let extra: Vec<SearchQuery> = genre.iter().map(|g| genre_query(g)).collect();
-    let (rails, extra) = browse::fetch_rails(meta, store, ask.adult, ask.now, (season, year), &extra)
-        .await?;
+    let (rails, extra) =
+        browse::fetch_rails(meta, store, ask.adult, ask.now, (season, year), &extra).await?;
     let ids = |media: Option<&Vec<Media>>| -> Vec<u32> {
         media.map(|m| m.iter().map(|m| m.id.get()).collect()).unwrap_or_default()
     };
@@ -1117,7 +1150,8 @@ async fn load_season(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), St
         let (before, before_year) = previous_season(season, year);
         let query = SearchQuery::season(before, before_year);
         let filter = crate::catalog::search::browse_filter(&query, ask.adult);
-        let found = meta.find("", &filter, 1, PREVIOUS_ASKED).await.map_err(|e| e.to_string())?;
+        let found =
+            meta.find("", &filter, 1, PREVIOUS_ASKED).await.map_err(|e| e.to_string())?;
         part.previous = found.page.items.iter().map(|m| m.id.get()).collect();
         keep(store, SEASON_KEY, &part);
     }
@@ -1146,32 +1180,44 @@ fn personal_signature(store: &Store, ask: &HomeAsk) -> u64 {
 /// and "Because you finished" from the most recent title finished that rated well.
 async fn load_personal(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), String> {
     let from = personal_signature(store, ask);
-    let queue: Vec<AnilistId> = store.continue_list(15).unwrap_or_default().iter().map(|p| p.anilist_id).collect();
+    let queue: Vec<AnilistId> =
+        store.continue_list(15).unwrap_or_default().iter().map(|p| p.anilist_id).collect();
     let anything = store.watched_titles(1).is_ok_and(|w| !w.is_empty())
         || (ask.listed
             && ["COMPLETED", "PLANNING"]
                 .iter()
                 .any(|s| store.library_with_status(s).is_ok_and(|ids| !ids.is_empty())));
     if !anything {
-        keep(store, PERSONAL_KEY, &PersonalPart { at: ask.now, from, ..PersonalPart::default() });
+        keep(
+            store,
+            PERSONAL_KEY,
+            &PersonalPart { at: ask.now, from, ..PersonalPart::default() },
+        );
         return Ok(());
     }
-    let up_ask = up_next::Ask { listed: ask.listed, adult: ask.adult, now: ask.now, zone: ask.zone.clone() };
-    // Every dismissal is left in, and taken out as Home is composed, so an Undo needs no request.
-    let found = up_next::find(meta, store, &queue, &[], &up_ask, SUGGESTIONS_FOUND, false).await?;
-    let because = match found.finished.iter().find(|e| e.score.is_some_and(|s| s >= BECAUSE_SCORE)) {
-        Some(source) => match meta.recommended_titles(source.id, BECAUSE_ASKED).await {
-            Ok(media) => Some(Rail {
-                name: source.title.clone(),
-                ids: media.iter().map(|m| m.id.get()).collect(),
-            }),
-            Err(e) => {
-                tracing::warn!(error = %e, "Because you finished failed");
-                None
-            }
-        },
-        None => None,
+    let up_ask = up_next::Ask {
+        listed: ask.listed,
+        adult: ask.adult,
+        now: ask.now,
+        zone: ask.zone.clone(),
     };
+    // Every dismissal is left in, and taken out as Home is composed, so an Undo needs no request.
+    let found =
+        up_next::find(meta, store, &queue, &[], &up_ask, SUGGESTIONS_FOUND, false).await?;
+    let because =
+        match found.finished.iter().find(|e| e.score.is_some_and(|s| s >= BECAUSE_SCORE)) {
+            Some(source) => match meta.recommended_titles(source.id, BECAUSE_ASKED).await {
+                Ok(media) => Some(Rail {
+                    name: source.title.clone(),
+                    ids: media.iter().map(|m| m.id.get()).collect(),
+                }),
+                Err(e) => {
+                    tracing::warn!(error = %e, "Because you finished failed");
+                    None
+                }
+            },
+            None => None,
+        };
     let part = PersonalPart {
         at: ask.now,
         from,
@@ -1203,7 +1249,12 @@ fn week_candidates(store: &Store, ask: &HomeAsk) -> Vec<AnilistId> {
 /// The shows followed: Watching on the tracker's list, and the shows of the history that air
 /// or aired an episode in the last three weeks. A show of the history whose record is not
 /// cached is asked about too, as the window leaves out one with nothing in it.
-fn followed(meta: &Meta, store: &Store, ask: &HomeAsk, candidates: &[AnilistId]) -> Vec<AnilistId> {
+fn followed(
+    meta: &Meta,
+    store: &Store,
+    ask: &HomeAsk,
+    candidates: &[AnilistId],
+) -> Vec<AnilistId> {
     let listed: HashSet<AnilistId> = if ask.listed {
         store.library_with_status("CURRENT").unwrap_or_default().into_iter().collect()
     } else {
@@ -1221,8 +1272,9 @@ fn followed(meta: &Meta, store: &Store, ask: &HomeAsk, candidates: &[AnilistId])
             }
             let Some(media) = cached.get(id) else { return true };
             let entry = data::entry_from(media, None);
-            let airs = matches!(entry.status, Some(AiringStatus::Releasing | AiringStatus::Hiatus))
-                || media.next_airing_episode.is_some();
+            let airs =
+                matches!(entry.status, Some(AiringStatus::Releasing | AiringStatus::Hiatus))
+                    || media.next_airing_episode.is_some();
             let ended_lately = entry.end_date.is_some_and(|d| {
                 let (month, day) = (d.month.unwrap_or(12), d.day.unwrap_or(28));
                 jiff::civil::date(d.year as i16, month as i8, day as i8)
@@ -1243,12 +1295,18 @@ fn week_signature(followed: &[AnilistId], ask: &HomeAsk) -> u64 {
     hasher.finish()
 }
 
-fn schedule_part(page: &[anistream_meta::anilist::AiringEntry], meta: &Meta, at: i64, from: u64) -> SchedulePart {
+fn schedule_part(
+    page: &[anistream_meta::anilist::AiringEntry],
+    meta: &Meta,
+    at: i64,
+    from: u64,
+) -> SchedulePart {
     let ids: Vec<AnilistId> = page.iter().map(|a| a.media.id).collect();
     let cached: HashSet<AnilistId> = meta.cached(&ids).iter().map(|m| m.id).collect();
     let mut media: Vec<Media> = Vec::new();
     for airing in page {
-        if !cached.contains(&airing.media.id) && !media.iter().any(|m| m.id == airing.media.id) {
+        if !cached.contains(&airing.media.id) && !media.iter().any(|m| m.id == airing.media.id)
+        {
             media.push(airing.media.clone());
         }
     }
@@ -1284,10 +1342,8 @@ async fn load_week(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), Stri
 /// What airs today, the most popular first, one broadcast a show: one request.
 async fn load_today(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), String> {
     let start = day_mark(ask);
-    let page = meta
-        .airing_between(start, start + DAY, 1, 50)
-        .await
-        .map_err(|e| e.to_string())?;
+    let page =
+        meta.airing_between(start, start + DAY, 1, 50).await.map_err(|e| e.to_string())?;
     let mut seen = HashSet::new();
     let mut rows: Vec<_> = page.items.into_iter().filter(|a| seen.insert(a.media.id)).collect();
     rows.sort_by_key(|a| std::cmp::Reverse(a.media.popularity.unwrap_or(0)));
@@ -1302,7 +1358,8 @@ pub async fn hidden_titles(meta: &Meta, store: &Store, tx: &Outbox) {
     let ids: Vec<AnilistId> = dismissed.iter().rev().map(|d| AnilistId::new(d.id)).collect();
     let mut known: HashMap<AnilistId, Media> =
         meta.cached(&ids).into_iter().map(|m| (m.id, m)).collect();
-    let missing: Vec<AnilistId> = ids.iter().copied().filter(|id| !known.contains_key(id)).collect();
+    let missing: Vec<AnilistId> =
+        ids.iter().copied().filter(|id| !known.contains_key(id)).collect();
     if !missing.is_empty() {
         match meta.media_many(&missing).await {
             Ok(found) => known.extend(found.into_iter().map(|m| (m.id, m))),

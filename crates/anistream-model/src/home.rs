@@ -39,7 +39,8 @@ pub struct HomeView {
     /// placeholder for it below what has arrived, after 600 ms.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub pending: Vec<HomePart>,
-    /// The closing line under the last section. `None` while anything is pending.
+    /// The closing line under the last section. `None` while anything is pending, or while
+    /// Continue's own titles are still on their way.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub end: Option<HomeEnd>,
     /// The device has no network path. With [`Self::offline_since`] it is the kept Home; without
@@ -181,6 +182,8 @@ pub enum SectionKind {
 }
 
 /// Where a section's View all goes.
+// Browse carries its whole query. Not boxed: the bindings carry records by value.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum HomeLink {

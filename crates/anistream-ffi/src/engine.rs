@@ -111,6 +111,11 @@ impl FfiEngine {
     /// Only puts the command on a channel, so any thread may call this, the main thread among
     /// them. `None` too once the engine has stopped.
     pub fn send(&self, command: Command) -> Option<JobId> {
+        #[cfg(feature = "testing")]
+        let command = match self.kept::<crate::testing::Testing>() {
+            Some(testing) => testing.pin(command),
+            None => command,
+        };
         #[cfg(feature = "remote")]
         if let Command::PlayerReport { report, .. } = &command {
             self.remote.report(report);
