@@ -61,7 +61,7 @@ sealed class Ctx
     /// Unloaded, which a page left before it loaded never raises: such a page would stay in
     /// memory as a listener for the rest of the run.
     /// </summary>
-    public void Hear(Microsoft.UI.Xaml.Controls.Page page, Action<IReadOnlyList<Event>> heard, Action? leave = null)
+    public void Hear(Microsoft.UI.Xaml.FrameworkElement page, Action<IReadOnlyList<Event>> heard, Action? leave = null)
     {
         Batch += heard;
         var gone = false;

@@ -32,7 +32,8 @@ public sealed partial class MainWindow : Window
 {
     static readonly Dictionary<string, Type> Destinations = new()
     {
-        ["continue"] = typeof(ContinuePage),
+        ["home"] = typeof(HomePage),
+        ["continue"] = typeof(HomePage),
         ["calendar"] = typeof(CalendarPage),
         ["seasonal"] = typeof(SeasonalPage),
         ["library"] = typeof(LibraryPage),
@@ -62,7 +63,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         Title = T.AppName;
         // Each destination's tooltip names its shortcut: Ctrl+1 to Ctrl+7, in the sidebar's order.
-        string[] names = [T.NavContinue, T.NavCalendar, T.NavSeasonal, T.NavLibrary, T.NavDownloads, T.SourcesTitle, T.NavPluginStores];
+        string[] names = [T.HomeTitle, T.NavCalendar, T.NavSeasonal, T.NavLibrary, T.NavDownloads, T.SourcesTitle, T.NavPluginStores];
         foreach (var (item, n) in Nav.MenuItems.OfType<NavigationViewItem>().Select((item, i) => (item, i)))
             ToolTipService.SetToolTip(item, T.TooltipWithKey(names[n], $"Ctrl+{n + 1}"));
         // The built-in Settings item reads the system language, so it takes the catalogue's word.
@@ -357,7 +358,7 @@ public sealed partial class MainWindow : Window
                 await Task.Delay(900);
                 OpenLink(opens);
             });
-        var page = options.Page ?? "continue";
+        var page = options.Page ?? "home";
         if (options.Query is not null)
             ShowSearch(options.Query);
         else
@@ -1169,7 +1170,7 @@ public sealed partial class MainWindow : Window
 
     void Keys()
     {
-        string[] tags = ["continue", "calendar", "seasonal", "library", "downloads", "providers", "stores"];
+        string[] tags = ["home", "calendar", "seasonal", "library", "downloads", "providers", "stores"];
         for (var i = 0; i < tags.Length; i++)
         {
             var tag = tags[i];

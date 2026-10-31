@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Page
-    x:Class="Anistream.Windows.Pages.ContinuePage"
+<UserControl
+    x:Class="Anistream.Windows.Pages.WatchingView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Anistream.Windows.Pages"
     xmlns:app="using:Anistream.Windows"
-    xmlns:s="using:Anistream.App"
-    Background="{ThemeResource GroundBrush}">
-  <Page.Resources>
+    xmlns:s="using:Anistream.App">
+  <UserControl.Resources>
     <CollectionViewSource x:Name="Groups" IsSourceGrouped="True" />
     <DataTemplate x:Key="QueueRowTemplate" x:DataType="local:QueueRow">
             <Grid Height="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
@@ -89,22 +88,17 @@
               </StackPanel>
             </Grid>
           </DataTemplate>
-  </Page.Resources>
-  <Grid Padding="36,20,36,0" RowSpacing="16">
+  </UserControl.Resources>
+  <Grid RowSpacing="12">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <StackPanel>
-      <TextBlock Text="{x:Bind s:T.NavContinue}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-      <local:OfflineLine />
-    </StackPanel>
-    <TextBlock x:Name="SyncLine" Grid.Row="1" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
+    <TextBlock x:Name="SyncLine" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
 
     <!-- The queue down the start edge, 360 wide; the selected row's preview beside it when the
          content is 780 wide or more. Narrower, the queue alone, a row opening its title. -->
-    <local:StateHost x:Name="State" Grid.Row="2">
+    <local:StateHost x:Name="State" Grid.Row="1">
     <Grid x:Name="Body" ColumnSpacing="32" Visibility="Collapsed" SizeChanged="OnBodySizeChanged">
       <Grid.ColumnDefinitions>
         <ColumnDefinition x:Name="QueueColumn" Width="360" />
@@ -153,78 +147,5 @@
 
     </local:StateHost>
 
-    <!-- With nothing watched: what airs today and this season, which needs no account. -->
-    <ScrollViewer x:Name="Welcome" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Margin="0,0,-12,0">
-      <StackPanel Spacing="12" Padding="0,0,12,24">
-        <StackPanel x:Name="AiringSection" Spacing="8">
-          <Grid>
-            <TextBlock Text="{x:Bind s:T.ContinueAiringToday}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
-                       AutomationProperties.HeadingLevel="Level2" />
-            <Button HorizontalAlignment="Right" Style="{StaticResource DefaultButtonStyle}" Background="Transparent" BorderThickness="0"
-                    MinHeight="32" Padding="12,0" Click="OnWelcomeCalendar" AutomationProperties.Name="{x:Bind s:T.NavCalendar}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="{x:Bind s:T.NavCalendar}" />
-                <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-              </StackPanel>
-            </Button>
-          </Grid>
-          <ItemsRepeater x:Name="AiringCards">
-            <ItemsRepeater.Layout>
-              <UniformGridLayout MinItemWidth="240" MinColumnSpacing="16" MinRowSpacing="16" ItemsStretch="Fill" />
-            </ItemsRepeater.Layout>
-            <ItemsRepeater.ItemTemplate>
-              <DataTemplate x:DataType="local:WelcomeCard">
-                <Button Padding="0" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                        Click="OnWelcomeOpen" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind Name}">
-                  <StackPanel>
-                    <Grid Height="152" CornerRadius="4" Background="{x:Bind Cover.Placeholder}">
-                      <Image Source="{x:Bind Art, Mode=OneWay}" Stretch="UniformToFill" />
-                    </Grid>
-                    <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" Margin="0,8,0,0" />
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                      <Ellipse Width="6" Height="6" Fill="#7FC7D9" Visibility="{x:Bind DotShown}" VerticalAlignment="Center" />
-                      <TextBlock Text="{x:Bind Line}" Style="{StaticResource HazeCaptionStyle}" />
-                    </StackPanel>
-                  </StackPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsRepeater.ItemTemplate>
-          </ItemsRepeater>
-        </StackPanel>
-        <StackPanel x:Name="SeasonSection" Spacing="8" Margin="0,4,0,0">
-          <Grid>
-            <TextBlock Text="{x:Bind s:T.ContinueThisSeason}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
-                       AutomationProperties.HeadingLevel="Level2" />
-            <Button HorizontalAlignment="Right" Style="{StaticResource DefaultButtonStyle}" Background="Transparent" BorderThickness="0"
-                    MinHeight="32" Padding="12,0" Click="OnWelcomeSeasonal" AutomationProperties.Name="{x:Bind s:T.NavSeasonal}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="{x:Bind s:T.NavSeasonal}" />
-                <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-              </StackPanel>
-            </Button>
-          </Grid>
-          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" HorizontalScrollMode="Auto">
-            <ItemsRepeater x:Name="SeasonPosters">
-              <ItemsRepeater.Layout>
-                <StackLayout Orientation="Horizontal" Spacing="16" />
-              </ItemsRepeater.Layout>
-              <ItemsRepeater.ItemTemplate>
-                <DataTemplate x:DataType="local:WelcomeCard">
-                  <Button Padding="0" Background="Transparent" BorderThickness="0" Width="132" HorizontalContentAlignment="Stretch"
-                          Click="OnWelcomeOpen" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind Name}">
-                    <StackPanel>
-                      <Grid Width="132" Height="198" CornerRadius="4" Background="{x:Bind Cover.Placeholder}">
-                        <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
-                      </Grid>
-                      <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" FontSize="14" LineHeight="19" Margin="0,8,0,0" />
-                    </StackPanel>
-                  </Button>
-                </DataTemplate>
-              </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
-          </ScrollViewer>
-        </StackPanel>
-      </StackPanel>
-    </ScrollViewer>
   </Grid>
-</Page>
+</UserControl>

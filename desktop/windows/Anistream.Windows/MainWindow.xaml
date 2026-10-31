@@ -38,7 +38,7 @@
                     OpenPaneLength="240" IsTitleBarAutoPaddingEnabled="False"
                     SelectionChanged="OnNavSelectionChanged">
       <NavigationView.MenuItems>
-        <NavigationViewItem Content="{x:Bind app:T.NavContinue}" Tag="continue" AccessKey="C">
+        <NavigationViewItem Content="{x:Bind app:T.HomeTitle}" Tag="home" AccessKey="H">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE768;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
         <NavigationViewItem Content="{x:Bind app:T.NavCalendar}" Tag="calendar" AccessKey="A">

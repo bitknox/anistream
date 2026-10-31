@@ -10,7 +10,7 @@ namespace Anistream.Windows.Pages;
 /// Library: the tracker's lists, each a poster grid with its count, ordered by last updated,
 /// title or score. Signed out, Nagare and Connect AniList.
 /// </summary>
-public sealed partial class LibraryPage : Page
+public sealed partial class LibraryPage : Page, IPageKeys
 {
     static readonly (LibrarySegment Segment, string Name)[] Segments =
     [
@@ -37,14 +37,19 @@ public sealed partial class LibraryPage : Page
         foreach (var (s, name) in Segments)
             Lists.Items.Add(new SelectorBarItem { Text = name, Tag = s, IsSelected = s == segment });
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Hear(this, Heard);
+        ctx.Hear(this, Heard, () => ctx.Left(Watching));
     }
+
+    bool IPageKeys.MarkWatched() => Watching.Visibility == Visibility.Visible && ((IPageKeys)Watching).MarkWatched();
+
+    bool IPageKeys.Delete() => Watching.Visibility == Visibility.Visible && ((IPageKeys)Watching).Delete();
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
         foreach (var (s, _) in Segments)
             ctx.Send(new Command.LoadLibrary(s));
+        Watching.Start();
         Show();
     }
 
@@ -58,7 +63,12 @@ public sealed partial class LibraryPage : Page
     {
         var signedIn = ctx.Known.Anilist is not null;
         SignedOut.Visibility = signedIn ? Visibility.Collapsed : Visibility.Visible;
-        Bar.Visibility = Scroll.Visibility = signedIn ? Visibility.Visible : Visibility.Collapsed;
+        // Watching keeps the queue and its preview; the other lists are poster grids.
+        var queue = signedIn && segment == LibrarySegment.Watching;
+        Bar.Visibility = signedIn ? Visibility.Visible : Visibility.Collapsed;
+        Scroll.Visibility = signedIn && !queue ? Visibility.Visible : Visibility.Collapsed;
+        OrderButton.Visibility = queue ? Visibility.Collapsed : Visibility.Visible;
+        Watching.Visibility = queue ? Visibility.Visible : Visibility.Collapsed;
         if (!signedIn)
             return;
         foreach (var item in Lists.Items)

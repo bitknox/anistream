@@ -8,7 +8,7 @@ namespace Anistream.Windows;
 /// </summary>
 /// <param name="Scene">fresh, watching, sourceless or playing: the testing engine's scenes.</param>
 /// <param name="Media">The file every episode streams in the playing scene.</param>
-/// <param name="Page">The destination to open: continue, downloads, providers, stores, search, seasonal, calendar, library or settings.</param>
+/// <param name="Page">The destination to open: home, downloads, providers, stores, search, seasonal, calendar, library or settings.</param>
 /// <param name="Title">An AniList id whose title page opens over the page.</param>
 /// <param name="Query">What the search page searches for.</param>
 /// <param name="Play">Play the first title in Continue once it is there.</param>

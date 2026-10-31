@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Anistream.Windows.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Anistream.Windows.Pages"
+    xmlns:s="using:Anistream.App"
+    Background="{ThemeResource GroundBrush}">
+  <Page.KeyboardAccelerators>
+    <KeyboardAccelerator Key="F5" Invoked="OnRefresh" />
+    <KeyboardAccelerator Key="R" Modifiers="Control" Invoked="OnRefresh" />
+  </Page.KeyboardAccelerators>
+  <Grid Padding="36,20,0,0" RowSpacing="8">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <StackPanel Margin="0,0,36,0">
+      <TextBlock Text="{x:Bind s:T.HomeTitle}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+      <StackPanel x:Name="OfflineLine" Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" Visibility="Collapsed"
+                  AutomationProperties.LiveSetting="Polite">
+        <FontIcon Glyph="&#xE774;" FontSize="14" Foreground="{ThemeResource HazeBrush}" VerticalAlignment="Center" />
+        <TextBlock x:Name="OfflineText" Style="{StaticResource HazeBodyStyle}" />
+      </StackPanel>
+      <TextBlock x:Name="SyncLine" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" Margin="0,4,0,0" />
+    </StackPanel>
+
+    <!-- The whole page scrolls as one column: the spotlight, then the engine's sections in the
+         engine's order, then the closing line. -->
+    <local:StateHost x:Name="State" Grid.Row="1">
+      <ScrollViewer x:Name="Scroll" VerticalScrollBarVisibility="Auto" IsTabStop="False">
+        <StackPanel x:Name="Column" Padding="0,8,36,48" MaxWidth="1232" HorizontalAlignment="Stretch">
+          <local:HomeSpotlight x:Name="Spot" />
+          <StackPanel x:Name="Shelves" />
+          <StackPanel x:Name="Waiting" />
+          <TextBlock x:Name="Activity" Style="{StaticResource HazeCaptionStyle}" Margin="0,16,0,0" Visibility="Collapsed"
+                     AutomationProperties.LiveSetting="Polite" />
+          <StackPanel x:Name="EndLine" />
+        </StackPanel>
+      </ScrollViewer>
+    </local:StateHost>
+  </Grid>
+</Page>
