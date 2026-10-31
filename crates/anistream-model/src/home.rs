@@ -25,7 +25,7 @@ pub const SHELF_SHOWN: usize = 20;
 pub const WEEK_DAYS: u32 = 7;
 
 /// The whole of Home, as it stands.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct HomeView {
     /// The one title at the top. `None` only while what decides it is on its way, or when

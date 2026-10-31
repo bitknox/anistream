@@ -24,7 +24,7 @@ use anistream_core::ids::AnilistId;
 use anistream_meta::{Media, Meta};
 use anistream_model::{
     Msg, Span,
-    catalog::{AiringStatus, Entry, LibrarySegment, Season},
+    catalog::{AiringStatus, Entry, Season},
     event::Event,
     home::{
         CONTINUE_SHOWN, HiddenTitle, HomeAction, HomeEnd, HomeItem, HomeLink, HomePart,
@@ -107,6 +107,8 @@ struct Memory {
     hidden_asked: bool,
     /// The parts on their way.
     loading: HashSet<HomePart>,
+    /// Continue's records are being asked for again, so what is waiting in it is not known yet.
+    continuing: bool,
     /// The last Home sent, with `failed` off.
     last: Option<HomeView>,
 }
@@ -273,13 +275,16 @@ fn starting_title(season: Season) -> Msg {
     }
 }
 
-/// Where Home's kept parts and the Continue rows stand, to tell when Home has to go out
-/// again: an episode watched, a show started, a row removed.
+/// Where the Continue rows and the history stand, to tell when Home has to go out again: an
+/// episode watched, a show started or finished, a row removed.
 pub fn queue_mark(store: &Store) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     for p in store.continue_list(CONTINUE_LOOKED_AT).unwrap_or_default() {
         (p.anilist_id, &p.last_episode, p.episodes_done, p.updated_at).hash(&mut hasher);
         p.last_position.to_bits().hash(&mut hasher);
+    }
+    for p in store.watched_titles(CONTINUE_LOOKED_AT).unwrap_or_default() {
+        (p.anilist_id, p.episodes_done).hash(&mut hasher);
     }
     hasher.finish()
 }
@@ -421,7 +426,10 @@ fn viewer_store<'a>(viewer: &Viewer<'a>) -> &'a Store {
 /// past the last watched.
 fn continue_card(entry: &Entry, store: &Store, now: i64) -> Option<HomeItem> {
     let row = QueueItem::of(entry, Casing::Sentence);
-    if !row.playable {
+    // Watched to the end is finished, not waiting, though the row would offer a rewatch.
+    let past_the_end = row.resume.is_none()
+        && entry.episodes.is_some_and(|total| entry.progress.is_some_and(|p| p.done >= total));
+    if !row.playable || past_the_end {
         return None;
     }
     let line = match (row.resume, row.fraction, row.aired_ago) {
@@ -570,7 +578,13 @@ fn day_mark(ask: &HomeAsk) -> i64 {
 }
 
 /// Home as it stands: what is local, and every part kept. `loading` is what is on its way.
-fn compose(meta: &Meta, store: &Store, ask: &HomeAsk, loading: &HashSet<HomePart>) -> HomeView {
+fn compose(
+    meta: &Meta,
+    store: &Store,
+    ask: &HomeAsk,
+    loading: &HashSet<HomePart>,
+    continuing: bool,
+) -> HomeView {
     let now = ask.now;
     let viewer = viewer(meta, store, ask);
     let mut sections: Vec<HomeSection> = Vec::new();
@@ -777,7 +791,7 @@ fn compose(meta: &Meta, store: &Store, ask: &HomeAsk, loading: &HashSet<HomePart
     // The spotlight, when nothing waits in Continue: the first suggestion, then this season's
     // popular pick. Neither is decided while what decides it is still on its way, so it never
     // shows one and then the other.
-    if spotlight.is_none() && !personal_waits {
+    if spotlight.is_none() && !personal_waits && !continuing {
         spotlight = suggested.first().map(|(item, entry)| {
             let pick = personal
                 .as_ref()
@@ -907,7 +921,7 @@ fn broadcast_cards(
 /// one after a part failed.
 fn send(meta: &Meta, store: &Store, tx: &Outbox, ask: &HomeAsk, memory: &HomeMemory, failed: bool) {
     let mut mem = memory.lock();
-    let home = compose(meta, store, ask, &mem.loading);
+    let home = compose(meta, store, ask, &mem.loading, mem.continuing);
     if !failed && mem.last.as_ref() == Some(&home) {
         return;
     }
@@ -943,7 +957,7 @@ fn due(meta: &Meta, store: &Store, ask: &HomeAsk) -> HashSet<HomePart> {
             due.insert(HomePart::Today);
         }
     } else {
-        let from = week_signature(&followed(meta, store, ask), ask);
+        let from = week_signature(&week_candidates(store, ask), ask);
         if !kept::<SchedulePart>(store, WEEK_KEY).is_some_and(|p| fresh(p.at) && p.from == from) {
             due.insert(HomePart::Week);
         }
@@ -955,10 +969,14 @@ fn due(meta: &Meta, store: &Store, ask: &HomeAsk) -> HashSet<HomePart> {
 pub async fn load(lent: Lent, memory: HomeMemory, ask: HomeAsk) {
     let Lent { meta, store, tx, .. } = lent;
     let due = if ask.offline { HashSet::new() } else { due(&meta, &store, &ask) };
+    let stale = if ask.offline { Vec::new() } else { stale_continue(&store) };
     {
         let mut mem = memory.lock();
         mem.asked = true;
         mem.loading.extend(due.iter().copied());
+        // Asked for, so sent, even when it is what was sent last: the view may be new.
+        mem.last = None;
+        mem.continuing |= !stale.is_empty();
     }
     send(&meta, &store, &tx, &ask, &memory, false);
     if ask.offline {
@@ -968,15 +986,23 @@ pub async fn load(lent: Lent, memory: HomeMemory, ask: HomeAsk) {
         if let Err(e) = &outcome {
             tracing::warn!(error = %e, ?part, "part of Home failed");
         }
-        if let Some(part) = part {
-            memory.lock().loading.remove(&part);
+        match part {
+            Some(part) => {
+                memory.lock().loading.remove(&part);
+            }
+            None => memory.lock().continuing = false,
         }
         send(&meta, &store, &tx, &ask, &memory, outcome.is_err());
         outcome.is_ok()
     };
     let wanted = |part| due.contains(&part);
     let (cards, season, personal, week, today) = tokio::join!(
-        async { finish(None, refresh_continue(&meta, &store).await) },
+        async {
+            if stale.is_empty() {
+                return true;
+            }
+            finish(None, refresh_continue(&meta, &stale).await)
+        },
         async {
             if !wanted(HomePart::Season) {
                 return true;
@@ -1007,20 +1033,21 @@ pub async fn load(lent: Lent, memory: HomeMemory, ask: HomeAsk) {
     }
 }
 
-/// Continue's titles whose cached record is missing or old, asked again in one request: their
-/// airing is what says an episode is waiting.
-async fn refresh_continue(meta: &Meta, store: &Store) -> Result<(), String> {
+/// Continue's titles whose cached record is missing or old: their airing is what says an
+/// episode is waiting.
+fn stale_continue(store: &Store) -> Vec<AnilistId> {
     let wall = anistream_store::now();
-    let stale: Vec<AnilistId> = continue_ids(store)
+    continue_ids(store)
         .into_iter()
         .filter(|id| {
             store.cached_media(*id).ok().flatten().is_none_or(|(_, at)| wall - at >= CONTINUE_FRESH)
         })
-        .collect();
-    if stale.is_empty() {
-        return Ok(());
-    }
-    meta.media_many(&stale).await.map(|_| ()).map_err(|e| e.to_string())
+        .collect()
+}
+
+/// Continue's stale records, asked again in one request.
+async fn refresh_continue(meta: &Meta, stale: &[AnilistId]) -> Result<(), String> {
+    meta.media_many(stale).await.map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// The season's rails: Search's, in one request with the taste rail beside them, and the
@@ -1118,37 +1145,55 @@ async fn load_personal(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), 
     Ok(())
 }
 
-/// The shows followed: Watching on the tracker's list, and the shows of the history that air
-/// or aired an episode in the last three weeks.
-fn followed(meta: &Meta, store: &Store, ask: &HomeAsk) -> Vec<AnilistId> {
+/// The shows that may be followed: Watching on the tracker's list, and the history. What This
+/// week is kept for: a change to them asks for the week again.
+fn week_candidates(store: &Store, ask: &HomeAsk) -> Vec<AnilistId> {
     let mut ids: Vec<AnilistId> = if ask.listed {
         store.library_with_status("CURRENT").unwrap_or_default()
     } else {
         Vec::new()
     };
-    let history: Vec<AnilistId> = store
-        .watched_titles(CONTINUE_LOOKED_AT)
-        .unwrap_or_default()
-        .iter()
-        .map(|p| p.anilist_id)
-        .chain(continue_ids(store))
-        .collect();
-    let cutoff = ask.now - FOLLOWED_FOR;
-    for media in meta.cached(&history) {
-        let entry = data::entry_from(&media, None);
-        let airs = matches!(entry.status, Some(AiringStatus::Releasing | AiringStatus::Hiatus))
-            || media.next_airing_episode.is_some();
-        let ended_lately = entry.end_date.is_some_and(|d| {
-            let (month, day) = (d.month.unwrap_or(12), d.day.unwrap_or(28));
-            jiff::civil::date(d.year as i16, month as i8, day as i8)
-                .to_zoned(ask.zone.clone())
-                .is_ok_and(|z| z.timestamp().as_second() >= cutoff)
-        });
-        if (airs || ended_lately) && !ids.contains(&media.id) {
-            ids.push(media.id);
+    let history = store.watched_titles(CONTINUE_LOOKED_AT).unwrap_or_default();
+    for id in history.iter().map(|p| p.anilist_id).chain(continue_ids(store)) {
+        if !ids.contains(&id) {
+            ids.push(id);
         }
     }
     ids
+}
+
+/// The shows followed: Watching on the tracker's list, and the shows of the history that air
+/// or aired an episode in the last three weeks. A show of the history whose record is not
+/// cached is asked about too, as the window leaves out one with nothing in it.
+fn followed(meta: &Meta, store: &Store, ask: &HomeAsk, candidates: &[AnilistId]) -> Vec<AnilistId> {
+    let listed: HashSet<AnilistId> = if ask.listed {
+        store.library_with_status("CURRENT").unwrap_or_default().into_iter().collect()
+    } else {
+        HashSet::new()
+    };
+    let cached: HashMap<AnilistId, Media> =
+        meta.cached(candidates).into_iter().map(|m| (m.id, m)).collect();
+    let cutoff = ask.now - FOLLOWED_FOR;
+    candidates
+        .iter()
+        .copied()
+        .filter(|id| {
+            if listed.contains(id) {
+                return true;
+            }
+            let Some(media) = cached.get(id) else { return true };
+            let entry = data::entry_from(media, None);
+            let airs = matches!(entry.status, Some(AiringStatus::Releasing | AiringStatus::Hiatus))
+                || media.next_airing_episode.is_some();
+            let ended_lately = entry.end_date.is_some_and(|d| {
+                let (month, day) = (d.month.unwrap_or(12), d.day.unwrap_or(28));
+                jiff::civil::date(d.year as i16, month as i8, day as i8)
+                    .to_zoned(ask.zone.clone())
+                    .is_ok_and(|z| z.timestamp().as_second() >= cutoff)
+            });
+            airs || ended_lately
+        })
+        .collect()
 }
 
 fn week_signature(followed: &[AnilistId], ask: &HomeAsk) -> u64 {
@@ -1182,8 +1227,9 @@ fn schedule_part(page: &[anistream_meta::anilist::AiringEntry], meta: &Meta, at:
 
 /// This week's broadcasts of the shows followed, from the start of today: one request.
 async fn load_week(meta: &Meta, store: &Store, ask: &HomeAsk) -> Result<(), String> {
-    let followed = followed(meta, store, ask);
-    let from = week_signature(&followed, ask);
+    let candidates = week_candidates(store, ask);
+    let from = week_signature(&candidates, ask);
+    let followed = followed(meta, store, ask, &candidates);
     let start = day_mark(ask);
     let page = if followed.is_empty() {
         Vec::new()
@@ -1236,10 +1282,4 @@ pub async fn hidden_titles(meta: &Meta, store: &Store, tx: &Outbox) {
         })
         .collect();
     let _ = tx.send(Event::HiddenTitles(rows));
-}
-
-/// The list status Up next's items carry, as the Library segment.
-#[allow(dead_code)]
-fn planning_segment() -> LibrarySegment {
-    LibrarySegment::Planning
 }
