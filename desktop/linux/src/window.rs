@@ -242,6 +242,15 @@ impl Ctx {
         }
         toast.set_timeout(say::notice_seconds(text, alert || button.is_some()));
         self.toasts.add_toast(toast.clone());
+        // The custom title may not reach a screen reader as the toast's text, so say it too.
+        self.toasts.upcast_ref::<gtk::Widget>().announce(
+            text,
+            if alert {
+                gtk::AccessibleAnnouncementPriority::High
+            } else {
+                gtk::AccessibleAnnouncementPriority::Medium
+            },
+        );
         toast
     }
 }
@@ -1647,7 +1656,7 @@ fn a11y_settings() -> Option<gio::Settings> {
 }
 
 /// Whether Orca or another screen reader is switched on.
-fn screen_reader_running() -> bool {
+pub(crate) fn screen_reader_running() -> bool {
     a11y_settings().is_some_and(|settings| settings.boolean("screen-reader-enabled"))
 }
 

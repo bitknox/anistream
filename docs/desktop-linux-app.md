@@ -4,6 +4,14 @@ Branch `desktop/linux-app`, October 2026, built on the foundations spike
 to the design brief on `desktop/design-brief`.
 GTK 4 and libadwaita in Rust, no web views. Dark only for now.
 
+## Minimum versions
+
+The app is built against GTK 4.16 and libadwaita 1.7, so it needs both at run time. That is
+more than the accessibility announcements ask for: `gtk::Accessible::announce`, which the app
+uses for the player's cards, toasts and copy buttons, came in GTK 4.14. There is no fallback
+for an older GTK, because the app does not start on one. The AppImage carries Debian 13's
+GTK and libadwaita, so it is not affected.
+
 ## What is in it
 
 - The shell: an `AdwApplicationWindow` with the sidebar of the brief (Continue, Calendar,

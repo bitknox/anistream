@@ -121,6 +121,8 @@ pub struct PlayerView {
     fade: RefCell<Option<adw::TimedAnimation>>,
     /// The playhead's own updates are held off while a drag on the timeline seeks.
     held_until: Cell<Instant>,
+    /// The whole second the seek bar's spoken value was last set for.
+    said_second: Cell<i64>,
     state: RefCell<PlayerState>,
     over_bar: Cell<bool>,
     /// A screenshot run's: no Up next card, for a fixture clip short enough to be near its
@@ -352,6 +354,7 @@ impl PlayerView {
             idle: RefCell::default(),
             fade: RefCell::default(),
             held_until: Cell::new(Instant::now()),
+            said_second: Cell::new(-1),
             state: RefCell::default(),
             over_bar: Cell::new(false),
             hold_up_next: Cell::new(false),
@@ -710,9 +713,18 @@ impl PlayerView {
     /// "Resumed at 12:04" with Start Over, in the top leading corner.
     fn resumed(&self, position: f64) {
         self.ui.resumed_line.set_label(&t::player_resumed_at(&say::clock(position)));
+        self.announce(&self.ui.resumed_line.label());
         self.resumed_from.set(Some(position));
         self.ui.resumed.set_visible(true);
         crate::motion::fade_in(&self.ui.resumed);
+    }
+
+    /// Say `text` to a screen reader once.
+    fn announce(&self, text: &str) {
+        self.ui
+            .page
+            .upcast_ref::<gtk::Widget>()
+            .announce(text, gtk::AccessibleAnnouncementPriority::Medium);
     }
 
     fn resumed_done(&self) {
@@ -805,6 +817,7 @@ impl PlayerView {
                 });
                 if !self.ui.skip.shown() {
                     self.skip_since.set(Some(Instant::now()));
+                    self.announce(&t::player_announce_skip(&self.ui.skip_button.label().unwrap_or_default()));
                 }
                 self.ui.skip.set(true);
             }
@@ -821,10 +834,15 @@ impl PlayerView {
                     translation,
                     next.title.as_deref(),
                 ));
+                self.ui.up_next_title.set_tooltip_text(Some(&self.ui.up_next_title.label()));
                 self.ui.up_next_still.set_paintable(Some(&widgets::swatch(None)));
                 self.ui.up_next_still_frame.set_visible(next.thumbnail.is_some());
                 self.ctx.hub.art(&self.ui.up_next_still, next.thumbnail.as_deref());
-                self.coming.replace(Some(coming::Coming::new(*auto, *ending_at, *countdown)));
+                self.coming.replace(Some(coming::Coming::new(
+                    *auto && !crate::window::screen_reader_running(),
+                    *ending_at,
+                    *countdown,
+                )));
                 self.show_up_next();
             }
             PlayerUi::UpNextCleared => {
@@ -861,6 +879,9 @@ impl PlayerView {
             view.ui.stall_line.set_label(&t::player_stall_title(held as i64));
         };
         say(self);
+        if !self.ui.stall.shown() {
+            self.announce(&self.ui.stall_line.label());
+        }
         self.ui.stall.set(true);
         if self.stall_tick.borrow().is_some() {
             return;
@@ -905,6 +926,16 @@ impl PlayerView {
             Some(plan) => (plan.card(position, duration), plan.due(position, duration)),
             None => (coming::Card::Away, false),
         };
+        // A screen reader hears the card once, as it appears.
+        if !matches!(card, coming::Card::Away) && !self.ui.up_next.shown() {
+            let title = self.ui.up_next_title.label();
+            self.announce(&match card {
+                coming::Card::Counting { left, .. } => {
+                    t::player_announce_up_next_counting(&title, left.ceil() as i64)
+                }
+                _ => t::player_announce_up_next_waiting(&title),
+            });
+        }
         match card {
             coming::Card::Away => self.ui.up_next.set(false),
             coming::Card::Waiting => {
@@ -954,6 +985,7 @@ impl PlayerView {
             SkipKind::Ending => t::player_skipped_ending(),
         });
         self.ui.undo.set(true);
+        self.announce(&t::player_announce_undo(&self.ui.undo_line.label()));
         // At most 15 s, even while paused, when no playback counts the 6 s down.
         let me = self.me.clone();
         glib::timeout_add_local_once(UNDO_MOST, move || {
@@ -1156,6 +1188,16 @@ impl PlayerView {
                 ui.timeline.set_value(position);
                 ui.marked.moved();
             }
+            // The seek bar says a time, not a number of seconds, and only when the second changes.
+            if let Some(duration) = state.duration {
+                let second = position as i64;
+                if self.said_second.replace(second) != second {
+                    ui.timeline.update_property(&[gtk::accessible::Property::ValueText(&t::player_position_spoken(
+                        &say::spoken_duration(position),
+                        &say::spoken_duration(duration),
+                    ))]);
+                }
+            }
         }
         if state.has_picture && ui.starting.is_visible() {
             fade(&ui.starting, false);
@@ -1282,7 +1324,22 @@ impl PlayerView {
         self.idle.replace(Some(source));
     }
 
-    /// Hide the controls, unless paused, scrubbing, a menu is open or the pointer is on a bar.
+    /// Whether keyboard focus is on one of the controls, which then stay up for it.
+    fn focus_on_controls(&self) -> bool {
+        let Some(focus) = GtkWindowExt::focus(&self.ctx.window) else { return false };
+        let chrome = self.chrome();
+        let mut at = Some(focus);
+        while let Some(widget) = at {
+            if chrome.iter().any(|c| c == &widget) {
+                return true;
+            }
+            at = widget.parent();
+        }
+        false
+    }
+
+    /// Hide the controls, unless paused, scrubbing, a menu is open, the pointer is on a bar,
+    /// keyboard focus is on a control or a screen reader runs.
     fn rest(&self) {
         let menu_open = self.ui.menu_buttons.iter().any(|b| b.is_active())
             || self.party.popover.is_visible();
@@ -1291,6 +1348,8 @@ impl PlayerView {
             || self.over_bar.get()
             || menu_open
             || card
+            || self.focus_on_controls()
+            || crate::window::screen_reader_running()
             || !self.shown.get()
         {
             if self.shown.get() {
@@ -2096,6 +2155,28 @@ impl PlayerView {
         if modifiers.intersects(gdk::ModifierType::CONTROL_MASK | gdk::ModifierType::ALT_MASK) {
             return false;
         }
+        // Tab and F6 bring the controls up before focus moves onto them.
+        if matches!(key, Key::Tab | Key::ISO_Left_Tab | Key::F6) {
+            self.wake();
+            return false;
+        }
+        // The keys of a text field, an open party form or a focused button are its own.
+        if self.party.popover.is_visible() {
+            return false;
+        }
+        if let Some(focus) = GtkWindowExt::focus(&self.ctx.window) {
+            let button_key = matches!(key, Key::space | Key::Return | Key::KP_Enter);
+            let mut at = Some(focus);
+            while let Some(widget) = at {
+                if widget.is::<gtk::Editable>()
+                    || (button_key
+                        && (widget.is::<gtk::Button>() || widget.is::<gtk::MenuButton>()))
+                {
+                    return false;
+                }
+                at = widget.parent();
+            }
+        }
         // With a menu open its keys are its own: arrows move through it, Space and Enter pick,
         // and Escape closes it before anything else. T and E close the menu they opened.
         if let Some(open) = self.ui.menu_buttons.iter().find(|b| b.is_active()) {
@@ -2436,6 +2517,13 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     volume.set_value(100.0);
     volume.set_size_request(-1, 140);
     volume.set_draw_value(false);
+    volume.update_property(&[gtk::accessible::Property::Label(&t::player_volume())]);
+    volume.update_property(&[gtk::accessible::Property::ValueText(&t::player_volume_percent(100))]);
+    volume.connect_value_changed(|scale| {
+        scale.update_property(&[gtk::accessible::Property::ValueText(
+            &t::player_volume_percent(scale.value().round() as i64),
+        )]);
+    });
     let volume_popover = gtk::Popover::builder().child(&volume).build();
     let volume_button = gtk::MenuButton::builder()
         .icon_name("audio-volume-high-symbolic")
@@ -2486,7 +2574,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     bottom.append(&settings);
 
     // The starting screen: the banner full frame, the line and a spinner.
-    let starting_art = gtk::Picture::new();
+    let starting_art =
+        gtk::Picture::builder().accessible_role(gtk::AccessibleRole::Presentation).build();
     starting_art.set_content_fit(gtk::ContentFit::Cover);
     starting_art.set_can_shrink(true);
     starting_art.add_css_class("art-fade");
@@ -2552,7 +2641,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     up_next_line.set_margin_top(4);
     up_next_line.set_visible(false);
     up_next_line.add_css_class("numeric");
-    let up_next_still = gtk::Picture::new();
+    let up_next_still =
+        gtk::Picture::builder().accessible_role(gtk::AccessibleRole::Presentation).build();
     up_next_still.set_content_fit(gtk::ContentFit::Cover);
     up_next_still.set_can_shrink(true);
     let still_plate = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -2571,7 +2661,9 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     let up_next_top = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     up_next_top.append(&up_next_still_frame);
     up_next_top.append(&up_next_text);
-    let up_next_bar = gtk::ProgressBar::new();
+    // The card is announced once; the bar only draws the countdown.
+    let up_next_bar =
+        gtk::ProgressBar::builder().accessible_role(gtk::AccessibleRole::Presentation).build();
     up_next_bar.add_css_class("countdown");
     let up_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     up_buttons.set_halign(gtk::Align::End);

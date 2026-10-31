@@ -170,3 +170,18 @@ continue-preview = Preview
 # @arg time: text
 # @max 28
 up-next-airs-at = Airs at { $time }
+
+# Accessible name of a progress bar on a row that has no better name, such as a download's.
+# @only linux
+# @max 24
+progress-name = Progress
+
+# What a screen reader says for a progress bar's value.
+# @only linux
+# @arg percent: int
+progress-percent = { $percent } percent
+
+# Accessible name of a grid of show covers.
+# @only linux
+# @max 24
+poster-grid-name = Titles

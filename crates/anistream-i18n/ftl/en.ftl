@@ -1016,6 +1016,31 @@ player-channels =
 # Accessible label of the two buttons that switch between subbed and dubbed audio.
 player-translation-label = Subbed or dubbed
 
+# What a screen reader says for the seek bar's value. Both times are already spoken in full.
+player-position-spoken = { $position } of { $duration }
+
+# What a screen reader says for the volume slider's value.
+player-volume-percent = { $percent } percent
+
+# Said to a screen reader when the Up next card appears with its countdown running.
+player-announce-up-next-counting = Up next, { $title }. Plays in { $seconds } seconds. Press Escape to cancel.
+
+# Said to a screen reader when the Up next card appears and waits.
+player-announce-up-next-waiting = Up next, { $title }. Press Enter to play it, or Escape to cancel.
+
+# Said to a screen reader when the Skip opening or Skip ending card appears. The label is the card's button.
+player-announce-skip = { $label }. Press S.
+
+# Said to a screen reader when a skip has just happened and can be taken back. The line is "Skipped opening".
+player-announce-undo = { $line }. Press U to undo.
+
+# Accessible name of a comment's like button: the word Like and how many likes it has.
+discussion-like-named =
+    { $count ->
+        [one] Like, one like
+       *[other] Like, { $count } likes
+    }
+
 # Tooltip on the button that opens a setting's preview on a page of its own, and accessible name of the preview.
 settings-preview = Preview
 
@@ -1462,6 +1487,15 @@ continue-preview = Preview
 
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = Airs at { $time }
+
+# Accessible name of a progress bar on a row that has no better name, such as a download's.
+progress-name = Progress
+
+# What a screen reader says for a progress bar's value.
+progress-percent = { $percent } percent
+
+# Accessible name of a grid of show covers.
+poster-grid-name = Titles
 
 # Header title on a terminal too narrow for the rail: the product name, then the section on screen.
 chrome-header-section = anistream · { $section }
