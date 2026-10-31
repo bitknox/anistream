@@ -1,11 +1,11 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
-  ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
-  ▦  Seasonal               │    Yoru no Toshokan  E6 in 2 h 41 min   ░░░░░░░░░░░░░░░░░
-  /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
-  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Home                   │    Continue watching  ───────────────────────────   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │  ▌ Hoshikuzu no Tabibito  Episode 3 · 12 min left   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │                                                     ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Continue  ────────────────────────────────────   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │    Kaze no Tegami         ● Episode 5 · out today   ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │    Kitsune Ekiben         Episode 9 · 21 min left   ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Differences
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -16,20 +16,20 @@ anistream                                                                       
   Tsuki to Kujira no Uta  ·  score: mine 9 / theirs 8                                                      Keep mine
                                                                                                          Keep theirs
 
+                            │    Tsuki to Kujira no Uta   On your Planning list
+                            │    Tetsu no Ha… Because you finished Kumo no Ue …   TV  ·  12 episodes  ·  2026  ·  8…
+                            │                                                     Adventure  ·  Fantasy  ·  Slice o…
+                            │    This season · Autumn 2026  ───────────────────
+                            │    Ame Furu Machi no Robotto        Episode 5 out   ▏ Continue E4 at 13:32 (57%)
+                            │    Kumo no Ue no Gakkou             Episode 4 out   █████████████▋░░░░░░░░░░
                             │
-                            │                                         TV  ·  12 episodes  ·  2026  ·  84%  ·  Studi…
-                            │                                         Adventure  ·  Fantasy  ·  Slice of Life
+                            │    Because you finished Kumo no Ue no Toshokan  ─   E4 out 2 d 3 h ago  ·  E5 in 4 d …
+                            │    Shiosai Rad… Because you finished Kumo no Ue …
+                            │                                                     A lamplighter on a dying comet
+                            │    That's everything for now. Seasonal and          rides the last mail coach between
+                            │    Calendar have the full lists.                    the stars, delivering letters to…
                             │
-                            │                                         ▏ Continue E4 at 13:32 (57%)
-                            │                                         █████████████▋░░░░░░░░░░
-                            │
-                            │                                         E4 out 2 d 3 h ago  ·  E5 in 4 d 20 h
-                            │
-                            │                                         A lamplighter on a dying comet rides the last
-                            │                                         mail coach between the stars, delivering
-                            │                                         letters to towns that may no longer exist.…
-                            │
-                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
+                            │                                                     ████░░░░░░░░░░░░  3 of 12 episodes
 ─────────────────────────── ▌ 3 sync differences found. Press “review sync differences” in the palette to review them. ─
 plugins · Subbed · 1080p                                                                          ↵ resolve   esc cancel
 === styles ===
@@ -38,11 +38,11 @@ r00 c00-08 fg=rule mod=BOLD
 r00 c09-119 fg=rule
 r01 c00-119 fg=rule
 r02 c00-04 fg=rule
-r02 c05-12 fg=rule mod=BOLD
-r02 c13-32 fg=rule
-r02 c33-53 fg=rule mod=BOLD
-r02 c54-119 fg=rule
-r03 c00-119 fg=rule
+r02 c05-08 fg=rule mod=BOLD
+r02 c09-119 fg=rule
+r03 c00-32 fg=rule
+r03 c33-53 fg=rule mod=BOLD
+r03 c54-119 fg=rule
 r04 c00-119 fg=rule
 r05 c00-119 fg=rule
 r06 c00-119 fg=rule
@@ -75,9 +75,9 @@ r15 c02-52 fg=text-dim bg=ground
 r15 c53-106 fg=rule bg=ground
 r15 c107-115 fg=text bg=ground
 r15 c116-119 fg=rule bg=ground
-r16 c00-69 fg=rule bg=ground
-r16 c70-90 fg=rule bg=ground mod=BOLD
-r16 c91-104 fg=rule bg=ground
+r16 c00-81 fg=rule bg=ground
+r16 c82-102 fg=rule bg=ground mod=BOLD
+r16 c103-104 fg=rule bg=ground
 r16 c105-115 fg=text bg=ground
 r16 c116-119 fg=rule bg=ground
 r17 c00-119 fg=rule bg=ground
@@ -85,9 +85,9 @@ r18 c00-119 fg=rule
 r19 c00-119 fg=rule
 r20 c00-119 fg=rule
 r21 c00-119 fg=rule
-r22 c00-69 fg=rule
-r22 c70-97 fg=rule mod=BOLD
-r22 c98-119 fg=rule
+r22 c00-81 fg=rule
+r22 c82-109 fg=rule mod=BOLD
+r22 c110-119 fg=rule
 r23 c00-119 fg=rule
 r24 c00-119 fg=rule
 r25 c00-119 fg=rule
