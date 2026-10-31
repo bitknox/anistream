@@ -136,7 +136,10 @@ public sealed partial class FolderPage : Page
     void Remove()
     {
         ctx.Send(new Command.Local(new LocalCommand.RemoveFolder(path)));
-        ctx.Window.Say(T.SourcesRemoved(Path.GetFileName(path.TrimEnd('\\', '/')) is { Length: > 0 } n ? n : path) + " " + T.SourcesRemovedFilesStay);
+        // Undo adds the folder back, which scans it again; the files were never touched.
+        var back = path;
+        ctx.Window.Say(T.SourcesRemoved(Path.GetFileName(path.TrimEnd('\\', '/')) is { Length: > 0 } n ? n : path) + " " + T.SourcesRemovedFilesStay,
+            T.ActionUndo, () => ctx.Send(new Command.Local(new LocalCommand.AddFolder(back))));
         ctx.Go("providers");
     }
 }

@@ -384,8 +384,12 @@ public sealed partial class MainWindow : Window
         if (options.Show?.StartsWith("cast-", StringComparison.Ordinal) == true)
             RehearseCast(options.Show);
         // --show=lawful-*: the add-a-server dialog (lawful-server-*), or the licensed services page (lawful-licensed).
-        if (options.Show?.StartsWith("lawful-server", StringComparison.Ordinal) == true)
+        if (options.Show?.StartsWith("lawful-server", StringComparison.Ordinal) == true && options.Show != "lawful-server-page")
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () => { await Task.Delay(900); ShowAddServer(); });
+        if (options.Show?.StartsWith("lawful-folder", StringComparison.Ordinal) == true)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () => { await Task.Delay(900); Push(typeof(Pages.FolderPage), @"D:\Shows"); });
+        if (options.Show == "lawful-server-page")
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () => { await Task.Delay(900); Push(typeof(Pages.ServerPage), "s1"); });
         if (options.Show == "lawful-licensed")
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () => { await Task.Delay(900); Push(typeof(Pages.LicensedPage), null); });
         // --show=devicecode: Trakt's sign-in code, for a screenshot.

@@ -457,7 +457,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         if (at > 0)
             MoreMenu.Items.Insert(at, new MenuFlyoutSeparator { Tag = "avail" });
 
-        void Text(string text) => AvailLine.Children.Add(new TextBlock { Text = text, Style = Ui.Res<Style>("HazeBodyStyle"), VerticalAlignment = VerticalAlignment.Center });
+        void Text(string text) => AvailLine.Children.Add(new TextBlock { Text = text, Style = Ui.Res<Style>("HazeBodyStyle"), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.WrapWholeWords });
         HyperlinkButton Link(string text, Action go)
         {
             var b = new HyperlinkButton { Content = text, Padding = new Thickness(4, 0, 4, 0) };
@@ -465,6 +465,8 @@ public sealed partial class TitlePage : Page, IPageKeys
             AvailLine.Children.Add(b);
             return b;
         }
+        // The not-found line is a sentence and a link: stacked, so a narrow window wraps the sentence instead of clipping the link.
+        AvailLine.Orientation = a.Case == AvailabilityCase.NotInSources ? Orientation.Vertical : Orientation.Horizontal;
         switch (a.Case)
         {
             case AvailabilityCase.PlaysAlsoOn or AvailabilityCase.OnService when (a.AlsoOn ?? []).Length > 0:
