@@ -94,6 +94,12 @@ pub struct Config {
     pub meta: MetaConfig,
     pub controller: ControllerConfig,
     pub cast: CastConfig,
+    /// The sources that are part of anistream: the demo.
+    pub sources: SourcesConfig,
+    /// How subtitles look, per device.
+    pub subtitles: SubtitlesConfig,
+    /// Whether a crash is kept on this device for a bug report.
+    pub crash_reports: CrashReportsConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -138,7 +144,9 @@ impl Config {
 
     /// [`Self::from_toml`], keeping where the problem is apart from what it is.
     pub fn parse(src: &str) -> Result<Self, ConfigProblem> {
-        let cfg: Self = toml::from_str(src).map_err(|e| ConfigProblem::from_toml(src, &e))?;
+        let mut cfg: Self =
+            toml::from_str(src).map_err(|e| ConfigProblem::from_toml(src, &e))?;
+        cfg.subtitles = cfg.subtitles.clamped();
         cfg.validate().map_err(|e| ConfigProblem {
             line: None,
             message: match e {
@@ -166,7 +174,10 @@ impl Config {
         match std::fs::read_to_string(&paths.config_file) {
             Ok(src) => Self::parse(&src),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                let cfg = Self::default();
+                // A new install has the demo; the engine writes that down when it starts, so
+                // a config file made later does not read as an existing install's.
+                let mut cfg = Self::default();
+                cfg.sources.demo = true;
                 cfg.validate()
                     .map_err(|e| ConfigProblem { line: None, message: e.to_string() })?;
                 Ok(cfg)
@@ -504,6 +515,188 @@ pub struct NotificationsConfig {
 impl Default for NotificationsConfig {
     fn default() -> Self {
         Self { airing_digest: true, desktop: false, episodes: false }
+    }
+}
+
+/// The sources built into anistream, as opposed to the plugins people install.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SourcesConfig {
+    /// Whether the demo is one of the viewer's sources. Written as on when the engine starts on
+    /// a new install, and unset in a config that already exists, which reads as off: an existing
+    /// install is offered the demo, never given it.
+    pub demo: bool,
+}
+
+/// Defines a closed set of named choices a config key holds, with the name the file uses and the
+/// walk through them a settings row steps along.
+macro_rules! choices {
+    ($(#[$meta:meta])* $name:ident { $($(#[$vmeta:meta])* $variant:ident => $file:literal),+ $(,)? }) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+        #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+        #[serde(rename_all = "kebab-case")]
+        pub enum $name {
+            $($(#[$vmeta])* $variant),+
+        }
+
+        impl $name {
+            /// Every choice, in the order a row steps through them.
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+
+            /// The name the config file uses.
+            pub const fn name(self) -> &'static str {
+                match self { $(Self::$variant => $file),+ }
+            }
+
+            pub fn from_name(name: &str) -> Option<Self> {
+                Self::ALL.iter().copied().find(|choice| choice.name() == name)
+            }
+        }
+    };
+}
+
+choices! {
+    /// The typeface of subtitles.
+    SubtitleFont {
+        /// The player's own.
+        #[default]
+        Default => "default",
+        /// The app's face, for Japanese and Latin text alike.
+        ZenKakuGothicNew => "zen-kaku-gothic-new",
+        Serif => "serif",
+        Monospace => "monospace",
+    }
+}
+choices! {
+    /// The colour of subtitle text.
+    SubtitleColour {
+        #[default]
+        White => "white",
+        Yellow => "yellow",
+        Cyan => "cyan",
+        Green => "green",
+    }
+}
+choices! {
+    /// What sets subtitle text off from the picture.
+    SubtitleEdge {
+        #[default]
+        Outline => "outline",
+        DropShadow => "drop-shadow",
+        NoEdge => "none",
+    }
+}
+choices! {
+    /// How heavy the outline or shadow is.
+    SubtitleThickness {
+        Thin => "thin",
+        #[default]
+        Medium => "medium",
+        Thick => "thick",
+    }
+}
+choices! {
+    /// A plate behind the text.
+    SubtitleBackground {
+        #[default]
+        NoBackground => "none",
+        /// A box behind each line.
+        EachLine => "each-line",
+        /// One box behind all the lines.
+        AllLines => "all-lines",
+    }
+}
+choices! {
+    /// What a styled subtitle (ASS) keeps of its authors' look.
+    StyledSubtitles {
+        /// Their fonts, colours and placement stay. Size and Raise still apply.
+        #[default]
+        Keep => "keep",
+        /// The viewer's font, colour, edge and background apply to them too.
+        Restyle => "restyle",
+        /// Every tag and style is dropped and each line is plain dialogue in the viewer's style.
+        Strip => "strip",
+    }
+}
+
+/// How subtitles look. One table for every device the file is on, and the file is per device.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SubtitlesConfig {
+    /// Percent of the player's own size: 50 to 200 in steps of 10.
+    pub size: u32,
+    pub font: SubtitleFont,
+    pub colour: SubtitleColour,
+    pub edge: SubtitleEdge,
+    pub thickness: SubtitleThickness,
+    pub background: SubtitleBackground,
+    /// How opaque the background plate is, percent: 50, 75 or 100.
+    pub opacity: u32,
+    /// How far subtitles are raised, percent of the picture: 0 to 20.
+    pub raise: u32,
+    pub styled: StyledSubtitles,
+    /// Take the system's caption style where the platform has one (Apple, Android, Windows),
+    /// over the choices above.
+    pub follow_system: bool,
+}
+
+impl SubtitlesConfig {
+    pub const SIZES: (u32, u32, u32) = (50, 200, 10);
+    pub const OPACITIES: [u32; 3] = [50, 75, 100];
+    pub const MAX_RAISE: u32 = 20;
+
+    /// Clamp what a hand-edited file holds to what the settings offer.
+    pub fn clamped(mut self) -> Self {
+        let (low, high, step) = Self::SIZES;
+        self.size = (self.size.clamp(low, high) + step / 2) / step * step;
+        self.size = self.size.clamp(low, high);
+        if !Self::OPACITIES.contains(&self.opacity) {
+            self.opacity = *Self::OPACITIES
+                .iter()
+                .min_by_key(|o| o.abs_diff(self.opacity))
+                .unwrap_or(&100);
+        }
+        self.raise = self.raise.min(Self::MAX_RAISE);
+        self
+    }
+}
+
+impl Default for SubtitlesConfig {
+    fn default() -> Self {
+        Self {
+            size: 100,
+            font: SubtitleFont::Default,
+            colour: SubtitleColour::White,
+            edge: SubtitleEdge::Outline,
+            thickness: SubtitleThickness::Medium,
+            background: SubtitleBackground::NoBackground,
+            opacity: 75,
+            raise: 0,
+            styled: StyledSubtitles::Keep,
+            follow_system: true,
+        }
+    }
+}
+
+/// Crash reports kept on the device. Nothing is kept until it is asked for, and nothing is ever
+/// sent by itself.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CrashReportsConfig {
+    /// Keep a short, redacted record of each crash on this device. Off until the viewer turns it
+    /// on.
+    pub save: bool,
+    /// Show a notice at the next launch after a crash, with Report. Shown only while `save` is on.
+    pub ask: bool,
+    /// When `save` was turned on, in Unix milliseconds. The records the system kept from the week
+    /// before are offered, never taken.
+    pub enabled_at: Option<i64>,
+}
+
+impl Default for CrashReportsConfig {
+    fn default() -> Self {
+        Self { save: false, ask: true, enabled_at: None }
     }
 }
 
@@ -1372,7 +1565,10 @@ mod tests {
         assert!(name.starts_with("config.damaged-20"), "{name}");
         assert_eq!(std::fs::read_to_string(&aside).unwrap(), "[playback\nupscaling = ");
         assert!(!paths.config_file.exists());
-        assert_eq!(Config::read(&paths).unwrap(), Config::default());
+        // No file reads as a new install, which has the demo.
+        let mut fresh = Config::default();
+        fresh.sources.demo = true;
+        assert_eq!(Config::read(&paths).unwrap(), fresh);
 
         // A second the same day takes the next name, and the first stays.
         std::fs::write(&paths.config_file, "junk = [").unwrap();

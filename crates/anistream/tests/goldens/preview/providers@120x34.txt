@@ -7,20 +7,20 @@ anistream                                                                       
   ▥  Library                │  ▌ fixture             Built in    Ready           0 ms
   ↓  Downloads              │
 ▌ ◇  Sources                │
-  ◎  Accounts               │  Plugin stores
-  ≡  Settings               │    Plugins shared by people you know. Join with an invite link.                  ↵ Open
+  ◎  Accounts               │    About the demo
+  ≡  Settings               │    こ う し す ！  · CC BY 4.0 · from Wikimedia Commons
+                            │    Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.
+                            │    The demo never signs in anywhere and never writes to AniList.
+                            │    B  Play the demo   Y  Remove demo
+                            │
+                            │  Plugin stores
+                            │    Plugins shared by people you know. Join with an invite link.                  ↵ Open
                             │
                             │  Metadata
                             │
                             │    anilist             Live
                             │    tenrai              Not in use
                             │    cache               ready       1 title
-                            │
-                            │
-                            │
-                            │
-                            │
-                            │
                             │
                             │
                             │

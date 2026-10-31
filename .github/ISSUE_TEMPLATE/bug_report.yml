@@ -29,3 +29,9 @@ body:
       label: Diagnostics
       description: Filled in by the app. It holds versions, your device and the last error, with addresses, paths, tokens and titles removed. Read it before you submit, and edit anything you would rather not share.
       render: text
+  - type: textarea
+    id: crash
+    attributes:
+      label: Crash report
+      description: Filled in by the app when you include a crash. It holds the time, the place and anistream's own frames, with titles, addresses, paths and names removed. Read it before you submit.
+      render: text

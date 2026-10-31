@@ -33,6 +33,14 @@ private fun FixtureScene.ffi(): FfiScene = when (this) {
     FixtureScene.UNSURE -> FfiScene.Unsure
     // What it streams is the player's business, which comes with A3: a path or URL on the device.
     FixtureScene.PLAYING -> FfiScene.Playing(media = fixtureMedia)
+    FixtureScene.DEMO_ONLY -> FfiScene.DemoOnly
+    FixtureScene.DEMO_PLAYED -> FfiScene.DemoPlayed
+    FixtureScene.DEMO_AND_STORE -> FfiScene.DemoAndStore
+    FixtureScene.DEMO_REMOVED -> FfiScene.DemoRemoved
+    FixtureScene.SUBTITLE_STYLED -> FfiScene.SubtitleStyled
+    FixtureScene.CRASH_OFF -> FfiScene.CrashOff
+    FixtureScene.CRASH_SAVED -> FfiScene.CrashSaved
+    FixtureScene.CRASH_HELD -> FfiScene.CrashHeld
 }
 
 /** What the Playing scene streams, and Watching's when set: the fixtures' `media` extra, set at launch. */

@@ -178,6 +178,7 @@ fn home_ask(engine: &EngineState, services: &Services, refresh: bool) -> HomeAsk
         offline: engine.network.offline,
         refresh,
         sources: !services.registry.usable_ids().is_empty(),
+        demo: crate::demo::state(engine, services),
     }
 }
 
@@ -389,6 +390,19 @@ pub(crate) fn dispatch(
             crate::party::join_by_default(engine, services, tx);
             play(id, episode, from_start, job, engine, services, tx)
         }
+        // The demo: added or taken out of the chain, or played from part 1 by the ordinary play.
+        Command::AddDemo => crate::demo::set(true, engine, services, tx),
+        Command::RemoveDemo => crate::demo::set(false, engine, services, tx),
+        Command::PlayDemo => {
+            if !engine.config.effective().sources.demo {
+                crate::demo::set(true, engine, services, tx);
+            }
+            engine.dubs.stop();
+            engine.names.stop();
+            let id = anistream_core::demo::DEMO_ANILIST_ID;
+            play(id, "1".into(), false, job, engine, services, tx)
+        }
+        Command::ResetSubtitleStyle => crate::subtitles::reset(engine, services, tx),
         Command::PlaySource { id, episode, provider_id, source_id } => {
             engine.dubs.stop();
             engine.names.stop();
@@ -743,6 +757,7 @@ pub(crate) async fn handle_internal(
                 &services.registry,
                 &services.stores,
             )));
+            said.push(Event::Demo(crate::demo::state(engine, services)));
         }
         // Awaited rather than spawned: this owns the session and the guard, and two
         // rebuilds racing would leave one of their sessions running with nothing holding
@@ -759,6 +774,7 @@ pub(crate) async fn handle_internal(
             crate::titles::refresh::sources_changed(engine, services, tx);
             // Passed on, ahead of what the rebuild reports: the screen says it reloads.
             said.push(Event::SourcesChanged);
+            said.push(Event::Demo(crate::demo::state(engine, services)));
         }
     }
     said

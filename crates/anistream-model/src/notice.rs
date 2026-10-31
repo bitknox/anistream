@@ -47,6 +47,17 @@ pub enum NoticeHint {
     OpenStores,
     /// Sign in to Kitsu from its row on the Accounts screen, which asks for credentials.
     KitsuCredentials,
+    /// Put the demo back with [`Command::AddDemo`](crate::command::Command::AddDemo), after
+    /// Demo removed.
+    UndoRemoveDemo,
+    /// Remove the demo with [`Command::RemoveDemo`](crate::command::Command::RemoveDemo), after
+    /// the first plugin from a store installed.
+    RemoveDemo,
+    /// Put the subtitle style back to what it was before the reset. The app holds the old style
+    /// and sends each setting back.
+    UndoSubtitleReset,
+    /// Open Report a bug from the crash notice, with the crash ticked.
+    ReportCrash,
 }
 
 impl Notice {

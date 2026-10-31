@@ -597,8 +597,13 @@ impl Meta {
         &self,
         media: &Media,
         fresh: bool,
-        say: impl FnMut(Option<Vec<crate::anilist::model::RelationNode>>),
+        mut say: impl FnMut(Option<Vec<crate::anilist::model::RelationNode>>),
     ) {
+        // The demo's title has no franchise to walk, and AniList no entry to walk it from.
+        if crate::demo::is_demo(media.id) {
+            say(Some(Vec::new()));
+            return;
+        }
         // A spent budget would hold the page for the walk's every request: it is shown at once.
         let hold = match self.anilist.rate_limit_wait().await {
             Some(_) => Duration::ZERO,
@@ -622,6 +627,10 @@ impl Meta {
 
     /// The ladder, for one title. Returns whether AniList itself answered.
     async fn ask_media(&self, id: AnilistId) -> (Result<Media>, bool) {
+        // The demo's title is the engine's own: no request leaves for it, and nothing is kept.
+        if crate::demo::is_demo(id) {
+            return (Ok(crate::demo::media()), true);
+        }
         let primary = match self.ask_anilist(self.anilist.media(id)).await {
             Ok(media) => {
                 self.went(FRESH);
@@ -659,6 +668,19 @@ impl Meta {
     /// first, because these are almost always titles from the caller's own history,
     /// then Tenrai for the gaps. A title nothing can describe is omitted, not invented.
     pub async fn media_many(&self, ids: &[AnilistId]) -> Result<Vec<Media>> {
+        // The demo's title is the engine's own: asked of no one, and put back where it was asked.
+        if ids.iter().any(|id| crate::demo::is_demo(*id)) {
+            let others: Vec<AnilistId> =
+                ids.iter().copied().filter(|id| !crate::demo::is_demo(*id)).collect();
+            let mut found = if others.is_empty() {
+                Vec::new()
+            } else {
+                Box::pin(self.media_many(&others)).await.unwrap_or_default()
+            };
+            let at = ids.iter().position(|id| crate::demo::is_demo(*id)).unwrap_or(0);
+            found.insert(at.min(found.len()), crate::demo::media());
+            return Ok(found);
+        }
         let primary = match self.ask_anilist(self.anilist.media_many(ids)).await {
             Ok(list) => {
                 self.went(FRESH);

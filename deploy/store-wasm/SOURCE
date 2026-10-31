@@ -148,7 +148,7 @@ crates/anistream-store-core/src/inspect.rs 86d9eb0a45c29fd587702d6f2844e88d188b5
 crates/anistream-store-core/src/invite.rs 0c2ae044860cdc505067cb5c48a40c53d185d351
 crates/anistream-store-core/src/lib.rs abf2d19a8b0e521ca6a038f557fea522ce5c2cc4
 crates/anistream-store-core/src/manifest.rs df57dc9f16e3a042f0e75ba6430a632d4e876366
-crates/anistream-store-core/src/protocol.rs aaec29fb8899009fc4e9316b3b3d4fb4d477d189
+crates/anistream-store-core/src/protocol.rs 883bd9583674234c848fb3c8a22f9a5ec3aff648
 crates/anistream-store-core/src/schema.rs 99892d6d3525c58be8adf156340b04ead95a9e95
 crates/anistream-store-core/src/store.rs 353f406bd007a7737f9c9c573a449f1be6ad54ba
 crates/anistream-store-wasm/Cargo.toml 5fe0b78c46877f0e2ac77d7f07edcbc14935d695

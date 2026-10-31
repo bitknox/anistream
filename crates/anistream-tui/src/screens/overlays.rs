@@ -161,6 +161,14 @@ pub(super) fn render_overlay(
         Overlay::InviteLink => invite_link_rows(app, link_width(area.width)),
         Overlay::OpenLink => open_link_rows(app, link_width(area.width)),
         Overlay::PublishPick => publish_rows(app),
+        Overlay::FirstRun => vec![
+            (String::new(), t::onboarding_demo_heading()),
+            (String::new(), t::onboarding_demo_detail()),
+            (String::new(), String::new()),
+            ("↵".into(), t::onboarding_play_demo()),
+            ("i".into(), t::onboarding_invite_heading()),
+            ("s".into(), t::onboarding_skip()),
+        ],
     };
 
     // Overlays that are a list of things you pick from need a focus marker. The palette was

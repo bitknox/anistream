@@ -8,6 +8,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 use crate::{
     app::App,
     clock::Clock,
+    keymap::Action,
     nav::Focus,
     theme::{Role, glyph},
     widgets::{Cells, Hairline, truncate, wrap},
@@ -110,7 +111,7 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             COL_PROVIDER,
             COL_PROVIDER_KIND - COL_PROVIDER - 1,
             y,
-            &provider.id,
+            &if provider.is_demo { t::sources_demo_name() } else { provider.id.clone() },
             if selected { name.add_modifier(Modifier::BOLD) } else { name },
         );
         if shows(COL_PROVIDER_KIND, &kind_head) {
@@ -177,8 +178,48 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         y += 2;
     }
 
-    let y = render_store_summary(buf, app, area, y + 2);
+    let y = render_demo(buf, app, area, y + 2);
+    let y = render_store_summary(buf, app, area, y);
     render_meta_sources(buf, app, area, y);
+}
+
+/// About the demo, under the table while it is one of the sources, and the way back to it once
+/// it was taken out. Returns the row after it.
+fn render_demo(buf: &mut Buffer, app: &App, area: Rect, top: u16) -> u16 {
+    let lines = if app.demo.on {
+        vec![
+            t::sources_demo_about(),
+            t::sources_demo_line(),
+            t::sources_demo_hosts(),
+            t::sources_demo_private(),
+            format!(
+                "{}  {}   {}  {}",
+                app.key_for(Action::PlayDemo),
+                t::onboarding_play_demo(),
+                app.key_for(Action::ToggleDemo),
+                t::sources_demo_remove()
+            ),
+        ]
+    } else if app.demo.offer {
+        vec![format!("{}  {}", app.key_for(Action::ToggleDemo), t::sources_demo_add())]
+    } else {
+        Vec::new()
+    };
+    if lines.is_empty() || top + lines.len() as u16 >= area.bottom() {
+        return top;
+    }
+    let mut y = top;
+    for (i, line) in lines.iter().enumerate() {
+        let role = if i == 0 { Role::Text } else { Role::TextDim };
+        buf.set_string(
+            area.left() + 2,
+            y,
+            truncate(line, area.width.saturating_sub(4) as usize),
+            app.palette.style(role),
+        );
+        y += 1;
+    }
+    y + 1
 }
 
 /// The plugin stores line on Providers: how many are joined, what is waiting, and the key in.

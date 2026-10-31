@@ -89,6 +89,9 @@ pub enum HomeEnd {
     /// Add a source to play from Home, with Plugin stores: no source is installed. Said in
     /// place of the other two, as nothing on Home plays without one.
     NoSources,
+    /// "Only the demo is on. Join a plugin store to play from your own sources", with Plugin
+    /// stores: the demo is the one source. Said in place of [`Self::NoSources`] then.
+    DemoOnly,
 }
 
 /// Why the spotlight holds its title.
@@ -103,6 +106,9 @@ pub enum SpotlightCase {
     /// The most popular title of this season the viewer has not started, when neither of the
     /// others has anything.
     Popular,
+    /// The demo, ahead of the other cases while it is on, unplayed, and the only source. Its
+    /// main action plays part 1; More has About the demo and Remove demo.
+    Demo,
 }
 
 /// What a card's or the spotlight's main action does.

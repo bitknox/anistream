@@ -48,6 +48,9 @@ impl Keymap {
             // cursor: `K` takes the selected source up the order, `J` down.
             bind(Binding::plain(Char('K')), A::RaiseSource);
             bind(Binding::plain(Char('J')), A::LowerSource);
+            // The demo: `B` plays it, `Y` takes it out of the sources or puts it back.
+            bind(Binding::plain(Char('B')), A::PlayDemo);
+            bind(Binding::plain(Char('Y')), A::ToggleDemo);
             for n in 1..=9u8 {
                 bind(
                     Binding::plain(Char(char::from_digit(u32::from(n), 10).unwrap_or('1'))),

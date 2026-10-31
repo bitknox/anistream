@@ -66,6 +66,7 @@ fn log_panics() {
             .unwrap_or_default();
         let at = info.location().map(|at| format!("{}:{}", at.file(), at.line()));
         tracing::error!(panic = %said, at = at.as_deref().unwrap_or("unknown"), "panicked");
+        anistream_engine::crash::save_panic(info);
         before(info);
     }));
 }

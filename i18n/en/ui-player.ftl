@@ -281,3 +281,30 @@ player-wait-note = { $what } · { $seconds } s
 
 # Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
 player-command-failed = That didn't work. Try again.
+
+# Heading of the style section in the player's subtitles panel.
+player-subs-style = Style
+
+# Accessibility label of the control that makes subtitles larger.
+player-subs-larger = Larger subtitles
+
+# Accessibility label of the control that makes subtitles smaller.
+player-subs-smaller = Smaller subtitles
+
+# Accessibility label of the control that raises subtitles.
+player-subs-raise = Raise subtitles
+
+# Accessibility label of the control that lowers subtitles.
+player-subs-lower = Lower subtitles
+
+# Quick panel choice for the subtitle background: outline, no box.
+player-subs-bg-outline = Outline
+
+# Quick panel choice for the subtitle background: drop shadow, no box.
+player-subs-bg-shadow = Shadow
+
+# Quick panel choice for the subtitle background: a box behind the lines.
+player-subs-bg-box = Box
+
+# Button in the subtitles panel that opens Settings.
+player-subs-more = More in Settings…

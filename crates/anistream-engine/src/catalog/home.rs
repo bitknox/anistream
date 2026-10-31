@@ -96,6 +96,8 @@ pub struct HomeAsk {
     pub refresh: bool,
     /// A source is installed and on, so something on Home can play.
     pub sources: bool,
+    /// Where the demo stands: the spotlight's case 0 and the demo-only closing line.
+    pub demo: anistream_model::sources::DemoState,
 }
 
 /// What the engine remembers of Home between sends. Cheap to clone; every clone is the same.
@@ -867,6 +869,24 @@ fn compose(
         }
     }
 
+    // The demo, ahead of the other cases, until it is first played or a store source is in.
+    if ask.demo.on && ask.demo.only && !ask.demo.played {
+        let media = anistream_meta::demo::media();
+        spotlight = Some(Spotlight {
+            case: SpotlightCase::Demo,
+            label: Msg::HomeSpotlightDemo,
+            entry: data::entry_from(&media, Some(store)),
+            episode: 1,
+            action: HomeAction::Play,
+            reason: None,
+            resume: None,
+            starts: None,
+            playable: Playable::Found,
+            line: None,
+            because: None,
+        });
+    }
+
     // Up next for you leaves out the suggestion the spotlight shows.
     if let Some(spot) = spotlight.as_ref().filter(|s| s.case == SpotlightCase::Suggested) {
         if let Some(section) = sections.iter_mut().find(|s| s.kind == SectionKind::UpNext) {
@@ -878,7 +898,9 @@ fn compose(
 
     // The end waits for Continue's own titles too, so a front end that reads it as settled has
     // the whole queue.
-    let end = (pending.is_empty() && !continuing).then_some(if !ask.sources {
+    let end = (pending.is_empty() && !continuing).then_some(if ask.demo.on && ask.demo.only {
+        HomeEnd::DemoOnly
+    } else if !ask.sources {
         HomeEnd::NoSources
     } else if ask.listed {
         HomeEnd::Everything

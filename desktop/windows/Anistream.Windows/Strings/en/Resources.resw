@@ -239,6 +239,10 @@
     <value>More {genre}</value>
     <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
   </data>
+  <data name="HomeSpotlightDemo" xml:space="preserve">
+    <value>Demo, free to share</value>
+    <comment>Line over the spotlight's title when it is the built-in demo.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -887,6 +891,14 @@
     <value>Watch parties aren't built into this app.</value>
     <comment>Toast when a command needs watch parties but this app was built without them.</comment>
   </data>
+  <data name="SourcesDemoRemoved" xml:space="preserve">
+    <value>Demo removed</value>
+    <comment>Notice after the demo is removed. It offers Undo for 8 seconds.</comment>
+  </data>
+  <data name="StoresReadyDemoStays" xml:space="preserve">
+    <value>{store} is ready. The demo stays last in Your sources.</value>
+    <comment>Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.</comment>
+  </data>
   <data name="NoticeSignedIn" xml:space="preserve">
     <value>Signed in to {tracker}.</value>
     <comment>Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.</comment>
@@ -1138,6 +1150,18 @@
   <data name="NoticeEpisodesQueued_other" xml:space="preserve">
     <value>Queued {count} episodes.</value>
     <comment>Toast after episodes are added to the download queue.</comment>
+  </data>
+  <data name="SettingsSubsResetDone" xml:space="preserve">
+    <value>Subtitle style reset</value>
+    <comment>Notice after the subtitle style is reset. It offers Undo.</comment>
+  </data>
+  <data name="CrashNotice" xml:space="preserve">
+    <value>anistream closed after a problem.</value>
+    <comment>Notice at the next launch after a crash, while saving and asking are on.</comment>
+  </data>
+  <data name="CrashNoticeTv" xml:space="preserve">
+    <value>anistream closed after a problem. You can report it from Settings, About.</value>
+    <comment>The same notice on the TV, which has no button.</comment>
   </data>
   <data name="ContinueMenuResume" xml:space="preserve">
     <value>Continue</value>
@@ -1954,6 +1978,130 @@
   <data name="AboutFontLicence" xml:space="preserve">
     <value>Licensed under the SIL Open Font License 1.1.</value>
     <comment>Line about fonts.</comment>
+  </data>
+  <data name="CrashNoticeReport" xml:space="preserve">
+    <value>Report…</value>
+    <comment>Button on that notice that opens Report a bug.</comment>
+  </data>
+  <data name="ReportTitle" xml:space="preserve">
+    <value>Report a bug</value>
+    <comment>Title of the Report a bug sheet.</comment>
+  </data>
+  <data name="ReportDetail" xml:space="preserve">
+    <value>This opens a new issue on GitHub, where you sign in, say what happened and submit. Issues on GitHub are public.</value>
+    <comment>Line under the title of the Report a bug sheet.</comment>
+  </data>
+  <data name="ReportIncluded" xml:space="preserve">
+    <value>Included</value>
+    <comment>Heading of the list of what the report includes.</comment>
+  </data>
+  <data name="ReportVersions" xml:space="preserve">
+    <value>App and device versions</value>
+    <comment>Report item that is always included.</comment>
+  </data>
+  <data name="ReportLastError" xml:space="preserve">
+    <value>The last error</value>
+    <comment>Report item: the last error the app showed.</comment>
+  </data>
+  <data name="ReportCrashItem" xml:space="preserve">
+    <value>Crash · {when} · {place}</value>
+    <comment>Report item for a saved crash. The time and the place are already worded.</comment>
+  </data>
+  <data name="ReportShowSent" xml:space="preserve">
+    <value>Show what is sent</value>
+    <comment>Disclosure that opens the exact text of the report.</comment>
+  </data>
+  <data name="ReportHideSent" xml:space="preserve">
+    <value>Hide what is sent</value>
+    <comment>Disclosure that closes the exact text of the report.</comment>
+  </data>
+  <data name="ReportCopy" xml:space="preserve">
+    <value>Copy report</value>
+    <comment>Button that copies the whole report text.</comment>
+  </data>
+  <data name="ReportCopied" xml:space="preserve">
+    <value>Report copied</value>
+    <comment>Notice after the report text is copied.</comment>
+  </data>
+  <data name="ReportOpenGithub" xml:space="preserve">
+    <value>Open on GitHub</value>
+    <comment>Button that opens the pre-filled issue in the browser.</comment>
+  </data>
+  <data name="ReportPrivacy" xml:space="preserve">
+    <value>Nothing leaves this device until you open the report on GitHub. Titles, addresses, file paths and names are removed.</value>
+    <comment>Line at the foot of the Report a bug sheet.</comment>
+  </data>
+  <data name="ReportTvScan" xml:space="preserve">
+    <value>Scan the code to open the report on your phone.</value>
+    <comment>TV only. Line over the QR code of the issue link.</comment>
+  </data>
+  <data name="ReportCrashOff" xml:space="preserve">
+    <value>Crash reports are off, so none is included. You can turn them on in Settings, About.</value>
+    <comment>Line that replaces the crash rows while saving crash reports is off.</comment>
+  </data>
+  <data name="ReportCrashSettings" xml:space="preserve">
+    <value>Crash report settings</value>
+    <comment>Link from that line to the crash report settings.</comment>
+  </data>
+  <data name="SettingsGroupCrashes" xml:space="preserve">
+    <value>Crash reports</value>
+    <comment>Heading of the Crash reports group in Settings, About.</comment>
+  </data>
+  <data name="SettingsCrashSave" xml:space="preserve">
+    <value>Save crash reports on this device</value>
+    <comment>Switch that turns saving crash reports on this device on or off.</comment>
+  </data>
+  <data name="SettingsCrashSaveDetail" xml:space="preserve">
+    <value>When this is on, anistream keeps a short record of each crash on this device, with titles, addresses and names removed, so you can add it to Report a bug. Nothing is sent by itself.</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="SettingsCrashAsk" xml:space="preserve">
+    <value>Ask after a crash</value>
+    <comment>Switch that turns the notice after a crash on or off.</comment>
+  </data>
+  <data name="SettingsCrashAskDetail" xml:space="preserve">
+    <value>Shows a notice at the next launch with Report…</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="SettingsCrashOsHeading" xml:space="preserve">
+    <value>Kept by {system}</value>
+    <comment>Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.</comment>
+  </data>
+  <data name="SettingsCrashOsDetail" xml:space="preserve">
+    <value>{system} kept these crashes from before you turned this on. Nothing from them is saved unless you add it.</value>
+    <comment>Line under that heading.</comment>
+  </data>
+  <data name="SettingsCrashOsItem" xml:space="preserve">
+    <value>Crash · {when}</value>
+    <comment>Row for one crash the system kept. The time is already worded.</comment>
+  </data>
+  <data name="SettingsCrashOsAdd" xml:space="preserve">
+    <value>Add</value>
+    <comment>Button that saves one crash the system kept.</comment>
+  </data>
+  <data name="SettingsCrashSaved" xml:space="preserve">
+    <value>Saved reports</value>
+    <comment>Heading of the saved crash reports.</comment>
+  </data>
+  <data name="SettingsCrashNone" xml:space="preserve">
+    <value>No crash reports saved.</value>
+    <comment>Empty state of the saved crash reports.</comment>
+  </data>
+  <data name="SettingsCrashView" xml:space="preserve">
+    <value>View</value>
+    <comment>Button that shows the text of a saved crash report.</comment>
+  </data>
+  <data name="SettingsCrashDelete" xml:space="preserve">
+    <value>Delete</value>
+    <comment>Button that deletes one saved crash report.</comment>
+  </data>
+  <data name="SettingsCrashDeleteAll" xml:space="preserve">
+    <value>Delete all</value>
+    <comment>Button that deletes every saved crash report.</comment>
+  </data>
+  <data name="SettingsCrashFootnote" xml:space="preserve">
+    <value>Crash reports stay on this device. anistream sends nothing by itself. A report leaves only when you open it on GitHub from Report a bug. Reports are deleted after 30 days.</value>
+    <comment>Footnote of the Crash reports group.</comment>
   </data>
   <data name="CalendarPreviousWeek" xml:space="preserve">
     <value>Previous week</value>
@@ -4079,6 +4227,42 @@
     <value>Invite link</value>
     <comment>Hint inside the invite field on the welcome page.</comment>
   </data>
+  <data name="OnboardingWhereTitle" xml:space="preserve">
+    <value>Where episodes come from</value>
+    <comment>Heading of the welcome page that explains where episodes come from.</comment>
+  </data>
+  <data name="OnboardingWhereHosts" xml:space="preserve">
+    <value>Episodes play from sources, which are plugins.</value>
+    <comment>First line of that page, shown after legal-hosts-no-content. Says where episodes come from.</comment>
+  </data>
+  <data name="OnboardingWhereStores" xml:space="preserve">
+    <value>Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.</value>
+    <comment>Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.</comment>
+  </data>
+  <data name="OnboardingDemoHeading" xml:space="preserve">
+    <value>Try it now</value>
+    <comment>Heading above the Play the demo button on the welcome page.</comment>
+  </data>
+  <data name="OnboardingDemoDetail" xml:space="preserve">
+    <value>The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons.</value>
+    <comment>Line under that heading. Names the demo work and its licence.</comment>
+  </data>
+  <data name="OnboardingPlayDemo" xml:space="preserve">
+    <value>Play the demo</value>
+    <comment>Button on the welcome page that plays the demo at once.</comment>
+  </data>
+  <data name="OnboardingInviteHeading" xml:space="preserve">
+    <value>Have an invite link?</value>
+    <comment>Heading above the invite link field on the welcome page.</comment>
+  </data>
+  <data name="OnboardingInviteScan" xml:space="preserve">
+    <value>Scan with your phone</value>
+    <comment>TV only. Button that shows a code to scan with a phone to send an invite link.</comment>
+  </data>
+  <data name="OnboardingInviteType" xml:space="preserve">
+    <value>Type the link</value>
+    <comment>TV only. Button that opens a field to type an invite link.</comment>
+  </data>
   <data name="PartyOpen" xml:space="preserve">
     <value>Watch party…</value>
     <comment>Button on the title page and in the player that opens the watch party form.</comment>
@@ -4714,6 +4898,42 @@
   <data name="PlayerCommandFailed" xml:space="preserve">
     <value>That didn't work. Try again.</value>
     <comment>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</comment>
+  </data>
+  <data name="PlayerSubsStyle" xml:space="preserve">
+    <value>Style</value>
+    <comment>Heading of the style section in the player's subtitles panel.</comment>
+  </data>
+  <data name="PlayerSubsLarger" xml:space="preserve">
+    <value>Larger subtitles</value>
+    <comment>Accessibility label of the control that makes subtitles larger.</comment>
+  </data>
+  <data name="PlayerSubsSmaller" xml:space="preserve">
+    <value>Smaller subtitles</value>
+    <comment>Accessibility label of the control that makes subtitles smaller.</comment>
+  </data>
+  <data name="PlayerSubsRaise" xml:space="preserve">
+    <value>Raise subtitles</value>
+    <comment>Accessibility label of the control that raises subtitles.</comment>
+  </data>
+  <data name="PlayerSubsLower" xml:space="preserve">
+    <value>Lower subtitles</value>
+    <comment>Accessibility label of the control that lowers subtitles.</comment>
+  </data>
+  <data name="PlayerSubsBgOutline" xml:space="preserve">
+    <value>Outline</value>
+    <comment>Quick panel choice for the subtitle background: outline, no box.</comment>
+  </data>
+  <data name="PlayerSubsBgShadow" xml:space="preserve">
+    <value>Shadow</value>
+    <comment>Quick panel choice for the subtitle background: drop shadow, no box.</comment>
+  </data>
+  <data name="PlayerSubsBgBox" xml:space="preserve">
+    <value>Box</value>
+    <comment>Quick panel choice for the subtitle background: a box behind the lines.</comment>
+  </data>
+  <data name="PlayerSubsMore" xml:space="preserve">
+    <value>More in Settings…</value>
+    <comment>Button in the subtitles panel that opens Settings.</comment>
   </data>
   <data name="SeasonalPrevious" xml:space="preserve">
     <value>Previous season</value>
@@ -5639,6 +5859,178 @@
     <value>Settings are back to their defaults. The old file is kept as {file}.</value>
     <comment>Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.</comment>
   </data>
+  <data name="SettingsGroupSubtitles" xml:space="preserve">
+    <value>Subtitles</value>
+    <comment>Heading of the Subtitles group in Settings, Playback.</comment>
+  </data>
+  <data name="SettingsSubsPreview" xml:space="preserve">
+    <value>Preview</value>
+    <comment>Heading of the subtitle preview.</comment>
+  </data>
+  <data name="SettingsSubsPreviewPlain" xml:space="preserve">
+    <value>Plain</value>
+    <comment>Segment of the preview that draws plain subtitles.</comment>
+  </data>
+  <data name="SettingsSubsPreviewStyled" xml:space="preserve">
+    <value>Styled</value>
+    <comment>Segment of the preview that draws styled subtitles.</comment>
+  </data>
+  <data name="SettingsSubsPreviewLine" xml:space="preserve">
+    <value>I left the lantern at the station.</value>
+    <comment>First sample line in the subtitle preview.</comment>
+  </data>
+  <data name="SettingsSubsPreviewLine2" xml:space="preserve">
+    <value>Can you bring it back before dark?</value>
+    <comment>Second sample line in the subtitle preview.</comment>
+  </data>
+  <data name="SettingsSubsPreviewSign" xml:space="preserve">
+    <value>Kumo no Ue Reading Room</value>
+    <comment>Sample of a typeset sign at the top of the styled preview.</comment>
+  </data>
+  <data name="SettingsSubsSystemChange" xml:space="preserve">
+    <value>Change in Accessibility settings</value>
+    <comment>Link under the rows that show the system's caption style.</comment>
+  </data>
+  <data name="SettingsSubsSystemValue" xml:space="preserve">
+    <value>From your system</value>
+    <comment>Value shown, dimmed, for a row while the system's caption style applies.</comment>
+  </data>
+  <data name="SettingsSubsSize" xml:space="preserve">
+    <value>Size</value>
+    <comment>Label of the subtitle size slider.</comment>
+  </data>
+  <data name="SettingsSubsSizeValue" xml:space="preserve">
+    <value>{percent}%</value>
+    <comment>Value of the size slider. The percent is a whole number from 50 to 200.</comment>
+  </data>
+  <data name="SettingsSubsFont" xml:space="preserve">
+    <value>Font</value>
+    <comment>Label of the subtitle font row.</comment>
+  </data>
+  <data name="SettingsSubsFontDefault" xml:space="preserve">
+    <value>Default</value>
+    <comment>Subtitle font choice: the player's own sans-serif.</comment>
+  </data>
+  <data name="SettingsSubsFontSerif" xml:space="preserve">
+    <value>Serif</value>
+    <comment>Subtitle font choice.</comment>
+  </data>
+  <data name="SettingsSubsFontMono" xml:space="preserve">
+    <value>Monospace</value>
+    <comment>Subtitle font choice.</comment>
+  </data>
+  <data name="SettingsSubsColour" xml:space="preserve">
+    <value>Text colour</value>
+    <comment>Label of the subtitle text colour row.</comment>
+  </data>
+  <data name="SettingsSubsColourWhite" xml:space="preserve">
+    <value>White</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsColourYellow" xml:space="preserve">
+    <value>Yellow</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsColourCyan" xml:space="preserve">
+    <value>Cyan</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsColourGreen" xml:space="preserve">
+    <value>Green</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsEdge" xml:space="preserve">
+    <value>Edge</value>
+    <comment>Label of the subtitle edge row.</comment>
+  </data>
+  <data name="SettingsSubsEdgeOutline" xml:space="preserve">
+    <value>Outline</value>
+    <comment>Subtitle edge choice.</comment>
+  </data>
+  <data name="SettingsSubsEdgeShadow" xml:space="preserve">
+    <value>Drop shadow</value>
+    <comment>Subtitle edge choice.</comment>
+  </data>
+  <data name="SettingsSubsEdgeNone" xml:space="preserve">
+    <value>None</value>
+    <comment>Subtitle edge choice: no edge.</comment>
+  </data>
+  <data name="SettingsSubsThickness" xml:space="preserve">
+    <value>Thickness</value>
+    <comment>Label of the outline thickness row.</comment>
+  </data>
+  <data name="SettingsSubsThin" xml:space="preserve">
+    <value>Thin</value>
+    <comment>Outline thickness choice.</comment>
+  </data>
+  <data name="SettingsSubsMedium" xml:space="preserve">
+    <value>Medium</value>
+    <comment>Outline thickness choice.</comment>
+  </data>
+  <data name="SettingsSubsThick" xml:space="preserve">
+    <value>Thick</value>
+    <comment>Outline thickness choice.</comment>
+  </data>
+  <data name="SettingsSubsBackground" xml:space="preserve">
+    <value>Background</value>
+    <comment>Label of the subtitle background row.</comment>
+  </data>
+  <data name="SettingsSubsBackgroundNone" xml:space="preserve">
+    <value>None</value>
+    <comment>Subtitle background choice: no background.</comment>
+  </data>
+  <data name="SettingsSubsBackgroundLine" xml:space="preserve">
+    <value>Behind each line</value>
+    <comment>Subtitle background choice: a plate behind each line.</comment>
+  </data>
+  <data name="SettingsSubsBackgroundAll" xml:space="preserve">
+    <value>Behind all lines</value>
+    <comment>Subtitle background choice: one plate behind all lines.</comment>
+  </data>
+  <data name="SettingsSubsOpacity" xml:space="preserve">
+    <value>Opacity</value>
+    <comment>Label of the background opacity row.</comment>
+  </data>
+  <data name="SettingsSubsRaise" xml:space="preserve">
+    <value>Raise subtitles</value>
+    <comment>Label of the row that raises subtitles.</comment>
+  </data>
+  <data name="SettingsSubsRaiseValue" xml:space="preserve">
+    <value>{percent}% of the picture</value>
+    <comment>Value of the raise slider. The percent is a whole number from 0 to 20.</comment>
+  </data>
+  <data name="SettingsSubsStyled" xml:space="preserve">
+    <value>Styled subtitles</value>
+    <comment>Label of the picker that says what happens to styled subtitles.</comment>
+  </data>
+  <data name="SettingsSubsStyledKeep" xml:space="preserve">
+    <value>Keep their look</value>
+    <comment>Styled subtitles choice: leave the authors' styling alone.</comment>
+  </data>
+  <data name="SettingsSubsStyledKeepDetail" xml:space="preserve">
+    <value>Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply.</value>
+    <comment>Line under the picker while Keep their look is chosen.</comment>
+  </data>
+  <data name="SettingsSubsStyledRestyle" xml:space="preserve">
+    <value>Restyle</value>
+    <comment>Styled subtitles choice: apply the viewer's style over the authors'.</comment>
+  </data>
+  <data name="SettingsSubsStyledRestyleDetail" xml:space="preserve">
+    <value>Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement.</value>
+    <comment>Line under the picker while Restyle is chosen.</comment>
+  </data>
+  <data name="SettingsSubsStyledStrip" xml:space="preserve">
+    <value>Remove all styling</value>
+    <comment>Styled subtitles choice: drop all styling and show plain dialogue.</comment>
+  </data>
+  <data name="SettingsSubsStyledStripDetail" xml:space="preserve">
+    <value>Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone.</value>
+    <comment>Line under the picker while Remove all styling is chosen.</comment>
+  </data>
+  <data name="SettingsSubsReset" xml:space="preserve">
+    <value>Reset subtitle style</value>
+    <comment>Button that restores the default subtitle style.</comment>
+  </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
     <comment>Title of the screen or section that lists sources.</comment>
@@ -6010,6 +6402,74 @@
   <data name="MatchRowLabel" xml:space="preserve">
     <value>{title}, {facts}, {closeness}</value>
     <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
+  </data>
+  <data name="SourcesDemoName" xml:space="preserve">
+    <value>Demo</value>
+    <comment>Name of the built-in demo source in every list of sources.</comment>
+  </data>
+  <data name="SourcesDemoLine" xml:space="preserve">
+    <value>こうしす！ · CC BY 4.0 · from Wikimedia Commons</value>
+    <comment>Line under the demo source in Your sources: the work, its licence and where it streams from.</comment>
+  </data>
+  <data name="SourcesDemoAbout" xml:space="preserve">
+    <value>About the demo</value>
+    <comment>Title of the page that describes the demo.</comment>
+  </data>
+  <data name="SourcesDemoCredit" xml:space="preserve">
+    <value>こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence.</value>
+    <comment>The credit block shown wherever the demo work shows as a title. The licence asks for this wording.</comment>
+  </data>
+  <data name="SourcesDemoLinkLicence" xml:space="preserve">
+    <value>Licence</value>
+    <comment>Link to the licence text, in the credit block.</comment>
+  </data>
+  <data name="SourcesDemoLinkCommons" xml:space="preserve">
+    <value>Wikimedia Commons</value>
+    <comment>Link to the work's file page on Wikimedia Commons, in the credit block.</comment>
+  </data>
+  <data name="SourcesDemoLinkMaker" xml:space="preserve">
+    <value>OPAP-JP</value>
+    <comment>Link to the makers' site, in the credit block.</comment>
+  </data>
+  <data name="SourcesDemoHosts" xml:space="preserve">
+    <value>Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.</value>
+    <comment>Line on the demo page that names the only two hosts the demo reaches.</comment>
+  </data>
+  <data name="SourcesDemoPrivate" xml:space="preserve">
+    <value>The demo never signs in anywhere and never writes to AniList.</value>
+    <comment>Line on the demo page about accounts and trackers.</comment>
+  </data>
+  <data name="SourcesDemoRemove" xml:space="preserve">
+    <value>Remove demo</value>
+    <comment>Button on the demo page that removes the demo from the sources.</comment>
+  </data>
+  <data name="SourcesDemoAdd" xml:space="preserve">
+    <value>Add the demo</value>
+    <comment>Button that adds the demo back to the sources.</comment>
+  </data>
+  <data name="SourcesDemoOnly" xml:space="preserve">
+    <value>Only the demo is on. Join a plugin store to play from your own sources.</value>
+    <comment>Closing line of Home while the demo is the only source. Plugin stores is a link.</comment>
+  </data>
+  <data name="SearchDemoOnly" xml:space="preserve">
+    <value>Only the demo is on. Other titles play once you join a plugin store.</value>
+    <comment>Line under the search field while the demo is the only source.</comment>
+  </data>
+  <data name="SearchDemoPlays" xml:space="preserve">
+    <value>Demo · Plays now</value>
+    <comment>Line under the demo title when it is a search result.</comment>
+  </data>
+  <data name="TitlePlayPart" xml:space="preserve">
+    <value>Play part {part}</value>
+    <comment>Main button on the demo title. The part is a number.</comment>
+  </data>
+  <data name="PlayerStartingPart" xml:space="preserve">
+    <value>Starting part {part}</value>
+    <comment>Line on the player's starting screen for a part of the demo.</comment>
+  </data>
+  <data name="PlayerDemoCredit" xml:space="preserve">
+    <value>こうしす！ by OPAP-JP contributors · CC BY 4.0</value>
+    <comment>Credit line under the starting line on the player's starting screen for the demo.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>Joined</value>
@@ -6534,6 +6994,34 @@
   <data name="NoticeOpenStores" xml:space="preserve">
     <value>Open plugin stores</value>
     <comment>Button of a notice that opens the plugin stores page.</comment>
+  </data>
+  <data name="StoresWhatIs" xml:space="preserve">
+    <value>A plugin store is a small server one person runs for the people they invite. It offers sources as plugins. anistream runs no plugin stores and lists none, so you join one with an invite link from its owner.</value>
+    <comment>Explainer on the empty plugin stores page.</comment>
+  </data>
+  <data name="StoresWhatIsLink" xml:space="preserve">
+    <value>What is a plugin store?</value>
+    <comment>Button on the empty plugin stores page that opens the docs page in the browser.</comment>
+  </data>
+  <data name="StoresInviteRules" xml:space="preserve">
+    <value>An invite link works once, for one person, and lasts seven days. Ask the plugin store's owner for a new one if yours has expired.</value>
+    <comment>Line above the invite field in the Join sheet.</comment>
+  </data>
+  <data name="StoresQrLabel" xml:space="preserve">
+    <value>QR code for the invite link</value>
+    <comment>Accessibility label of the QR code that holds an invite link.</comment>
+  </data>
+  <data name="StoresQrWarning" xml:space="preserve">
+    <value>Anyone who scans this code can use the invite. It works once and lasts seven days.</value>
+    <comment>Line under the QR code of an invite for someone else.</comment>
+  </data>
+  <data name="StoresQrWarningDevice" xml:space="preserve">
+    <value>Scan this with the device you want to link. It works once and lasts seven days.</value>
+    <comment>Line under the QR code of a link for another device of yours.</comment>
+  </data>
+  <data name="StoresShare" xml:space="preserve">
+    <value>Share…</value>
+    <comment>Button that opens the system share sheet for the invite link.</comment>
   </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>Couldn't load this title</value>

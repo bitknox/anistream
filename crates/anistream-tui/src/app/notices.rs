@@ -90,8 +90,13 @@ pub fn worded(notice: Notice, keymap: &Keymap) -> Notice {
                 }
                 NoticeHint::OpenStores => t::hint_open_stores(),
                 NoticeHint::KitsuCredentials => t::hint_kitsu_credentials(),
+                // Reached from the Sources screen and Settings; no key of its own here.
+                NoticeHint::UndoRemoveDemo
+                | NoticeHint::RemoveDemo
+                | NoticeHint::UndoSubtitleReset
+                | NoticeHint::ReportCrash => String::new(),
             };
-            format!("{} {}", said, hint)
+            if hint.is_empty() { said } else { format!("{} {}", said, hint) }
         }
     };
     Notice { kind: notice.kind, text, hint: None, msg: None }
@@ -125,6 +130,7 @@ impl App {
             providers: self.providers.clone(),
             error,
             private: Vec::new(),
+            crashes: Vec::new(),
         }
     }
 

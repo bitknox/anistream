@@ -498,6 +498,10 @@ impl PluginHost {
         if manifest.id.trim().is_empty() {
             return Err(fail("manifest has no id".into()));
         }
+        if let Err(message) = refuse_reserved(&manifest.id) {
+            tracing::warn!(id = %manifest.id, file = %path.display(), "plugin refused: {message}");
+            return Err(fail(message));
+        }
 
         tracing::info!(
             id = %manifest.id,
@@ -750,8 +754,24 @@ impl LoadedPlugin {
     }
 }
 
+/// A plugin may not take the id of the built-in demo source: the demo cannot be repointed.
+fn refuse_reserved(id: &str) -> Result<(), String> {
+    if anistream_core::demo::reserved(id) {
+        Err(format!("the id {id:?} is reserved for the built-in demo source"))
+    } else {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_manifest_that_declares_the_demo_is_refused() {
+        for id in ["demo", " Demo ", "DEMO"] {
+            assert!(super::refuse_reserved(id).is_err(), "{id}");
+        }
+        assert!(super::refuse_reserved("example").is_ok());
+    }
     use super::*;
 
     #[test]

@@ -153,6 +153,9 @@ home-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
 # Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
 home-more-genre = [Ṁöŕé { $genre }~~~]
 
+# Line over the spotlight's title when it is the built-in demo.
+home-spotlight-demo = [Ðéɱö, ƒŕéé ţö šĥàŕé~~~~~~]
+
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = [{ $reason }~]
 
@@ -648,6 +651,12 @@ notice-anilist-back = [ÅñîĻîšţ îš ƀàçķ.~~~~~]
 # Toast when a command needs watch parties but this app was built without them.
 notice-party-not-built = [Ŵàţçĥ þàŕţîéš àŕéñ'ţ ƀüîļţ îñţö ţĥîš àþþ.~~~~~~~~~~~~~]
 
+# Notice after the demo is removed. It offers Undo for 8 seconds.
+sources-demo-removed = [Ðéɱö ŕéɱöṽéð~~~~]
+
+# Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.
+stores-ready-demo-stays = [{ $store } îš ŕéàðý. Ţĥé ðéɱö šţàýš ļàšţ îñ Ýöüŕ šöüŕçéš.~~~~~~~~~~~~~~~]
+
 # Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
 notice-signed-in = [Šîĝñéð îñ ţö { $tracker }.~~~~~~]
 
@@ -839,6 +848,15 @@ notice-episodes-queued =
         [one] [Ǫüéüéð öñé éþîšöðé.~~~~~~]
        *[other] [Ǫüéüéð { $count } éþîšöðéš.~~~~~~]
     }
+
+# Notice after the subtitle style is reset. It offers Undo.
+settings-subs-reset-done = [Šüƀţîţļé šţýļé ŕéšéţ~~~~~~]
+
+# Notice at the next launch after a crash, while saving and asking are on.
+crash-notice = [àñîšţŕéàɱ çļöšéð àƒţéŕ à þŕöƀļéɱ.~~~~~~~~~~]
+
+# The same notice on the TV, which has no button.
+crash-notice-tv = [àñîšţŕéàɱ çļöšéð àƒţéŕ à þŕöƀļéɱ. Ýöü çàñ ŕéþöŕţ îţ ƒŕöɱ Šéţţîñĝš, Åƀöüţ.~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the connection-check group of the torrents dialog: what the check does.
 torrents-linux-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -2002,6 +2020,12 @@ keys-action-raise-source = [Ṁöṽé šöüŕçé üþ~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-lower-source = [Ṁöṽé šöüŕçé ðöŵñ~~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-play-demo = [Þļàý ţĥé ðéɱö~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-demo = [Ŕéɱöṽé öŕ àðð ţĥé ðéɱö~~~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-download-range = [Ðöŵñļöàð à ŕàñĝé öƒ éþîšöðéš~~~~~~~~~]
@@ -3911,6 +3935,99 @@ about-artwork = [Šöɱé àŕţŵöŕķ îš ļîçéñšéð üñðéŕ Çŕé
 # Line about fonts.
 about-font-licence = [Ļîçéñšéð üñðéŕ ţĥé ŠÎĻ Öþéñ Ƒöñţ Ļîçéñšé 1.1.~~~~~~~~~~~~~~]
 
+# Button on that notice that opens Report a bug.
+crash-notice-report = [Ŕéþöŕţ…~~~]
+
+# Title of the Report a bug sheet.
+report-title = [Ŕéþöŕţ à ƀüĝ~~~~]
+
+# Line under the title of the Report a bug sheet.
+report-detail = [Ţĥîš öþéñš à ñéŵ îššüé öñ ĜîţĤüƀ, ŵĥéŕé ýöü šîĝñ îñ, šàý ŵĥàţ ĥàþþéñéð àñð šüƀɱîţ. Îššüéš öñ ĜîţĤüƀ àŕé þüƀļîç.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading of the list of what the report includes.
+report-included = [Îñçļüðéð~~~]
+
+# Report item that is always included.
+report-versions = [Åþþ àñð ðéṽîçé ṽéŕšîöñš~~~~~~~]
+
+# Report item: the last error the app showed.
+report-last-error = [Ţĥé ļàšţ éŕŕöŕ~~~~~]
+
+# Report item for a saved crash. The time and the place are already worded.
+report-crash-item = [Çŕàšĥ · { $when } · { $place }~~~~~~]
+
+# Disclosure that opens the exact text of the report.
+report-show-sent = [Šĥöŵ ŵĥàţ îš šéñţ~~~~~~]
+
+# Disclosure that closes the exact text of the report.
+report-hide-sent = [Ĥîðé ŵĥàţ îš šéñţ~~~~~~]
+
+# Button that copies the whole report text.
+report-copy = [Çöþý ŕéþöŕţ~~~~]
+
+# Notice after the report text is copied.
+report-copied = [Ŕéþöŕţ çöþîéð~~~~]
+
+# Button that opens the pre-filled issue in the browser.
+report-open-github = [Öþéñ öñ ĜîţĤüƀ~~~~~]
+
+# Line at the foot of the Report a bug sheet.
+report-privacy = [Ñöţĥîñĝ ļéàṽéš ţĥîš ðéṽîçé üñţîļ ýöü öþéñ ţĥé ŕéþöŕţ öñ ĜîţĤüƀ. Ţîţļéš, àððŕéššéš, ƒîļé þàţĥš àñð ñàɱéš àŕé ŕéɱöṽéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# TV only. Line over the QR code of the issue link.
+report-tv-scan = [Šçàñ ţĥé çöðé ţö öþéñ ţĥé ŕéþöŕţ öñ ýöüŕ þĥöñé.~~~~~~~~~~~~~~~]
+
+# Line that replaces the crash rows while saving crash reports is off.
+report-crash-off = [Çŕàšĥ ŕéþöŕţš àŕé öƒƒ, šö ñöñé îš îñçļüðéð. Ýöü çàñ ţüŕñ ţĥéɱ öñ îñ Šéţţîñĝš, Åƀöüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Link from that line to the crash report settings.
+report-crash-settings = [Çŕàšĥ ŕéþöŕţ šéţţîñĝš~~~~~~~]
+
+# Heading of the Crash reports group in Settings, About.
+settings-group-crashes = [Çŕàšĥ ŕéþöŕţš~~~~]
+
+# Switch that turns saving crash reports on this device on or off.
+settings-crash-save = [Šàṽé çŕàšĥ ŕéþöŕţš öñ ţĥîš ðéṽîçé~~~~~~~~~~]
+
+# Line under that switch.
+settings-crash-save-detail = [Ŵĥéñ ţĥîš îš öñ, àñîšţŕéàɱ ķééþš à šĥöŕţ ŕéçöŕð öƒ éàçĥ çŕàšĥ öñ ţĥîš ðéṽîçé, ŵîţĥ ţîţļéš, àððŕéššéš àñð ñàɱéš ŕéɱöṽéð, šö ýöü çàñ àðð îţ ţö Ŕéþöŕţ à ƀüĝ. Ñöţĥîñĝ îš šéñţ ƀý îţšéļƒ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Switch that turns the notice after a crash on or off.
+settings-crash-ask = [Åšķ àƒţéŕ à çŕàšĥ~~~~~~]
+
+# Line under that switch.
+settings-crash-ask-detail = [Šĥöŵš à ñöţîçé àţ ţĥé ñéẋţ ļàüñçĥ ŵîţĥ Ŕéþöŕţ…~~~~~~~~~~~~~~]
+
+# Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.
+settings-crash-os-heading = [Ķéþţ ƀý { $system }~~~~]
+
+# Line under that heading.
+settings-crash-os-detail = [{ $system } ķéþţ ţĥéšé çŕàšĥéš ƒŕöɱ ƀéƒöŕé ýöü ţüŕñéð ţĥîš öñ. Ñöţĥîñĝ ƒŕöɱ ţĥéɱ îš šàṽéð üñļéšš ýöü àðð îţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Row for one crash the system kept. The time is already worded.
+settings-crash-os-item = [Çŕàšĥ · { $when }~~~~]
+
+# Button that saves one crash the system kept.
+settings-crash-os-add = [Åðð~]
+
+# Heading of the saved crash reports.
+settings-crash-saved = [Šàṽéð ŕéþöŕţš~~~~]
+
+# Empty state of the saved crash reports.
+settings-crash-none = [Ñö çŕàšĥ ŕéþöŕţš šàṽéð.~~~~~~~]
+
+# Button that shows the text of a saved crash report.
+settings-crash-view = [Ṽîéŵ~~]
+
+# Button that deletes one saved crash report.
+settings-crash-delete = [Ðéļéţé~~]
+
+# Button that deletes every saved crash report.
+settings-crash-delete-all = [Ðéļéţé àļļ~~~]
+
+# Footnote of the Crash reports group.
+settings-crash-footnote = [Çŕàšĥ ŕéþöŕţš šţàý öñ ţĥîš ðéṽîçé. àñîšţŕéàɱ šéñðš ñöţĥîñĝ ƀý îţšéļƒ. Å ŕéþöŕţ ļéàṽéš öñļý ŵĥéñ ýöü öþéñ îţ öñ ĜîţĤüƀ ƒŕöɱ Ŕéþöŕţ à ƀüĝ. Ŕéþöŕţš àŕé ðéļéţéð àƒţéŕ 30 ðàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Button that shows the week before.
 calendar-previous-week = [Þŕéṽîöüš ŵééķ~~~~]
 
@@ -5517,6 +5634,33 @@ onboarding-join = [Ĵöîñ~~]
 # Hint inside the invite field on the welcome page.
 onboarding-invite-hint = [Îñṽîţé ļîñķ~~~~]
 
+# Heading of the welcome page that explains where episodes come from.
+onboarding-where-title = [Ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ~~~~~~~~]
+
+# First line of that page, shown after legal-hosts-no-content. Says where episodes come from.
+onboarding-where-hosts = [Éþîšöðéš þļàý ƒŕöɱ šöüŕçéš, ŵĥîçĥ àŕé þļüĝîñš.~~~~~~~~~~~~~~]
+
+# Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
+onboarding-where-stores = [Þļüĝîñš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš. Å þļüĝîñ šţöŕé îš ŕüñ ƀý öñé þéŕšöñ ƒöŕ ţĥé þéöþļé ţĥéý îñṽîţé, šö ýöü ĵöîñ öñé ŵîţĥ àñ îñṽîţé ļîñķ ƒŕöɱ îţš öŵñéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading above the Play the demo button on the welcome page.
+onboarding-demo-heading = [Ţŕý îţ ñöŵ~~~]
+
+# Line under that heading. Names the demo work and its licence.
+onboarding-demo-detail = [Ţĥé ðéɱö þļàýš こうしす！, à šéŕîéš îţš ɱàķéŕš šĥàŕé üñðéŕ ÇÇ ƁÝ 4.0, ƒŕöɱ Ŵîķîɱéðîà Çöɱɱöñš.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button on the welcome page that plays the demo at once.
+onboarding-play-demo = [Þļàý ţĥé ðéɱö~~~~]
+
+# Heading above the invite link field on the welcome page.
+onboarding-invite-heading = [Ĥàṽé àñ îñṽîţé ļîñķ?~~~~~~]
+
+# TV only. Button that shows a code to scan with a phone to send an invite link.
+onboarding-invite-scan = [Šçàñ ŵîţĥ ýöüŕ þĥöñé~~~~~~]
+
+# TV only. Button that opens a field to type an invite link.
+onboarding-invite-type = [Ţýþé ţĥé ļîñķ~~~~]
+
 # Button on the title page and in the player that opens the watch party form.
 party-open = [Ŵàţçĥ þàŕţý…~~~~]
 
@@ -5995,6 +6139,33 @@ player-wait-note = [{ $what } · { $seconds } š~~~~]
 
 # Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
 player-command-failed = [Ţĥàţ ðîðñ'ţ ŵöŕķ. Ţŕý àĝàîñ.~~~~~~~~~]
+
+# Heading of the style section in the player's subtitles panel.
+player-subs-style = [Šţýļé~~]
+
+# Accessibility label of the control that makes subtitles larger.
+player-subs-larger = [Ļàŕĝéŕ šüƀţîţļéš~~~~~]
+
+# Accessibility label of the control that makes subtitles smaller.
+player-subs-smaller = [Šɱàļļéŕ šüƀţîţļéš~~~~~~]
+
+# Accessibility label of the control that raises subtitles.
+player-subs-raise = [Ŕàîšé šüƀţîţļéš~~~~~]
+
+# Accessibility label of the control that lowers subtitles.
+player-subs-lower = [Ļöŵéŕ šüƀţîţļéš~~~~~]
+
+# Quick panel choice for the subtitle background: outline, no box.
+player-subs-bg-outline = [Öüţļîñé~~~]
+
+# Quick panel choice for the subtitle background: drop shadow, no box.
+player-subs-bg-shadow = [Šĥàðöŵ~~]
+
+# Quick panel choice for the subtitle background: a box behind the lines.
+player-subs-bg-box = [Ɓöẋ~]
+
+# Button in the subtitles panel that opens Settings.
+player-subs-more = [Ṁöŕé îñ Šéţţîñĝš…~~~~~~]
 
 # Button that shows the season before.
 seasonal-previous = [Þŕéṽîöüš šéàšöñ~~~~~]
@@ -6691,6 +6862,135 @@ settings-reset-detail = [Éṽéŕý šéţţîñĝ ĝöéš ƀàçķ ţö îţ�
 # Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
 settings-reset-done = [Šéţţîñĝš àŕé ƀàçķ ţö ţĥéîŕ ðéƒàüļţš. Ţĥé öļð ƒîļé îš ķéþţ àš { $file }.~~~~~~~~~~~~~~~~~~~~]
 
+# Heading of the Subtitles group in Settings, Playback.
+settings-group-subtitles = [Šüƀţîţļéš~~~]
+
+# Heading of the subtitle preview.
+settings-subs-preview = [Þŕéṽîéŵ~~~]
+
+# Segment of the preview that draws plain subtitles.
+settings-subs-preview-plain = [Þļàîñ~~]
+
+# Segment of the preview that draws styled subtitles.
+settings-subs-preview-styled = [Šţýļéð~~]
+
+# First sample line in the subtitle preview.
+settings-subs-preview-line = [Î ļéƒţ ţĥé ļàñţéŕñ àţ ţĥé šţàţîöñ.~~~~~~~~~~~]
+
+# Second sample line in the subtitle preview.
+settings-subs-preview-line-2 = [Çàñ ýöü ƀŕîñĝ îţ ƀàçķ ƀéƒöŕé ðàŕķ?~~~~~~~~~~~]
+
+# Sample of a typeset sign at the top of the styled preview.
+settings-subs-preview-sign = [Ķüɱö ñö Ûé Ŕéàðîñĝ Ŕööɱ~~~~~~~]
+
+# Link under the rows that show the system's caption style.
+settings-subs-system-change = [Çĥàñĝé îñ Åççéššîƀîļîţý šéţţîñĝš~~~~~~~~~~]
+
+# Value shown, dimmed, for a row while the system's caption style applies.
+settings-subs-system-value = [Ƒŕöɱ ýöüŕ šýšţéɱ~~~~~]
+
+# Label of the subtitle size slider.
+settings-subs-size = [Šîžé~~]
+
+# Value of the size slider. The percent is a whole number from 50 to 200.
+settings-subs-size-value = [{ $percent }%~~]
+
+# Label of the subtitle font row.
+settings-subs-font = [Ƒöñţ~~]
+
+# Subtitle font choice: the player's own sans-serif.
+settings-subs-font-default = [Ðéƒàüļţ~~~]
+
+# Subtitle font choice.
+settings-subs-font-serif = [Šéŕîƒ~~]
+
+# Subtitle font choice.
+settings-subs-font-mono = [Ṁöñöšþàçé~~~]
+
+# Label of the subtitle text colour row.
+settings-subs-colour = [Ţéẋţ çöļöüŕ~~~~]
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-white = [Ŵĥîţé~~]
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-yellow = [Ýéļļöŵ~~]
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-cyan = [Çýàñ~~]
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-green = [Ĝŕééñ~~]
+
+# Label of the subtitle edge row.
+settings-subs-edge = [Éðĝé~~]
+
+# Subtitle edge choice.
+settings-subs-edge-outline = [Öüţļîñé~~~]
+
+# Subtitle edge choice.
+settings-subs-edge-shadow = [Ðŕöþ šĥàðöŵ~~~~]
+
+# Subtitle edge choice: no edge.
+settings-subs-edge-none = [Ñöñé~~]
+
+# Label of the outline thickness row.
+settings-subs-thickness = [Ţĥîçķñéšš~~~]
+
+# Outline thickness choice.
+settings-subs-thin = [Ţĥîñ~~]
+
+# Outline thickness choice.
+settings-subs-medium = [Ṁéðîüɱ~~]
+
+# Outline thickness choice.
+settings-subs-thick = [Ţĥîçķ~~]
+
+# Label of the subtitle background row.
+settings-subs-background = [Ɓàçķĝŕöüñð~~~]
+
+# Subtitle background choice: no background.
+settings-subs-background-none = [Ñöñé~~]
+
+# Subtitle background choice: a plate behind each line.
+settings-subs-background-line = [Ɓéĥîñð éàçĥ ļîñé~~~~~]
+
+# Subtitle background choice: one plate behind all lines.
+settings-subs-background-all = [Ɓéĥîñð àļļ ļîñéš~~~~~]
+
+# Label of the background opacity row.
+settings-subs-opacity = [Öþàçîţý~~~]
+
+# Label of the row that raises subtitles.
+settings-subs-raise = [Ŕàîšé šüƀţîţļéš~~~~~]
+
+# Value of the raise slider. The percent is a whole number from 0 to 20.
+settings-subs-raise-value = [{ $percent }% öƒ ţĥé þîçţüŕé~~~~~~]
+
+# Label of the picker that says what happens to styled subtitles.
+settings-subs-styled = [Šţýļéð šüƀţîţļéš~~~~~]
+
+# Styled subtitles choice: leave the authors' styling alone.
+settings-subs-styled-keep = [Ķééþ ţĥéîŕ ļööķ~~~~~]
+
+# Line under the picker while Keep their look is chosen.
+settings-subs-styled-keep-detail = [Šţýļéð šüƀţîţļéš ķééþ ţĥé ƒöñţš, çöļöüŕš àñð šîĝñ þļàçéɱéñţ ţĥéîŕ àüţĥöŕš ĝàṽé ţĥéɱ. Šîžé àñð Ŕàîšé šţîļļ àþþļý.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Styled subtitles choice: apply the viewer's style over the authors'.
+settings-subs-styled-restyle = [Ŕéšţýļé~~~]
+
+# Line under the picker while Restyle is chosen.
+settings-subs-styled-restyle-detail = [Ýöüŕ ƒöñţ, çöļöüŕ, éðĝé àñð ƀàçķĝŕöüñð àþþļý ţö šţýļéð šüƀţîţļéš ţöö. Šîĝñš ɱàý ļöšé ţĥéîŕ ļööķ öŕ ţĥéîŕ þļàçéɱéñţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Styled subtitles choice: drop all styling and show plain dialogue.
+settings-subs-styled-strip = [Ŕéɱöṽé àļļ šţýļîñĝ~~~~~~]
+
+# Line under the picker while Remove all styling is chosen.
+settings-subs-styled-strip-detail = [Éṽéŕý ļîñé šĥöŵš àš þļàîñ ðîàļöĝüé àţ ţĥé ƀöţţöɱ, îñ ýöüŕ šţýļé. Šîĝñš ļöšé ţĥéîŕ þļàçé, àñð ķàŕàöķé àñð éƒƒéçţš àŕé ĝöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that restores the default subtitle style.
+settings-subs-reset = [Ŕéšéţ šüƀţîţļé šţýļé~~~~~~]
+
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
 
@@ -6973,6 +7273,57 @@ match-cleared = [Ṁàţçĥîñĝ àüţöɱàţîçàļļý àĝàîñ.~~~~~~~
 
 # Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 match-row-label = [{ $title }, { $facts }, { $closeness }~~~~]
+
+# Name of the built-in demo source in every list of sources.
+sources-demo-name = [Ðéɱö~~]
+
+# Line under the demo source in Your sources: the work, its licence and where it streams from.
+sources-demo-line = [こうしす！ · ÇÇ ƁÝ 4.0 · ƒŕöɱ Ŵîķîɱéðîà Çöɱɱöñš~~~~~~~~~~~~~]
+
+# Title of the page that describes the demo.
+sources-demo-about = [Åƀöüţ ţĥé ðéɱö~~~~~]
+
+# The credit block shown wherever the demo work shows as a title. The licence asks for this wording.
+sources-demo-credit = [こうしす！ ƀý ÖÞÅÞ-ĴÞ çöñţŕîƀüţöŕš. Ļîçéñšéð ÇÇ ƁÝ 4.0. Šţŕéàɱéð ƒŕöɱ Ŵîķîɱéðîà Çöɱɱöñš. Šþöñšöŕ ļöĝöš îñ ţĥé éþîšöðéš àŕé ñöţ çöṽéŕéð ƀý ţĥé ļîçéñçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Link to the licence text, in the credit block.
+sources-demo-link-licence = [Ļîçéñçé~~~]
+
+# Link to the work's file page on Wikimedia Commons, in the credit block.
+sources-demo-link-commons = [Ŵîķîɱéðîà Çöɱɱöñš~~~~~~]
+
+# Link to the makers' site, in the credit block.
+sources-demo-link-maker = [ÖÞÅÞ-ĴÞ~~~]
+
+# Line on the demo page that names the only two hosts the demo reaches.
+sources-demo-hosts = [Ŕéàçĥéš Ŵîķîɱéðîà Çöɱɱöñš öñļý: üþļöàð.ŵîķîɱéðîà.öŕĝ àñð çöɱɱöñš.ŵîķîɱéðîà.öŕĝ.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the demo page about accounts and trackers.
+sources-demo-private = [Ţĥé ðéɱö ñéṽéŕ šîĝñš îñ àñýŵĥéŕé àñð ñéṽéŕ ŵŕîţéš ţö ÅñîĻîšţ.~~~~~~~~~~~~~~~~~~~]
+
+# Button on the demo page that removes the demo from the sources.
+sources-demo-remove = [Ŕéɱöṽé ðéɱö~~~~]
+
+# Button that adds the demo back to the sources.
+sources-demo-add = [Åðð ţĥé ðéɱö~~~~]
+
+# Closing line of Home while the demo is the only source. Plugin stores is a link.
+sources-demo-only = [Öñļý ţĥé ðéɱö îš öñ. Ĵöîñ à þļüĝîñ šţöŕé ţö þļàý ƒŕöɱ ýöüŕ öŵñ šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the search field while the demo is the only source.
+search-demo-only = [Öñļý ţĥé ðéɱö îš öñ. Öţĥéŕ ţîţļéš þļàý öñçé ýöü ĵöîñ à þļüĝîñ šţöŕé.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the demo title when it is a search result.
+search-demo-plays = [Ðéɱö · Þļàýš ñöŵ~~~~~]
+
+# Main button on the demo title. The part is a number.
+title-play-part = [Þļàý þàŕţ { $part }~~~~]
+
+# Line on the player's starting screen for a part of the demo.
+player-starting-part = [Šţàŕţîñĝ þàŕţ { $part }~~~~~~]
+
+# Credit line under the starting line on the player's starting screen for the demo.
+player-demo-credit = [こうしす！ ƀý ÖÞÅÞ-ĴÞ çöñţŕîƀüţöŕš · ÇÇ ƁÝ 4.0~~~~~~~~~~~~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]
@@ -7369,6 +7720,27 @@ stores-offers-plugins =
 
 # Button of a notice that opens the plugin stores page.
 notice-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
+
+# Explainer on the empty plugin stores page.
+stores-what-is = [Å þļüĝîñ šţöŕé îš à šɱàļļ šéŕṽéŕ öñé þéŕšöñ ŕüñš ƒöŕ ţĥé þéöþļé ţĥéý îñṽîţé. Îţ öƒƒéŕš šöüŕçéš àš þļüĝîñš. àñîšţŕéàɱ ŕüñš ñö þļüĝîñ šţöŕéš àñð ļîšţš ñöñé, šö ýöü ĵöîñ öñé ŵîţĥ àñ îñṽîţé ļîñķ ƒŕöɱ îţš öŵñéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button on the empty plugin stores page that opens the docs page in the browser.
+stores-what-is-link = [Ŵĥàţ îš à þļüĝîñ šţöŕé?~~~~~~~]
+
+# Line above the invite field in the Join sheet.
+stores-invite-rules = [Åñ îñṽîţé ļîñķ ŵöŕķš öñçé, ƒöŕ öñé þéŕšöñ, àñð ļàšţš šéṽéñ ðàýš. Åšķ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ ƒöŕ à ñéŵ öñé îƒ ýöüŕš ĥàš éẋþîŕéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Accessibility label of the QR code that holds an invite link.
+stores-qr-label = [ǪŔ çöðé ƒöŕ ţĥé îñṽîţé ļîñķ~~~~~~~~~]
+
+# Line under the QR code of an invite for someone else.
+stores-qr-warning = [Åñýöñé ŵĥö šçàñš ţĥîš çöðé çàñ üšé ţĥé îñṽîţé. Îţ ŵöŕķš öñçé àñð ļàšţš šéṽéñ ðàýš.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the QR code of a link for another device of yours.
+stores-qr-warning-device = [Šçàñ ţĥîš ŵîţĥ ţĥé ðéṽîçé ýöü ŵàñţ ţö ļîñķ. Îţ ŵöŕķš öñçé àñð ļàšţš šéṽéñ ðàýš.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that opens the system share sheet for the invite link.
+stores-share = [Šĥàŕé…~~]
 
 # Title of the state when a title page could not load.
 title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]

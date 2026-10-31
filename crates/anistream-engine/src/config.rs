@@ -115,6 +115,19 @@ impl ConfigState {
             .map_or(0, |counted| counted.shows)
     }
 
+    /// A new install reads as having the demo on while there is no config file. A write that
+    /// made the file says so too, or the next launch would read the file as the demo off.
+    fn remember_demo(&self, paths: &Paths, existed: bool) {
+        if !existed && paths.config_file.exists() && self.effective.sources.demo {
+            let _ = anistream_core::settings::write_key(
+                paths,
+                &["sources"],
+                "demo",
+                SettingValue::Bool(true),
+            );
+        }
+    }
+
     /// Write `value` at `table`.`key`, then read the file back, whatever the write did: what
     /// the file holds is what the Settings screen shows. A refused write — torrents on with no
     /// VPN, a file that did not load, a disk that said no — puts that one setting in effect
@@ -130,7 +143,9 @@ impl ConfigState {
         key: &str,
         value: SettingValue,
     ) -> Result<(), anistream_core::Error> {
+        let existed = paths.config_file.exists();
         let written = anistream_core::settings::write_key(paths, table, key, value);
+        self.remember_demo(paths, existed);
         self.saved = Config::load(paths).unwrap_or_default();
         self.fill();
         if written.is_err()
@@ -149,7 +164,9 @@ impl ConfigState {
         paths: &Paths,
         edits: Vec<anistream_model::protection::Edit>,
     ) -> Result<(), anistream_core::Error> {
+        let existed = paths.config_file.exists();
         let written = anistream_core::settings::write_keys(paths, edits);
+        self.remember_demo(paths, existed);
         self.saved = Config::load(paths).unwrap_or_default();
         self.fill();
         self.effective.providers.torrent.vpn.clone_from(&self.saved.providers.torrent.vpn);

@@ -438,7 +438,10 @@ mod tests {
         assert!(kept.contains("config.damaged-20"), "{kept}");
         assert_eq!(std::fs::read_to_string(&kept).unwrap(), "[network\nproxy = ");
         let files = Opened::open(&dirs).expect("it opens on the defaults");
-        assert_eq!(files.config, Config::default());
+        // No file reads as a new install, which has the demo.
+        let mut fresh = Config::default();
+        fresh.sources.demo = true;
+        assert_eq!(files.config, fresh);
         assert_eq!(files.set_aside, None, "the database is the one before");
         drop(files);
         assert!(database.exists());

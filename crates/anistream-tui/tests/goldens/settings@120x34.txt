@@ -20,13 +20,13 @@ anistream                                                                       
                             │  ▌ Upscaling                   Natural · ArtCNN
                             │    Player interface            anistream
                             │    Night mode                  Off
-                            │
-                            │  Downloads  ───────────────────────────────────────────────────────────────────────────
-                            │    Download folder             Kept with the torrent cache
-                            │    Merge subtitles in          On
-                            │    Keep seeding                Off
-                            │    After each download         None
-                            │
+                            │    Size                        100%
+                            │    Font                        default
+                            │    Text colour                 white
+                            │    Edge                        outline
+                            │    Thickness                   medium
+                            │    Background                  none
+                            │    Opacity                     75%
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Adapts to the video and your graphics card. Applies from the next episode.
                             │
@@ -121,22 +121,26 @@ r21 c28-28 fg=rule
 r21 c33-42 fg=text-dim
 r21 c61-63 fg=text
 r22 c28-28 fg=rule
+r22 c33-36 fg=text-dim
+r22 c61-64 fg=text
 r23 c28-28 fg=rule
-r23 c31-39 fg=text
-r23 c42-116 fg=rule
+r23 c33-36 fg=text-dim
+r23 c61-67 fg=text
 r24 c28-28 fg=rule
-r24 c33-47 fg=text-dim
-r24 c61-87 fg=text
+r24 c33-43 fg=text-dim
+r24 c61-65 fg=text
 r25 c28-28 fg=rule
-r25 c33-50 fg=text-dim
-r25 c61-62 fg=text
+r25 c33-36 fg=text-dim
+r25 c61-67 fg=text
 r26 c28-28 fg=rule
-r26 c33-44 fg=text-dim
-r26 c61-63 fg=text
+r26 c33-41 fg=text-dim
+r26 c61-66 fg=text
 r27 c28-28 fg=rule
-r27 c33-51 fg=text-dim
+r27 c33-42 fg=text-dim
 r27 c61-64 fg=text
 r28 c28-28 fg=rule
+r28 c33-39 fg=text-dim
+r28 c61-63 fg=text
 r29 c28-28 fg=rule
 r29 c31-117 fg=rule
 r30 c28-28 fg=rule

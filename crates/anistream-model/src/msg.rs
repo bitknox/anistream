@@ -113,6 +113,8 @@ pub enum Msg {
     HomeBecause { title: String },
     /// Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
     HomeMoreGenre { genre: String },
+    /// Line over the spotlight's title when it is the built-in demo.
+    HomeSpotlightDemo,
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     NoticeReason { reason: Cause },
     /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
@@ -387,6 +389,10 @@ pub enum Msg {
     NoticeAnilistBack,
     /// Toast when a command needs watch parties but this app was built without them.
     NoticePartyNotBuilt,
+    /// Notice after the demo is removed. It offers Undo for 8 seconds.
+    SourcesDemoRemoved,
+    /// Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.
+    StoresReadyDemoStays { store: String },
     /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
     NoticeSignedIn { tracker: String },
     /// Toast after a sign-in succeeded and the token went into the system keychain.
@@ -497,6 +503,12 @@ pub enum Msg {
     StartFailedPlayer { reason: String },
     /// Toast after episodes are added to the download queue.
     NoticeEpisodesQueued { count: i64 },
+    /// Notice after the subtitle style is reset. It offers Undo.
+    SettingsSubsResetDone,
+    /// Notice at the next launch after a crash, while saving and asking are on.
+    CrashNotice,
+    /// The same notice on the TV, which has no button.
+    CrashNoticeTv,
     /// Text anistream does not own, shown as it is: a plugin's note, a tracker's error.
     Verbatim { text: String },
 }
@@ -556,6 +568,7 @@ impl Msg {
             Self::HomeThisSeason => "home-this-season",
             Self::HomeBecause { .. } => "home-because",
             Self::HomeMoreGenre { .. } => "home-more-genre",
+            Self::HomeSpotlightDemo => "home-spotlight-demo",
             Self::NoticeReason { .. } => "notice-reason",
             Self::NoticeNotAired { .. } => "notice-not-aired",
             Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
@@ -693,6 +706,8 @@ impl Msg {
             Self::NoticeMetadataCached => "notice-metadata-cached",
             Self::NoticeAnilistBack => "notice-anilist-back",
             Self::NoticePartyNotBuilt => "notice-party-not-built",
+            Self::SourcesDemoRemoved => "sources-demo-removed",
+            Self::StoresReadyDemoStays { .. } => "stores-ready-demo-stays",
             Self::NoticeSignedIn { .. } => "notice-signed-in",
             Self::NoticeSignedInKeychain { .. } => "notice-signed-in-keychain",
             Self::NoticeSignedInFile { .. } => "notice-signed-in-file",
@@ -748,6 +763,9 @@ impl Msg {
             Self::StartFailedRemote { .. } => "start-failed-remote",
             Self::StartFailedPlayer { .. } => "start-failed-player",
             Self::NoticeEpisodesQueued { .. } => "notice-episodes-queued",
+            Self::SettingsSubsResetDone => "settings-subs-reset-done",
+            Self::CrashNotice => "crash-notice",
+            Self::CrashNoticeTv => "crash-notice-tv",
             Self::Verbatim { .. } => "verbatim",
         }
     }
@@ -806,6 +824,7 @@ impl Msg {
             Self::HomeThisSeason => Vec::new(),
             Self::HomeBecause { title } => vec![("title", Value::Text(title.clone()))],
             Self::HomeMoreGenre { genre } => vec![("genre", Value::Text(genre.clone()))],
+            Self::HomeSpotlightDemo => Vec::new(),
             Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
             Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
             Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],
@@ -943,6 +962,8 @@ impl Msg {
             Self::NoticeMetadataCached => Vec::new(),
             Self::NoticeAnilistBack => Vec::new(),
             Self::NoticePartyNotBuilt => Vec::new(),
+            Self::SourcesDemoRemoved => Vec::new(),
+            Self::StoresReadyDemoStays { store } => vec![("store", Value::Text(store.clone()))],
             Self::NoticeSignedIn { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
             Self::NoticeSignedInKeychain { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
             Self::NoticeSignedInFile { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
@@ -998,6 +1019,9 @@ impl Msg {
             Self::StartFailedRemote { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::StartFailedPlayer { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeEpisodesQueued { count } => vec![("count", Value::Int(*count))],
+            Self::SettingsSubsResetDone => Vec::new(),
+            Self::CrashNotice => Vec::new(),
+            Self::CrashNoticeTv => Vec::new(),
             Self::Verbatim { text } => vec![("text", Value::Text(text.clone()))],
         }
     }

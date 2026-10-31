@@ -20,6 +20,7 @@ doctest = false
 anistream-core.workspace = true
 anistream-i18n.workspace = true
 serde.workspace = true
+qrcode = { version = "0.14", default-features = false }
 uniffi = { workspace = true, optional = true }
 
 [features]
@@ -29,3 +30,6 @@ ffi = ["dep:uniffi", "anistream-core/ffi"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+rqrr = "0.9"

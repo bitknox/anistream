@@ -111,6 +111,7 @@ pub fn network_path(network: Network, engine: &mut EngineState, tx: &Outbox) {
 
 /// A setting was saved: what runs on cellular may be another thing now.
 pub fn settings_saved(engine: &mut EngineState, tx: &Outbox) {
+    crate::crash::rearm(engine.config.effective());
     // And whether trailers play may be another answer.
     crate::autoplay::changed(engine, tx);
     let gate = gate_for(engine.phase, engine.network, engine.config.effective());

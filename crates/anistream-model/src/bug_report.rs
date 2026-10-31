@@ -13,6 +13,8 @@
 //! The text is bounded so the address stays under [`MAX_URL_BYTES`]: the error's message is cut
 //! first.
 
+use crate::crash::CrashRecord;
+
 /// The project's tracker, where the link goes.
 pub const REPO: &str = "bitknox/anistream";
 /// The issue form in `.github/ISSUE_TEMPLATE`, by file name.
@@ -85,18 +87,76 @@ pub struct BugReport {
     /// show the error was about.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub private: Vec<String>,
+    /// The ids of the saved crashes to include. The engine's store holds them; the front end
+    /// asks for the report's text or address through the calls that read them.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub crashes: Vec<String>,
 }
+
+/// The form field the crash summaries fill.
+pub const CRASH_FIELD: &str = "crash";
 
 /// The address of a new issue with the form's diagnostics filled in, at most [`MAX_URL_BYTES`].
 pub fn issue_url(report: &BugReport) -> String {
+    issue_url_capped(report, &[], MAX_URL_BYTES)
+}
+
+/// [`issue_url`] with the crash summaries of `crashes` in the form's crash field.
+pub fn issue_url_with(report: &BugReport, crashes: &[CrashRecord]) -> String {
+    issue_url_capped(report, crashes, MAX_URL_BYTES)
+}
+
+/// The address cut to fit `max_bytes`: the TV's QR code takes 900, so it stays readable from
+/// the sofa. The error's message is cut first, then the crashes' frames, then the crashes to
+/// their kind line, and last the text itself.
+pub fn issue_url_capped(
+    report: &BugReport,
+    crashes: &[CrashRecord],
+    max_bytes: usize,
+) -> String {
     let mut chars = MESSAGE_CHARS;
     loop {
-        let url = build(report, chars);
-        if url.len() <= MAX_URL_BYTES || chars == 0 {
+        let url = build(report, crashes, chars, true);
+        if url.len() <= max_bytes {
             return url;
+        }
+        if chars == 0 {
+            break;
         }
         chars /= 2;
     }
+    // Without frames, then with only the newest crash, then cut to the byte.
+    for (limit, frames) in [(crashes.len(), false), (1, false)] {
+        let url = build(report, &crashes[..limit.min(crashes.len())], 0, frames);
+        if url.len() <= max_bytes {
+            return url;
+        }
+    }
+    let mut url = build(report, &crashes[..crashes.len().min(1)], 0, false);
+    // The address is ASCII, so it can be cut at the byte; a cut escape goes with it.
+    url.truncate(max_bytes);
+    if let Some(percent) = url.rfind('%')
+        && url.len() - percent < 3
+    {
+        url.truncate(percent);
+    }
+    url
+}
+
+/// The exact text the report's view shows, and Copy report puts on the clipboard: the summary,
+/// then each crash whole.
+pub fn report_text(report: &BugReport, crashes: &[CrashRecord]) -> String {
+    let mut text = summary_with(report, MESSAGE_CHARS);
+    for crash in crashes {
+        text.push_str("\n\n");
+        text.push_str(&crate::crash::crash_text(crash));
+    }
+    text
+}
+
+/// A short redacted field: for the crash records, which share the report's rules.
+pub(crate) fn short_text(text: &str, chars: usize) -> String {
+    cut(&clean(&redact(text, &[])), chars)
 }
 
 /// The summary the issue carries, as the reporter reads it before submitting.
@@ -104,7 +164,12 @@ pub fn summary(report: &BugReport) -> String {
     summary_with(report, MESSAGE_CHARS)
 }
 
-fn build(report: &BugReport, message_chars: usize) -> String {
+fn build(
+    report: &BugReport,
+    crashes: &[CrashRecord],
+    message_chars: usize,
+    frames: bool,
+) -> String {
     let mut url = format!("https://github.com/{REPO}/issues/new?template={TEMPLATE}");
     if let Some(error) = &report.error {
         let kind = short(&error.kind, report);
@@ -117,6 +182,22 @@ fn build(report: &BugReport, message_chars: usize) -> String {
     url.push_str(DIAGNOSTICS_FIELD);
     url.push('=');
     url.push_str(&encode(&summary_with(report, message_chars)));
+    if !crashes.is_empty() {
+        let text: Vec<String> = crashes
+            .iter()
+            .map(|c| {
+                if frames {
+                    crate::crash::crash_text(c)
+                } else {
+                    crate::crash::crash_summary_text(c)
+                }
+            })
+            .collect();
+        url.push('&');
+        url.push_str(CRASH_FIELD);
+        url.push('=');
+        url.push_str(&encode(&text.join("\n\n")));
+    }
     url
 }
 
@@ -159,7 +240,7 @@ fn sources(rows: &[crate::sources::ProviderRow]) -> (Vec<String>, usize) {
     use crate::sources::ProviderOrigin;
     let mut built_in: Vec<String> = Vec::new();
     let mut plugins = 0;
-    for row in rows.iter().filter(|r| r.usable && !r.disabled) {
+    for row in rows.iter().filter(|r| r.usable && !r.disabled && !r.is_demo) {
         if row.origin == ProviderOrigin::BuiltIn {
             // The kind is a fixed word; an id may be one the user chose.
             let kind: String =
@@ -533,6 +614,7 @@ mod tests {
             ],
             error: Some(BugError { kind: "playback".into(), message: "no stream".into() }),
             private: vec![],
+            crashes: vec![],
         }
     }
 
@@ -764,6 +846,55 @@ mod tests {
             .collect()
     }
 
+    fn crash(n: i64) -> CrashRecord {
+        CrashRecord {
+            id: format!("c{n}"),
+            at_ms: 1_793_394_840_000 + n,
+            uptime_secs: 60,
+            platform: "Mac".into(),
+            os_version: "macOS 26.1".into(),
+            app_version: "2.1.4".into(),
+            arch: "arm64".into(),
+            place: crate::crash::CrashPlace::Player,
+            detail: "playing".into(),
+            kind: crate::crash::CrashKind::Signal,
+            reason: "EXC_BAD_ACCESS (SIGSEGV)".into(),
+            frames: (0..30)
+                .map(|offset| crate::crash::CrashFrame {
+                    module: "libmpv.2.dylib".into(),
+                    symbol: None,
+                    offset: 0x1000 + offset,
+                })
+                .collect(),
+            sources: 2,
+            demo_on: true,
+            origin: crate::crash::CrashOrigin::Saved,
+        }
+    }
+
+    #[test]
+    fn a_crash_report_stays_inside_the_address_limit_and_the_tvs_nine_hundred_bytes() {
+        let crashes = [crash(1), crash(2), crash(3)];
+        let url = issue_url_with(&report(), &crashes);
+        assert!(url.len() <= MAX_URL_BYTES, "{}", url.len());
+        assert!(url.contains("&crash="), "the crash goes in its own field");
+        for cap in [900, 500, 200] {
+            let url = issue_url_capped(&report(), &crashes, cap);
+            assert!(url.len() <= cap, "{} over {cap}", url.len());
+            assert!(url.starts_with("https://github.com/"), "{url}");
+        }
+        let tv = issue_url_capped(&report(), &crashes[..1], 900);
+        assert!(decode(&tv).contains("Kind: crash"), "the kind line survives the cap");
+    }
+
+    #[test]
+    fn the_report_text_is_the_summary_and_each_crash_whole() {
+        let text = report_text(&report(), &[crash(1)]);
+        assert!(text.starts_with(&summary(&report())));
+        assert!(text.contains("\n\nanistream crash report\n"));
+        assert!(text.contains("libmpv.2.dylib"));
+    }
+
     #[test]
     fn every_parameter_of_every_url_is_a_field_of_the_issue_form() {
         let ids = form_ids();
@@ -778,7 +909,7 @@ mod tests {
         let mut without = report();
         without.error = None;
         for r in [with_error, without, BugReport::default()] {
-            for (key, value) in query(&issue_url(&r)) {
+            for (key, value) in query(&issue_url_with(&r, &[crash(1)])) {
                 match key.as_str() {
                     "template" => assert_eq!(value, TEMPLATE),
                     "title" => assert!(value.starts_with("Bug: ")),

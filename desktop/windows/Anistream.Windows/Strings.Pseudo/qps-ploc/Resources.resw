@@ -239,6 +239,10 @@
     <value>[Ṁöŕé {genre}~~~]</value>
     <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
   </data>
+  <data name="HomeSpotlightDemo" xml:space="preserve">
+    <value>[Ðéɱö, ƒŕéé ţö šĥàŕé~~~~~~]</value>
+    <comment>Line over the spotlight's title when it is the built-in demo.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>[{reason}~]</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -887,6 +891,14 @@
     <value>[Ŵàţçĥ þàŕţîéš àŕéñ'ţ ƀüîļţ îñţö ţĥîš àþþ.~~~~~~~~~~~~~]</value>
     <comment>Toast when a command needs watch parties but this app was built without them.</comment>
   </data>
+  <data name="SourcesDemoRemoved" xml:space="preserve">
+    <value>[Ðéɱö ŕéɱöṽéð~~~~]</value>
+    <comment>Notice after the demo is removed. It offers Undo for 8 seconds.</comment>
+  </data>
+  <data name="StoresReadyDemoStays" xml:space="preserve">
+    <value>[{store} îš ŕéàðý. Ţĥé ðéɱö šţàýš ļàšţ îñ Ýöüŕ šöüŕçéš.~~~~~~~~~~~~~~~]</value>
+    <comment>Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.</comment>
+  </data>
   <data name="NoticeSignedIn" xml:space="preserve">
     <value>[Šîĝñéð îñ ţö {tracker}.~~~~~~]</value>
     <comment>Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.</comment>
@@ -1138,6 +1150,18 @@
   <data name="NoticeEpisodesQueued_other" xml:space="preserve">
     <value>[Ǫüéüéð {count} éþîšöðéš.~~~~~~]</value>
     <comment>Toast after episodes are added to the download queue.</comment>
+  </data>
+  <data name="SettingsSubsResetDone" xml:space="preserve">
+    <value>[Šüƀţîţļé šţýļé ŕéšéţ~~~~~~]</value>
+    <comment>Notice after the subtitle style is reset. It offers Undo.</comment>
+  </data>
+  <data name="CrashNotice" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çļöšéð àƒţéŕ à þŕöƀļéɱ.~~~~~~~~~~]</value>
+    <comment>Notice at the next launch after a crash, while saving and asking are on.</comment>
+  </data>
+  <data name="CrashNoticeTv" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çļöšéð àƒţéŕ à þŕöƀļéɱ. Ýöü çàñ ŕéþöŕţ îţ ƒŕöɱ Šéţţîñĝš, Åƀöüţ.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The same notice on the TV, which has no button.</comment>
   </data>
   <data name="ContinueMenuResume" xml:space="preserve">
     <value>[Çöñţîñüé~~~]</value>
@@ -1954,6 +1978,130 @@
   <data name="AboutFontLicence" xml:space="preserve">
     <value>[Ļîçéñšéð üñðéŕ ţĥé ŠÎĻ Öþéñ Ƒöñţ Ļîçéñšé 1.1.~~~~~~~~~~~~~~]</value>
     <comment>Line about fonts.</comment>
+  </data>
+  <data name="CrashNoticeReport" xml:space="preserve">
+    <value>[Ŕéþöŕţ…~~~]</value>
+    <comment>Button on that notice that opens Report a bug.</comment>
+  </data>
+  <data name="ReportTitle" xml:space="preserve">
+    <value>[Ŕéþöŕţ à ƀüĝ~~~~]</value>
+    <comment>Title of the Report a bug sheet.</comment>
+  </data>
+  <data name="ReportDetail" xml:space="preserve">
+    <value>[Ţĥîš öþéñš à ñéŵ îššüé öñ ĜîţĤüƀ, ŵĥéŕé ýöü šîĝñ îñ, šàý ŵĥàţ ĥàþþéñéð àñð šüƀɱîţ. Îššüéš öñ ĜîţĤüƀ àŕé þüƀļîç.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the title of the Report a bug sheet.</comment>
+  </data>
+  <data name="ReportIncluded" xml:space="preserve">
+    <value>[Îñçļüðéð~~~]</value>
+    <comment>Heading of the list of what the report includes.</comment>
+  </data>
+  <data name="ReportVersions" xml:space="preserve">
+    <value>[Åþþ àñð ðéṽîçé ṽéŕšîöñš~~~~~~~]</value>
+    <comment>Report item that is always included.</comment>
+  </data>
+  <data name="ReportLastError" xml:space="preserve">
+    <value>[Ţĥé ļàšţ éŕŕöŕ~~~~~]</value>
+    <comment>Report item: the last error the app showed.</comment>
+  </data>
+  <data name="ReportCrashItem" xml:space="preserve">
+    <value>[Çŕàšĥ · {when} · {place}~~~~~~]</value>
+    <comment>Report item for a saved crash. The time and the place are already worded.</comment>
+  </data>
+  <data name="ReportShowSent" xml:space="preserve">
+    <value>[Šĥöŵ ŵĥàţ îš šéñţ~~~~~~]</value>
+    <comment>Disclosure that opens the exact text of the report.</comment>
+  </data>
+  <data name="ReportHideSent" xml:space="preserve">
+    <value>[Ĥîðé ŵĥàţ îš šéñţ~~~~~~]</value>
+    <comment>Disclosure that closes the exact text of the report.</comment>
+  </data>
+  <data name="ReportCopy" xml:space="preserve">
+    <value>[Çöþý ŕéþöŕţ~~~~]</value>
+    <comment>Button that copies the whole report text.</comment>
+  </data>
+  <data name="ReportCopied" xml:space="preserve">
+    <value>[Ŕéþöŕţ çöþîéð~~~~]</value>
+    <comment>Notice after the report text is copied.</comment>
+  </data>
+  <data name="ReportOpenGithub" xml:space="preserve">
+    <value>[Öþéñ öñ ĜîţĤüƀ~~~~~]</value>
+    <comment>Button that opens the pre-filled issue in the browser.</comment>
+  </data>
+  <data name="ReportPrivacy" xml:space="preserve">
+    <value>[Ñöţĥîñĝ ļéàṽéš ţĥîš ðéṽîçé üñţîļ ýöü öþéñ ţĥé ŕéþöŕţ öñ ĜîţĤüƀ. Ţîţļéš, àððŕéššéš, ƒîļé þàţĥš àñð ñàɱéš àŕé ŕéɱöṽéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line at the foot of the Report a bug sheet.</comment>
+  </data>
+  <data name="ReportTvScan" xml:space="preserve">
+    <value>[Šçàñ ţĥé çöðé ţö öþéñ ţĥé ŕéþöŕţ öñ ýöüŕ þĥöñé.~~~~~~~~~~~~~~~]</value>
+    <comment>TV only. Line over the QR code of the issue link.</comment>
+  </data>
+  <data name="ReportCrashOff" xml:space="preserve">
+    <value>[Çŕàšĥ ŕéþöŕţš àŕé öƒƒ, šö ñöñé îš îñçļüðéð. Ýöü çàñ ţüŕñ ţĥéɱ öñ îñ Šéţţîñĝš, Åƀöüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line that replaces the crash rows while saving crash reports is off.</comment>
+  </data>
+  <data name="ReportCrashSettings" xml:space="preserve">
+    <value>[Çŕàšĥ ŕéþöŕţ šéţţîñĝš~~~~~~~]</value>
+    <comment>Link from that line to the crash report settings.</comment>
+  </data>
+  <data name="SettingsGroupCrashes" xml:space="preserve">
+    <value>[Çŕàšĥ ŕéþöŕţš~~~~]</value>
+    <comment>Heading of the Crash reports group in Settings, About.</comment>
+  </data>
+  <data name="SettingsCrashSave" xml:space="preserve">
+    <value>[Šàṽé çŕàšĥ ŕéþöŕţš öñ ţĥîš ðéṽîçé~~~~~~~~~~]</value>
+    <comment>Switch that turns saving crash reports on this device on or off.</comment>
+  </data>
+  <data name="SettingsCrashSaveDetail" xml:space="preserve">
+    <value>[Ŵĥéñ ţĥîš îš öñ, àñîšţŕéàɱ ķééþš à šĥöŕţ ŕéçöŕð öƒ éàçĥ çŕàšĥ öñ ţĥîš ðéṽîçé, ŵîţĥ ţîţļéš, àððŕéššéš àñð ñàɱéš ŕéɱöṽéð, šö ýöü çàñ àðð îţ ţö Ŕéþöŕţ à ƀüĝ. Ñöţĥîñĝ îš šéñţ ƀý îţšéļƒ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="SettingsCrashAsk" xml:space="preserve">
+    <value>[Åšķ àƒţéŕ à çŕàšĥ~~~~~~]</value>
+    <comment>Switch that turns the notice after a crash on or off.</comment>
+  </data>
+  <data name="SettingsCrashAskDetail" xml:space="preserve">
+    <value>[Šĥöŵš à ñöţîçé àţ ţĥé ñéẋţ ļàüñçĥ ŵîţĥ Ŕéþöŕţ…~~~~~~~~~~~~~~]</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="SettingsCrashOsHeading" xml:space="preserve">
+    <value>[Ķéþţ ƀý {system}~~~~]</value>
+    <comment>Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.</comment>
+  </data>
+  <data name="SettingsCrashOsDetail" xml:space="preserve">
+    <value>[{system} ķéþţ ţĥéšé çŕàšĥéš ƒŕöɱ ƀéƒöŕé ýöü ţüŕñéð ţĥîš öñ. Ñöţĥîñĝ ƒŕöɱ ţĥéɱ îš šàṽéð üñļéšš ýöü àðð îţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under that heading.</comment>
+  </data>
+  <data name="SettingsCrashOsItem" xml:space="preserve">
+    <value>[Çŕàšĥ · {when}~~~~]</value>
+    <comment>Row for one crash the system kept. The time is already worded.</comment>
+  </data>
+  <data name="SettingsCrashOsAdd" xml:space="preserve">
+    <value>[Åðð~]</value>
+    <comment>Button that saves one crash the system kept.</comment>
+  </data>
+  <data name="SettingsCrashSaved" xml:space="preserve">
+    <value>[Šàṽéð ŕéþöŕţš~~~~]</value>
+    <comment>Heading of the saved crash reports.</comment>
+  </data>
+  <data name="SettingsCrashNone" xml:space="preserve">
+    <value>[Ñö çŕàšĥ ŕéþöŕţš šàṽéð.~~~~~~~]</value>
+    <comment>Empty state of the saved crash reports.</comment>
+  </data>
+  <data name="SettingsCrashView" xml:space="preserve">
+    <value>[Ṽîéŵ~~]</value>
+    <comment>Button that shows the text of a saved crash report.</comment>
+  </data>
+  <data name="SettingsCrashDelete" xml:space="preserve">
+    <value>[Ðéļéţé~~]</value>
+    <comment>Button that deletes one saved crash report.</comment>
+  </data>
+  <data name="SettingsCrashDeleteAll" xml:space="preserve">
+    <value>[Ðéļéţé àļļ~~~]</value>
+    <comment>Button that deletes every saved crash report.</comment>
+  </data>
+  <data name="SettingsCrashFootnote" xml:space="preserve">
+    <value>[Çŕàšĥ ŕéþöŕţš šţàý öñ ţĥîš ðéṽîçé. àñîšţŕéàɱ šéñðš ñöţĥîñĝ ƀý îţšéļƒ. Å ŕéþöŕţ ļéàṽéš öñļý ŵĥéñ ýöü öþéñ îţ öñ ĜîţĤüƀ ƒŕöɱ Ŕéþöŕţ à ƀüĝ. Ŕéþöŕţš àŕé ðéļéţéð àƒţéŕ 30 ðàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Footnote of the Crash reports group.</comment>
   </data>
   <data name="CalendarPreviousWeek" xml:space="preserve">
     <value>[Þŕéṽîöüš ŵééķ~~~~]</value>
@@ -4079,6 +4227,42 @@
     <value>[Îñṽîţé ļîñķ~~~~]</value>
     <comment>Hint inside the invite field on the welcome page.</comment>
   </data>
+  <data name="OnboardingWhereTitle" xml:space="preserve">
+    <value>[Ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ~~~~~~~~]</value>
+    <comment>Heading of the welcome page that explains where episodes come from.</comment>
+  </data>
+  <data name="OnboardingWhereHosts" xml:space="preserve">
+    <value>[Éþîšöðéš þļàý ƒŕöɱ šöüŕçéš, ŵĥîçĥ àŕé þļüĝîñš.~~~~~~~~~~~~~~]</value>
+    <comment>First line of that page, shown after legal-hosts-no-content. Says where episodes come from.</comment>
+  </data>
+  <data name="OnboardingWhereStores" xml:space="preserve">
+    <value>[Þļüĝîñš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš. Å þļüĝîñ šţöŕé îš ŕüñ ƀý öñé þéŕšöñ ƒöŕ ţĥé þéöþļé ţĥéý îñṽîţé, šö ýöü ĵöîñ öñé ŵîţĥ àñ îñṽîţé ļîñķ ƒŕöɱ îţš öŵñéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.</comment>
+  </data>
+  <data name="OnboardingDemoHeading" xml:space="preserve">
+    <value>[Ţŕý îţ ñöŵ~~~]</value>
+    <comment>Heading above the Play the demo button on the welcome page.</comment>
+  </data>
+  <data name="OnboardingDemoDetail" xml:space="preserve">
+    <value>[Ţĥé ðéɱö þļàýš こうしす！, à šéŕîéš îţš ɱàķéŕš šĥàŕé üñðéŕ ÇÇ ƁÝ 4.0, ƒŕöɱ Ŵîķîɱéðîà Çöɱɱöñš.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under that heading. Names the demo work and its licence.</comment>
+  </data>
+  <data name="OnboardingPlayDemo" xml:space="preserve">
+    <value>[Þļàý ţĥé ðéɱö~~~~]</value>
+    <comment>Button on the welcome page that plays the demo at once.</comment>
+  </data>
+  <data name="OnboardingInviteHeading" xml:space="preserve">
+    <value>[Ĥàṽé àñ îñṽîţé ļîñķ?~~~~~~]</value>
+    <comment>Heading above the invite link field on the welcome page.</comment>
+  </data>
+  <data name="OnboardingInviteScan" xml:space="preserve">
+    <value>[Šçàñ ŵîţĥ ýöüŕ þĥöñé~~~~~~]</value>
+    <comment>TV only. Button that shows a code to scan with a phone to send an invite link.</comment>
+  </data>
+  <data name="OnboardingInviteType" xml:space="preserve">
+    <value>[Ţýþé ţĥé ļîñķ~~~~]</value>
+    <comment>TV only. Button that opens a field to type an invite link.</comment>
+  </data>
   <data name="PartyOpen" xml:space="preserve">
     <value>[Ŵàţçĥ þàŕţý…~~~~]</value>
     <comment>Button on the title page and in the player that opens the watch party form.</comment>
@@ -4714,6 +4898,42 @@
   <data name="PlayerCommandFailed" xml:space="preserve">
     <value>[Ţĥàţ ðîðñ'ţ ŵöŕķ. Ţŕý àĝàîñ.~~~~~~~~~]</value>
     <comment>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</comment>
+  </data>
+  <data name="PlayerSubsStyle" xml:space="preserve">
+    <value>[Šţýļé~~]</value>
+    <comment>Heading of the style section in the player's subtitles panel.</comment>
+  </data>
+  <data name="PlayerSubsLarger" xml:space="preserve">
+    <value>[Ļàŕĝéŕ šüƀţîţļéš~~~~~]</value>
+    <comment>Accessibility label of the control that makes subtitles larger.</comment>
+  </data>
+  <data name="PlayerSubsSmaller" xml:space="preserve">
+    <value>[Šɱàļļéŕ šüƀţîţļéš~~~~~~]</value>
+    <comment>Accessibility label of the control that makes subtitles smaller.</comment>
+  </data>
+  <data name="PlayerSubsRaise" xml:space="preserve">
+    <value>[Ŕàîšé šüƀţîţļéš~~~~~]</value>
+    <comment>Accessibility label of the control that raises subtitles.</comment>
+  </data>
+  <data name="PlayerSubsLower" xml:space="preserve">
+    <value>[Ļöŵéŕ šüƀţîţļéš~~~~~]</value>
+    <comment>Accessibility label of the control that lowers subtitles.</comment>
+  </data>
+  <data name="PlayerSubsBgOutline" xml:space="preserve">
+    <value>[Öüţļîñé~~~]</value>
+    <comment>Quick panel choice for the subtitle background: outline, no box.</comment>
+  </data>
+  <data name="PlayerSubsBgShadow" xml:space="preserve">
+    <value>[Šĥàðöŵ~~]</value>
+    <comment>Quick panel choice for the subtitle background: drop shadow, no box.</comment>
+  </data>
+  <data name="PlayerSubsBgBox" xml:space="preserve">
+    <value>[Ɓöẋ~]</value>
+    <comment>Quick panel choice for the subtitle background: a box behind the lines.</comment>
+  </data>
+  <data name="PlayerSubsMore" xml:space="preserve">
+    <value>[Ṁöŕé îñ Šéţţîñĝš…~~~~~~]</value>
+    <comment>Button in the subtitles panel that opens Settings.</comment>
   </data>
   <data name="SeasonalPrevious" xml:space="preserve">
     <value>[Þŕéṽîöüš šéàšöñ~~~~~]</value>
@@ -5639,6 +5859,178 @@
     <value>[Šéţţîñĝš àŕé ƀàçķ ţö ţĥéîŕ ðéƒàüļţš. Ţĥé öļð ƒîļé îš ķéþţ àš {file}.~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.</comment>
   </data>
+  <data name="SettingsGroupSubtitles" xml:space="preserve">
+    <value>[Šüƀţîţļéš~~~]</value>
+    <comment>Heading of the Subtitles group in Settings, Playback.</comment>
+  </data>
+  <data name="SettingsSubsPreview" xml:space="preserve">
+    <value>[Þŕéṽîéŵ~~~]</value>
+    <comment>Heading of the subtitle preview.</comment>
+  </data>
+  <data name="SettingsSubsPreviewPlain" xml:space="preserve">
+    <value>[Þļàîñ~~]</value>
+    <comment>Segment of the preview that draws plain subtitles.</comment>
+  </data>
+  <data name="SettingsSubsPreviewStyled" xml:space="preserve">
+    <value>[Šţýļéð~~]</value>
+    <comment>Segment of the preview that draws styled subtitles.</comment>
+  </data>
+  <data name="SettingsSubsPreviewLine" xml:space="preserve">
+    <value>[Î ļéƒţ ţĥé ļàñţéŕñ àţ ţĥé šţàţîöñ.~~~~~~~~~~~]</value>
+    <comment>First sample line in the subtitle preview.</comment>
+  </data>
+  <data name="SettingsSubsPreviewLine2" xml:space="preserve">
+    <value>[Çàñ ýöü ƀŕîñĝ îţ ƀàçķ ƀéƒöŕé ðàŕķ?~~~~~~~~~~~]</value>
+    <comment>Second sample line in the subtitle preview.</comment>
+  </data>
+  <data name="SettingsSubsPreviewSign" xml:space="preserve">
+    <value>[Ķüɱö ñö Ûé Ŕéàðîñĝ Ŕööɱ~~~~~~~]</value>
+    <comment>Sample of a typeset sign at the top of the styled preview.</comment>
+  </data>
+  <data name="SettingsSubsSystemChange" xml:space="preserve">
+    <value>[Çĥàñĝé îñ Åççéššîƀîļîţý šéţţîñĝš~~~~~~~~~~]</value>
+    <comment>Link under the rows that show the system's caption style.</comment>
+  </data>
+  <data name="SettingsSubsSystemValue" xml:space="preserve">
+    <value>[Ƒŕöɱ ýöüŕ šýšţéɱ~~~~~]</value>
+    <comment>Value shown, dimmed, for a row while the system's caption style applies.</comment>
+  </data>
+  <data name="SettingsSubsSize" xml:space="preserve">
+    <value>[Šîžé~~]</value>
+    <comment>Label of the subtitle size slider.</comment>
+  </data>
+  <data name="SettingsSubsSizeValue" xml:space="preserve">
+    <value>[{percent}%~~]</value>
+    <comment>Value of the size slider. The percent is a whole number from 50 to 200.</comment>
+  </data>
+  <data name="SettingsSubsFont" xml:space="preserve">
+    <value>[Ƒöñţ~~]</value>
+    <comment>Label of the subtitle font row.</comment>
+  </data>
+  <data name="SettingsSubsFontDefault" xml:space="preserve">
+    <value>[Ðéƒàüļţ~~~]</value>
+    <comment>Subtitle font choice: the player's own sans-serif.</comment>
+  </data>
+  <data name="SettingsSubsFontSerif" xml:space="preserve">
+    <value>[Šéŕîƒ~~]</value>
+    <comment>Subtitle font choice.</comment>
+  </data>
+  <data name="SettingsSubsFontMono" xml:space="preserve">
+    <value>[Ṁöñöšþàçé~~~]</value>
+    <comment>Subtitle font choice.</comment>
+  </data>
+  <data name="SettingsSubsColour" xml:space="preserve">
+    <value>[Ţéẋţ çöļöüŕ~~~~]</value>
+    <comment>Label of the subtitle text colour row.</comment>
+  </data>
+  <data name="SettingsSubsColourWhite" xml:space="preserve">
+    <value>[Ŵĥîţé~~]</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsColourYellow" xml:space="preserve">
+    <value>[Ýéļļöŵ~~]</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsColourCyan" xml:space="preserve">
+    <value>[Çýàñ~~]</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsColourGreen" xml:space="preserve">
+    <value>[Ĝŕééñ~~]</value>
+    <comment>Subtitle text colour name, shown beside its swatch.</comment>
+  </data>
+  <data name="SettingsSubsEdge" xml:space="preserve">
+    <value>[Éðĝé~~]</value>
+    <comment>Label of the subtitle edge row.</comment>
+  </data>
+  <data name="SettingsSubsEdgeOutline" xml:space="preserve">
+    <value>[Öüţļîñé~~~]</value>
+    <comment>Subtitle edge choice.</comment>
+  </data>
+  <data name="SettingsSubsEdgeShadow" xml:space="preserve">
+    <value>[Ðŕöþ šĥàðöŵ~~~~]</value>
+    <comment>Subtitle edge choice.</comment>
+  </data>
+  <data name="SettingsSubsEdgeNone" xml:space="preserve">
+    <value>[Ñöñé~~]</value>
+    <comment>Subtitle edge choice: no edge.</comment>
+  </data>
+  <data name="SettingsSubsThickness" xml:space="preserve">
+    <value>[Ţĥîçķñéšš~~~]</value>
+    <comment>Label of the outline thickness row.</comment>
+  </data>
+  <data name="SettingsSubsThin" xml:space="preserve">
+    <value>[Ţĥîñ~~]</value>
+    <comment>Outline thickness choice.</comment>
+  </data>
+  <data name="SettingsSubsMedium" xml:space="preserve">
+    <value>[Ṁéðîüɱ~~]</value>
+    <comment>Outline thickness choice.</comment>
+  </data>
+  <data name="SettingsSubsThick" xml:space="preserve">
+    <value>[Ţĥîçķ~~]</value>
+    <comment>Outline thickness choice.</comment>
+  </data>
+  <data name="SettingsSubsBackground" xml:space="preserve">
+    <value>[Ɓàçķĝŕöüñð~~~]</value>
+    <comment>Label of the subtitle background row.</comment>
+  </data>
+  <data name="SettingsSubsBackgroundNone" xml:space="preserve">
+    <value>[Ñöñé~~]</value>
+    <comment>Subtitle background choice: no background.</comment>
+  </data>
+  <data name="SettingsSubsBackgroundLine" xml:space="preserve">
+    <value>[Ɓéĥîñð éàçĥ ļîñé~~~~~]</value>
+    <comment>Subtitle background choice: a plate behind each line.</comment>
+  </data>
+  <data name="SettingsSubsBackgroundAll" xml:space="preserve">
+    <value>[Ɓéĥîñð àļļ ļîñéš~~~~~]</value>
+    <comment>Subtitle background choice: one plate behind all lines.</comment>
+  </data>
+  <data name="SettingsSubsOpacity" xml:space="preserve">
+    <value>[Öþàçîţý~~~]</value>
+    <comment>Label of the background opacity row.</comment>
+  </data>
+  <data name="SettingsSubsRaise" xml:space="preserve">
+    <value>[Ŕàîšé šüƀţîţļéš~~~~~]</value>
+    <comment>Label of the row that raises subtitles.</comment>
+  </data>
+  <data name="SettingsSubsRaiseValue" xml:space="preserve">
+    <value>[{percent}% öƒ ţĥé þîçţüŕé~~~~~~]</value>
+    <comment>Value of the raise slider. The percent is a whole number from 0 to 20.</comment>
+  </data>
+  <data name="SettingsSubsStyled" xml:space="preserve">
+    <value>[Šţýļéð šüƀţîţļéš~~~~~]</value>
+    <comment>Label of the picker that says what happens to styled subtitles.</comment>
+  </data>
+  <data name="SettingsSubsStyledKeep" xml:space="preserve">
+    <value>[Ķééþ ţĥéîŕ ļööķ~~~~~]</value>
+    <comment>Styled subtitles choice: leave the authors' styling alone.</comment>
+  </data>
+  <data name="SettingsSubsStyledKeepDetail" xml:space="preserve">
+    <value>[Šţýļéð šüƀţîţļéš ķééþ ţĥé ƒöñţš, çöļöüŕš àñð šîĝñ þļàçéɱéñţ ţĥéîŕ àüţĥöŕš ĝàṽé ţĥéɱ. Šîžé àñð Ŕàîšé šţîļļ àþþļý.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the picker while Keep their look is chosen.</comment>
+  </data>
+  <data name="SettingsSubsStyledRestyle" xml:space="preserve">
+    <value>[Ŕéšţýļé~~~]</value>
+    <comment>Styled subtitles choice: apply the viewer's style over the authors'.</comment>
+  </data>
+  <data name="SettingsSubsStyledRestyleDetail" xml:space="preserve">
+    <value>[Ýöüŕ ƒöñţ, çöļöüŕ, éðĝé àñð ƀàçķĝŕöüñð àþþļý ţö šţýļéð šüƀţîţļéš ţöö. Šîĝñš ɱàý ļöšé ţĥéîŕ ļööķ öŕ ţĥéîŕ þļàçéɱéñţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the picker while Restyle is chosen.</comment>
+  </data>
+  <data name="SettingsSubsStyledStrip" xml:space="preserve">
+    <value>[Ŕéɱöṽé àļļ šţýļîñĝ~~~~~~]</value>
+    <comment>Styled subtitles choice: drop all styling and show plain dialogue.</comment>
+  </data>
+  <data name="SettingsSubsStyledStripDetail" xml:space="preserve">
+    <value>[Éṽéŕý ļîñé šĥöŵš àš þļàîñ ðîàļöĝüé àţ ţĥé ƀöţţöɱ, îñ ýöüŕ šţýļé. Šîĝñš ļöšé ţĥéîŕ þļàçé, àñð ķàŕàöķé àñð éƒƒéçţš àŕé ĝöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the picker while Remove all styling is chosen.</comment>
+  </data>
+  <data name="SettingsSubsReset" xml:space="preserve">
+    <value>[Ŕéšéţ šüƀţîţļé šţýļé~~~~~~]</value>
+    <comment>Button that restores the default subtitle style.</comment>
+  </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>[Šöüŕçéš~~~]</value>
     <comment>Title of the screen or section that lists sources.</comment>
@@ -6010,6 +6402,74 @@
   <data name="MatchRowLabel" xml:space="preserve">
     <value>[{title}, {facts}, {closeness}~~~~]</value>
     <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
+  </data>
+  <data name="SourcesDemoName" xml:space="preserve">
+    <value>[Ðéɱö~~]</value>
+    <comment>Name of the built-in demo source in every list of sources.</comment>
+  </data>
+  <data name="SourcesDemoLine" xml:space="preserve">
+    <value>[こうしす！ · ÇÇ ƁÝ 4.0 · ƒŕöɱ Ŵîķîɱéðîà Çöɱɱöñš~~~~~~~~~~~~~]</value>
+    <comment>Line under the demo source in Your sources: the work, its licence and where it streams from.</comment>
+  </data>
+  <data name="SourcesDemoAbout" xml:space="preserve">
+    <value>[Åƀöüţ ţĥé ðéɱö~~~~~]</value>
+    <comment>Title of the page that describes the demo.</comment>
+  </data>
+  <data name="SourcesDemoCredit" xml:space="preserve">
+    <value>[こうしす！ ƀý ÖÞÅÞ-ĴÞ çöñţŕîƀüţöŕš. Ļîçéñšéð ÇÇ ƁÝ 4.0. Šţŕéàɱéð ƒŕöɱ Ŵîķîɱéðîà Çöɱɱöñš. Šþöñšöŕ ļöĝöš îñ ţĥé éþîšöðéš àŕé ñöţ çöṽéŕéð ƀý ţĥé ļîçéñçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The credit block shown wherever the demo work shows as a title. The licence asks for this wording.</comment>
+  </data>
+  <data name="SourcesDemoLinkLicence" xml:space="preserve">
+    <value>[Ļîçéñçé~~~]</value>
+    <comment>Link to the licence text, in the credit block.</comment>
+  </data>
+  <data name="SourcesDemoLinkCommons" xml:space="preserve">
+    <value>[Ŵîķîɱéðîà Çöɱɱöñš~~~~~~]</value>
+    <comment>Link to the work's file page on Wikimedia Commons, in the credit block.</comment>
+  </data>
+  <data name="SourcesDemoLinkMaker" xml:space="preserve">
+    <value>[ÖÞÅÞ-ĴÞ~~~]</value>
+    <comment>Link to the makers' site, in the credit block.</comment>
+  </data>
+  <data name="SourcesDemoHosts" xml:space="preserve">
+    <value>[Ŕéàçĥéš Ŵîķîɱéðîà Çöɱɱöñš öñļý: üþļöàð.ŵîķîɱéðîà.öŕĝ àñð çöɱɱöñš.ŵîķîɱéðîà.öŕĝ.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line on the demo page that names the only two hosts the demo reaches.</comment>
+  </data>
+  <data name="SourcesDemoPrivate" xml:space="preserve">
+    <value>[Ţĥé ðéɱö ñéṽéŕ šîĝñš îñ àñýŵĥéŕé àñð ñéṽéŕ ŵŕîţéš ţö ÅñîĻîšţ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line on the demo page about accounts and trackers.</comment>
+  </data>
+  <data name="SourcesDemoRemove" xml:space="preserve">
+    <value>[Ŕéɱöṽé ðéɱö~~~~]</value>
+    <comment>Button on the demo page that removes the demo from the sources.</comment>
+  </data>
+  <data name="SourcesDemoAdd" xml:space="preserve">
+    <value>[Åðð ţĥé ðéɱö~~~~]</value>
+    <comment>Button that adds the demo back to the sources.</comment>
+  </data>
+  <data name="SourcesDemoOnly" xml:space="preserve">
+    <value>[Öñļý ţĥé ðéɱö îš öñ. Ĵöîñ à þļüĝîñ šţöŕé ţö þļàý ƒŕöɱ ýöüŕ öŵñ šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Closing line of Home while the demo is the only source. Plugin stores is a link.</comment>
+  </data>
+  <data name="SearchDemoOnly" xml:space="preserve">
+    <value>[Öñļý ţĥé ðéɱö îš öñ. Öţĥéŕ ţîţļéš þļàý öñçé ýöü ĵöîñ à þļüĝîñ šţöŕé.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the search field while the demo is the only source.</comment>
+  </data>
+  <data name="SearchDemoPlays" xml:space="preserve">
+    <value>[Ðéɱö · Þļàýš ñöŵ~~~~~]</value>
+    <comment>Line under the demo title when it is a search result.</comment>
+  </data>
+  <data name="TitlePlayPart" xml:space="preserve">
+    <value>[Þļàý þàŕţ {part}~~~~]</value>
+    <comment>Main button on the demo title. The part is a number.</comment>
+  </data>
+  <data name="PlayerStartingPart" xml:space="preserve">
+    <value>[Šţàŕţîñĝ þàŕţ {part}~~~~~~]</value>
+    <comment>Line on the player's starting screen for a part of the demo.</comment>
+  </data>
+  <data name="PlayerDemoCredit" xml:space="preserve">
+    <value>[こうしす！ ƀý ÖÞÅÞ-ĴÞ çöñţŕîƀüţöŕš · ÇÇ ƁÝ 4.0~~~~~~~~~~~~~]</value>
+    <comment>Credit line under the starting line on the player's starting screen for the demo.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>[Ĵöîñéð~~]</value>
@@ -6534,6 +6994,34 @@
   <data name="NoticeOpenStores" xml:space="preserve">
     <value>[Öþéñ þļüĝîñ šţöŕéš~~~~~~]</value>
     <comment>Button of a notice that opens the plugin stores page.</comment>
+  </data>
+  <data name="StoresWhatIs" xml:space="preserve">
+    <value>[Å þļüĝîñ šţöŕé îš à šɱàļļ šéŕṽéŕ öñé þéŕšöñ ŕüñš ƒöŕ ţĥé þéöþļé ţĥéý îñṽîţé. Îţ öƒƒéŕš šöüŕçéš àš þļüĝîñš. àñîšţŕéàɱ ŕüñš ñö þļüĝîñ šţöŕéš àñð ļîšţš ñöñé, šö ýöü ĵöîñ öñé ŵîţĥ àñ îñṽîţé ļîñķ ƒŕöɱ îţš öŵñéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Explainer on the empty plugin stores page.</comment>
+  </data>
+  <data name="StoresWhatIsLink" xml:space="preserve">
+    <value>[Ŵĥàţ îš à þļüĝîñ šţöŕé?~~~~~~~]</value>
+    <comment>Button on the empty plugin stores page that opens the docs page in the browser.</comment>
+  </data>
+  <data name="StoresInviteRules" xml:space="preserve">
+    <value>[Åñ îñṽîţé ļîñķ ŵöŕķš öñçé, ƒöŕ öñé þéŕšöñ, àñð ļàšţš šéṽéñ ðàýš. Åšķ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ ƒöŕ à ñéŵ öñé îƒ ýöüŕš ĥàš éẋþîŕéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line above the invite field in the Join sheet.</comment>
+  </data>
+  <data name="StoresQrLabel" xml:space="preserve">
+    <value>[ǪŔ çöðé ƒöŕ ţĥé îñṽîţé ļîñķ~~~~~~~~~]</value>
+    <comment>Accessibility label of the QR code that holds an invite link.</comment>
+  </data>
+  <data name="StoresQrWarning" xml:space="preserve">
+    <value>[Åñýöñé ŵĥö šçàñš ţĥîš çöðé çàñ üšé ţĥé îñṽîţé. Îţ ŵöŕķš öñçé àñð ļàšţš šéṽéñ ðàýš.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the QR code of an invite for someone else.</comment>
+  </data>
+  <data name="StoresQrWarningDevice" xml:space="preserve">
+    <value>[Šçàñ ţĥîš ŵîţĥ ţĥé ðéṽîçé ýöü ŵàñţ ţö ļîñķ. Îţ ŵöŕķš öñçé àñð ļàšţš šéṽéñ ðàýš.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the QR code of a link for another device of yours.</comment>
+  </data>
+  <data name="StoresShare" xml:space="preserve">
+    <value>[Šĥàŕé…~~]</value>
+    <comment>Button that opens the system share sheet for the invite link.</comment>
   </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>[Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]</value>

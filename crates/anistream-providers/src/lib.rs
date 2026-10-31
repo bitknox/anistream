@@ -5,6 +5,7 @@
 //! the chain is walked in preference order, every failure is carried rather than discarded,
 //! and the Providers screen can always say which source broke and why.
 
+pub mod demo;
 pub mod health;
 pub mod mock;
 pub mod registry;

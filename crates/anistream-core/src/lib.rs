@@ -6,6 +6,7 @@
 //! vocabulary all of those layers speak, and depends on none of them.
 
 pub mod config;
+pub mod demo;
 pub mod error;
 pub mod hash;
 pub mod ids;

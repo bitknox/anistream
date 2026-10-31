@@ -121,6 +121,9 @@ pub struct Entry {
     /// AniList marks it adult. `false` when AniList did not say.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub adult: bool,
+    /// The built-in demo's title: it carries its own credit, and has no AniList entry.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub is_demo: bool,
     /// What only the title page fetches: tags, the schedule, every relation, the cast and crew.
     /// `None` on every list fetch.
     #[cfg_attr(feature = "ffi", uniffi(default))]
@@ -735,6 +738,7 @@ impl Entry {
             end_date: None,
             source: None,
             adult: false,
+            is_demo: false,
             detail: None,
             status: None,
             airing: None,

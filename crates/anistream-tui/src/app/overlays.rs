@@ -122,7 +122,28 @@ impl App {
                 self.nav.close_overlay();
                 return None;
             }
-            (Overlay::StoreConfirm | Overlay::InviteLink | Overlay::OpenLink, _) => {
+            // The first run asks one question with three answers: the demo, an invite, or neither.
+            (Overlay::FirstRun, Action::Open) => {
+                self.nav.close_overlay();
+                return Some(Command::PlayDemo);
+            }
+            (Overlay::FirstRun, Action::ToggleSynopsis) => {
+                self.nav.close_overlay();
+                self.field_mut(Field::JoinLink).clear();
+                self.nav.open_overlay(Overlay::JoinStore);
+                return None;
+            }
+            (Overlay::FirstRun, Action::ShowSources) => {
+                self.nav.close_overlay();
+                return None;
+            }
+            (
+                Overlay::StoreConfirm
+                | Overlay::InviteLink
+                | Overlay::OpenLink
+                | Overlay::FirstRun,
+                _,
+            ) => {
                 return None;
             }
             _ => {}

@@ -182,6 +182,8 @@ pub enum Overlay {
     OpenLink,
     /// Which local plugin to publish to a store.
     PublishPick,
+    /// The first launch with only the demo to play: play it, paste an invite, or skip.
+    FirstRun,
 }
 
 impl Overlay {
@@ -214,6 +216,7 @@ impl Overlay {
             Self::InviteLink => t::nav_overlay_invite_link(),
             Self::OpenLink => t::nav_overlay_open_link(),
             Self::PublishPick => t::nav_overlay_publish_pick(),
+            Self::FirstRun => t::onboarding_welcome(),
         })
     }
 

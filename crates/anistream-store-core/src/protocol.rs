@@ -429,7 +429,8 @@ pub fn is_valid_id(id: &str) -> bool {
 
 /// Ids anistream's own sources already use. A plugin by one of these names would take a built-in
 /// source's place in the chain, so a server will not publish one and a client will not install one.
-pub const RESERVED_IDS: &[&str] = &["torrent", "remote", "plugins"];
+/// `demo` is the built-in demo source's id, which no store may register or repoint.
+pub const RESERVED_IDS: &[&str] = &["torrent", "remote", "plugins", "demo"];
 
 /// Whether a version string is safe to put in a path segment and a file name.
 pub fn is_valid_version(version: &str) -> bool {

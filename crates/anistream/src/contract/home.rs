@@ -76,9 +76,19 @@ fn autumn() -> i64 {
 
 /// The app, its clock and the fake's stopped at `now`, days read in UTC.
 async fn at(now: i64, registry: Option<ProviderRegistry>) -> Harness {
+    at_with(now, registry, None).await
+}
+
+/// [`at`] with a `config.toml` on disk at launch.
+async fn at_with(
+    now: i64,
+    registry: Option<ProviderRegistry>,
+    config: Option<String>,
+) -> Harness {
     let clock = Clock::in_zone(jiff::tz::TimeZone::UTC);
     clock.advance(now - anistream_store::now());
-    Harness::with(Options { now, clock: Some(clock), registry, ..Options::default() }).await
+    Harness::with(Options { now, clock: Some(clock), registry, config, ..Options::default() })
+        .await
 }
 
 /// An invented title of a season, as popular as `popularity`.
@@ -697,7 +707,13 @@ async fn this_week_has_the_followed_shows_from_today_in_order() {
 #[tokio::test]
 async fn with_no_source_the_closing_line_says_to_add_one() {
     let now = autumn();
-    let mut h = at(now, Some(ProviderRegistry::new(Vec::new()))).await;
+    // The demo taken out, as someone who removed it has it: nothing is left to play from.
+    let mut h = at_with(
+        now,
+        Some(ProviderRegistry::new(Vec::new())),
+        Some("[sources]\ndemo = false\n".into()),
+    )
+    .await;
     season(&h, []);
     watch(&h, FINISHED, 1..=12, now, 30 * DAY);
 

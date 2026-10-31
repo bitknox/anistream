@@ -74,6 +74,7 @@ impl Command {
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
             Self::LoadStores => "checking plugin stores".into(),
+            Self::PlayDemo => "starting the demo".into(),
             Self::PreviewStore { .. } => "checking the invite".into(),
             Self::JoinStore { .. } => "joining the store".into(),
             Self::LeaveStore { .. } => "leaving the store".into(),
@@ -199,24 +200,15 @@ pub enum Command {
     /// What the filters choose from: answered with
     /// [`Event::Facets`](crate::event::Event::Facets). Asked of AniList at most once a week.
     LoadSearchFacets,
-    /// Home: answered with [`Event::Home`](crate::event::Event::Home), at once with what is
-    /// local and what was kept, then again as each part AniList answers lands. Sent again
-    /// unasked whenever Continue changes, a title is dismissed or restored, or the sources
-    /// check finds a title on it missing. `refresh` drops what was kept for half an hour and
-    /// asks again: pull to refresh, Refresh, and Try again.
+    /// Home, answered with `Event::Home`, again as each part lands. `refresh` asks afresh.
     LoadHome {
         refresh: bool,
     },
-    /// Whether a source has title `id`, asked when someone shows interest in it: the spotlight
-    /// on screen, a hover card, a focused TV card, a title page. Answered with
-    /// [`Event::TitlePlayable`](crate::event::Event::TitlePlayable) within four seconds. Asked
-    /// again within a minute, it is not checked again.
+    /// Whether a source has title `id`: answered with `Event::TitlePlayable`.
     ProbeTitle {
         id: AnilistId,
     },
-    /// The titles hidden with Not interested, for Settings, Hidden titles: answered with
-    /// [`Event::HiddenTitles`](crate::event::Event::HiddenTitles), and again after each
-    /// dismissal or restore once asked. Restore is [`Command::RestoreUpNext`].
+    /// The hidden titles, answered with `Event::HiddenTitles`.
     LoadHiddenTitles,
     /// The recent searches, answered with
     /// [`Event::RecentSearches`](crate::event::Event::RecentSearches).
@@ -679,6 +671,14 @@ pub enum Command {
         playback: PlaybackId,
         command: PlayerCommand,
     },
+    /// Add the built-in demo to the sources, last in the chain. Written to `[sources] demo`.
+    AddDemo,
+    /// Take the demo out of the sources. Raises Demo removed, with Undo.
+    RemoveDemo,
+    /// Play part 1 of the demo's title, through the ordinary play path.
+    PlayDemo,
+    /// Put every subtitle setting back to its default. Raises Subtitle style reset, with Undo.
+    ResetSubtitleStyle,
     /// Read the joined stores, then refresh each one's plugin list.
     LoadStores,
     /// Check a pasted invite link against the store it names, before spending it.

@@ -43,6 +43,7 @@ pub fn install_panic_hook() {
     let report = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         tracing::error!(%info, "panicked");
+        anistream_engine::crash::save_panic(info);
         if std::thread::current().name() == Some("main") {
             let _ = restore(&mut io::stdout());
             report(info);

@@ -17999,6 +17999,42 @@
         }
       }
     },
+    "crash-notice" : {
+      "comment" : "Notice at the next launch after a crash, while saving and asking are on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream closed after a problem."
+          }
+        }
+      }
+    },
+    "crash-notice-report" : {
+      "comment" : "Button on that notice that opens Report a bug.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report…"
+          }
+        }
+      }
+    },
+    "crash-notice-tv" : {
+      "comment" : "The same notice on the TV, which has no button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream closed after a problem. You can report it from Settings, About."
+          }
+        }
+      }
+    },
     "day-today" : {
       "comment" : "Day word for today.",
       "extractionState" : "manual",
@@ -37173,6 +37209,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continue watching"
+          }
+        }
+      }
+    },
+    "home-spotlight-demo" : {
+      "comment" : "Line over the spotlight's title when it is the built-in demo.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo, free to share"
           }
         }
       }
@@ -57007,6 +57055,42 @@
         }
       }
     },
+    "onboarding-demo-detail" : {
+      "comment" : "Line under that heading. Names the demo work and its licence.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons."
+          }
+        }
+      }
+    },
+    "onboarding-demo-heading" : {
+      "comment" : "Heading above the Play the demo button on the welcome page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it now"
+          }
+        }
+      }
+    },
+    "onboarding-invite-heading" : {
+      "comment" : "Heading above the invite link field on the welcome page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Have an invite link?"
+          }
+        }
+      }
+    },
     "onboarding-invite-hint" : {
       "comment" : "Hint inside the invite field on the welcome page.",
       "extractionState" : "manual",
@@ -57069,6 +57153,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inbjudningslänk"
+          }
+        }
+      }
+    },
+    "onboarding-invite-scan" : {
+      "comment" : "TV only. Button that shows a code to scan with a phone to send an invite link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan with your phone"
+          }
+        }
+      }
+    },
+    "onboarding-invite-type" : {
+      "comment" : "TV only. Button that opens a field to type an invite link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type the link"
           }
         }
       }
@@ -57201,6 +57309,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inte nu"
+          }
+        }
+      }
+    },
+    "onboarding-play-demo" : {
+      "comment" : "Button on the welcome page that plays the demo at once.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play the demo"
           }
         }
       }
@@ -57663,6 +57783,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Välkommen till anistream"
+          }
+        }
+      }
+    },
+    "onboarding-where-hosts" : {
+      "comment" : "First line of that page, shown after legal-hosts-no-content. Says where episodes come from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episodes play from sources, which are plugins."
+          }
+        }
+      }
+    },
+    "onboarding-where-stores" : {
+      "comment" : "Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner."
+          }
+        }
+      }
+    },
+    "onboarding-where-title" : {
+      "comment" : "Heading of the welcome page that explains where episodes come from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where episodes come from"
           }
         }
       }
@@ -68419,6 +68575,18 @@
         }
       }
     },
+    "player-demo-credit" : {
+      "comment" : "Credit line under the starting line on the player's starting screen for the demo.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "こうしす！ by OPAP-JP contributors · CC BY 4.0"
+          }
+        }
+      }
+    },
     "player-ends-at" : {
       "comment" : "Line on the TV player: when the episode ends. The time is already formatted. Argument 1: time (Text).",
       "extractionState" : "manual",
@@ -72643,6 +72811,18 @@
         }
       }
     },
+    "player-starting-part" : {
+      "comment" : "Line on the player's starting screen for a part of the demo. Argument 1: part (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting part %1$@"
+          }
+        }
+      }
+    },
     "player-starting-text" : {
       "comment" : "Heading of the starting screen. The episode's number is text, because it may be \"7.5\". Argument 1: episode (Text).",
       "extractionState" : "manual",
@@ -73561,6 +73741,114 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "player-subs-bg-box" : {
+      "comment" : "Quick panel choice for the subtitle background: a box behind the lines.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Box"
+          }
+        }
+      }
+    },
+    "player-subs-bg-outline" : {
+      "comment" : "Quick panel choice for the subtitle background: outline, no box.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outline"
+          }
+        }
+      }
+    },
+    "player-subs-bg-shadow" : {
+      "comment" : "Quick panel choice for the subtitle background: drop shadow, no box.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shadow"
+          }
+        }
+      }
+    },
+    "player-subs-larger" : {
+      "comment" : "Accessibility label of the control that makes subtitles larger.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Larger subtitles"
+          }
+        }
+      }
+    },
+    "player-subs-lower" : {
+      "comment" : "Accessibility label of the control that lowers subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lower subtitles"
+          }
+        }
+      }
+    },
+    "player-subs-more" : {
+      "comment" : "Button in the subtitles panel that opens Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More in Settings…"
+          }
+        }
+      }
+    },
+    "player-subs-raise" : {
+      "comment" : "Accessibility label of the control that raises subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raise subtitles"
+          }
+        }
+      }
+    },
+    "player-subs-smaller" : {
+      "comment" : "Accessibility label of the control that makes subtitles smaller.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smaller subtitles"
+          }
+        }
+      }
+    },
+    "player-subs-style" : {
+      "comment" : "Heading of the style section in the player's subtitles panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style"
           }
         }
       }
@@ -78245,6 +78533,186 @@
         }
       }
     },
+    "report-copied" : {
+      "comment" : "Notice after the report text is copied.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report copied"
+          }
+        }
+      }
+    },
+    "report-copy" : {
+      "comment" : "Button that copies the whole report text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy report"
+          }
+        }
+      }
+    },
+    "report-crash-item" : {
+      "comment" : "Report item for a saved crash. The time and the place are already worded. Argument 1: when (Text). Argument 2: place (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash · %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "report-crash-off" : {
+      "comment" : "Line that replaces the crash rows while saving crash reports is off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash reports are off, so none is included. You can turn them on in Settings, About."
+          }
+        }
+      }
+    },
+    "report-crash-settings" : {
+      "comment" : "Link from that line to the crash report settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash report settings"
+          }
+        }
+      }
+    },
+    "report-detail" : {
+      "comment" : "Line under the title of the Report a bug sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This opens a new issue on GitHub, where you sign in, say what happened and submit. Issues on GitHub are public."
+          }
+        }
+      }
+    },
+    "report-hide-sent" : {
+      "comment" : "Disclosure that closes the exact text of the report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide what is sent"
+          }
+        }
+      }
+    },
+    "report-included" : {
+      "comment" : "Heading of the list of what the report includes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Included"
+          }
+        }
+      }
+    },
+    "report-last-error" : {
+      "comment" : "Report item: the last error the app showed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The last error"
+          }
+        }
+      }
+    },
+    "report-open-github" : {
+      "comment" : "Button that opens the pre-filled issue in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on GitHub"
+          }
+        }
+      }
+    },
+    "report-privacy" : {
+      "comment" : "Line at the foot of the Report a bug sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing leaves this device until you open the report on GitHub. Titles, addresses, file paths and names are removed."
+          }
+        }
+      }
+    },
+    "report-show-sent" : {
+      "comment" : "Disclosure that opens the exact text of the report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show what is sent"
+          }
+        }
+      }
+    },
+    "report-title" : {
+      "comment" : "Title of the Report a bug sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report a bug"
+          }
+        }
+      }
+    },
+    "report-tv-scan" : {
+      "comment" : "TV only. Line over the QR code of the issue link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the code to open the report on your phone."
+          }
+        }
+      }
+    },
+    "report-versions" : {
+      "comment" : "Report item that is always included.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App and device versions"
+          }
+        }
+      }
+    },
     "search-browse" : {
       "comment" : "Heading over the titles shown when nothing was typed.",
       "extractionState" : "manual",
@@ -78505,6 +78973,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rensa filter"
+          }
+        }
+      }
+    },
+    "search-demo-only" : {
+      "comment" : "Line under the search field while the demo is the only source.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the demo is on. Other titles play once you join a plugin store."
+          }
+        }
+      }
+    },
+    "search-demo-plays" : {
+      "comment" : "Line under the demo title when it is a search result.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo · Plays now"
           }
         }
       }
@@ -84769,6 +85261,174 @@
         }
       }
     },
+    "settings-crash-ask" : {
+      "comment" : "Switch that turns the notice after a crash on or off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask after a crash"
+          }
+        }
+      }
+    },
+    "settings-crash-ask-detail" : {
+      "comment" : "Line under that switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows a notice at the next launch with Report…"
+          }
+        }
+      }
+    },
+    "settings-crash-delete" : {
+      "comment" : "Button that deletes one saved crash report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "settings-crash-delete-all" : {
+      "comment" : "Button that deletes every saved crash report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete all"
+          }
+        }
+      }
+    },
+    "settings-crash-footnote" : {
+      "comment" : "Footnote of the Crash reports group.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash reports stay on this device. anistream sends nothing by itself. A report leaves only when you open it on GitHub from Report a bug. Reports are deleted after 30 days."
+          }
+        }
+      }
+    },
+    "settings-crash-none" : {
+      "comment" : "Empty state of the saved crash reports.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No crash reports saved."
+          }
+        }
+      }
+    },
+    "settings-crash-os-add" : {
+      "comment" : "Button that saves one crash the system kept.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        }
+      }
+    },
+    "settings-crash-os-detail" : {
+      "comment" : "Line under that heading. Argument 1: system (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kept these crashes from before you turned this on. Nothing from them is saved unless you add it."
+          }
+        }
+      }
+    },
+    "settings-crash-os-heading" : {
+      "comment" : "Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android. Argument 1: system (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept by %1$@"
+          }
+        }
+      }
+    },
+    "settings-crash-os-item" : {
+      "comment" : "Row for one crash the system kept. The time is already worded. Argument 1: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash · %1$@"
+          }
+        }
+      }
+    },
+    "settings-crash-save" : {
+      "comment" : "Switch that turns saving crash reports on this device on or off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save crash reports on this device"
+          }
+        }
+      }
+    },
+    "settings-crash-save-detail" : {
+      "comment" : "Line under that switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When this is on, anistream keeps a short record of each crash on this device, with titles, addresses and names removed, so you can add it to Report a bug. Nothing is sent by itself."
+          }
+        }
+      }
+    },
+    "settings-crash-saved" : {
+      "comment" : "Heading of the saved crash reports.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved reports"
+          }
+        }
+      }
+    },
+    "settings-crash-view" : {
+      "comment" : "Button that shows the text of a saved crash report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        }
+      }
+    },
     "settings-delete-watched-detail" : {
       "comment" : "Message of the dialog that deletes the watched downloads.",
       "extractionState" : "manual",
@@ -85691,6 +86351,18 @@
         }
       }
     },
+    "settings-group-crashes" : {
+      "comment" : "Heading of the Crash reports group in Settings, About.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crash reports"
+          }
+        }
+      }
+    },
     "settings-group-episodes" : {
       "comment" : "Group heading.",
       "extractionState" : "manual",
@@ -86281,6 +86953,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lagring"
+          }
+        }
+      }
+    },
+    "settings-group-subtitles" : {
+      "comment" : "Heading of the Subtitles group in Settings, Playback.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles"
           }
         }
       }
@@ -93013,6 +93697,522 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld · %2$@"
+          }
+        }
+      }
+    },
+    "settings-subs-background" : {
+      "comment" : "Label of the subtitle background row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background"
+          }
+        }
+      }
+    },
+    "settings-subs-background-all" : {
+      "comment" : "Subtitle background choice: one plate behind all lines.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behind all lines"
+          }
+        }
+      }
+    },
+    "settings-subs-background-line" : {
+      "comment" : "Subtitle background choice: a plate behind each line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behind each line"
+          }
+        }
+      }
+    },
+    "settings-subs-background-none" : {
+      "comment" : "Subtitle background choice: no background.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        }
+      }
+    },
+    "settings-subs-colour" : {
+      "comment" : "Label of the subtitle text colour row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text colour"
+          }
+        }
+      }
+    },
+    "settings-subs-colour-cyan" : {
+      "comment" : "Subtitle text colour name, shown beside its swatch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cyan"
+          }
+        }
+      }
+    },
+    "settings-subs-colour-green" : {
+      "comment" : "Subtitle text colour name, shown beside its swatch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green"
+          }
+        }
+      }
+    },
+    "settings-subs-colour-white" : {
+      "comment" : "Subtitle text colour name, shown beside its swatch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "White"
+          }
+        }
+      }
+    },
+    "settings-subs-colour-yellow" : {
+      "comment" : "Subtitle text colour name, shown beside its swatch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yellow"
+          }
+        }
+      }
+    },
+    "settings-subs-edge" : {
+      "comment" : "Label of the subtitle edge row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edge"
+          }
+        }
+      }
+    },
+    "settings-subs-edge-none" : {
+      "comment" : "Subtitle edge choice: no edge.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        }
+      }
+    },
+    "settings-subs-edge-outline" : {
+      "comment" : "Subtitle edge choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outline"
+          }
+        }
+      }
+    },
+    "settings-subs-edge-shadow" : {
+      "comment" : "Subtitle edge choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drop shadow"
+          }
+        }
+      }
+    },
+    "settings-subs-font" : {
+      "comment" : "Label of the subtitle font row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font"
+          }
+        }
+      }
+    },
+    "settings-subs-font-default" : {
+      "comment" : "Subtitle font choice: the player's own sans-serif.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        }
+      }
+    },
+    "settings-subs-font-mono" : {
+      "comment" : "Subtitle font choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monospace"
+          }
+        }
+      }
+    },
+    "settings-subs-font-serif" : {
+      "comment" : "Subtitle font choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serif"
+          }
+        }
+      }
+    },
+    "settings-subs-medium" : {
+      "comment" : "Outline thickness choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        }
+      }
+    },
+    "settings-subs-opacity" : {
+      "comment" : "Label of the background opacity row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opacity"
+          }
+        }
+      }
+    },
+    "settings-subs-preview" : {
+      "comment" : "Heading of the subtitle preview.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        }
+      }
+    },
+    "settings-subs-preview-line" : {
+      "comment" : "First sample line in the subtitle preview.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I left the lantern at the station."
+          }
+        }
+      }
+    },
+    "settings-subs-preview-line-2" : {
+      "comment" : "Second sample line in the subtitle preview.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can you bring it back before dark?"
+          }
+        }
+      }
+    },
+    "settings-subs-preview-plain" : {
+      "comment" : "Segment of the preview that draws plain subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plain"
+          }
+        }
+      }
+    },
+    "settings-subs-preview-sign" : {
+      "comment" : "Sample of a typeset sign at the top of the styled preview.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kumo no Ue Reading Room"
+          }
+        }
+      }
+    },
+    "settings-subs-preview-styled" : {
+      "comment" : "Segment of the preview that draws styled subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Styled"
+          }
+        }
+      }
+    },
+    "settings-subs-raise" : {
+      "comment" : "Label of the row that raises subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raise subtitles"
+          }
+        }
+      }
+    },
+    "settings-subs-raise-value" : {
+      "comment" : "Value of the raise slider. The percent is a whole number from 0 to 20. Argument 1: percent (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld%% of the picture"
+          }
+        }
+      }
+    },
+    "settings-subs-reset" : {
+      "comment" : "Button that restores the default subtitle style.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset subtitle style"
+          }
+        }
+      }
+    },
+    "settings-subs-reset-done" : {
+      "comment" : "Notice after the subtitle style is reset. It offers Undo.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitle style reset"
+          }
+        }
+      }
+    },
+    "settings-subs-size" : {
+      "comment" : "Label of the subtitle size slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size"
+          }
+        }
+      }
+    },
+    "settings-subs-size-value" : {
+      "comment" : "Value of the size slider. The percent is a whole number from 50 to 200. Argument 1: percent (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld%%"
+          }
+        }
+      }
+    },
+    "settings-subs-styled" : {
+      "comment" : "Label of the picker that says what happens to styled subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Styled subtitles"
+          }
+        }
+      }
+    },
+    "settings-subs-styled-keep" : {
+      "comment" : "Styled subtitles choice: leave the authors' styling alone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep their look"
+          }
+        }
+      }
+    },
+    "settings-subs-styled-keep-detail" : {
+      "comment" : "Line under the picker while Keep their look is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply."
+          }
+        }
+      }
+    },
+    "settings-subs-styled-restyle" : {
+      "comment" : "Styled subtitles choice: apply the viewer's style over the authors'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restyle"
+          }
+        }
+      }
+    },
+    "settings-subs-styled-restyle-detail" : {
+      "comment" : "Line under the picker while Restyle is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement."
+          }
+        }
+      }
+    },
+    "settings-subs-styled-strip" : {
+      "comment" : "Styled subtitles choice: drop all styling and show plain dialogue.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove all styling"
+          }
+        }
+      }
+    },
+    "settings-subs-styled-strip-detail" : {
+      "comment" : "Line under the picker while Remove all styling is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone."
+          }
+        }
+      }
+    },
+    "settings-subs-system-change" : {
+      "comment" : "Link under the rows that show the system's caption style.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change in Accessibility settings"
+          }
+        }
+      }
+    },
+    "settings-subs-system-value" : {
+      "comment" : "Value shown, dimmed, for a row while the system's caption style applies.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From your system"
+          }
+        }
+      }
+    },
+    "settings-subs-thick" : {
+      "comment" : "Outline thickness choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thick"
+          }
+        }
+      }
+    },
+    "settings-subs-thickness" : {
+      "comment" : "Label of the outline thickness row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thickness"
+          }
+        }
+      }
+    },
+    "settings-subs-thin" : {
+      "comment" : "Outline thickness choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thin"
           }
         }
       }
@@ -103769,6 +104969,162 @@
         }
       }
     },
+    "sources-demo-about" : {
+      "comment" : "Title of the page that describes the demo.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About the demo"
+          }
+        }
+      }
+    },
+    "sources-demo-add" : {
+      "comment" : "Button that adds the demo back to the sources.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the demo"
+          }
+        }
+      }
+    },
+    "sources-demo-credit" : {
+      "comment" : "The credit block shown wherever the demo work shows as a title. The licence asks for this wording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence."
+          }
+        }
+      }
+    },
+    "sources-demo-hosts" : {
+      "comment" : "Line on the demo page that names the only two hosts the demo reaches.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org."
+          }
+        }
+      }
+    },
+    "sources-demo-line" : {
+      "comment" : "Line under the demo source in Your sources: the work, its licence and where it streams from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "こうしす！ · CC BY 4.0 · from Wikimedia Commons"
+          }
+        }
+      }
+    },
+    "sources-demo-link-commons" : {
+      "comment" : "Link to the work's file page on Wikimedia Commons, in the credit block.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wikimedia Commons"
+          }
+        }
+      }
+    },
+    "sources-demo-link-licence" : {
+      "comment" : "Link to the licence text, in the credit block.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licence"
+          }
+        }
+      }
+    },
+    "sources-demo-link-maker" : {
+      "comment" : "Link to the makers' site, in the credit block.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPAP-JP"
+          }
+        }
+      }
+    },
+    "sources-demo-name" : {
+      "comment" : "Name of the built-in demo source in every list of sources.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo"
+          }
+        }
+      }
+    },
+    "sources-demo-only" : {
+      "comment" : "Closing line of Home while the demo is the only source. Plugin stores is a link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the demo is on. Join a plugin store to play from your own sources."
+          }
+        }
+      }
+    },
+    "sources-demo-private" : {
+      "comment" : "Line on the demo page about accounts and trackers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The demo never signs in anywhere and never writes to AniList."
+          }
+        }
+      }
+    },
+    "sources-demo-remove" : {
+      "comment" : "Button on the demo page that removes the demo from the sources.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove demo"
+          }
+        }
+      }
+    },
+    "sources-demo-removed" : {
+      "comment" : "Notice after the demo is removed. It offers Undo for 8 seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo removed"
+          }
+        }
+      }
+    },
     "sources-detail-disabled" : {
       "comment" : "Status line: disabled.",
       "extractionState" : "manual",
@@ -114255,6 +115611,18 @@
         }
       }
     },
+    "stores-invite-rules" : {
+      "comment" : "Line above the invite field in the Join sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An invite link works once, for one person, and lasts seven days. Ask the plugin store's owner for a new one if yours has expired."
+          }
+        }
+      }
+    },
     "stores-invite-someone" : {
       "comment" : "Menu item: invite a person.",
       "extractionState" : "manual",
@@ -120057,6 +121425,54 @@
         }
       }
     },
+    "stores-qr-label" : {
+      "comment" : "Accessibility label of the QR code that holds an invite link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR code for the invite link"
+          }
+        }
+      }
+    },
+    "stores-qr-warning" : {
+      "comment" : "Line under the QR code of an invite for someone else.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anyone who scans this code can use the invite. It works once and lasts seven days."
+          }
+        }
+      }
+    },
+    "stores-qr-warning-device" : {
+      "comment" : "Line under the QR code of a link for another device of yours.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan this with the device you want to link. It works once and lasts seven days."
+          }
+        }
+      }
+    },
+    "stores-ready-demo-stays" : {
+      "comment" : "Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is ready. The demo stays last in Your sources."
+          }
+        }
+      }
+    },
     "stores-remove-all" : {
       "comment" : "Button on the summary row that removes every device that joined with the link.",
       "extractionState" : "manual",
@@ -120845,6 +122261,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Den här tilläggsbutikens server är äldre och släpper bara in personer du bjuder in. Att uppdatera servern lägger till valet."
+          }
+        }
+      }
+    },
+    "stores-share" : {
+      "comment" : "Button that opens the system share sheet for the invite link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share…"
           }
         }
       }
@@ -122163,6 +123591,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "stores-what-is" : {
+      "comment" : "Explainer on the empty plugin stores page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A plugin store is a small server one person runs for the people they invite. It offers sources as plugins. anistream runs no plugin stores and lists none, so you join one with an invite link from its owner."
+          }
+        }
+      }
+    },
+    "stores-what-is-link" : {
+      "comment" : "Button on the empty plugin stores page that opens the docs page in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is a plugin store?"
           }
         }
       }
@@ -125785,6 +127237,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spela upp det här avsnittet på en TV med anistream"
+          }
+        }
+      }
+    },
+    "title-play-part" : {
+      "comment" : "Main button on the demo title. The part is a number. Argument 1: part (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play part %1$@"
           }
         }
       }

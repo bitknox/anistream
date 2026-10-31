@@ -785,6 +785,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::TitlesChanged(_) => "TitlesChanged",
         Event::Toast(_) => "Toast",
         Event::Providers(_) => "Providers",
+        Event::Demo(_) => "Demo",
         Event::MetaStatus(_) => "MetaStatus",
         Event::Settings(_) => "Settings",
         Event::Authorize { .. } => "Authorize",
@@ -937,6 +938,7 @@ fn copy(update: &Event) -> Event {
         Event::TitlesChanged(language) => Event::TitlesChanged(*language),
         Event::Toast(toast) => Event::Toast(toast.clone()),
         Event::Providers(rows) => Event::Providers(rows.clone()),
+        Event::Demo(state) => Event::Demo(state.clone()),
         Event::MetaStatus(rows) => Event::MetaStatus(rows.clone()),
         Event::Settings(view) => Event::Settings(view.clone()),
         Event::Authorize { tracker, url, callback_scheme } => Event::Authorize {

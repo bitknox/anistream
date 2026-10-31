@@ -10,6 +10,7 @@
 
 pub mod anilist;
 pub mod dataset;
+pub mod demo;
 pub mod filler;
 pub mod franchise;
 pub mod source;

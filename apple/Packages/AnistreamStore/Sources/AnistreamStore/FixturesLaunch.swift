@@ -7,7 +7,8 @@ import Foundation
 extension EngineLaunch {
     /// The launch argument that names the scene: `-AnistreamScene watching`, `fresh`,
     /// `sourceless` (Watching with no source set up), `unsure` (Watching with a source ahead that
-    /// cannot choose 900001's match) or `playing`.
+    /// cannot choose 900001's match), `playing`, or one of the demo and crash scenes: `demoonly`,
+    /// `demoplayed`, `demoandstore`, `demoremoved`, `subtitlestyled`, `crashoff`, `crashsaved`, `crashheld`.
     public static let sceneArgument = "-AnistreamScene"
 
     /// The launch argument that names what the Playing scene streams: `-AnistreamMedia <path>`.
@@ -33,6 +34,14 @@ extension EngineLaunch {
         case "fresh": return .fresh
         case "sourceless": return .sourceless
         case "unsure": return .unsure
+        case "demoonly": return .demoOnly
+        case "demoplayed": return .demoPlayed
+        case "demoandstore": return .demoAndStore
+        case "demoremoved": return .demoRemoved
+        case "subtitlestyled": return .subtitleStyled
+        case "crashoff": return .crashOff
+        case "crashsaved": return .crashSaved
+        case "crashheld": return .crashHeld
         case "playing": return .playing(media: media(arguments: arguments))
         default: return nil
         }

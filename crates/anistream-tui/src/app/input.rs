@@ -213,6 +213,10 @@ impl App {
             // From the rail too, like Enter here: the table is the only thing on the screen.
             Action::RaiseSource if self.on_providers() => return self.move_source(-1),
             Action::LowerSource if self.on_providers() => return self.move_source(1),
+            Action::PlayDemo if self.on_providers() => return Some(Command::PlayDemo),
+            Action::ToggleDemo if self.on_providers() => {
+                return Some(if self.demo.on { Command::RemoveDemo } else { Command::AddDemo });
+            }
             // From the rail, Enter means "into this section" rather than "open the title the
             // list happens to be sitting on" — which is what it used to do, opening something
             // the user never selected.

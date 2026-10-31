@@ -63,6 +63,20 @@ pub fn set_setting(
         tracing::debug!(?key, ?value, "not a value this setting takes; nothing written");
         return;
     }
+    // Switching saving on is the moment the system's own records, from the week before, become
+    // offerable: written down once, and kept while saving stays on.
+    if key == SettingKey::SaveCrashReports
+        && matches!(value, anistream_core::settings::SettingValue::Bool(true))
+        && !engine.config.saved().crash_reports.save
+    {
+        let now = crate::crash::now_ms();
+        let _ = engine.config.write(
+            &services.paths,
+            &["crash_reports"],
+            "enabled_at",
+            anistream_core::settings::SettingValue::Int(now),
+        );
+    }
     write_setting(table, file_key, value, engine, services, tx);
     // The TV picker's Chromecast group comes and goes with its row.
     #[cfg(feature = "cast")]

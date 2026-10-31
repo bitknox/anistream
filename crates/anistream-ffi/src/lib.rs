@@ -31,6 +31,7 @@
 uniffi::setup_scaffolding!();
 
 mod bug_report;
+mod crash;
 mod engine;
 mod host;
 mod log;

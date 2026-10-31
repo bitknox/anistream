@@ -173,13 +173,22 @@ pub fn live(query: SearchQuery, engine: &mut EngineState, services: &Services, t
 /// The first page of `query`: whether there is more, any caption, then the titles.
 async fn first_page(lent: Lent, searches: &Searches, query: SearchQuery, adult: bool) {
     let view = ContentFor::Search { query: query.clone() };
+    let query_text = query.text.clone();
+    let query_text = query_text.as_str();
     match find(&lent, searches, &query, adult, 1).await {
         Ok(found) => {
             let _ = lent.tx.send(Event::SearchPaging { query, has_next: found.page.has_next });
             // Sent every time, empty when nothing was left out, so a caption from an earlier
             // answer to the same search cannot outlive it.
             let _ = lent.tx.send(Event::Caption { view: view.clone(), text: caption(&found) });
-            let entries = entries(&lent, &found.page);
+            let mut entries = entries(&lent, &found.page);
+            // The demo's title leads the results when the query is one it answers to.
+            if lent.registry.get(anistream_core::demo::DEMO_SOURCE_ID).is_some()
+                && anistream_providers::demo::answers_to(query_text)
+            {
+                let demo = data::entry_from(&anistream_meta::demo::media(), Some(&lent.store));
+                entries.insert(0, demo);
+            }
             publish_list(&lent.meta, &lent.tx, view, entries, now_epoch()).await;
         }
         Err(e) => {

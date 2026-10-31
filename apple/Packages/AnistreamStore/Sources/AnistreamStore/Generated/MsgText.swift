@@ -60,6 +60,7 @@ extension Msg {
         case .homeThisSeason: L.homeThisSeason
         case .homeBecause(let title): L.homeBecause(title: title)
         case .homeMoreGenre(let genre): L.homeMoreGenre(genre: genre)
+        case .homeSpotlightDemo: L.homeSpotlightDemo
         case .noticeReason(let reason): L.noticeReason(reason: reason.text)
         case .noticeNotAired(let episode, let when): L.noticeNotAired(episode: Int(episode), when: when.text)
         case .noticeNotAiredYet(let episode, let next, let when): L.noticeNotAiredYet(episode: Int(episode), next: Int(next), when: when.text)
@@ -197,6 +198,8 @@ extension Msg {
         case .noticeMetadataCached: L.noticeMetadataCached
         case .noticeAnilistBack: L.noticeAnilistBack
         case .noticePartyNotBuilt: L.noticePartyNotBuilt
+        case .sourcesDemoRemoved: L.sourcesDemoRemoved
+        case .storesReadyDemoStays(let store): L.storesReadyDemoStays(store: store)
         case .noticeSignedIn(let tracker): L.noticeSignedIn(tracker: tracker)
         case .noticeSignedInKeychain(let tracker): L.noticeSignedInKeychain(tracker: tracker)
         case .noticeSignedInFile(let tracker): L.noticeSignedInFile(tracker: tracker)
@@ -252,6 +255,9 @@ extension Msg {
         case .startFailedRemote(let reason): L.startFailedRemote(reason: reason)
         case .startFailedPlayer(let reason): L.startFailedPlayer(reason: reason)
         case .noticeEpisodesQueued(let count): L.noticeEpisodesQueued(count: Int(count))
+        case .settingsSubsResetDone: L.settingsSubsResetDone
+        case .crashNotice: L.crashNotice
+        case .crashNoticeTv: L.crashNoticeTv
         case let .verbatim(text): text
         }
     }
