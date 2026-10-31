@@ -205,6 +205,10 @@ final class AppDelegate: NSObject {
         if let scene = TVScene.named() {
             ready = await store.tv.reached(scene) && ready
         }
+        // A screenshot of casting: the scene the arguments name, on screen.
+        if let scene = CastScene.named() {
+            ready = await store.tv.cast.reached(scene, tv: store.tv) && ready
+        }
         // A screenshot of a watch party: the fake server's room, in the state named.
         if let scene = PartyScene.named() {
             ready = await player.stage(scene, store: store) && ready

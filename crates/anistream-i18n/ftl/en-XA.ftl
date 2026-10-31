@@ -3935,6 +3935,57 @@ calendar-show-all = [Šĥöŵ àļļ àîŕîñĝ~~~~~]
 # What a screen reader says for the line that marks the time now. The time is already worded.
 calendar-now-spoken = [Ñöŵ, { $time }~~~]
 
+# Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+cast-chromecast = [Çĥŕöɱéçàšţ~~~]
+
+# Line added to the picker's empty state, under what to check.
+cast-none-found-extra = [ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ šĥöŵ ĥéŕé ţöö.~~~~~~~~~~~~~]
+
+# The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+cast-local-network = [Åļļöŵ àñîšţŕéàɱ ţö ƒîñð ðéṽîçéš öñ ýöüŕ ļöçàļ ñéţŵöŕķ~~~~~~~~~~~~~~~~]
+
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+cast-tvs-label = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+cast-torrents-label = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+cast-tvs-note-mac = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš Ṁàç šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+cast-tvs-note-iphone = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš îÞĥöñé šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+cast-tvs-note-ipad = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš îÞàð šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on a Mac.
+cast-torrents-note-mac = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš Ṁàç šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on an iPhone.
+cast-torrents-note-iphone = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš îÞĥöñé šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on an iPad.
+cast-torrents-note-ipad = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš îÞàð šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the casting card while the next episode counts down. The seconds are whole.
+cast-up-next-plays-in = [Ûþ ñéẋţ · þļàýš îñ { $seconds } š~~~~~~~~]
+
+# The card's line when a cast never started. The name is the TV's.
+cast-couldnt-start = [Çöüļðñ'ţ šţàŕţ öñ { $name }~~~~~~~]
+
+# The card's line when a cast that played has stopped.
+cast-stopped = [Çàšţîñĝ šţöþþéð~~~~~]
+
+# Button that stops the cast and plays the episode on this device, where the TV was.
+cast-play-here = [Þļàý ĥéŕé~~~]
+
+# Button that stops the cast. The TV goes back to its own screen.
+cast-stop = [Šţöþ çàšţîñĝ~~~~]
+
+# Line under TV volume on the card, for a TV whose volume only its own remote sets.
+cast-volume-fixed = [Šéţ öñ ţĥé ŢṼ~~~~]
+
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
 

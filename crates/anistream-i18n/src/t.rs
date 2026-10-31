@@ -6270,6 +6270,91 @@ pub fn calendar_now_spoken(time: &str) -> String {
     text("calendar-now-spoken", &[("time", Arg::Text(time))])
 }
 
+/// Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+pub fn cast_chromecast() -> String {
+    text("cast-chromecast", &[])
+}
+
+/// Line added to the picker's empty state, under what to check.
+pub fn cast_none_found_extra() -> String {
+    text("cast-none-found-extra", &[])
+}
+
+/// The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+pub fn cast_local_network() -> String {
+    text("cast-local-network", &[])
+}
+
+/// Settings row: whether the TV picker lists TVs with Chromecast built in.
+pub fn cast_tvs_label() -> String {
+    text("cast-tvs-label", &[])
+}
+
+/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+pub fn cast_torrents_label() -> String {
+    text("cast-torrents-label", &[])
+}
+
+/// Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+pub fn cast_tvs_note_mac() -> String {
+    text("cast-tvs-note-mac", &[])
+}
+
+/// Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+pub fn cast_tvs_note_iphone() -> String {
+    text("cast-tvs-note-iphone", &[])
+}
+
+/// Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+pub fn cast_tvs_note_ipad() -> String {
+    text("cast-tvs-note-ipad", &[])
+}
+
+/// Note under the Settings row that lets a cast play torrents, on a Mac.
+pub fn cast_torrents_note_mac() -> String {
+    text("cast-torrents-note-mac", &[])
+}
+
+/// Note under the Settings row that lets a cast play torrents, on an iPhone.
+pub fn cast_torrents_note_iphone() -> String {
+    text("cast-torrents-note-iphone", &[])
+}
+
+/// Note under the Settings row that lets a cast play torrents, on an iPad.
+pub fn cast_torrents_note_ipad() -> String {
+    text("cast-torrents-note-ipad", &[])
+}
+
+/// Line on the casting card while the next episode counts down. The seconds are whole.
+pub fn cast_up_next_plays_in(seconds: i64) -> String {
+    text("cast-up-next-plays-in", &[("seconds", Arg::Int(seconds))])
+}
+
+/// The card's line when a cast never started. The name is the TV's.
+pub fn cast_couldnt_start(name: &str) -> String {
+    text("cast-couldnt-start", &[("name", Arg::Text(name))])
+}
+
+/// The card's line when a cast that played has stopped.
+pub fn cast_stopped() -> String {
+    text("cast-stopped", &[])
+}
+
+/// Button that stops the cast and plays the episode on this device, where the TV was.
+pub fn cast_play_here() -> String {
+    text("cast-play-here", &[])
+}
+
+/// Button that stops the cast. The TV goes back to its own screen.
+pub fn cast_stop() -> String {
+    text("cast-stop", &[])
+}
+
+/// Line under TV volume on the card, for a TV whose volume only its own remote sets.
+pub fn cast_volume_fixed() -> String {
+    text("cast-volume-fixed", &[])
+}
+
 /// Button that runs a failed action again.
 pub fn action_try_again() -> String {
     text("action-try-again", &[])

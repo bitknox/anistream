@@ -22,8 +22,16 @@ public final class BonjourTVBrowser: FfiTvBrowser {
         var resolving: [String: Resolve] = [:]
     }
     private let browse = Mutex<Browse?>(nil)
+    /// Told whenever the browse learns whether the system lets it look on the local network.
+    let access: (@Sendable (Bool) -> Void)?
 
-    public init() {}
+    public init() {
+        access = nil
+    }
+
+    init(access: @escaping @Sendable (Bool) -> Void) {
+        self.access = access
+    }
 
     public func start(sink: FfiDiscoverySink) {
         stop()
@@ -31,10 +39,11 @@ public final class BonjourTVBrowser: FfiTvBrowser {
         browser.browseResultsChangedHandler = { [weak self] _, changes in
             self?.changed(changes)
         }
-        browser.stateUpdateHandler = { state in
+        browser.stateUpdateHandler = { [access] state in
             if case .failed(let error) = state {
                 AppLog.error("tv", "browse failed: \(error)")
             }
+            if let denied = LocalNetworkAccess.denied(state) { access?(denied) }
         }
         browse.withLock { $0 = Browse(browser: browser, sink: sink) }
         browser.start(queue: queue)
@@ -117,7 +126,7 @@ public final class BonjourTVBrowser: FfiTvBrowser {
 
 /// One DNS-SD resolve: the service's host name and port, handed to `done` once, off the queue
 /// the address lookup may block.
-private final class Resolve: @unchecked Sendable {
+final class Resolve: @unchecked Sendable {
     private let name: String
     private let type: String
     private let domain: String

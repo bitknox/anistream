@@ -44,6 +44,7 @@ struct TVsGroup: View {
                     Button(L.tvPairMenu) { tv.openPicker() }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 }
+                SettingsRow(title: SettingKey.castTvs.title, note: CastWords.tvsNote) { SettingSwitch(key: .castTvs) }
             }
             .confirmationDialog(
                 L.tvForgetTitle(name: forgetting?.name ?? L.tvGenericName),
@@ -93,6 +94,9 @@ struct PhoneTVsPage: View {
                 PhoneSectionHeader(L.tvPairedTvs)
             } footer: {
                 Text(TVSettingsWords.footnote(tv))
+            }
+            Section {
+                PhoneSettingSwitch(key: .castTvs, note: CastWords.tvsNote)
             }
         }
         .navigationTitle(L.tvTitleList)

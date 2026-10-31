@@ -19,7 +19,8 @@ final class FixtureTVBrowser: FfiTvBrowser {
 
     func start(sink: FfiDiscoverySink) {
         guard !silent else { return }
-        for tv in tvs {
+        // The casting scenes list Bedroom alone: Living room is a TV with Chromecast built in there.
+        for tv in CastScene.named() == nil ? tvs : Array(tvs.suffix(1)) {
             let advert = tv.advert()
             sink.found(instance: advert.instance, addresses: [tv.host()], port: tv.port(), txt: advert.txt)
         }
@@ -60,7 +61,7 @@ extension TVRemoteModel {
             return FixtureTVBrowser(tvs: [
                 try engine.startFakeTv(name: "Living room"),
                 try engine.startFakeTv(name: "Bedroom"),
-            ], silent: TVScene.named() == .empty)
+            ], silent: TVScene.named() == .empty || CastScene.named()?.silent == true)
         } catch {
             AppLog.error("tv", "fake TVs did not start: \(error)")
             return nil

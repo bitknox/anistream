@@ -2557,6 +2557,74 @@ object Strings {
     fun calendarNowSpoken(context: Context, time: String): String =
         context.getString(R.string.calendar_now_spoken, time)
 
+    /** Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name. */
+    fun castChromecast(context: Context): String =
+        context.getString(R.string.cast_chromecast)
+
+    /** Line added to the picker's empty state, under what to check. */
+    fun castNoneFoundExtra(context: Context): String =
+        context.getString(R.string.cast_none_found_extra)
+
+    /** The picker's one row while the app may not look on the local network, with a button that opens the system's settings. */
+    fun castLocalNetwork(context: Context): String =
+        context.getString(R.string.cast_local_network)
+
+    /** Settings row: whether the TV picker lists TVs with Chromecast built in. */
+    fun castTvsLabel(context: Context): String =
+        context.getString(R.string.cast_tvs_label)
+
+    /** Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun castTorrentsLabel(context: Context): String =
+        context.getString(R.string.cast_torrents_label)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on a Mac. */
+    fun castTvsNoteMac(context: Context): String =
+        context.getString(R.string.cast_tvs_note_mac)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on an iPhone. */
+    fun castTvsNoteIphone(context: Context): String =
+        context.getString(R.string.cast_tvs_note_iphone)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on an iPad. */
+    fun castTvsNoteIpad(context: Context): String =
+        context.getString(R.string.cast_tvs_note_ipad)
+
+    /** Note under the Settings row that lets a cast play torrents, on a Mac. */
+    fun castTorrentsNoteMac(context: Context): String =
+        context.getString(R.string.cast_torrents_note_mac)
+
+    /** Note under the Settings row that lets a cast play torrents, on an iPhone. */
+    fun castTorrentsNoteIphone(context: Context): String =
+        context.getString(R.string.cast_torrents_note_iphone)
+
+    /** Note under the Settings row that lets a cast play torrents, on an iPad. */
+    fun castTorrentsNoteIpad(context: Context): String =
+        context.getString(R.string.cast_torrents_note_ipad)
+
+    /** Line on the casting card while the next episode counts down. The seconds are whole. */
+    fun castUpNextPlaysIn(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_up_next_plays_in, seconds)
+
+    /** The card's line when a cast never started. The name is the TV's. */
+    fun castCouldntStart(context: Context, name: String): String =
+        context.getString(R.string.cast_couldnt_start, name)
+
+    /** The card's line when a cast that played has stopped. */
+    fun castStopped(context: Context): String =
+        context.getString(R.string.cast_stopped)
+
+    /** Button that stops the cast and plays the episode on this device, where the TV was. */
+    fun castPlayHere(context: Context): String =
+        context.getString(R.string.cast_play_here)
+
+    /** Button that stops the cast. The TV goes back to its own screen. */
+    fun castStop(context: Context): String =
+        context.getString(R.string.cast_stop)
+
+    /** Line under TV volume on the card, for a TV whose volume only its own remote sets. */
+    fun castVolumeFixed(context: Context): String =
+        context.getString(R.string.cast_volume_fixed)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)

@@ -140,6 +140,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
             let there = await store.tv.reached(scene)
             print(there ? "AnistreamDev: the TV scene is at \(scene.rawValue)" : "AnistreamDev: the TV scene did not reach \(scene.rawValue)")
         }
+        if let scene = CastScene.named() {
+            let there = await store.tv.cast.reached(scene, tv: store.tv)
+            print(there ? "AnistreamDev: the cast scene is at \(scene.rawValue)" : "AnistreamDev: the cast scene did not reach \(scene.rawValue)")
+        }
         // `-AnistreamNotice alert`: a failure toast, for the shot of its Report action.
         if let at = ProcessInfo.processInfo.arguments.firstIndex(of: "-AnistreamNotice"),
            ProcessInfo.processInfo.arguments.dropFirst(at + 1).first == "alert" {

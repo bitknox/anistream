@@ -26,10 +26,16 @@ struct NoticeCapsule: View {
     /// How far a swipe has pulled it down.
     @State private var pull: CGFloat = 0
 
+    /// Whether the notice says someone else took the TV.
+    static func isTakenOver(_ msg: Msg?) -> Bool {
+        if case .noticeCastTakenOver? = msg { return true }
+        return false
+    }
+
     /// How long a notice stays up: 4 s, or 8 s with a button or for a problem, and 1 s more for
     /// every 10 words past 12.
     static func duration(_ item: NoticeItem) -> Duration {
-        let base = item.isAlert || item.notice.hint != nil ? 8 : 4
+        let base = item.isAlert || item.notice.hint != nil || Self.isTakenOver(item.notice.msg) ? 8 : 4
         let words = item.notice.words.split(whereSeparator: \.isWhitespace).count
         return .seconds(base + max(0, words - 12) / 10)
     }
@@ -51,7 +57,7 @@ struct NoticeCapsule: View {
                                 .lineLimit(2)
                         }
                         .padding(.leading, 16)
-                        .padding(.trailing, item.notice.hint != nil || item.isAlert ? 8 : 16)
+                        .padding(.trailing, item.notice.hint != nil || item.isAlert || playsHere(item) ? 8 : 16)
                         .frame(minHeight: 36)
                         .contentShape(.rect)
                     }
@@ -60,6 +66,14 @@ struct NoticeCapsule: View {
                         Button(Self.words(hint)) { act(hint, item) }
                             .buttonStyle(SecondaryCapsuleStyle(height: 24, fontSize: 12))
                             .padding(.trailing, 6)
+                    } else if playsHere(item) {
+                        // Someone else took the TV: carry on here, from where it was.
+                        Button(L.castPlayHere) {
+                            store.notices.dismiss(item)
+                            store.tv.cast.playHereAfterTakeOver()
+                        }
+                        .buttonStyle(SecondaryCapsuleStyle(height: 24, fontSize: 12))
+                        .padding(.trailing, 6)
                     } else if item.isAlert {
                         ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 24, fontSize: 12)
                             .padding(.trailing, 6)
@@ -104,6 +118,11 @@ struct NoticeCapsule: View {
         .animation(.fadeIn, value: store.notices.current?.id)
         .animation(.fadeIn, value: store.updates.notice?.version)
         .modifier(NoticeAnnouncer(enabled: here))
+    }
+
+    /// The notice that someone else took the TV, while what it played can still play on here.
+    private func playsHere(_ item: NoticeItem) -> Bool {
+        Self.isTakenOver(item.notice.msg) && store.tv.cast.takenOver != nil
     }
 
     /// The hint's button, in the platform's casing.

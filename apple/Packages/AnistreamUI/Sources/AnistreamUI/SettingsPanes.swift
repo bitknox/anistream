@@ -332,6 +332,9 @@ struct SourcesPane: View {
                 SettingsRow(title: SettingKey.seedRatio.title) { SettingMenu(key: .seedRatio) }
                 SettingsRow(title: SettingKey.seedHours.title) { SettingMenu(key: .seedHours) }
                 SettingsRow(title: SettingKey.uploadLimit.title) { SettingMenu(key: .uploadLimit) }
+                SettingsRow(title: SettingKey.torrentsWhileCasting.title, note: CastWords.torrentsNote) {
+                    SettingSwitch(key: .torrentsWhileCasting)
+                }
             }
         }
         Color.clear.frame(height: 0)

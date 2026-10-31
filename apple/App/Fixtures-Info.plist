@@ -5,10 +5,11 @@
 	<!-- Play on TV: finding the TVs that run anistream on the network, which asks for local
 	     network access the first time, and the camera for the code a TV shows to pair. -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>anistream looks for TVs running anistream on your network, so you can play episodes on them and use this device as their remote.</string>
+	<string>anistream looks for TVs on your network, those running anistream and those with Chromecast built in, so you can play episodes on them and use this device as their remote.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_anistream._tcp</string>
+		<string>_googlecast._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>anistream reads the code a TV shows, to pair with it.</string>
