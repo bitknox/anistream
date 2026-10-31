@@ -1,0 +1,241 @@
+name: Promote
+
+# Makes a beta the stable release. Every push to main publishes a beta, a GitHub pre-release
+# (release.yml). Once a week, on Tuesday at 09:00 in Copenhagen, this workflow takes the newest
+# beta that is ready and promotes it: the same release, its pre-release flag cleared, marked
+# latest, with notes covering every beta since the last stable. Nothing is built or signed again,
+# so this workflow holds none of the signing secrets, and no tag is made or moved.
+#
+# A beta is ready when its release has all its files, the `CI passed` check succeeded on its
+# commit, and it is at least a day old. A dispatch with a tag promotes that beta, skipping the
+# wait but none of the other checks. That is how a fix release goes out. A week with no beta
+# that is ready ends with a notice saying why, and changes nothing.
+#
+# Nobody is promoted without approval. The `approve` job runs in the `stable-release`
+# environment, which has a required reviewer, so a run that found a beta waits there until the
+# reviewer approves or rejects it. A run that found nothing never asks. The wait costs nothing
+# else: the job that takes the `release` lock starts only after the approval, so betas keep
+# publishing meanwhile.
+#
+# The order of the changes is the order in which they can be undone. The image's stable tags and
+# the new SideStore notes come first and touch nothing the apps read. Clearing the flag comes
+# last, and only that makes the release the stable. So a run that fails before it can be run
+# again with the same tag. If a newer beta is published while a run waits for approval, it is
+# promoted next week, or by a dispatch.
+#
+# The schedule is in UTC, so it runs at both 07:00 and 08:00, and the first job stops the run
+# unless it is 09:00 in Copenhagen.
+on:
+  schedule:
+    - cron: '0 7 * * 2'
+    - cron: '0 8 * * 2'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The beta to promote, such as v2.3.4. Empty promotes the newest beta that is ready.
+        required: false
+        type: string
+      reason:
+        description: Why, for the run's summary. A fix release says which fix.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  # The files a release carries (packaging/publish.sh).
+  RELEASE_FILES: 31
+  # How long a beta waits before the schedule promotes it.
+  SOAK_HOURS: 24
+  IMAGE: ghcr.io/bitknox/anistream-store
+
+jobs:
+  # Finds the beta to promote, if there is one. Reads only.
+  pick:
+    name: Pick the beta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      tag: ${{ steps.pick.outputs.tag }}
+      previous: ${{ steps.pick.outputs.previous }}
+    steps:
+      - name: Pick
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          none() {
+            echo "::notice::Nothing promoted: $1"
+            echo "Nothing promoted: $1" >> "$GITHUB_STEP_SUMMARY"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          if [[ "$EVENT" == schedule ]]; then
+            hour="$(TZ=Europe/Copenhagen date +%H)"
+            [[ "$hour" == 09 ]] || none "it is $hour:xx in Copenhagen, not 09:xx, so the other of the two schedules runs."
+          fi
+
+          stable="$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)"
+
+          # The betas newer than the stable: published pre-releases with a plain version tag,
+          # newest first.
+          gh api "repos/$GH_REPO/releases?per_page=100" | jq -r --arg stable "$stable" '
+            def v: ltrimstr("v") | split(".") | map(tonumber);
+            [.[]
+              | select((.draft | not) and .prerelease)
+              | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+              | select((.tag_name | v) > ($stable | v))
+              | {tag: .tag_name, published: .published_at, files: (.assets | length)}]
+            | sort_by(.tag | v) | reverse | .[]
+            | [.tag, .published, .files] | @tsv' >betas.tsv
+          [[ -s betas.tsv ]] || none "no beta is newer than $stable."
+
+          if [[ -n "$INPUT_TAG" ]]; then
+            grep -P "^\Q$INPUT_TAG\E\t" betas.tsv >picked.tsv ||
+              none "$INPUT_TAG is not a published beta newer than $stable."
+            mv picked.tsv betas.tsv
+          fi
+
+          now="$(date +%s)"
+          held=()
+          while IFS=$'\t' read -r tag published files; do
+            if [[ "$files" != "$RELEASE_FILES" ]]; then
+              held+=("$tag has $files files, not $RELEASE_FILES"); continue
+            fi
+            if [[ -z "$INPUT_TAG" ]]; then
+              age=$(( (now - $(date -d "$published" +%s)) / 3600 ))
+              if (( age < SOAK_HOURS )); then
+                held+=("$tag is $age hours old, under $SOAK_HOURS"); continue
+              fi
+            fi
+            sha="$(gh api "repos/$GH_REPO/commits/$tag" --jq .sha)"
+            ok="$(gh api -X GET "repos/$GH_REPO/commits/$sha/check-runs" -f check_name='CI passed' \
+              --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
+            if [[ "$ok" == 0 ]]; then
+              held+=("$tag has no passing CI passed check"); continue
+            fi
+            {
+              echo "tag=$tag"
+              echo "previous=$stable"
+            } >> "$GITHUB_OUTPUT"
+            {
+              echo "Promoting $tag over $stable, once approved."
+              [[ -z "$REASON" ]] || echo "Reason: $REASON"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::$tag is the beta to promote, over $stable."
+            exit 0
+          done <betas.tsv
+          none "$(printf '%s; ' "${held[@]}" | sed 's/; $//')."
+
+  # The reviewer's approval. The environment's required reviewer is what holds this job.
+  approve:
+    name: Approval
+    needs: pick
+    if: needs.pick.outputs.tag != ''
+    runs-on: ubuntu-latest
+    environment: stable-release
+    permissions: {}
+    steps:
+      - run: echo "Approved, to promote ${{ needs.pick.outputs.tag }}."
+
+  promote:
+    name: Promote
+    needs: [pick, approve]
+    runs-on: ubuntu-latest
+    # The lock release.yml publishes under, so this never runs while a beta is being published.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.pick.outputs.tag }}
+      PREVIOUS: ${{ needs.pick.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging
+
+      # The wait for approval can be long. The beta must still be a beta, and the stable must
+      # still be the one it was picked over.
+      - name: Check the beta is still the one
+        run: |
+          set -euo pipefail
+          [[ "$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)" == "$PREVIOUS" ]] ||
+            { echo "::error::The stable is not $PREVIOUS any more, so $TAG was not promoted. Dispatch Promote again."; exit 1; }
+          [[ "$(gh api "repos/$GH_REPO/releases/tags/$TAG" --jq .prerelease)" == true ]] ||
+            { echo "::error::$TAG is not a pre-release any more."; exit 1; }
+
+      - name: The stable notes
+        run: packaging/stable-notes.sh "$TAG" "$PREVIOUS" > stable-notes.md
+
+      # The tags are added to the beta's own digest: the image is not built again.
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: The store image's stable tags
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          minor="${version%.*}"
+          major="${version%%.*}"
+          docker buildx imagetools create \
+            -t "$IMAGE:latest" -t "$IMAGE:$minor" -t "$IMAGE:$major" -t "$IMAGE:stable" \
+            "$IMAGE:$version"
+
+      # sidestore.json carries the notes' first section. It is changed on the beta's release,
+      # where nothing reads it yet, so it is the stable's by the time the release becomes latest.
+      - name: The SideStore source's notes
+        run: |
+          set -euo pipefail
+          mkdir source
+          gh release download "$TAG" --pattern sidestore.json --dir source
+          packaging/apps/sidestore-notes.sh source/sidestore.json stable-notes.md "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          gh release upload "$TAG" source/sidestore.json --clobber
+
+      # The one step that makes the beta the stable.
+      - name: Make the release the stable
+        run: |
+          set -euo pipefail
+          id="$(gh api "repos/$GH_REPO/releases/tags/$TAG" --jq .id)"
+          gh api -X PATCH "repos/$GH_REPO/releases/$id" \
+            -F prerelease=false -f make_latest=true -F body=@stable-notes.md --jq .html_url
+
+      # What the apps and the website read, a minute after GitHub has it.
+      - name: Check the result
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          for attempt in 1 2 3 4 5 6; do
+            if [[ "$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)" == "$TAG" ]]; then break; fi
+            [[ $attempt -lt 6 ]] || { echo "::error::releases/latest is not $TAG."; exit 1; }
+            sleep $((attempt * 5))
+          done
+          base="https://github.com/$GH_REPO/releases/latest/download"
+          curl -fsSL "$base/appcast.xml" | grep -qF "$version" ||
+            { echo "::error::releases/latest/download/appcast.xml does not name $version."; exit 1; }
+          curl -fsSL "$base/sidestore.json" | grep -qF "\"$version\"" ||
+            { echo "::error::releases/latest/download/sidestore.json does not name $version."; exit 1; }
+          beta="$(docker buildx imagetools inspect "$IMAGE:$version" --format '{{.Manifest.Digest}}')"
+          latest="$(docker buildx imagetools inspect "$IMAGE:latest" --format '{{.Manifest.Digest}}')"
+          [[ "$beta" == "$latest" ]] ||
+            { echo "::error::$IMAGE:latest is $latest, not $TAG's $beta."; exit 1; }
+          echo "$TAG is the stable release, over $PREVIOUS." >> "$GITHUB_STEP_SUMMARY"
