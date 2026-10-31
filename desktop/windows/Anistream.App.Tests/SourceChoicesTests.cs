@@ -18,8 +18,8 @@ public class SourceChoicesTests
         T.Language = "en";
     }
 
-    static SourceCandidate Release(string id, string title, uint? quality = null, uint? seeders = null, string? size = null) =>
-        new(id, "torrent", title, quality, seeders, size);
+    static SourceCandidate Release(string id, string title, uint? quality = null, string? label = null, string? size = null) =>
+        new(id, "torrent", title, quality, size, label);
 
     static SourceOption Option(string id, uint covered, SourceNote? note = null, bool pinned = false,
         SourceCandidate[]? releases = null, string? pinnedRelease = null) =>
@@ -118,10 +118,10 @@ public class SourceChoicesTests
     }
 
     [Fact]
-    public void A_release_says_its_quality_size_and_seeders()
+    public void A_release_says_its_quality_size_and_label()
     {
-        Assert.Equal("1080p · 14.2 GiB · 84 seeders", SourcePicker.ReleaseDetail(Release("r", "R", 1080, 84, "14.2 GiB")));
-        Assert.Equal("One seeder", SourcePicker.ReleaseDetail(Release("r", "R", seeders: 1)));
+        Assert.Equal("1080p · 14.2 GiB · 84 seeders", SourcePicker.ReleaseDetail(Release("r", "R", 1080, "84 seeders", "14.2 GiB")));
+        Assert.Equal("One seeder", SourcePicker.ReleaseDetail(Release("r", "R", label: "One seeder")));
         Assert.Null(SourcePicker.ReleaseDetail(Release("r", "R")));
     }
 

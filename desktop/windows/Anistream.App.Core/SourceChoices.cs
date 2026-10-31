@@ -78,7 +78,7 @@ public static class SourcePicker
         _ => "",
     };
 
-    /// <summary>A release's quality, size and seeders: "1080p · 14.2 GiB · 84 seeders".</summary>
+    /// <summary>A release's quality, size and the plugin's own label, as written: "1080p · 14.2 GiB · 84 seeders".</summary>
     public static string? ReleaseDetail(SourceCandidate release)
     {
         var parts = new List<string>();
@@ -86,8 +86,8 @@ public static class SourcePicker
             parts.Add($"{quality}p");
         if (release.Size is { Length: > 0 } size)
             parts.Add(size);
-        if (release.Seeders is { } seeders)
-            parts.Add(T.SourcePickerSeeders(seeders));
+        if (release.Label is { Length: > 0 } label)
+            parts.Add(label);
         return parts.Count == 0 ? null : string.Join(" · ", parts);
     }
 

@@ -59,7 +59,7 @@ public sealed partial class SettingsPage : Page
         new("notifications", "", [("new-episodes", [K.EpisodeNotifications])]),
         new("sources", "",
         [
-            // Laid out by ShowTorrents: the switch, the index, what protects them, the last
+            // Laid out by ShowTorrents: the switch, what protects them, the last
             // check and what a failed one does.
             ("torrents", [K.Torrents, K.VpnMode, K.VpnOnFailure]),
             ("seeding", [K.KeepSeeding, K.SeedRatio, K.SeedHours, K.UploadLimit]),
@@ -121,7 +121,6 @@ public sealed partial class SettingsPage : Page
         K.PresenceTitle => T.SettingsPresenceTitle,
         K.PresenceRich => T.SettingsPresenceRich,
         K.Torrents => T.SettingsTorrentSource,
-        K.TorrentIndex => T.TorrentsIndex,
         K.VpnMode => T.SettingsVpnMode,
         K.SeedRatio => T.SettingsSeedAfter,
         K.SeedHours => T.SettingsSeedFor,
@@ -502,7 +501,7 @@ public sealed partial class SettingsPage : Page
     }
 
     /// <summary>
-    /// Torrents: the switch, saying what protects them, and once they are on the index, Protect
+    /// Torrents: the switch, saying what protects them, and once they are on, Protect
     /// with, the last connection check and what a failed one does. The Mac's Sources pane and
     /// Linux's torrents group.
     /// </summary>
@@ -520,25 +519,6 @@ public sealed partial class SettingsPage : Page
         }
         if (!on)
             return;
-
-        // The index, sent when the box is left or Enter is pressed.
-        var saved = settings.Sources.Index ?? "";
-        var index = new TextBox { Text = saved, MinWidth = 280, PlaceholderText = T.TorrentsIndexHint };
-        var indexTitle = Title(K.TorrentIndex);
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(index, indexTitle);
-        void Commit()
-        {
-            var typed = index.Text.Trim();
-            if (!quiet && typed.Length > 0 && typed != saved)
-                ctx.Send(new Command.SetSetting(K.TorrentIndex, new SettingValue.Str(typed)));
-        }
-        index.LostFocus += (_, _) => Commit();
-        index.KeyDown += (_, e) =>
-        {
-            if (e.Key == global::Windows.System.VirtualKey.Enter)
-                Commit();
-        };
-        Cards.Children.Add(CardFrame(indexTitle, TorrentWords.IndexNote, index));
 
         // Protect with: the device's VPN at once, a proxy through the dialog that asks for it,
         // no protection once confirmed. A choice not made puts the box back.
@@ -708,12 +688,11 @@ public sealed partial class SettingsPage : Page
             return;
         demoed = true;
         await Task.Delay(800);
-        const string index = "https://torrents.example/rss?q={query}";
-        var draft = TorrentDraft.From(ctx.Known.Settings, turningOn: true) with { Index = index };
+        var draft = TorrentDraft.From(ctx.Known.Settings, turningOn: true);
         switch (show)
         {
             case "torrent":
-                await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.TurnOn, from: draft with { Index = "" });
+                await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.TurnOn, from: draft);
                 break;
             case "torrent-proxy":
                 await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.TurnOn,

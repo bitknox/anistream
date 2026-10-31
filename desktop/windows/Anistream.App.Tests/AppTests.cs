@@ -234,14 +234,14 @@ public class LinesTests
 
 public class TorrentsTests
 {
-    static SettingsView Settings(ProtectionView torrent, string? index = null) => new(
+    static SettingsView Settings(ProtectionView torrent) => new(
         Translation: Translation.Sub, Quality: 1080, Theme: ThemeMode.Adaptive,
-        Sources: new ConfiguredSources(Index: index), PresenceClient: false, Torrent: torrent);
+        Sources: new ConfiguredSources(), PresenceClient: false, Torrent: torrent);
 
     [Fact]
-    public void AProxyNeedsItsHostAndAPortAndTurningOnNeedsTheIndex()
+    public void AProxyNeedsItsHostAndAPort()
     {
-        var draft = TorrentDraft.From(null, turningOn: true) with { Index = "https://torrents.example/rss?q={query}" };
+        var draft = TorrentDraft.From(null, turningOn: true);
         Assert.Equal(TorrentProtection.Proxy, draft.Protection);
         Assert.False(draft.Complete);
         draft = draft with { Host = " proxy.example ", Port = "0" };
@@ -251,26 +251,24 @@ public class TorrentsTests
         Assert.Equal(("proxy.example", (ushort)1080), (draft.Proxy!.Host, draft.Proxy.Port));
         Assert.Null(draft.Proxy.User);
         Assert.Null(draft.Proxy.Password);
-        Assert.False((draft with { Index = " " }).Complete, "the engine refuses torrents without an index");
         Assert.True((draft with { Protection = TorrentProtection.Device, Host = "" }).Complete);
         Assert.Null((draft with { Protection = TorrentProtection.Device }).Proxy);
     }
 
     [Fact]
-    public void TheDialogSendsTheIndexTheProtectionAndThenTorrentsOn()
+    public void TheDialogSendsTheProtectionAndThenTorrentsOn()
     {
         var settings = Settings(new ProtectionView(TorrentProtection.Device, FailedCheck.Stop));
-        var draft = TorrentDraft.From(settings, turningOn: true) with { Index = "https://torrents.example/rss?q={query}" };
+        var draft = TorrentDraft.From(settings, turningOn: true);
         var sent = Torrents.Apply(draft, settings, turningOn: true).ToList();
-        Assert.Equal(3, sent.Count);
-        Assert.Equal(SettingKey.TorrentIndex, Assert.IsType<Command.SetSetting>(sent[0]).Key);
-        var protect = Assert.IsType<Command.SetTorrentProtection>(sent[1]);
+        Assert.Equal(2, sent.Count);
+        var protect = Assert.IsType<Command.SetTorrentProtection>(sent[0]);
         Assert.Equal((TorrentProtection.Device, FailedCheck.Stop, false), (protect.Mode, protect.OnFailure, protect.Acknowledged));
         Assert.Null(protect.Proxy);
-        Assert.Equal(SettingKey.Torrents, Assert.IsType<Command.SetSetting>(sent[2]).Key);
+        Assert.Equal(SettingKey.Torrents, Assert.IsType<Command.SetSetting>(sent[1]).Key);
 
-        // No protection goes acknowledged, and an index already kept is not sent again.
-        var none = Torrents.Apply(draft with { Protection = TorrentProtection.None }, Settings(settings.Torrent, draft.Index), turningOn: false).ToList();
+        // No protection goes acknowledged.
+        var none = Torrents.Apply(draft with { Protection = TorrentProtection.None }, Settings(settings.Torrent), turningOn: false).ToList();
         Assert.True(Assert.IsType<Command.SetTorrentProtection>(Assert.Single(none)).Acknowledged);
     }
 
