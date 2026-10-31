@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Hearth plugins                                                                   Owner
+  ▸  Home                   │  Hearth plugins                                                                   Owner
   ▤  Calendar               │  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦  Seasonal               │
   /  Search                 │    Plugin                      Version       State

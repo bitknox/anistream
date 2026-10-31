@@ -3375,6 +3375,11 @@ pub fn keys_hint_not_interested() -> String {
     text("keys-hint-not-interested", &[])
 }
 
+/// Status line hint after Not interested on a suggestion: the key brings the last hidden title back.
+pub fn keys_hint_undo() -> String {
+    text("keys-hint-undo", &[])
+}
+
 /// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 pub fn keys_hint_list() -> String {
     text("keys-hint-list", &[])

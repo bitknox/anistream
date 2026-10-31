@@ -836,8 +836,6 @@ mod tests {
                 day: Some(9),
             }),
             action: anistream_model::up_next::UpNextAction::AddToPlanning,
-            airs_at: Some(1_800_000_000),
-            fallback: true,
         }]));
         crosses_intact(Event::Facets(SearchFacets {
             genres: vec!["Mecha".into()],
@@ -937,7 +935,11 @@ mod tests {
             id: AnilistId::new(900_002),
             playable: Playable::NotFound,
         });
-        crosses_intact(Event::HiddenTitles(vec![HiddenTitle { entry, until_airs: true }]));
+        crosses_intact(Event::HiddenTitles(vec![HiddenTitle {
+            entry,
+            until_airs: true,
+            hidden_at: 1_700_000_000,
+        }]));
     }
 
     #[test]

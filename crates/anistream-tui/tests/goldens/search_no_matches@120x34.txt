@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Find hoshikuzu▏
+  ▸  Home                   │  Find hoshikuzu▏
   ▤  Calendar               │
   ▦  Seasonal               │         ▄
 ▌ /  Search                 │      ▄▀▀▀▀▀▄
@@ -43,7 +43,7 @@ r00 c107-108 fg=text-dim
 r00 c109-119 fg=state
 r01 c00-119 fg=rule
 r02 c02-02 fg=text-dim
-r02 c05-12 fg=text-dim
+r02 c05-08 fg=text-dim
 r02 c28-28 fg=rule
 r02 c31-45 fg=text
 r03 c02-02 fg=text-dim

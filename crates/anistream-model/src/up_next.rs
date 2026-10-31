@@ -1,18 +1,9 @@
-//! "Up next for you": the short group of suggestions under a short Continue queue.
+//! "Up next for you": the group of suggestions under Continue.
 //!
-//! The engine decides which titles, in which order, and how many; a front end draws what it is
-//! sent. The group never sits above the queue and never takes the selection.
+//! The engine decides which titles and in which order; a front end draws what it is sent. The
+//! group never sits above the queue and never takes the selection.
 
 use crate::catalog::{Entry, FuzzyDate};
-
-/// The most suggestions there are room for beside `queue_rows` rows of Continue: eight less two
-/// for each row, at most six, and none at four rows or more.
-pub fn room_for(queue_rows: usize) -> usize {
-    8usize.saturating_sub(2 * queue_rows).min(MOST)
-}
-
-/// The most suggestions ever sent, with a queue of one row.
-pub const MOST: usize = 6;
 
 /// Why a title is among the suggestions. The heading over the group is the same for all of them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,8 +15,6 @@ pub enum UpNextReason {
     Planning,
     /// One of AniList's recommendations from a title the viewer finished.
     Recommended,
-    /// Airing today, when nothing personal is left to suggest.
-    AiringToday,
 }
 
 /// What the main button of a suggestion does.
@@ -54,24 +43,4 @@ pub struct UpNextItem {
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub starts: Option<FuzzyDate>,
     pub action: UpNextAction,
-    /// For [`UpNextReason::AiringToday`], when today's episode airs, in Unix seconds. A front end
-    /// shows it in the viewer's zone.
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub airs_at: Option<i64>,
-    /// The group is the fallback for a viewer with nothing personal to be suggested: every item
-    /// of it is airing today, and the heading over it reads "Airing today", not "Up next for
-    /// you".
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub fallback: bool,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn room_shrinks_by_two_per_queue_row_and_is_gone_at_four() {
-        let room: Vec<_> = (0..=6).map(room_for).collect();
-        assert_eq!(room, [6, 6, 4, 2, 0, 0, 0]);
-    }
 }

@@ -261,8 +261,15 @@ pub(crate) fn status_hints_paged(
         V::Section(Section::Home) if app.content.is_empty() => Vec::new(),
         // On a suggestion `x` is Not interested, the one thing a suggestion offers besides
         // opening; on a Continue row it is named in help.
-        V::Section(Section::Home) if app.on_up_next() => {
-            vec![(Action::HideFromContinue, hint_not_interested()), (Action::Open, hint_open())]
+        V::Section(Section::Home) if app.on_discovery() => {
+            let mut hints = vec![
+                (Action::HideFromContinue, hint_not_interested()),
+                (Action::Open, hint_open()),
+            ];
+            if app.last_dismissed.is_some() {
+                hints.push((Action::ToggleWatched, said(t::keys_hint_undo())));
+            }
+            hints
         }
         V::Section(Section::Home) => vec![
             // A part-watched row resumes on Enter rather than opening.

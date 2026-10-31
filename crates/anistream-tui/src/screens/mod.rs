@@ -16,6 +16,7 @@ mod downloads;
 mod episodes;
 #[cfg(test)]
 mod fixtures;
+mod home;
 mod lists;
 mod overlays;
 mod playback;

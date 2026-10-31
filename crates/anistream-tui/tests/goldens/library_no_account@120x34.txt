@@ -1,6 +1,6 @@
 anistream                                                                             torrent ○  plugins ●  ·  anilist ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  ▌ Watching    Planning    Completed    Paused    Dropped
+  ▸  Home                   │  ▌ Watching    Planning    Completed    Paused    Dropped
   ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
   ▦  Seasonal               │
   /  Search                 │  No account connected
@@ -43,7 +43,7 @@ r00 c109-110 fg=text-dim
 r00 c111-119 fg=state
 r01 c00-119 fg=rule
 r02 c02-02 fg=text-dim
-r02 c05-12 fg=text-dim
+r02 c05-08 fg=text-dim
 r02 c28-28 fg=rule
 r02 c31-31 fg=obi
 r02 c33-40 fg=text mod=BOLD

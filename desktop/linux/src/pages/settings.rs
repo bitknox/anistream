@@ -1473,8 +1473,16 @@ fn hidden_pane(ctx: &Rc<Ctx>, page: &adw::PreferencesPage) {
                 let row = adw::ActionRow::builder()
                     .title(glib::markup_escape_text(&hidden.entry.title))
                     .build();
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| d.as_secs() as i64);
+                let mut lines = Vec::new();
+                lines.extend(hidden.hidden_line(now));
                 if hidden.until_airs {
-                    row.set_subtitle(&t::settings_hidden_until_airs());
+                    lines.push(t::settings_hidden_until_airs());
+                }
+                if !lines.is_empty() {
+                    row.set_subtitle(&lines.join(" · ")); // i18n-skip
                 }
                 row.add_prefix(&widgets::cover(&hub, &hidden.entry, 40, 60));
                 let restore = gtk::Button::with_label(&t::settings_restore());
