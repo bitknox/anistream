@@ -45,6 +45,8 @@ import tv.anistream.store.MatchShown
 import tv.anistream.store.MatchWords
 import tv.anistream.store.matchShown
 import tv.anistream.store.text
+import tv.anistream.tv.screens.Keyboard
+import tv.anistream.tv.screens.QueryField
 
 /** How long a wait is silent before it shows. */
 private const val WAIT_MILLIS = 600L
@@ -54,8 +56,13 @@ private const val WAIT_MILLIS = 600L
  * from Fix this match ([fromMenu]) it searches the AniList title at once and focus waits on
  * Search for another title until results come. [search] opens the search screen.
  */
-fun matchPanel(store: AppStore, entry: Entry, fromMenu: Boolean, title: String, search: () -> Unit): ActionSheet =
-    ActionSheet(title, body = { MatchPanelBody(store, entry, fromMenu, search) })
+fun matchPanel(context: android.content.Context, store: AppStore, entry: Entry, fromMenu: Boolean, host: ActionsHost?): ActionSheet {
+    val title = if (fromMenu) Strings.matchFix(context) else Strings.matchChoose(context)
+    return ActionSheet(
+        title,
+        body = { MatchPanelBody(store, entry, fromMenu) { host?.open(matchSearchSheet(store, entry, Strings.matchSearchAnother(context))) } },
+    )
+}
 
 @Composable
 private fun MatchPanelBody(store: AppStore, entry: Entry, fromMenu: Boolean, openSearch: () -> Unit) {
@@ -214,7 +221,7 @@ private fun Placeholders(count: Int) {
  * the source's answer beside it. A paired phone types into the field; the Search key runs it.
  */
 fun matchSearchSheet(store: AppStore, entry: Entry, title: String): ActionSheet =
-    ActionSheet(title, width = 960.dp, body = { MatchSearchBody(store, entry) })
+    ActionSheet(title, width = 864.dp, body = { MatchSearchBody(store, entry) })
 
 @Composable
 private fun MatchSearchBody(store: AppStore, entry: Entry) {
@@ -222,7 +229,6 @@ private fun MatchSearchBody(store: AppStore, entry: Entry) {
     val id = entry.id
     val state by store.match.state.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
-    val remote = LocalRemoteHost.current
     val memory = remember { FocusMemory() }
     val source = state.source(id) ?: providers.firstOrNull { it.usable }?.let { it.id to it.name } ?: (null to "")
     val shown = matchShown(state, id, source.second)
@@ -247,23 +253,36 @@ private fun MatchSearchBody(store: AppStore, entry: Entry) {
     }
     LaunchedEffect(state.settled) { if (state.settled?.id == id && picking == null) host?.close() }
 
+    EnterFocus(memory)
     Text(
         Strings.matchSearchField(context, source.second),
         style = MaterialTheme.typography.bodySmall,
         color = ObiSilk.Haze,
         modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
     )
-    MatchQueryField(query, phone)
+    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        QueryField(
+            androidx.compose.ui.text.input.TextFieldValue(query, androidx.compose.ui.text.TextRange(query.length)),
+            onText = { phone = false; query = it.text },
+            focus = remember { FocusRequester() },
+            typing = phone,
+            modifier = Modifier.width(800.dp),
+        )
+    }
     Spacer(Modifier.height(16.dp))
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.width(288.dp).padding(start = 16.dp)) {
-            MatchKeyboard(memory, onKey = {
+            Keyboard(memory, onKey = {
                 phone = false
                 query = tv.anistream.tv.screens.SearchKeys.type(query, it)
-            }, onSearch = ::search)
+            })
         }
         Spacer(Modifier.width(32.dp))
-        LazyColumn(Modifier.width(468.dp), verticalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(bottom = 27.dp)) {
+        LazyColumn(Modifier.width(480.dp), verticalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(bottom = 27.dp)) {
+            // Right of the keyboard, so Right from its keys reaches it; the field keeps Left and Right for its caret.
+            item(key = "run") {
+                TonalButton(onClick = ::search, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)) { ButtonLabel(Strings.navSearch(context)) }
+            }
             when (val area = shown) {
                 is MatchShown.Candidates -> {
                     item(key = "label") { Label(Strings.matchSectionSource(context, area.source)) }

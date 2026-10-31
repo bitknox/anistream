@@ -200,6 +200,9 @@ enum class FixtureScene {
     /** [WATCHING] with no source set up: every title's episodes are AniList's alone. */
     SOURCELESS,
 
+    /** [WATCHING] with a first source that lists four titles for the first fixture and is sure of none: its page asks for the match. */
+    UNSURE,
+
     /** A scene that plays, with the first six episodes of the first fixture watched. */
     PLAYING;
 

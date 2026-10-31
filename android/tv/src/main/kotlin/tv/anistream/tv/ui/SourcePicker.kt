@@ -128,6 +128,16 @@ private fun SourcePickerBody(store: AppStore, id: AnilistId, name: String) {
                 )
             }
         }
+        val entry = store.titles.entries.value[id]
+        if (entry != null && store.match.canFix(store.providers.rows.value)) {
+            item(key = "fix-match") {
+                TvListRow(
+                    Strings.matchSourcePickerRow(context),
+                    onClick = { host?.open(matchPanel(context, store, entry, fromMenu = true, host = host)) },
+                    modifier = Modifier.onFocusChanged { if (it.isFocused) onAutomatic = false },
+                )
+            }
+        }
         if (listed != null && listed.isEmpty()) {
             item(key = "none") {
                 Text(
