@@ -25,6 +25,10 @@ tokio.workspace = true
 tracing.workspace = true
 librqbit = { version = "8.1.1", default-features = false, features = ["rust-tls"] }
 
+[features]
+# Lets a test point the demo source at a local fake. Never enabled by default or by a release build.
+testing = []
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
 reqwest.workspace = true

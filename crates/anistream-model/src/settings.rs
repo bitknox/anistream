@@ -5,7 +5,11 @@
 //! a command and is told the outcome as a [`SettingsView`]: the config itself never crosses.
 
 use anistream_core::{
-    config::{Config, ThemeMode, TitleChoice, TrailerAutoplay},
+    config::{
+        Config, StyledSubtitles, SubtitleBackground, SubtitleColour, SubtitleEdge,
+        SubtitleFont, SubtitleThickness, SubtitlesConfig, ThemeMode, TitleChoice,
+        TrailerAutoplay,
+    },
     media::Translation,
     settings::SettingValue,
 };
@@ -128,13 +132,34 @@ pub enum SettingKey {
     /// trailer, where trailers may play: the Mac's grids, and the desktop apps' later. On by
     /// default. With it off, a cover opens its title on a click and shows nothing on hover.
     HoverCards,
+    /// How large subtitles are, percent of the player's size: 50 to 200 in steps of 10.
+    SubtitleSize,
+    SubtitleFont,
+    SubtitleColour,
+    SubtitleEdge,
+    SubtitleThickness,
+    SubtitleBackground,
+    /// How opaque the plate behind the text is.
+    SubtitleOpacity,
+    /// How far subtitles are raised, percent of the picture.
+    SubtitleRaise,
+    /// What styled subtitles (ASS) keep of their authors' look: keep, restyle or strip.
+    StyledSubtitles,
+    /// Whether the system's caption style, where the platform has one, takes the place of the
+    /// font, colour, edge and background chosen here.
+    FollowSystemCaptions,
+    /// Whether a crash is kept on this device, redacted, for a bug report. Off until turned on.
+    SaveCrashReports,
+    /// Whether a notice at the next launch after a crash offers a report. Shown while saving
+    /// is on.
+    AskAfterCrash,
 }
 
 impl SettingKey {
     /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
     /// renderer draws a heading each time the category changes, so rows of one category must
     /// be contiguous here.
-    pub const ROWS: [Self; 34] = [
+    pub const ROWS: [Self; 46] = [
         Self::Theme,
         Self::Motion,
         Self::Titles,
@@ -152,6 +177,16 @@ impl SettingKey {
         Self::Upscaling,
         Self::PlayerUi,
         Self::NightMode,
+        Self::SubtitleSize,
+        Self::SubtitleFont,
+        Self::SubtitleColour,
+        Self::SubtitleEdge,
+        Self::SubtitleThickness,
+        Self::SubtitleBackground,
+        Self::SubtitleOpacity,
+        Self::SubtitleRaise,
+        Self::StyledSubtitles,
+        Self::FollowSystemCaptions,
         Self::DownloadDir,
         Self::MergeSubtitles,
         Self::KeepSeeding,
@@ -169,6 +204,8 @@ impl SettingKey {
         Self::SyncplayServer,
         Self::SyncplayRoom,
         Self::UpdateCheck,
+        Self::SaveCrashReports,
+        Self::AskAfterCrash,
     ];
 
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
@@ -213,6 +250,18 @@ impl SettingKey {
             Self::CastTvs => (&["cast"], "show_tvs"),
             Self::TorrentsWhileCasting => (&["providers", "torrent"], "while_casting"),
             Self::HoverCards => (&["theme"], "hover_cards"),
+            Self::SubtitleSize => (&["subtitles"], "size"),
+            Self::SubtitleFont => (&["subtitles"], "font"),
+            Self::SubtitleColour => (&["subtitles"], "colour"),
+            Self::SubtitleEdge => (&["subtitles"], "edge"),
+            Self::SubtitleThickness => (&["subtitles"], "thickness"),
+            Self::SubtitleBackground => (&["subtitles"], "background"),
+            Self::SubtitleOpacity => (&["subtitles"], "opacity"),
+            Self::SubtitleRaise => (&["subtitles"], "raise"),
+            Self::StyledSubtitles => (&["subtitles"], "styled"),
+            Self::FollowSystemCaptions => (&["subtitles"], "follow_system"),
+            Self::SaveCrashReports => (&["crash_reports"], "save"),
+            Self::AskAfterCrash => (&["crash_reports"], "ask"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
             Self::Subtitles => (&["playback"], "subtitle_language"),
@@ -345,6 +394,23 @@ impl SettingKey {
                 to.providers.torrent.while_casting = from.providers.torrent.while_casting;
             }
             Self::HoverCards => to.theme.hover_cards = from.theme.hover_cards,
+            Self::SubtitleSize => to.subtitles.size = from.subtitles.size,
+            Self::SubtitleFont => to.subtitles.font = from.subtitles.font,
+            Self::SubtitleColour => to.subtitles.colour = from.subtitles.colour,
+            Self::SubtitleEdge => to.subtitles.edge = from.subtitles.edge,
+            Self::SubtitleThickness => to.subtitles.thickness = from.subtitles.thickness,
+            Self::SubtitleBackground => to.subtitles.background = from.subtitles.background,
+            Self::SubtitleOpacity => to.subtitles.opacity = from.subtitles.opacity,
+            Self::SubtitleRaise => to.subtitles.raise = from.subtitles.raise,
+            Self::StyledSubtitles => to.subtitles.styled = from.subtitles.styled,
+            Self::FollowSystemCaptions => {
+                to.subtitles.follow_system = from.subtitles.follow_system;
+            }
+            Self::SaveCrashReports => {
+                to.crash_reports.save = from.crash_reports.save;
+                to.crash_reports.enabled_at = from.crash_reports.enabled_at;
+            }
+            Self::AskAfterCrash => to.crash_reports.ask = from.crash_reports.ask,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
@@ -392,6 +458,16 @@ impl SettingKey {
             | Self::Upscaling
             | Self::PlayerUi
             | Self::NightMode
+            | Self::SubtitleSize
+            | Self::SubtitleFont
+            | Self::SubtitleColour
+            | Self::SubtitleEdge
+            | Self::SubtitleThickness
+            | Self::SubtitleBackground
+            | Self::SubtitleOpacity
+            | Self::SubtitleRaise
+            | Self::StyledSubtitles
+            | Self::FollowSystemCaptions
             | Self::UpNextCountdown
             | Self::SpoilerProtection => "playback",
             Self::DownloadDir
@@ -423,6 +499,7 @@ impl SettingKey {
             | Self::CommentImages
             | Self::CastTvs => "integrations",
             Self::EpisodeNotifications => "notifications",
+            Self::SaveCrashReports | Self::AskAfterCrash => "about",
             Self::MpvOptions => "advanced",
         }
     }
@@ -486,6 +563,18 @@ impl SettingKey {
             Self::TorrentsWhileCasting => "torrents while casting",
             Self::HoverCards => "expand covers on hover",
             Self::EpisodeNotifications => "new episode notifications",
+            Self::SubtitleSize => "subtitle size",
+            Self::SubtitleFont => "subtitle font",
+            Self::SubtitleColour => "subtitle colour",
+            Self::SubtitleEdge => "subtitle edge",
+            Self::SubtitleThickness => "edge thickness",
+            Self::SubtitleBackground => "subtitle background",
+            Self::SubtitleOpacity => "background opacity",
+            Self::SubtitleRaise => "raise subtitles",
+            Self::StyledSubtitles => "styled subtitles",
+            Self::FollowSystemCaptions => "follow system captions",
+            Self::SaveCrashReports => "save crash reports",
+            Self::AskAfterCrash => "ask after a crash",
             Self::MpvOptions => "mpv options",
         }
     }
@@ -805,6 +894,41 @@ pub fn step(
         SettingKey::CastTvs => V::Bool(!effective.cast.show_tvs),
         SettingKey::TorrentsWhileCasting => V::Bool(!while_casting(effective)),
         SettingKey::HoverCards => V::Bool(!effective.theme.hover_cards),
+        SettingKey::SubtitleSize => {
+            let (low, high, by) = SubtitlesConfig::SIZES;
+            let ladder: Vec<u32> = (low..=high).step_by(by as usize).collect();
+            V::Int(i64::from(step_through(&ladder, effective.subtitles.size, delta)))
+        }
+        SettingKey::SubtitleOpacity => V::Int(i64::from(step_through(
+            &SubtitlesConfig::OPACITIES,
+            effective.subtitles.opacity,
+            delta,
+        ))),
+        SettingKey::SubtitleRaise => {
+            let ladder: Vec<u32> = (0..=SubtitlesConfig::MAX_RAISE).step_by(2).collect();
+            V::Int(i64::from(step_through(&ladder, effective.subtitles.raise, delta)))
+        }
+        SettingKey::SubtitleFont => {
+            V::Str(stepped(SubtitleFont::ALL, effective.subtitles.font, delta))
+        }
+        SettingKey::SubtitleColour => {
+            V::Str(stepped(SubtitleColour::ALL, effective.subtitles.colour, delta))
+        }
+        SettingKey::SubtitleEdge => {
+            V::Str(stepped(SubtitleEdge::ALL, effective.subtitles.edge, delta))
+        }
+        SettingKey::SubtitleThickness => {
+            V::Str(stepped(SubtitleThickness::ALL, effective.subtitles.thickness, delta))
+        }
+        SettingKey::SubtitleBackground => {
+            V::Str(stepped(SubtitleBackground::ALL, effective.subtitles.background, delta))
+        }
+        SettingKey::StyledSubtitles => {
+            V::Str(stepped(StyledSubtitles::ALL, effective.subtitles.styled, delta))
+        }
+        SettingKey::FollowSystemCaptions => V::Bool(!effective.subtitles.follow_system),
+        SettingKey::SaveCrashReports => V::Bool(!effective.crash_reports.save),
+        SettingKey::AskAfterCrash => V::Bool(!effective.crash_reports.ask),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
         SettingKey::VpnOnFailure => V::Str(
@@ -968,6 +1092,56 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
             config.providers.torrent.while_casting = Some(*on);
         }
         (SettingKey::HoverCards, V::Bool(on)) => config.theme.hover_cards = *on,
+        (SettingKey::SubtitleSize, V::Int(size)) => {
+            let (low, high, by) = SubtitlesConfig::SIZES;
+            let Ok(size) = u32::try_from(*size) else { return false };
+            if !(low..=high).contains(&size) || (size - low) % by != 0 {
+                return false;
+            }
+            config.subtitles.size = size;
+        }
+        (SettingKey::SubtitleOpacity, V::Int(opacity)) => {
+            let Ok(opacity) = u32::try_from(*opacity) else { return false };
+            if !SubtitlesConfig::OPACITIES.contains(&opacity) {
+                return false;
+            }
+            config.subtitles.opacity = opacity;
+        }
+        (SettingKey::SubtitleRaise, V::Int(raise)) => {
+            let Ok(raise) = u32::try_from(*raise) else { return false };
+            if raise > SubtitlesConfig::MAX_RAISE {
+                return false;
+            }
+            config.subtitles.raise = raise;
+        }
+        (SettingKey::SubtitleFont, V::Str(name)) => {
+            let Some(choice) = SubtitleFont::from_name(name) else { return false };
+            config.subtitles.font = choice;
+        }
+        (SettingKey::SubtitleColour, V::Str(name)) => {
+            let Some(choice) = SubtitleColour::from_name(name) else { return false };
+            config.subtitles.colour = choice;
+        }
+        (SettingKey::SubtitleEdge, V::Str(name)) => {
+            let Some(choice) = SubtitleEdge::from_name(name) else { return false };
+            config.subtitles.edge = choice;
+        }
+        (SettingKey::SubtitleThickness, V::Str(name)) => {
+            let Some(choice) = SubtitleThickness::from_name(name) else { return false };
+            config.subtitles.thickness = choice;
+        }
+        (SettingKey::SubtitleBackground, V::Str(name)) => {
+            let Some(choice) = SubtitleBackground::from_name(name) else { return false };
+            config.subtitles.background = choice;
+        }
+        (SettingKey::StyledSubtitles, V::Str(name)) => {
+            let Some(choice) = StyledSubtitles::from_name(name) else { return false };
+            config.subtitles.styled = choice;
+        }
+        (SettingKey::FollowSystemCaptions, V::Bool(on)) => config.subtitles.follow_system = *on,
+        // The time it was turned on is the engine's to stamp: it reads the clock.
+        (SettingKey::SaveCrashReports, V::Bool(on)) => config.crash_reports.save = *on,
+        (SettingKey::AskAfterCrash, V::Bool(on)) => config.crash_reports.ask = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
         }
@@ -1108,6 +1282,39 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::CastTvs => on_off(effective.cast.show_tvs),
         SettingKey::TorrentsWhileCasting => on_off(while_casting(effective)),
         SettingKey::HoverCards => on_off(effective.theme.hover_cards),
+        SettingKey::SubtitleSize => format!("{}%", effective.subtitles.size),
+        SettingKey::SubtitleFont => match effective.subtitles.font {
+            SubtitleFont::Default => "default",
+            SubtitleFont::ZenKakuGothicNew => "Zen Kaku Gothic New",
+            SubtitleFont::Serif => "serif",
+            SubtitleFont::Monospace => "monospace",
+        }
+        .into(),
+        SettingKey::SubtitleColour => effective.subtitles.colour.name().into(),
+        SettingKey::SubtitleEdge => match effective.subtitles.edge {
+            SubtitleEdge::Outline => "outline",
+            SubtitleEdge::DropShadow => "drop shadow",
+            SubtitleEdge::NoEdge => "none",
+        }
+        .into(),
+        SettingKey::SubtitleThickness => effective.subtitles.thickness.name().into(),
+        SettingKey::SubtitleBackground => match effective.subtitles.background {
+            SubtitleBackground::NoBackground => "none",
+            SubtitleBackground::EachLine => "behind each line",
+            SubtitleBackground::AllLines => "behind all lines",
+        }
+        .into(),
+        SettingKey::SubtitleOpacity => format!("{}%", effective.subtitles.opacity),
+        SettingKey::SubtitleRaise => format!("{}% of the picture", effective.subtitles.raise),
+        SettingKey::StyledSubtitles => match effective.subtitles.styled {
+            StyledSubtitles::Keep => "keep their look",
+            StyledSubtitles::Restyle => "restyle",
+            StyledSubtitles::Strip => "remove all styling",
+        }
+        .into(),
+        SettingKey::FollowSystemCaptions => on_off(effective.subtitles.follow_system),
+        SettingKey::SaveCrashReports => on_off(effective.crash_reports.save),
+        SettingKey::AskAfterCrash => on_off(effective.crash_reports.ask),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
             LeakAction::Stop => "stop torrents",
@@ -1183,6 +1390,9 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::CastTvs => c.cast.show_tvs,
         S::TorrentsWhileCasting => while_casting(c),
         S::HoverCards => c.theme.hover_cards,
+        S::FollowSystemCaptions => c.subtitles.follow_system,
+        S::SaveCrashReports => c.crash_reports.save,
+        S::AskAfterCrash => c.crash_reports.ask,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
             c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
@@ -1208,6 +1418,15 @@ fn ladder_value(effective: &Config, key: SettingKey) -> Option<SettingValue> {
         S::UploadLimit => V::Int(i64::from(seeding.upload_limit_kib)),
         S::UpNextCountdown => V::Int(i64::from(playback.up_next_countdown)),
         S::KeepNextEpisodes => V::Int(i64::from(effective.downloads.keep_next)),
+        S::SubtitleSize => V::Int(i64::from(effective.subtitles.size)),
+        S::SubtitleOpacity => V::Int(i64::from(effective.subtitles.opacity)),
+        S::SubtitleRaise => V::Int(i64::from(effective.subtitles.raise)),
+        S::SubtitleFont => V::Str(effective.subtitles.font.name().into()),
+        S::SubtitleColour => V::Str(effective.subtitles.colour.name().into()),
+        S::SubtitleEdge => V::Str(effective.subtitles.edge.name().into()),
+        S::SubtitleThickness => V::Str(effective.subtitles.thickness.name().into()),
+        S::SubtitleBackground => V::Str(effective.subtitles.background.name().into()),
+        S::StyledSubtitles => V::Str(effective.subtitles.styled.name().into()),
         _ => return None,
     })
 }
@@ -1272,6 +1491,29 @@ fn upload_label(kib: u32) -> String {
         k => format!("{}/s", crate::wording::human_bytes(u64::from(k) * 1024)),
     }
 }
+
+/// The name of the choice a step of `delta` makes of `current`, clamping at both ends.
+fn stepped<T: Copy + PartialEq + Named>(all: &[T], current: T, delta: i64) -> String {
+    let at = all.iter().position(|c| *c == current).unwrap_or(0) as i64;
+    all[(at + delta.signum()).clamp(0, all.len() as i64 - 1) as usize].name().into()
+}
+
+/// A choice with the name the config file uses.
+trait Named {
+    fn name(self) -> &'static str;
+}
+
+macro_rules! named {
+    ($($t:ty),+) => { $(impl Named for $t { fn name(self) -> &'static str { <$t>::name(self) } })+ };
+}
+named!(
+    SubtitleFont,
+    SubtitleColour,
+    SubtitleEdge,
+    SubtitleThickness,
+    SubtitleBackground,
+    StyledSubtitles
+);
 
 /// Step to the next value in an ascending ladder, clamping at both ends.
 ///
