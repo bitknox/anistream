@@ -746,7 +746,7 @@ pub(crate) async fn handle_internal(
         }
         // Awaited rather than spawned: this owns the session and the guard, and two
         // rebuilds racing would leave one of their sessions running with nothing holding
-        // it. Quick: the new torrent source comes up behind the interface, as at launch.
+        // it. Quick: torrent playback comes up behind the interface, as at launch.
         Internal::SourcesChanged => {
             reload_sources(
                 services,

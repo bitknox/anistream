@@ -161,14 +161,6 @@ title-source-failing = Failing
 # @only tui
 title-release-first = Whichever { -release } the { -source } ranks first
 
-# Beside a { -release } in the picker: how many people share it.
-# @arg count: int
-# @only tui
-title-release-seeders = { $count ->
-    [one] { $count } seeder
-   *[other] { $count } seeders
- }
-
 # The services a title is available on, under its metadata. The list is already joined.
 # @arg services: text
 # @only tui

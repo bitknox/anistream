@@ -47,7 +47,7 @@ script, and `--doctor` then lists the scripts it found.
 
 ## "Which one?" when opening episodes
 
-A torrent source has no catalogue, so titles are matched by name and two releases can score within
+A torrent plugin has no catalogue, so titles are matched by name and two releases can score within
 a point of each other. Rather than fail, an overlay lists the candidates best-first with the
 similarity each scored, and `↵` picks one. Your choice is stored as an override, so you are asked
 once per title per source.

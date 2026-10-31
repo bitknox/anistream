@@ -1,4 +1,4 @@
-anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+anistream                                              plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
  ▤ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -25,7 +25,6 @@ plugins · Subbed · 1080p          space play next   ↵ episodes   q back   ? 
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
-r00 c44-54 fg=text-dim
 r00 c55-63 fg=state
 r00 c64-65 fg=text-dim
 r00 c66-66 fg=rule

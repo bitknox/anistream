@@ -27,7 +27,7 @@ night_mode = false         # evens out quiet dialogue and loud music
 tone_mapping = "auto"      # how HDR is shown on an SDR display
 
 [providers]
-order = ["torrent", "plugins"]    # tried in order; failover walks the list
+order = ["plugins"]    # tried in order; failover walks the list
 ```
 
 ## Theme
@@ -51,8 +51,6 @@ screen with its position. Only past
 
 `providers.order` is the failover chain. No entry does anything until you configure it.
 
-- `"torrent"` is the BitTorrent transport, pointed at an indexer you configure and gated behind
-  the [VPN guard](/docs/guides/torrents-vpn/).
 - `"plugins"` is every [plugin](/docs/plugins/authoring/) you have installed, by hand or
   from a [plugin store](/docs/plugins/stores/).
 - `"remote"` is a JSON API you host yourself, answering `search/<query>`, `info/<id>` and
@@ -65,7 +63,7 @@ The order can also name a plugin by its id, which puts that plugin at its own pl
 
 ```toml
 [providers]
-order = ["alpha", "torrent", "plugins"]    # alpha first, then torrents, then the other plugins
+order = ["alpha", "remote", "plugins"]    # alpha first, then your API, then the other plugins
 ```
 
 The plugins the order does not name are tried at `"plugins"`, in alphabetical order of their ids.
@@ -111,7 +109,7 @@ choice. What a watched episode does is set under
 A key this version doesn't know is skipped and left in the file, so apps of different versions can
 share it. The one exception is `[providers.torrent.vpn]`, where an unknown key is refused, since a
 misspelt one there could leave torrents unprotected. A config that fails to load is not used
-at all: anistream runs entirely on the defaults, without your VPN mode, indexer and tracker
+at all: anistream runs entirely on the defaults, without your VPN mode and tracker
 credentials, until the file is fixed. It says so on every screen, naming the file and the line,
 and the Settings screen saves nothing until the file loads again, so a broken file is never
 written over.

@@ -185,8 +185,6 @@ impl App {
             S::UploadLimit => t::settings_note_upload_limit(),
             S::TokenStorage => t::settings_note_token_storage(),
             S::Theme
-            // A native app's torrent sheet types it; here it is the file's.
-            | S::TorrentIndex
             | S::Motion
             | S::Translation
             | S::Quality
@@ -302,7 +300,6 @@ fn label_text(key: SettingKey) -> String {
         S::PresenceTitle => t::settings_label_presence_title(),
         S::PresenceRich => t::settings_label_presence_rich(),
         S::Torrents => t::settings_label_torrents(),
-        S::TorrentIndex => t::settings_label_torrent_index(),
         S::SeedRatio => t::settings_label_seed_ratio(),
         S::SeedHours => t::settings_label_seed_hours(),
         S::UploadLimit => t::settings_label_upload_limit(),
@@ -392,7 +389,7 @@ fn known_value(key: SettingKey, raw: &str) -> String {
         (S::PlayerUi, "your mpv setup") => t::settings_value_player_ui_mpv(),     // i18n-skip
         (S::DownloadDir, KEPT_WITH_CACHE) => t::settings_value_download_dir_default(),
         (S::DownloadHook, "configured") => t::settings_value_configured(), // i18n-skip
-        (S::DownloadHook | S::TorrentIndex | S::VpnMode, "none") => t::settings_value_none(), // i18n-skip
+        (S::DownloadHook | S::VpnMode, "none") => t::settings_value_none(), // i18n-skip
         (S::SyncplayRoom, "unset — needed for parties") => t::settings_value_room_unset(), // i18n-skip
         (S::VpnMode, "socks5") => t::settings_value_vpn_socks5(), // i18n-skip
         (S::VpnMode, "external") => t::settings_value_vpn_external(), // i18n-skip

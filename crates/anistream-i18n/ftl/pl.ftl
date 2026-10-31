@@ -501,9 +501,6 @@ torrent-vpn-waiting = Torrenty ruszą po przejściu kontroli VPN. { $reason }
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = Torrenty ruszą po przejściu kontroli VPN. Połączenie nie zostało jeszcze sprawdzone.
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = Torrenty wymagają indeks torrentów. anistream nie dołącza żadnego, więc dodaj własny adres w ustawieniach.
-
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = Zamknięto anistream, zanim ruszyły torrenty.
 
@@ -1601,15 +1598,6 @@ title-source-failing = Nie działa
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = Pierwsze wydanie w rankingu
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-        [one] { $count } seeder
-        [few] { $count } seedery
-        [many] { $count } seederów
-       *[other] { $count } seederów
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = Dostępne w: { $services }
@@ -3123,11 +3111,8 @@ settings-label-presence-title = Obecność pokazuje tytuł
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Rozbudowana obecność
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Źródło: torrenty
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = Indeks torrentów
+# Settings row: torrent playback on or off.
+settings-label-torrents = Odtwarzanie torrentów
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Udostępniaj po obejrzeniu
@@ -3246,7 +3231,7 @@ settings-note-presence-title = Wyłączone pokazuje „Ogląda anime” bez nazw
 # Note under the rich presence row.
 settings-note-presence-rich = Dodaje okładkę, pasek postępu i link do AniList. Wymaga pokazywania tytułu.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Wymaga skonfigurowanego VPN. Działa od razu.
 
 # Note under the VPN mode row.
@@ -6664,7 +6649,7 @@ sources-replace-detail = Wersja { $version } z { $store } zastępuje kopię doda
 sources-open-settings = Otwórz Źródła
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Źródło torrentowe
+sources-torrent-source = Odtwarzanie torrentów
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Źródło: pozycja w kolejności

@@ -36,10 +36,6 @@ title-relation-sequel = Uppföljare
 title-source-automatic = Automatiskt (bästa tillgängliga { -source })
 title-source-failing = Fungerar inte
 title-release-first = Den { -release } som { -source } rankar först
-title-release-seeders = { $count ->
-    [one] { $count } seedare
-   *[other] { $count } seedare
- }
 title-available-on = Finns på { $services }
 title-up-next = { -up-next-cap }: avsnitt { $next }
 title-progress-aired = { $done } av { $aired } har sänts

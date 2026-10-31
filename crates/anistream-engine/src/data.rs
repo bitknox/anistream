@@ -688,6 +688,7 @@ pub fn provider_rows(
                 _ => (ProviderOrigin::BuiltIn, None),
             };
             let disabled = registry.is_disabled(id);
+            let torrents = manifest.as_ref().is_some_and(|m| m.torrents);
             let described = ProviderRow {
                 id: id.clone(),
                 kind: manifest.as_ref().map(|m| m.kind.as_str().to_owned()).unwrap_or_default(),
@@ -697,6 +698,7 @@ pub fn provider_rows(
                 origin,
                 disabled,
                 update,
+                torrents,
                 ..ProviderRow::default()
             };
             match health.get(id) {

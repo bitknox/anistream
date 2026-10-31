@@ -1,7 +1,7 @@
 //! A title's episodes across every source that lists some of them.
 //!
-//! One source rarely has a whole season. A torrent source lists the releases the indexer
-//! happens to carry, and a web source may lag behind the broadcast. The table a title shows is
+//! One source rarely has a whole season. A source that names torrents lists the releases it
+//! finds, and a web source may lag behind the broadcast. The table a title shows is
 //! the union: each episode comes from the highest-ranked source that has it, and an episode
 //! AniList says is out that no source lists stays in the table, marked, so the season is whole.
 

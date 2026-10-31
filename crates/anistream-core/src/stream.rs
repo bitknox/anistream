@@ -14,6 +14,11 @@ pub enum StreamKind {
     /// downloading and supports range requests. Plays like any other HTTP source, so it
     /// needs no special handling in the player layer.
     TorrentHttp,
+    /// A torrent a source named but nothing has started: `url` is a magnet link, as
+    /// [`torrent_link`] writes it. Never reaches a player. The torrent bridge in
+    /// `anistream-providers` starts it behind the protection check and hands on the
+    /// [`Self::TorrentHttp`] stream it serves, or holds it back while torrent playback is off.
+    Torrent,
     /// Not playable by us at all — a link to open in a licensed player.
     ///
     /// Crunchyroll streams are Widevine + PlayReady protected, so mpv cannot play them.
@@ -25,7 +30,76 @@ pub enum StreamKind {
 impl StreamKind {
     /// Whether our own player can render this, as opposed to handing it off.
     pub const fn is_playable_locally(self) -> bool {
-        !matches!(self, Self::ExternalDeepLink)
+        !matches!(self, Self::ExternalDeepLink | Self::Torrent)
+    }
+}
+
+/// A magnet link for what a source gave as a torrent: a magnet link, or a bare info hash of 40
+/// hex or 32 base32 characters. `file` is the file to play, counting from 0, carried as BEP 53's
+/// `so=` so it survives wherever the link is kept, such as the download queue.
+///
+/// `None` for anything else, an HTTP URL to a `.torrent` file included: a source names a torrent,
+/// and the session fetches nothing from a URL a source chose.
+pub fn torrent_link(input: &str, file: Option<u32>) -> Option<String> {
+    let input = input.trim();
+    let magnet = if input.get(..8).is_some_and(|scheme| scheme.eq_ignore_ascii_case("magnet:?"))
+    {
+        let hash = magnet_hash(input)?;
+        // Normalised so one torrent is one link, whichever case a source wrote the hash in.
+        let rest: Vec<&str> = input[8..]
+            .split('&')
+            .filter(|part| !part.is_empty())
+            .filter(|part| !part.to_ascii_lowercase().starts_with("xt="))
+            .filter(|part| !(file.is_some() && part.to_ascii_lowercase().starts_with("so=")))
+            .collect();
+        let mut link = format!("magnet:?xt=urn:btih:{hash}");
+        for part in rest {
+            link.push('&');
+            link.push_str(part);
+        }
+        link
+    } else if is_info_hash(input) {
+        let hash = if input.len() == 40 {
+            input.to_ascii_lowercase()
+        } else {
+            input.to_ascii_uppercase()
+        };
+        format!("magnet:?xt=urn:btih:{hash}")
+    } else {
+        return None;
+    };
+    Some(match file {
+        Some(index) => format!("{magnet}&so={index}"),
+        None => magnet,
+    })
+}
+
+/// The file a magnet link selects with BEP 53's `so=`, when it selects exactly one.
+pub fn torrent_link_file(link: &str) -> Option<u32> {
+    let query = link.trim().get(8..)?;
+    query
+        .split('&')
+        .find_map(|part| part.strip_prefix("so=").or_else(|| part.strip_prefix("SO=")))
+        .and_then(|index| index.parse().ok())
+}
+
+/// The info hash a magnet link carries, lowercased when it is hex.
+fn magnet_hash(link: &str) -> Option<String> {
+    link[8..].split('&').find_map(|part| {
+        let value = part.get(..12).filter(|key| key.eq_ignore_ascii_case("xt=urn:btih:"))?;
+        let hash = &part[value.len()..];
+        is_info_hash(hash).then(|| {
+            if hash.len() == 40 { hash.to_ascii_lowercase() } else { hash.to_ascii_uppercase() }
+        })
+    })
+}
+
+/// A v1 info hash: 40 hex characters, or 32 base32 ones.
+fn is_info_hash(text: &str) -> bool {
+    match text.len() {
+        40 => text.bytes().all(|b| b.is_ascii_hexdigit()),
+        32 => text.bytes().all(|b| b.is_ascii_alphabetic() || (b'2'..=b'7').contains(&b)),
+        _ => false,
     }
 }
 
@@ -160,6 +234,56 @@ mod tests {
         let mut s = Stream::new("https://example.test/v.m3u8", StreamKind::Hls);
         s.quality = quality;
         s
+    }
+
+    const HASH: &str = "0123456789abcdef0123456789abcdef01234567";
+
+    #[test]
+    fn a_bare_info_hash_becomes_a_magnet_link() {
+        let upper = HASH.to_ascii_uppercase();
+        assert_eq!(torrent_link(&upper, None), Some(format!("magnet:?xt=urn:btih:{HASH}")));
+        let base32 = "abcdefghijklmnopqrstuvwxyz234567";
+        assert_eq!(
+            torrent_link(base32, None),
+            Some(format!("magnet:?xt=urn:btih:{}", base32.to_ascii_uppercase()))
+        );
+    }
+
+    #[test]
+    fn a_magnet_link_keeps_its_own_parts_and_carries_the_file() {
+        let upper = HASH.to_ascii_uppercase();
+        let link =
+            format!("magnet:?dn=Episode%2012&xt=urn:btih:{upper}&tr=udp%3A%2F%2Ft.example");
+        let made = torrent_link(&link, Some(3)).unwrap();
+        assert_eq!(
+            made,
+            format!("magnet:?xt=urn:btih:{HASH}&dn=Episode%2012&tr=udp%3A%2F%2Ft.example&so=3")
+        );
+        assert_eq!(torrent_link_file(&made), Some(3));
+        // A file given replaces the link's own choice; none given keeps it.
+        let chosen = format!("magnet:?xt=urn:btih:{HASH}&so=1");
+        assert_eq!(torrent_link_file(&torrent_link(&chosen, Some(4)).unwrap()), Some(4));
+        assert_eq!(torrent_link_file(&torrent_link(&chosen, None).unwrap()), Some(1));
+    }
+
+    #[test]
+    fn anything_but_a_magnet_or_a_hash_is_refused() {
+        for input in [
+            "https://index.example/file.torrent",
+            "magnet:?dn=no-hash",
+            "magnet:?xt=urn:btih:short",
+            "0123",
+            "",
+        ] {
+            assert_eq!(torrent_link(input, None), None, "{input}");
+        }
+        assert_eq!(torrent_link_file(&format!("magnet:?xt=urn:btih:{HASH}")), None);
+    }
+
+    #[test]
+    fn a_torrent_nothing_has_started_is_not_for_a_player() {
+        assert!(!StreamKind::Torrent.is_playable_locally());
+        assert!(StreamKind::TorrentHttp.is_playable_locally());
     }
 
     #[test]

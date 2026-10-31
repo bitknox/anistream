@@ -1,34 +1,29 @@
 ---
 title: Torrents and the VPN guard
-description: The torrent source is off by default, has no indexer of its own, and pauses whenever the VPN check fails.
+description: Torrent playback is off by default, finds no torrents of its own, and pauses whenever the VPN check fails.
 ---
 
-:::caution[No indexer included]
-anistream hosts no content. It ships no indexer and has no default endpoint. The torrent source is a
-transport with nothing to search until you configure one. What you point it at is your decision
-and your responsibility, under the laws that apply to you. The source is off by default, gated
-behind the VPN guard, and a config edit away from being removed.
+:::caution[Nothing to search included]
+anistream hosts no content. It finds no torrents, ranks none and ships no plugin that does. Torrent
+playback plays a torrent a [source plugin](/docs/plugins/authoring/) names, or a magnet link or
+torrent file you open yourself. What you play is your decision and your responsibility, under the
+laws that apply to you. Torrent playback is off by default and gated behind the VPN guard.
 :::
 
-anistream provides the torrent transport, a librqbit session behind the VPN guard that streams
-over loopback HTTP. The search URL, the trackers and any curation service are yours to supply, and
-the source does nothing until they are set.
+anistream provides torrent playback, a librqbit session behind the VPN guard that streams over
+loopback HTTP. A source plugin that declares the `torrents` capability names torrents, in its own
+order, and they play through it. Without such a plugin, nothing plays through torrents until you
+open a link: `anistream --open-torrent <magnet link, info hash or file.torrent>`.
 
-Torrent traffic also exposes your IP to every peer in the swarm, so the source stays off until
-you choose a VPN mode and the guard passes.
+Torrent traffic also exposes your IP to every peer in the swarm, so torrent playback stays off
+until you choose a VPN mode and the guard passes.
 
 ```toml
 [providers.torrent]
 enabled = true
 
-# Required. `{query}` is replaced with the URL-encoded search terms.
-rss_url = "https://your-indexer.example/?page=rss&q={query}"
-
 # Required in practice: proxy mode disables DHT, so without trackers there are no peers.
 trackers = ["udp://tracker.example:1337/announce"]
-
-# Optional: "which release of this is the good one?", keyed on the AniList id.
-curation_url = "https://your-curation.example/api/records?filter=(alID={anilist_id})&expand=trs"
 
 [providers.torrent.vpn]
 mode = "socks5"                            # "socks5" | "external" | "none"
@@ -45,8 +40,8 @@ Streams play while they download, and you can seek in them.
 
 ## In the apps
 
-The apps keep the same settings under **Settings › Sources**. Turning **Torrents** on asks for the
-torrent index and what protects the traffic, under **Protect with**: the device's VPN, a SOCKS5
+The apps keep the same settings under **Settings › Sources**. Turning **Torrents** on asks what
+protects the traffic, under **Protect with**: the device's VPN, a SOCKS5
 proxy, or no protection, which you confirm first.
 
 A proxy is checked before it is saved. Turning torrents on with a proxy, switching **Protect with**
@@ -58,20 +53,15 @@ Once a proxy is set, **Edit proxy…** sits beside **Protect with**. It opens th
 in with the saved host, port and user name. Leave the password empty to keep the saved one, or type
 a new one to replace it.
 
-On Android TV, the index and the proxy come from a page the TV opens on your phone through a QR
-code, or you type them with the TV's keyboard. The TV does not download episodes.
+On Android TV, the proxy comes from a page the TV opens on your phone through a QR code, or you
+type it with the TV's keyboard. The TV does not download episodes.
 
-## What the feed has to look like
+## Upgrading from 2.x
 
-Any RSS feed whose `<item>`s carry a title, a link and an info hash works. Tag names are matched
-by *local* name, so `<seeders>`, `<idx:seeders>` and `<torznab:seeders>` are all understood,
-whatever their namespace. Seeder counts drive ranking, so a feed without them still works but
-ranks worse.
-
-Curation, if configured, is expected to answer in a PocketBase-shaped collection
-(`items[].expand.trs[]` carrying `isBest`, `releaseGroup`, `dualAudio` and a release `url`). Picks
-pointing anywhere other than your indexer's host are ignored, since a link that needs a different
-account cannot be played.
+Torrent search was built in before 3.0.0. The first launch of 3.0.0 removes `rss_url`,
+`curation_url` and `max_seeders_age_days` from `[providers.torrent]`, and `"torrent"` from
+`providers.order` and `providers.disabled`, and says so once if an index address was set. The rest
+of the file stays as it was, including your protection settings, trackers and seeding.
 
 ## The VPN guard
 

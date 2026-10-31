@@ -67,6 +67,7 @@ jobs:
               - 'plugins/example-rust/**'
               - 'plugins/example-ts/**'
               - 'plugins/test-hostile/**'
+              - 'plugins/test-torrent-index/**'
               - 'assets/**'
               - 'deploy/**'
               - 'packaging/**'
@@ -284,17 +285,18 @@ jobs:
             .
             plugins/example-rust
             plugins/test-hostile
+            plugins/test-torrent-index
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
-      # The components the sandbox tests load: the Rust reference plugin, the hostile fixture and
+      # The components the sandbox tests load: the Rust reference plugin, the two fixtures and
       # the JavaScript reference plugin. Without them those tests skip, so the Test step below
       # sets ANISTREAM_REQUIRE_PLUGINS and a missing one fails it. Built on main as well, for the
       # cache.
       - name: Build the plugins the sandbox tests load
         run: |
-          for plugin in example-rust test-hostile; do
+          for plugin in example-rust test-hostile test-torrent-index; do
             cargo build --locked --release --target wasm32-wasip2 --manifest-path "plugins/$plugin/Cargo.toml"
           done
           npm ci --prefix plugins/example-ts

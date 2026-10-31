@@ -36,12 +36,6 @@ title-relation-sequel = Сиквел
 title-source-automatic = Автоматически (лучший доступный { -source })
 title-source-failing = Не работает
 title-release-first = Тот { -release }, который { -source } ставит первым
-title-release-seeders = { $count ->
-    [one] { $count } сид
-    [few] { $count } сида
-    [many] { $count } сидов
-   *[other] { $count } сидов
- }
 title-available-on = Доступно на: { $services }
 title-up-next = { -up-next-cap }: эпизод { $next }
 title-progress-aired = { $done } из { $aired } вышедших

@@ -474,9 +474,6 @@ torrent-vpn-waiting = VPNガードを通過すると、トレントが開始さ�
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = VPNガードを通過すると、トレントが開始されます。接続はまだ確認されていません。
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = トレントにはトレントインデックスが必要です。anistreamには含まれていないため、設定でアドレスを追加してください。
-
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = トレントが開始される前にanistreamが終了しました。
 
@@ -1523,12 +1520,6 @@ title-source-failing = エラー
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = ソースが最上位に挙げるリリース
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-       *[other] シーダー { $count }
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = 配信先: { $services }
@@ -3018,11 +3009,8 @@ settings-label-presence-title = 再生状況にタイトルを表示
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = 詳細な再生状況
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = トレントソース
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = トレントインデックス
+# Settings row: torrent playback on or off.
+settings-label-torrents = トレント再生
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = 視聴後のシード
@@ -3141,7 +3129,7 @@ settings-note-presence-title = オフにすると、作品名を出さずに「�
 # Note under the rich presence row.
 settings-note-presence-rich = カバー画像、進行バー、AniListへのリンクを追加します。タイトルの表示が必要です。
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = VPNの設定が必要です。すぐに反映されます。
 
 # Note under the VPN mode row.
@@ -6481,7 +6469,7 @@ sources-replace-detail = { $store }のバージョン{ $version }が、手動で
 sources-open-settings = ソースの設定を開く
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = トレントのソース
+sources-torrent-source = トレント再生
 
 # Row: where the plugin's page stands.
 sources-source-order-row = ソースの順番

@@ -609,8 +609,11 @@ torrent-vpn-waiting = Torrents start once the VPN guard passes. { $reason }
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = Torrents start once the VPN guard passes. The connection hasn't been verified yet.
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = Torrents need a torrent index. anistream ships none, so add your own address in the settings.
+# Notice, once, on the first launch after the update that removed built-in torrent search.
+torrent-search-moved = Torrent search is now a plugin. Your torrent index address was removed. Torrent playback and your protection settings are as they were.
+
+# Error: the link or file given to open is not a magnet link, an info hash or a torrent file.
+torrent-link-unusable = That isn't a magnet link or a torrent file.
 
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = anistream closed before torrents started.
@@ -1696,13 +1699,6 @@ title-source-failing = Failing
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = Whichever release the source ranks first
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-        [one] { $count } seeder
-       *[other] { $count } seeders
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = Available on { $services }
@@ -3200,11 +3196,8 @@ settings-label-presence-title = Presence shows the title
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Rich presence
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Torrent source
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = Torrent index
+# Settings row: torrent playback on or off.
+settings-label-torrents = Torrent playback
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Seed after watching
@@ -3326,7 +3319,7 @@ settings-note-presence-title = Off shows “Watching anime” without naming the
 # Note under the rich presence row.
 settings-note-presence-rich = Adds the cover, a progress bar and an AniList link. Needs the title shown.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Needs a VPN configured. Takes effect immediately.
 
 # Note under the VPN mode row.
@@ -6887,7 +6880,7 @@ sources-replace-detail = Version { $version } from { $store } replaces the copy 
 sources-open-settings = Open source settings
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Torrent source
+sources-torrent-source = Torrent playback
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Source order
@@ -6973,6 +6966,9 @@ match-cleared = Matching automatically again.
 
 # Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 match-row-label = { $title }, { $facts }, { $closeness }
+
+# Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.
+sources-plays-torrents = Plays through torrent playback
 
 # Short label for a joined store, on a row.
 stores-joined = Joined

@@ -54,10 +54,6 @@ pub enum SettingKey {
     /// state. Needs the title shown, since every part of it names the show.
     PresenceRich,
     Torrents,
-    /// The torrent index: the RSS search address the torrent source asks, which anistream
-    /// ships none of. No row on the terminal's Settings screen, which leaves it to the file; a
-    /// native app's torrent sheet types it, and reads it back from the configured sources.
-    TorrentIndex,
     VpnMode,
     SeedRatio,
     SeedHours,
@@ -234,7 +230,6 @@ impl SettingKey {
             Self::PresenceTitle => (&["presence"], "show_title"),
             Self::PresenceRich => (&["presence"], "rich"),
             Self::Torrents => (&["providers", "torrent"], "enabled"),
-            Self::TorrentIndex => (&["providers", "torrent"], "rss_url"),
             Self::SeedRatio => (&["providers", "torrent", "seeding"], "ratio"),
             Self::SeedHours => (&["providers", "torrent", "seeding"], "hours"),
             Self::UploadLimit => (&["providers", "torrent", "seeding"], "upload_limit_kib"),
@@ -261,7 +256,7 @@ impl SettingKey {
         Self::ROWS
             .into_iter()
             .chain(Self::NATIVE_ROWS)
-            .chain([Self::SourceOrder, Self::TorrentIndex])
+            .chain([Self::SourceOrder])
             .find(|setting| setting.path().is_some_and(|(t, k)| t == table && k == key))
     }
 
@@ -271,7 +266,6 @@ impl SettingKey {
         matches!(
             self,
             Self::Subtitles
-                | Self::TorrentIndex
                 | Self::DownloadDir
                 | Self::DownloadHook
                 | Self::SyncplayServer
@@ -317,9 +311,6 @@ impl SettingKey {
             Self::PresenceTitle => to.presence.show_title = from.presence.show_title,
             Self::PresenceRich => to.presence.rich = from.presence.rich,
             Self::Torrents => to.providers.torrent.enabled = from.providers.torrent.enabled,
-            Self::TorrentIndex => {
-                to.providers.torrent.rss_url.clone_from(&from.providers.torrent.rss_url);
-            }
             Self::SeedRatio => {
                 to.providers.torrent.seeding.ratio = from.providers.torrent.seeding.ratio;
             }
@@ -402,7 +393,6 @@ impl SettingKey {
             | Self::KeepNextEpisodes
             | Self::DownloadsOnCellular => "downloads",
             Self::Torrents
-            | Self::TorrentIndex
             | Self::VpnMode
             | Self::SeedRatio
             | Self::SeedHours
@@ -459,8 +449,7 @@ impl SettingKey {
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
             Self::PresenceRich => "rich presence",
-            Self::Torrents => "torrent source",
-            Self::TorrentIndex => "torrent index",
+            Self::Torrents => "torrent playback",
             Self::SeedRatio => "seed after watching",
             Self::SeedHours => "seed for at most",
             Self::UploadLimit => "upload limit",
@@ -503,14 +492,12 @@ pub fn while_casting(config: &Config) -> bool {
 /// too blunt to trigger on a guess about a setting. The VPN mode is listed though nothing here
 /// writes it, since it decides whether torrents run at all; the sources switched off by name
 /// and the remote's address, which the file alone sets, have no key to list. What a failed
-/// check does is listed too: the guard reads it as the source comes up, and a choice to stop
+/// check does is listed too: the guard reads it as torrent playback comes up, and a choice to stop
 /// rather than pause that waited for the next launch would not be the one in force.
 pub fn redefines_sources(setting: SettingKey) -> bool {
-    // The index too: the torrent source reads it as it comes up.
     matches!(
         setting,
         SettingKey::Torrents
-            | SettingKey::TorrentIndex
             | SettingKey::VpnMode
             | SettingKey::SourceOrder
             | SettingKey::VpnOnFailure
@@ -817,7 +804,6 @@ pub fn step(
         // Typed, read-only, or moved on Providers: nothing to step through.
         SettingKey::Subtitles
         | SettingKey::DownloadDir
-        | SettingKey::TorrentIndex
         | SettingKey::DownloadHook
         | SettingKey::SyncplayServer
         | SettingKey::SyncplayRoom
@@ -906,10 +892,6 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::PresenceTitle, V::Bool(on)) => config.presence.show_title = *on,
         (SettingKey::PresenceRich, V::Bool(on)) => config.presence.rich = *on,
         (SettingKey::Torrents, V::Bool(on)) => config.providers.torrent.enabled = *on,
-        // Blank is no index, as the file reads it: the source needs one before it turns on.
-        (SettingKey::TorrentIndex, V::Str(url)) => {
-            config.providers.torrent.rss_url = Some(url.trim().to_owned());
-        }
         (SettingKey::SeedRatio, V::Float(ratio)) => seeding.ratio = *ratio,
         (SettingKey::SeedHours, V::Int(hours)) => {
             let Ok(hours) = u32::try_from(*hours) else { return false };
@@ -1063,8 +1045,6 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::PresenceTitle => on_off(effective.presence.show_title),
         SettingKey::PresenceRich => on_off(effective.presence.rich),
         SettingKey::Torrents => on_off(torrent.enabled),
-        // By its host, which is what tells one index from another at a glance.
-        SettingKey::TorrentIndex => torrent.indexer_host().unwrap_or_else(|| "none".into()),
         SettingKey::VpnMode => format!("{:?}", torrent.vpn.mode).to_lowercase(),
         SettingKey::SeedRatio => {
             if torrent.seeding.ratio > 0.0 {
@@ -1220,9 +1200,6 @@ fn text(effective: &Config, key: SettingKey) -> String {
         SettingKey::DownloadHook => effective.downloads.on_complete.clone().unwrap_or_default(),
         SettingKey::SyncplayServer => effective.syncplay.server.clone(),
         SettingKey::SyncplayRoom => effective.syncplay.room.clone().unwrap_or_default(),
-        SettingKey::TorrentIndex => {
-            effective.providers.torrent.rss_url.clone().unwrap_or_default()
-        }
         SettingKey::MpvOptions => effective.playback.mpv_args.join("\n"),
         _ => String::new(),
     }
@@ -1399,7 +1376,7 @@ mod tests {
     fn every_setting_written_is_found_again_where_the_file_keeps_it() {
         // So a write named by the file's table and key names one setting, and only one.
         let every = SettingKey::ROWS.into_iter().chain(SettingKey::NATIVE_ROWS);
-        for setting in every.chain([SettingKey::SourceOrder, SettingKey::TorrentIndex]) {
+        for setting in every.chain([SettingKey::SourceOrder]) {
             if let Some((table, key)) = setting.path() {
                 assert_eq!(SettingKey::at(table, key), Some(setting), "{table:?}.{key}");
             }
@@ -1565,30 +1542,6 @@ mod tests {
         let order = SettingValue::Strings(vec!["plugins".into()]);
         assert!(put(&mut config, SettingKey::SourceOrder, &order));
         assert_eq!(config.providers.order, ["plugins"]);
-    }
-
-    #[test]
-    fn the_torrent_index_is_typed_and_shown_by_its_host() {
-        let mut config = Config::default();
-        assert!(
-            !SettingKey::ROWS.contains(&SettingKey::TorrentIndex),
-            "the file's, on the terminal"
-        );
-        assert!(SettingKey::TorrentIndex.typed());
-        assert_eq!(step(&config, &config, SettingKey::TorrentIndex, 1), None);
-        assert_eq!(value(&config, &config, SettingKey::TorrentIndex), "none");
-
-        let url = SettingValue::Str(" https://Indexer.Example/rss?q={query} ".into());
-        assert!(put(&mut config, SettingKey::TorrentIndex, &url));
-        let set = config.providers.torrent.rss_url.as_deref();
-        assert_eq!(set, Some("https://Indexer.Example/rss?q={query}"), "trimmed");
-        assert_eq!(value(&config, &config, SettingKey::TorrentIndex), "indexer.example");
-        assert_eq!(
-            change(&config, &config, SettingKey::TorrentIndex),
-            SettingChange::Typed { text: "https://Indexer.Example/rss?q={query}".into() }
-        );
-        assert_eq!(view(&config, &config).sources.index.as_deref(), set);
-        assert!(redefines_sources(SettingKey::TorrentIndex));
     }
 
     #[test]

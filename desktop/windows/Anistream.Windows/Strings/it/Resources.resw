@@ -536,9 +536,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>I torrent partono quando il controllo VPN è superato. La connessione non è ancora stata verificata.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>I torrent richiedono un indice torrent. anistream non ne include nessuno, quindi aggiungi il tuo indirizzo nelle impostazioni.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream si è chiuso prima che partissero i torrent.</value>
   </data>
@@ -981,7 +978,7 @@
     <value>Carica le immagini nei commenti</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Fonte torrent</value>
+    <value>Riproduzione torrent</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Adattivo</value>
@@ -4188,7 +4185,7 @@
     <value>Apri impostazioni della fonte</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Fonte torrent</value>
+    <value>Riproduzione torrent</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Posizione nell'ordine</value>

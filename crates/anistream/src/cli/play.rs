@@ -1,5 +1,6 @@
 //! `anistream --stream-url`, `--play` and `--continue`: one episode resolved to a URL to test
-//! by hand, or played in mpv with no interface around it.
+//! by hand, or played in mpv with no interface around it. And `--open-torrent`: a torrent the
+//! person has, played the same way.
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
@@ -98,6 +99,50 @@ pub async fn stream_url(
     if guard.is_some() {
         println!("The torrent session is serving this URL. Press Ctrl-C when you are done.");
         tokio::signal::ctrl_c().await.ok();
+    }
+    Ok(())
+}
+
+/// Play a magnet link, an info hash or a torrent file the person has, in mpv.
+///
+/// Through the same torrent playback a source's torrents use: the protection check passes
+/// before the session exists, and nothing starts if it does not. The file played is the
+/// largest video, or the one the link names with `so=`.
+pub async fn open_torrent(
+    config: &Config,
+    http: &HttpClient,
+    store: &Store,
+    paths: &Paths,
+    input: &str,
+) -> Result<()> {
+    use anistream_core::stream::{Stream, StreamKind};
+
+    let link = sources::torrent_to_open(input).map_err(|msg| anyhow::anyhow!("{msg}"))?;
+    if !sources::torrent_wanted(config) {
+        anyhow::bail!("torrent playback is off: set providers.torrent.enabled and a VPN mode");
+    }
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
+    if guard.is_none() {
+        anyhow::bail!("{}", note.unwrap_or_else(|| "torrent playback did not start".into()));
+    }
+    let opened =
+        Stream { provider_id: "opened".into(), ..Stream::new(&link, StreamKind::Torrent) };
+    let playing =
+        registry.torrents().start(&opened, "").await.context("starting the torrent")?;
+    println!("playing     {}", playing.url);
+
+    let player = &config.playback.mpv_binary;
+    let mut mpv = std::process::Command::new(player);
+    mpv.args(&config.playback.mpv_args).arg(&playing.url);
+    let status = tokio::task::spawn_blocking(move || mpv.status())
+        .await
+        .context("waiting for the player")?
+        .with_context(|| format!("starting {player}"))?;
+    if let Some((_, session)) = guard {
+        session.close().await;
+    }
+    if !status.success() {
+        anyhow::bail!("{player} exited with {status}");
     }
     Ok(())
 }

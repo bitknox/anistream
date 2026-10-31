@@ -56,7 +56,6 @@ notice-choice-not-saved = その選択を保存できませんでした。{ $rea
 torrent-check-failed-running = 接続の確認に失敗しました。トレントは動き続けています。
 torrent-vpn-waiting = VPNガードを通過すると、トレントが開始されます。{ $reason }
 torrent-vpn-unverified = VPNガードを通過すると、トレントが開始されます。接続はまだ確認されていません。
-torrent-no-index = トレントには{ -torrent-index }が必要です。{ -app-name }には含まれていないため、設定でアドレスを追加してください。
 torrent-interface-closed = トレントが開始される前に{ -app-name }が終了しました。
 torrent-session-failed = トレントのセッションを開始できませんでした。{ $reason }
 torrent-no-kill-switch = VPNが切断された場合にトレントの通信を止める仕組みが、この{ -device }にはありません。「{ -app-name } --doctor」を実行すると設定できます。

@@ -562,7 +562,7 @@ fn spawn_playback(
     let no_torrents = matches!(opener.target(), crate::playback::link::PlayerTarget::Cast(_))
         && !anistream_model::settings::while_casting(config);
     let registry = if no_torrents {
-        services.registry.without_kind(anistream_core::traits::ProviderKind::Torrent)
+        services.registry.without_torrents()
     } else {
         services.registry.clone()
     };

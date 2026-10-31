@@ -1,0 +1,20 @@
+[workspace]
+
+[package]
+name = "anistream-torrent-index-fixture"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "A made-up torrent index on index.example, used to test torrent playback through the plugin ABI"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.63"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

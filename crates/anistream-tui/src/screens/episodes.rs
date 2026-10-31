@@ -353,21 +353,18 @@ pub(super) fn candidate_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
-/// The selectable releases for an episode: seeders in the key column — the number that
-/// decides whether a torrent will actually stream — with size and audio flags on the row.
+/// The selectable releases for an episode, in the source's order: the quality in the key
+/// column, with the source's own line about each, its size and audio flags on the row.
 pub(super) fn source_rows(app: &App) -> Vec<(String, String)> {
     app.sources
         .iter()
         .map(|source| {
-            // A healthy swarm stays quiet — this design decorates problems, not health.
-            // Under ~20 seeders streaming gets chancy; under 5 it probably will not start.
-            let seeders = match source.seeders {
-                Some(n) if n < 5 => format!("{} {n:>3}", glyph::STATE_DOWN),
-                Some(n) if n <= 20 => format!("{} {n:>3}", glyph::STATE_DEGRADED),
-                Some(n) => format!("{n:>5}"),
-                None => String::new(),
-            };
+            let quality = source.quality.map(|q| format!("{q}p")).unwrap_or_default();
             let mut label = source.title.clone();
+            if let Some(line) = source.label.as_deref().map(str::trim).filter(|l| !l.is_empty())
+            {
+                push_detail(&mut label, line);
+            }
             if let Some(size) = &source.size {
                 push_detail(&mut label, size);
             }
@@ -379,7 +376,7 @@ pub(super) fn source_rows(app: &App) -> Vec<(String, String)> {
             if source.auto_pick {
                 push_detail(&mut label, &t::episodes_release_current_pick());
             }
-            (seeders, label)
+            (quality, label)
         })
         .collect()
 }

@@ -49,6 +49,7 @@ updates:
       - /
       - /plugins/example-rust
       - /plugins/test-hostile
+      - /plugins/test-torrent-index
     multi-ecosystem-group: weekly
     patterns: ["*"]
     # A release has a week to show a problem before it is proposed. Security updates do not wait.

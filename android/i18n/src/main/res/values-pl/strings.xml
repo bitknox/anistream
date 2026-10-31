@@ -196,7 +196,6 @@
     <string name="torrent_check_failed_running">Sprawdzenie połączenia nie powiodło się. Torrenty działają dalej.</string>
     <string name="torrent_vpn_waiting">Torrenty ruszą po przejściu kontroli VPN. %1$s</string>
     <string name="torrent_vpn_unverified">Torrenty ruszą po przejściu kontroli VPN. Połączenie nie zostało jeszcze sprawdzone.</string>
-    <string name="torrent_no_index">Torrenty wymagają indeks torrentów. anistream nie dołącza żadnego, więc dodaj własny adres w ustawieniach.</string>
     <string name="torrent_interface_closed">Zamknięto anistream, zanim ruszyły torrenty.</string>
     <string name="torrent_session_failed">Nie udało się uruchomić sesji torrentów. %1$s</string>
     <string name="torrent_no_kill_switch">Żadna reguła zapory nie zatrzyma ruchu torrentów, jeśli VPN się rozłączy. Uruchom „anistream --doctor”, aby to skonfigurować.</string>
@@ -1733,7 +1732,7 @@
     <string name="sources_update_detail">Wersja %1$s z %2$s zastępuje wersję %3$s.</string>
     <string name="sources_replace_detail">Wersja %1$s z %2$s zastępuje kopię dodaną ręcznie. %3$s.</string>
     <string name="sources_open_settings">Otwórz Źródła</string>
-    <string name="sources_torrent_source">Źródło torrentowe</string>
+    <string name="sources_torrent_source">Odtwarzanie torrentów</string>
     <string name="sources_source_order_row">Źródło: pozycja w kolejności</string>
     <string name="sources_torrents_note">Torrenty są wbudowane w anistream, to nie wtyczka. Ochronę ruchu, sprawdzanie połączenia i seedowanie ustawiasz w ustawieniach, w sekcji „Źródła”.</string>
     <string name="sources_rebuilding">Źródła są ponownie ustawiane</string>
