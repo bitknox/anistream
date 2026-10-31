@@ -24,6 +24,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.ffi.resetConfig
 import tv.anistream.i18n.Strings
 import tv.anistream.engine.ffi.trailerMayAutoplay as engineTrailerMayAutoplay
 import tv.anistream.engine.ffi.trailerWatchUrl as engineTrailerWatchUrl
@@ -82,8 +83,11 @@ class AppStore(
         data object Running : Phase
         data object Stopped : Phase
 
-        /** It did not start, and why, in the engine's words. */
-        data class Failed(val reason: String) : Phase
+        /**
+         * It did not start, and why, in the engine's words. [settingsUnusable] is set when the
+         * settings file is what it could not read: the start-failed screen then offers to reset it.
+         */
+        data class Failed(val reason: String, val settingsUnusable: Boolean = false) : Phase
     }
 
     private val _phase = MutableStateFlow<Phase>(Phase.Starting)
@@ -204,7 +208,7 @@ class AppStore(
                 }
                 attach(engine)
             } catch (e: FfiException) {
-                _phase.value = Phase.Failed(e.reason)
+                _phase.value = Phase.Failed(e.reason, settingsUnusable = e is FfiException.Config)
                 early.clear()
             } catch (e: LinkageError) {
                 // The engine's library did not load: UnsatisfiedLinkError is an Error, not an Exception.
@@ -224,6 +228,38 @@ class AppStore(
         client?.cancel()
         client = null
         start(launch, host, prepare)
+    }
+
+    /**
+     * Reset settings on the start-failed screen, once the viewer has confirmed it: `config.toml` is
+     * kept aside as `config.damaged-<date>`, and the engine starts again on the defaults, VPN and
+     * proxy included. The database, and the watch history in it, stay. Does nothing unless the
+     * start failed on the settings file.
+     */
+    fun resetSettings() {
+        val failed = _phase.value as? Phase.Failed ?: return
+        if (!failed.settingsUnusable) return
+        val (launch, host, prepare) = lastStart ?: return
+        scope.launch {
+            val kept = try {
+                withContext(Dispatchers.IO) {
+                    prepare()
+                    resetConfig(launch.home.dirs)
+                }
+            } catch (e: FfiException) {
+                android.util.Log.e("anistream", "the settings were not reset: ${e.reason}")
+                _phase.value = Phase.Failed(e.reason, settingsUnusable = true)
+                return@launch
+            }
+            android.util.Log.w("anistream", "settings reset to the defaults; the old file kept at ${kept ?: "nowhere, there was none"}")
+            start(launch, host, prepare)
+            val name = kept?.let { File(it).name } ?: return@launch
+            if (_phase.first { it !is Phase.Starting } is Phase.Running) {
+                notices.post(
+                    EngineNotice(kind = NoticeKind.INFO, text = "", hint = null),
+                ) { context -> Strings.settingsResetDone(context, name) }
+            }
+        }
     }
 
     /**
