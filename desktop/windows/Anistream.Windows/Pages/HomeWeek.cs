@@ -3,6 +3,7 @@ using Anistream.Engine.Model;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -87,12 +88,13 @@ sealed partial class HomeWeek : Grid
         var scroll = new ScrollViewer
         {
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollMode = ScrollMode.Auto,
+            HorizontalScrollMode = ScrollMode.Disabled,
             VerticalScrollMode = ScrollMode.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
             IsTabStop = false,
             Content = strip,
         };
+        HomeShelf.ForwardWheel(scroll, page);
         Grid.SetRow(scroll, 1);
         Children.Add(scroll);
     }

@@ -29,6 +29,8 @@ public sealed partial class HomePage : Page, IPageKeys
     DateTimeOffset placeholdersSince;
     StackPanel? waitingPlates;
 
+    internal ScrollViewer PageScroll => Scroll;
+
     /// <summary>Titles put on Planning from here, until the page goes: their button says so at once.</summary>
     internal HashSet<uint> PlannedHere { get; } = [];
 
@@ -236,7 +238,7 @@ public sealed partial class HomePage : Page, IPageKeys
             shelf.Leave(id, () =>
             {
                 if (--left == 0 && shown.TryGetValue(section.Kind, out var current) && current == shelf)
-                    shelf.Update(ctx.Known.Home?.Section(section.Kind) ?? section, ctx.Known.Home?.Season, []);
+                    shelf.Update(ctx.Known.Home?.Sections.FirstOrDefault(s => s.Kind == section.Kind) ?? section, ctx.Known.Home?.Season, []);
             });
     }
 
@@ -400,7 +402,7 @@ public sealed partial class HomePage : Page, IPageKeys
                 ctx.Window.Go("seasonal");
                 break;
             case HomeLink.Browse browse:
-                ctx.Window.ShowSearch(browse.Query);
+                ctx.Window.ShowBrowse(browse.Query);
                 break;
             default:
                 ctx.Window.Go(kind == SectionKind.ThisWeek || link is HomeLink.CalendarView ? "calendar" : "seasonal");

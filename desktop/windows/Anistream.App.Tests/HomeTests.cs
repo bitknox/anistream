@@ -57,7 +57,7 @@ public class HomeTests
         var later = Item(episode: 5, airs: Now.ToUnixTimeSeconds() + 3600);
         Assert.Equal("Episode 5 · 13:00", HomeWording.Line(later, Now, TimeZoneInfo.Utc, Gb).Replace("1:00 PM", "13:00"));
         var out_ = Item(episode: 5, airs: Now.ToUnixTimeSeconds() - 7200);
-        Assert.StartsWith("Episode 5 · Out ", HomeWording.Line(out_, Now, TimeZoneInfo.Utc, Gb));
+        Assert.StartsWith("Episode 5 · out ", HomeWording.Line(out_, Now, TimeZoneInfo.Utc, Gb));
     }
 
     [Fact]

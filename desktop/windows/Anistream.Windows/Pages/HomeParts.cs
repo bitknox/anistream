@@ -5,6 +5,7 @@ using Anistream.Engine.Model;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
@@ -187,11 +188,26 @@ sealed partial class HomeShelf : Grid
     readonly ScrollViewer scroll = new()
     {
         HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
-        HorizontalScrollMode = ScrollMode.Auto,
+        HorizontalScrollMode = ScrollMode.Disabled,
         VerticalScrollMode = ScrollMode.Disabled,
         VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
         IsTabStop = false,
     };
+    /// <summary>The wheel moves the page, not a sideways strip; Shift and a sideways wheel move the strip.</summary>
+    internal static void ForwardWheel(ScrollViewer inner, HomePage page) =>
+        inner.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, e) =>
+        {
+            var point = e.GetCurrentPoint(inner).Properties;
+            e.Handled = true;
+            if (point.IsHorizontalMouseWheel || e.KeyModifiers.HasFlag(VirtualKeyModifiers.Shift))
+            {
+                inner.ChangeView(Math.Clamp(inner.HorizontalOffset + point.MouseWheelDelta, 0, inner.ScrollableWidth), null, null, true);
+                return;
+            }
+            var outer = page.PageScroll;
+            outer.ChangeView(null, Math.Clamp(outer.VerticalOffset - point.MouseWheelDelta, 0, outer.ScrollableHeight), null, true);
+        }), true);
+
     readonly ItemsRepeater repeater;
     readonly Button previous, next;
     readonly StackPanel heading = new() { Orientation = Orientation.Horizontal, Spacing = 12 };
@@ -239,6 +255,8 @@ sealed partial class HomeShelf : Grid
             ItemTemplate = new HomeCardFactory(Shape, page),
         };
         scroll.Content = repeater;
+        // The wheel moves the page, not the shelf; Shift and a sideways wheel move the shelf.
+        ForwardWheel(scroll, page);
         scroll.ViewChanged += (_, _) => Arrows();
         scroll.SizeChanged += (_, _) => Arrows();
         Grid.SetRow(scroll, 1);
@@ -250,8 +268,17 @@ sealed partial class HomeShelf : Grid
         Children.Add(previous);
         Children.Add(next);
 
+        // A transparent ground makes the whole shelf, gaps included, part of the hover.
+        Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         PointerEntered += (_, _) =>
         {
+            inside = true;
+            Arrows();
+        };
+        PointerMoved += (_, _) =>
+        {
+            if (inside)
+                return;
             inside = true;
             Arrows();
         };
@@ -260,6 +287,11 @@ sealed partial class HomeShelf : Grid
             inside = false;
             Arrows();
         };
+#if ANISTREAM_TESTING
+        // --show=arrows: the pointer is taken to be over every shelf, for a screenshot; the VM's
+        // synthetic pointer does not raise PointerEntered.
+        inside = Ctx.Current.Options.Show == "arrows";
+#endif
         Update(section, season, []);
     }
 

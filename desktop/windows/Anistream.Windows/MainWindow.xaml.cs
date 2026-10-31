@@ -622,6 +622,13 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>A browse from Home: the query's genres and sort set, nothing typed.</summary>
+    internal void ShowBrowse(SearchQuery query)
+    {
+        SearchBox.Text = query.Text;
+        ContentFrame.Navigate(typeof(SearchPage), query, new SuppressNavigationTransitionInfo());
+    }
+
     internal void ShowSearch(string query)
     {
         SearchBox.Text = query;

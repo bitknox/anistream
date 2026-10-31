@@ -42,7 +42,9 @@ public sealed partial class SearchPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        query = e.Parameter as string ?? "";
+        query = e.Parameter as string ?? (e.Parameter as SearchQuery)?.Text ?? "";
+        if (e.Parameter is SearchQuery browse)
+            filters = SearchFilters.None with { Genres = browse.Genres ?? [], Sort = browse.Sort };
 #if ANISTREAM_TESTING
         // --show=browse: a genre and a sort set with nothing typed, for a screenshot.
         if (ctx.Options.Show == "browse")
