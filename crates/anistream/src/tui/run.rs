@@ -44,6 +44,7 @@ pub async fn run(
     images: bool,
     config_problem: Option<anistream_core::config::ConfigProblem>,
     set_aside: Option<std::path::PathBuf>,
+    party: Option<anistream_model::party::PartyTarget>,
 ) -> Result<()> {
     // The colour depth first: every colour the palette hands out is drawn at it.
     theme::set_depth(theme::detect_depth(|key| std::env::var(key).ok()));
@@ -98,6 +99,20 @@ pub async fn run(
 
     if let Some(task) = app.reload() {
         engine.send(task);
+    }
+    // `anistream party <link or code>`: the Together section, with the lobby opening in it.
+    if let Some(target) = party {
+        if let Some(task) = app.go_to_section(anistream_tui::nav::Section::Together) {
+            engine.send(task);
+        }
+        engine.send(anistream_model::command::Command::Party(
+            anistream_model::party::PartyCommand::Lobby {
+                server: target.server,
+                room: target.room,
+                name: None,
+                pick: None,
+            },
+        ));
     }
 
     // What was true at launch, applied before the first frame so that it shows the app as it

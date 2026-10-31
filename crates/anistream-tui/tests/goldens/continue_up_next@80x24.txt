@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │    Ginga Yuubinkyoku                                                 84%
  ◎ │    Komorebi Ryokan                                                   83%
  ≡ │    Tetsu no Hanazono                                                 82%
-   │    Ame Furu Machi no Robotto                                         81%
+ ⇄ │    Ame Furu Machi no Robotto                                         81%
    │    Kumo no Ue no Gakkou                                              80%
    │    Shiosai Radio Kyoku                                               79%
    │    Fuyu no Shika to Tabi                                             78%
@@ -69,6 +69,7 @@ r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-24 fg=text-dim
 r10 c74-76 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-32 fg=text-dim
 r11 c74-76 fg=text-dim

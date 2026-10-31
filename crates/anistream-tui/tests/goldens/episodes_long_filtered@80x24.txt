@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │    019   Station No. 19                          23:55   ░░░░░░░░░  Canon
  ◎ │    025   Station No. 25                          23:55   ░░░░░░░░░  Mixed
  ≡ │    026   Station No. 26                          23:55   ░░░░░░░░░  Canon
-   │    027   Station No. 27                          23:55   ░░░░░░░░░  Canon
+ ⇄ │    027   Station No. 27                          23:55   ░░░░░░░░░  Canon
    │    028   Station No. 28                          23:55   ░░░░░░░░░  Canon
    │    029   Station No. 29                          23:55   ░░░░░░░░░  Canon
    │    030   Station No. 30                          23:55   ░░░░░░░░░  Canon
@@ -82,6 +82,7 @@ r10 c14-27 fg=text-dim
 r10 c54-58 fg=text-dim
 r10 c62-70 fg=rule
 r10 c73-77 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-10 fg=text-dim
 r11 c14-27 fg=text-dim

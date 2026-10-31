@@ -9,7 +9,7 @@ anistream                                                                       
 ▌ ◇  Sources                │
   ◎  Accounts               │  Anyone with the link can join · 14 devices joined with it
   ≡  Settings               │    The store's link                                Show and copy
-                            │  ▌ Joined today                                    Seen just now
+  ⇄  Together               │  ▌ Joined today                                    Seen just now
                             │    Joined 3 days ago                               Seen yesterday
                             │    Joined 6 days ago                               Not seen yet
                             │    Remove all 14
@@ -87,6 +87,8 @@ r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
 r10 c33-48 fg=text
 r10 c81-93 fg=text-dim
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c31-31 fg=obi
 r11 c33-44 fg=text mod=BOLD

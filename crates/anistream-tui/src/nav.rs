@@ -29,10 +29,12 @@ pub enum Section {
     /// wrong container for that.
     Accounts,
     Settings,
+    /// Watch parties: the one this device is in, a line to join another, and the last rooms.
+    Together,
 }
 
 impl Section {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::Home,
         Self::Calendar,
         Self::Seasonal,
@@ -42,6 +44,7 @@ impl Section {
         Self::Providers,
         Self::Accounts,
         Self::Settings,
+        Self::Together,
     ];
 
     /// Label as rendered in the rail, in sentence case and *not* letterspaced.
@@ -61,6 +64,7 @@ impl Section {
             Self::Providers => t::sources_title(),
             Self::Accounts => t::nav_section_accounts(),
             Self::Settings => t::nav_section_settings(),
+            Self::Together => t::tui_together_section(),
         })
     }
 
@@ -83,6 +87,7 @@ impl Section {
             Self::Providers => '◇',
             Self::Accounts => '◎',
             Self::Settings => '≡', // sliders; the gear draws two cells wide in many fonts
+            Self::Together => '⇄', // two ways: everyone's playhead, kept in step
         }
     }
 
@@ -170,6 +175,8 @@ pub enum Overlay {
     Logs,
     /// Paste an invite link.
     JoinStore,
+    /// Type a party's link or code.
+    JoinParty,
     /// A store action that needs a yes: joining, leaving, removing someone.
     StoreConfirm,
     /// What can be done with one of a store's plugins.
@@ -208,6 +215,7 @@ impl Overlay {
             Self::Conflicts => t::nav_overlay_conflicts(),
             Self::Logs => t::nav_overlay_logs(),
             Self::JoinStore => t::nav_overlay_join_store(),
+            Self::JoinParty => t::together_join(),
             Self::StoreConfirm => t::nav_overlay_store_confirm(),
             Self::PluginAction => t::nav_overlay_plugin_action(),
             Self::InviteName => t::nav_overlay_invite_name(),
@@ -228,6 +236,7 @@ impl Overlay {
                 | Self::KitsuUsername
                 | Self::KitsuPassword
                 | Self::JoinStore
+                | Self::JoinParty
                 | Self::InviteName
         )
     }
@@ -643,8 +652,8 @@ mod tests {
             assert_eq!(Section::from_index(i), Some(*section));
             assert_eq!(section.index(), i);
         }
-        assert_eq!(Section::ALL.len(), 9, "the 1-9 jump keys must cover every section");
-        assert!(Section::from_index(9).is_none());
+        assert_eq!(Section::ALL.len(), 10, "the 1-9 and 0 jump keys must cover every section");
+        assert!(Section::from_index(10).is_none());
     }
 
     #[test]

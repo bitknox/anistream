@@ -1065,6 +1065,19 @@ impl Actor {
     /// count, and staged like one: it is announced, then said as `PlaybackStaged`.
     fn follow(&mut self, event: &mut Event, played: Option<&Played>) -> Vec<Event> {
         let finished = self.state.staging.observe(event, played);
+        // The room starts or moves on: this device opens the episode from its own sources.
+        #[cfg(feature = "party")]
+        if let Event::PartyStarted { id, episode, .. } = event {
+            let tx = self.inbox.sender();
+            crate::playback::start::play_party(
+                *id,
+                episode.clone(),
+                None,
+                &mut self.state,
+                &self.services,
+                &tx,
+            );
+        }
         if let Event::PrefetchNext { id, episode } = event {
             prefetch(*id, episode.clone(), &self.state, &self.services);
             return Vec::new();
@@ -1277,6 +1290,8 @@ impl Inbox {
 mod tests {
     use super::*;
     use anistream_core::config::{Config, Paths};
+    #[cfg(feature = "party")]
+    use anistream_model::party::PartyCommand;
     use anistream_model::playback::PlayerTheme;
     use anistream_model::{Cause, Msg};
     use anistream_net::HttpClient;
@@ -1994,8 +2009,12 @@ mod tests {
         };
         assert_eq!(form.suggested_server, SUGGESTED_SERVER);
         assert!(form.recent_servers.is_empty());
-        let key = form.room.rsplit('-').next().unwrap_or_default();
-        assert_eq!(key.len(), anistream_model::party::ROOM_KEY_LENGTH, "{}", form.room);
+        assert_eq!(
+            anistream_model::party::clean_party_code(&form.room).as_deref(),
+            Some(form.room.as_str()),
+            "a code: {}",
+            form.room
+        );
         // Each form a room of its own, past guessing.
         let first = form.room.clone();
         engine.send(Command::LoadPartyForm);
@@ -2114,6 +2133,167 @@ mod tests {
             panic!("{seen:?}")
         };
         assert!(reason.english().contains("host and a port"), "{reason}");
+    }
+
+    /// A lobby joined by link or code reads what the room watches from its playlist, counts
+    /// down when everyone is ready, and starts the room.
+    #[cfg(feature = "party")]
+    #[tokio::test]
+    async fn a_lobby_follows_the_rooms_playlist_and_starts_when_all_are_ready() {
+        use anistream_model::party::{PartyCommand, PartyFound, PartyStartKind};
+        use anistream_party::fake::{FakeOptions, FakeServer};
+
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let server = FakeServer::start(FakeOptions::default()).await.unwrap();
+        let room = "kite-7qm4-xr9d";
+        let mika = server.member(room, "Mika");
+        mika.set_playlist(&[
+            "Natsukaze Relay, episode 9 [anilist:104321:9]",
+            "Natsukaze Relay, episode 10 [anilist:104321:10]",
+        ]);
+        mika.set_index(0);
+
+        engine.send(Command::Party(PartyCommand::Lobby {
+            server: server.address(),
+            room: room.into(),
+            name: Some("Ada".into()),
+            pick: None,
+        }));
+        let seen = seen_until(&mut events, |e| {
+            matches!(e, Event::PartyState(view) if view.room_episode.is_some() && view.next_episode.is_some())
+        })
+        .await;
+        let Some(Event::PartyState(view)) = seen
+            .iter()
+            .rev()
+            .find(|e| matches!(e, Event::PartyState(view) if view.room_episode.is_some()))
+        else {
+            panic!("{seen:?}")
+        };
+        let found = view.room_episode.as_ref().unwrap();
+        assert_eq!(found.id.map(anistream_core::ids::AnilistId::get), Some(104_321));
+        assert_eq!((found.episode.as_str(), found.found), ("9", PartyFound::Tag));
+        assert_eq!(view.next_episode.as_ref().map(|n| n.episode.as_str()), Some("10"));
+        assert_eq!(view.starter.as_deref(), Some("Mika"));
+        assert!(!view.can_start_anyway, "Mika set the episode, not this device");
+        assert_eq!(view.code.as_deref(), None, "a code is on the suggested server only");
+        assert!(
+            view.link.as_deref().is_some_and(|l| l.starts_with("https://anistream.tv/party#"))
+        );
+
+        // Both ready: the count runs, then the room starts.
+        mika.ready(true);
+        engine.send(Command::PartyReady { ready: true });
+        let seen = seen_until(&mut events, |e| matches!(e, Event::PartyStarted { .. })).await;
+        assert!(
+            seen.iter().any(|e| matches!(e, Event::PartyState(v) if v.starting_in == Some(3))),
+            "the count ran: {seen:?}"
+        );
+        assert!(seen.iter().any(|e| matches!(
+            e,
+            Event::PartyStarted { id, episode, kind: PartyStartKind::Start }
+                if id.get() == 104_321 && episode == "9"
+        )));
+    }
+
+    /// A device that starts a party writes the playlist the others read: this episode and the
+    /// next, in the name every anistream player reports.
+    #[cfg(feature = "party")]
+    #[tokio::test]
+    async fn starting_a_party_writes_the_episode_and_the_next_to_the_room() {
+        use anistream_core::ids::AnilistId;
+        use anistream_model::party::{PartyCommand, PartyEpisode};
+        use anistream_party::fake::{FakeOptions, FakeServer};
+
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let server = FakeServer::start(FakeOptions::default()).await.unwrap();
+        let room = "kite-7qm4-xr9d";
+
+        engine.send(Command::Party(PartyCommand::Lobby {
+            server: server.address(),
+            room: room.into(),
+            name: Some("Ada".into()),
+            pick: Some(PartyEpisode { id: AnilistId::new(104_321), episode: "9".into() }),
+        }));
+        let seen = seen_until(
+            &mut events,
+            |e| matches!(e, Event::PartyState(view) if view.can_start_anyway),
+        )
+        .await;
+        let Some(Event::PartyState(view)) =
+            seen.iter().rev().find(|e| matches!(e, Event::PartyState(v) if v.can_start_anyway))
+        else {
+            panic!("{seen:?}")
+        };
+        assert_eq!(view.starter.as_deref(), Some("Ada"));
+        for _ in 0..50 {
+            if server.room(room).is_some_and(|r| !r.playlist.is_empty()) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let kept = server.room(room).expect("the room exists");
+        assert_eq!(kept.index, Some(0));
+        assert_eq!(kept.playlist.len(), 2, "{:?}", kept.playlist);
+        assert!(kept.playlist[0].ends_with("[anilist:104321:9]"), "{:?}", kept.playlist);
+        assert!(kept.playlist[1].ends_with("[anilist:104321:10]"), "{:?}", kept.playlist);
+    }
+
+    /// Looking in joins for a moment, says who is there and what the room watches, and leaves.
+    #[cfg(feature = "party")]
+    #[tokio::test]
+    async fn looking_in_reports_the_room_and_leaves_it() {
+        use anistream_party::fake::{FakeOptions, FakeServer};
+
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let server = FakeServer::start(FakeOptions::default()).await.unwrap();
+        let room = "kite-7qm4-xr9d";
+        let mika = server.member(room, "Mika");
+        mika.set_playlist(&["Natsukaze Relay, episode 9 [anilist:104321:9]"]);
+        mika.set_index(0);
+
+        engine.send(Command::Party(PartyCommand::LookIn {
+            server: server.address(),
+            room: room.into(),
+            name: Some("Ada".into()),
+        }));
+        let seen = seen_until(&mut events, |e| {
+            matches!(e, Event::PartyGlimpse(_) | Event::PartyLookFailed { .. })
+        })
+        .await;
+        let Some(Event::PartyGlimpse(glimpse)) =
+            seen.iter().find(|e| matches!(e, Event::PartyGlimpse(_)))
+        else {
+            panic!("{seen:?}")
+        };
+        assert_eq!(
+            glimpse.members.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(),
+            ["Mika"]
+        );
+        assert_eq!(glimpse.room_episode.as_ref().map(|r| r.episode.as_str()), Some("9"));
+        for _ in 0..50 {
+            if server.room(room).is_some_and(|r| r.members.len() == 1) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert_eq!(server.room(room).map(|r| r.members.len()), Some(1), "only Mika is left");
+
+        // A server that is not there is a failed look, said in words.
+        engine.send(Command::Party(PartyCommand::LookIn {
+            server: "127.0.0.1:9".into(),
+            room: room.into(),
+            name: None,
+        }));
+        let seen =
+            seen_until(&mut events, |e| matches!(e, Event::PartyLookFailed { .. })).await;
+        assert!(seen.iter().any(|e| matches!(e, Event::PartyLookFailed { .. })), "{seen:?}");
     }
 
     /// A party asked of a play with no server chosen: refused, naming the public one and who

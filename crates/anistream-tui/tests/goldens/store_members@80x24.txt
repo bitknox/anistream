@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌◇ │    Sora                        Member    3         Never
  ◎ │
  ≡ │  Invites not used yet
-   │    Kai                                             Expires tomorrow
+ ⇄ │    Kai                                             Expires tomorrow
    │    Mirei, another device                           Expires today
    │
    │
@@ -71,6 +71,7 @@ r09 c03-03 fg=rule
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c06-25 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-10 fg=text
 r11 c56-71 fg=text-dim

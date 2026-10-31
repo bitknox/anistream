@@ -165,13 +165,40 @@ pub struct Member {
     pub you: bool,
 }
 
+/// The room's shared playlist: the episode it watches and the one after it.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Playlist {
+    /// File names in the form of [`crate::file`], current entry at `index`.
+    pub files: Vec<String>,
+    pub index: Option<usize>,
+    /// Who last set the playlist or its current entry, when the server says: the room's
+    /// starter, as far as the room has one.
+    pub by: Option<String>,
+}
+
+impl Playlist {
+    /// The entry the room watches.
+    pub fn current(&self) -> Option<&str> {
+        self.files.get(self.index?).map(String::as_str)
+    }
+
+    /// The entry after it.
+    pub fn next(&self) -> Option<&str> {
+        self.files.get(self.index? + 1).map(String::as_str)
+    }
+}
+
 /// What a party tells the front end.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PartyEvent {
     /// In the room. `name` is the one the server gave, which may differ from the one asked for.
     Joined { name: String, room: String, encrypted: bool, motd: Option<String> },
+    /// The room's members were listed by the server: what comes next is how things stand.
+    Listed,
     /// Who is in the room now, this member first.
     Members(Vec<Member>),
+    /// The room's shared playlist changed, or was met on joining.
+    Playlist(Playlist),
     /// Something for the player to do.
     Player(PlayerAction),
     /// Something to show on the player.
@@ -191,6 +218,18 @@ enum Input {
     Sample(Sample),
     Ready(bool),
     File(Option<FileInfo>),
+    /// Replace the playlist, whatever it is.
+    SetPlaylist {
+        files: Vec<String>,
+        index: usize,
+    },
+    /// Move the room on to `index`, unless it is there already, with the room at 0:00 paused.
+    MoveOn {
+        files: Vec<String>,
+        index: usize,
+    },
+    /// Play the room from where it is, whoever is not ready.
+    Play,
     Attach,
     Detach,
     Leave,
@@ -228,6 +267,24 @@ impl Party {
         let _ = self.inputs.send(Input::File(file));
     }
 
+    /// Write the room's playlist: `files`, with `index` the episode the room watches.
+    pub fn set_playlist(&self, files: Vec<String>, index: usize) {
+        let _ = self.inputs.send(Input::SetPlaylist { files, index });
+    }
+
+    /// The episode ended: move the room on to `index` of `files`, paused at 0:00. A move to an
+    /// entry the room is at already is ignored, so the first member to reach it moves everyone
+    /// and the rest change nothing.
+    pub fn move_on(&self, files: Vec<String>, index: usize) {
+        let _ = self.inputs.send(Input::MoveOn { files, index });
+    }
+
+    /// Start the room playing now, as when everyone is ready, or when someone starts it
+    /// without waiting for them.
+    pub fn play(&self) {
+        let _ = self.inputs.send(Input::Play);
+    }
+
     /// A player is playing for this member: what it reports from now on is kept with the room.
     pub fn attach(&self) {
         let _ = self.inputs.send(Input::Attach);
@@ -246,6 +303,51 @@ impl Party {
     pub fn is_open(&self) -> bool {
         !self.inputs.is_closed()
     }
+}
+
+/// Who is in a room and what it watches, as a glimpse of it showed. See [`look`].
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Glimpse {
+    /// The members, this one first: this one is the glimpse itself, and `you` marks it.
+    pub members: Vec<Member>,
+    pub playlist: Playlist,
+}
+
+/// Look into a room: join it not ready with no file, read its members, their files and its
+/// playlist, and leave. `Err` with why when the server can't be reached or refuses. Nothing is
+/// written to the room, and the member is there only for a moment.
+pub async fn look(mut options: PartyOptions, settle: Duration) -> Result<Glimpse, String> {
+    options.retry.attempts = 0;
+    let (party, mut events) = Party::join(options);
+    let mut glimpse = Glimpse::default();
+    let mut listed = false;
+    // How long the playlist is waited for after the list: a server sends it on joining.
+    let mut deadline: Option<Instant> = None;
+    let result = loop {
+        let event = match deadline {
+            Some(at) => tokio::select! {
+                event = events.recv() => event,
+                () = sleep_until(at) => break Ok(()),
+            },
+            None => match timeout(ANSWER * 2, events.recv()).await {
+                Ok(event) => event,
+                Err(_) => break Err("no answer".to_owned()),
+            },
+        };
+        match event {
+            Some(PartyEvent::Listed) => {
+                listed = true;
+                deadline = Some(Instant::now() + settle);
+            }
+            Some(PartyEvent::Members(members)) if listed => glimpse.members = members,
+            Some(PartyEvent::Playlist(playlist)) => glimpse.playlist = playlist,
+            Some(PartyEvent::Left(Some(reason))) => break Err(reason),
+            Some(PartyEvent::Left(None)) | None => break Err("left".to_owned()),
+            Some(_) => {}
+        }
+    };
+    party.leave();
+    result.map(|()| glimpse)
 }
 
 /// How one connection ended.
@@ -317,6 +419,7 @@ struct Membership {
     // What this member says of itself, kept across connections.
     ready: bool,
     file: Option<FileInfo>,
+    playlist: Playlist,
     sync: Sync,
     latency: Latency,
     shown_latency: Option<u32>,
@@ -357,6 +460,7 @@ impl Membership {
             joined_once: false,
             ready: false,
             file: None,
+            playlist: Playlist::default(),
             sync: Sync::default(),
             latency: Latency::default(),
             shown_latency: None,
@@ -429,6 +533,7 @@ impl Membership {
             if hello.username.is_empty() { self.options.name.clone() } else { hello.username };
         self.room = hello.room.unwrap_or_else(|| self.options.room.clone());
         self.members.clear();
+        self.playlist = Playlist::default();
         self.listed = false;
         self.all_ready = false;
         self.ignoring_client = 0;
@@ -584,6 +689,7 @@ impl Membership {
                         Seen { ready: Some(self.ready), file: self.file.clone() },
                     );
                     self.listed = true;
+                    self.emit(PartyEvent::Listed);
                     // A list is how things stand, not someone getting ready: after a lost
                     // connection, a room that was all ready and paused stays paused.
                     self.members_changed(false);
@@ -705,6 +811,22 @@ impl Membership {
                     self.room = room;
                     self.outbox.push(wire::list());
                 }
+                // This member's own writes come back named for them: they are applied already,
+                // and taking them in again could undo a later one still on its way.
+                SetItem::Playlist { user: Some(user), .. }
+                | SetItem::PlaylistIndex { user: Some(user), .. }
+                    if user == self.me => {}
+                SetItem::Playlist { user, files } => {
+                    let index = self.playlist.index.filter(|i| *i < files.len());
+                    let by = user.or(self.playlist.by.take());
+                    self.set_playlist_seen(Playlist { files, index, by });
+                }
+                SetItem::PlaylistIndex { user, index } => {
+                    let mut now = self.playlist.clone();
+                    now.index = index.filter(|i| *i < now.files.len());
+                    now.by = user.or(now.by.take());
+                    self.set_playlist_seen(now);
+                }
                 SetItem::Other(_) => {}
             }
         }
@@ -736,9 +858,46 @@ impl Membership {
                 self.members.entry(self.me.clone()).or_default().file = file;
                 self.members_changed(false);
             }
+            Input::SetPlaylist { files, index } => self.write_playlist(files, index),
+            Input::MoveOn { files, index } => {
+                if self.playlist.index.is_some_and(|at| at >= index) {
+                    return;
+                }
+                self.write_playlist(files, index);
+                self.send_change(Change { position: 0.0, paused: true, seek: true });
+            }
+            Input::Play => {
+                let position = self.sync.room_at(now).map_or(0.0, |(position, _)| position);
+                self.send_change(Change { position, paused: false, seek: false });
+            }
             Input::Attach => self.sync.attach(),
             Input::Detach => self.sync.detach(),
             Input::Leave => {}
+        }
+    }
+
+    /// The room's playlist as the server says it: kept, and said when it changed.
+    fn set_playlist_seen(&mut self, now: Playlist) {
+        if now != self.playlist {
+            self.playlist = now;
+            self.emit(PartyEvent::Playlist(self.playlist.clone()));
+        }
+    }
+
+    /// Write the playlist to the room and keep it as the room has it from now.
+    fn write_playlist(&mut self, files: Vec<String>, index: usize) {
+        let index = index.min(files.len().saturating_sub(1));
+        if self.playlist.files != files {
+            self.outbox.push(wire::set_playlist(&files));
+        }
+        if self.playlist.index != Some(index) || self.playlist.files != files {
+            self.outbox.push(wire::set_playlist_index(index));
+        }
+        let by = Some(self.me.clone());
+        let now = Playlist { files, index: Some(index), by };
+        if now != self.playlist {
+            self.playlist = now;
+            self.emit(PartyEvent::Playlist(self.playlist.clone()));
         }
     }
 
@@ -752,6 +911,8 @@ impl Membership {
             }
             Input::Ready(ready) => self.ready = ready,
             Input::File(file) => self.file = file,
+            // Nothing is written to a room that can't be heard.
+            Input::SetPlaylist { .. } | Input::MoveOn { .. } | Input::Play => {}
             Input::Attach => self.sync.attach(),
             Input::Detach => self.sync.detach(),
             Input::Leave => {}
@@ -848,6 +1009,10 @@ impl Membership {
 /// Two files are the same episode when their names match and their lengths are within a few
 /// seconds; a length not known yet doesn't count against them.
 fn same_file(a: &FileInfo, b: &FileInfo) -> bool {
+    // Two anistream files are the same episode when their tags match, whatever their lengths.
+    if let Some(same) = crate::file::same_episode(&a.name, &b.name) {
+        return same;
+    }
     let lengths = match (a.duration, b.duration) {
         (Some(x), Some(y)) => (x - y).abs() <= 5.0,
         _ => true,

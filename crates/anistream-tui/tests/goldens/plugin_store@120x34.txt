@@ -9,7 +9,7 @@ anistream                                                                       
 ▌ ◇  Sources                │  ▌ Kawasemi                    2.1.0         ⇅ Update from 2.0.3
   ◎  Accounts               │    Hotaru                      0.3.0         ○ Not installed
   ≡  Settings               │
-                            │    Link another device
+  ⇄  Together               │    Link another device
                             │    Invite someone
                             │    Members
                             │    Who can join                Only people you invite
@@ -90,6 +90,8 @@ r09 c77-89 fg=text-dim
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
+r11 c02-02 fg=text-dim
+r11 c05-12 fg=text-dim
 r11 c28-28 fg=rule
 r11 c33-51 fg=text
 r12 c28-28 fg=rule

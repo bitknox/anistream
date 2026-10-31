@@ -500,3 +500,86 @@ async fn leaving_says_so_and_frees_the_name() {
     assert_eq!(left, PartyEvent::Left(None));
     room_until(&server, "let Ada go", |r| r.members.is_empty()).await;
 }
+
+const EP9: &str = "Natsukaze Relay, episode 9 [anilist:104321:9]";
+const EP10: &str = "Natsukaze Relay, episode 10 [anilist:104321:10]";
+
+#[tokio::test]
+async fn a_member_who_joins_reads_the_playlist_the_room_has() {
+    let server = server().await;
+    let mika = server.member(ROOM, "Mika");
+    mika.set_playlist(&[EP9, EP10]);
+    mika.set_index(0);
+    let mut viewer = Viewer::join(&server, "Ada");
+    let event = viewer
+        .until("the playlist", |e| matches!(e, PartyEvent::Playlist(p) if p.index == Some(0)))
+        .await;
+    let PartyEvent::Playlist(playlist) = event else { unreachable!() };
+    assert_eq!(playlist.current(), Some(EP9));
+    assert_eq!(playlist.next(), Some(EP10));
+    assert_eq!(playlist.by.as_deref(), Some("Mika"), "who set the current entry");
+}
+
+#[tokio::test]
+async fn writing_the_playlist_reaches_the_room_and_is_not_written_twice() {
+    let server = server().await;
+    let mut viewer = Viewer::join(&server, "Ada");
+    viewer.joined().await;
+    viewer.party.set_playlist(vec![EP9.into(), EP10.into()], 0);
+    viewer.until("the playlist", |e| matches!(e, PartyEvent::Playlist(_))).await;
+    room_until(&server, "had the playlist", |r| r.playlist.len() == 2 && r.index == Some(0))
+        .await;
+    assert_eq!(server.room(ROOM).unwrap().playlist_by.as_deref(), Some("Ada"));
+
+    // Moving on twice to the same entry changes the room once: the second is ignored.
+    viewer.party.move_on(vec![EP9.into(), EP10.into()], 1);
+    viewer.party.move_on(vec![EP9.into(), EP10.into()], 1);
+    room_until(&server, "moved on", |r| r.index == Some(1) && r.paused && r.position < 1.0)
+        .await;
+    let moved = viewer.run_for(Duration::from_millis(400)).await;
+    let changes = moved.iter().filter(|e| matches!(e, PartyEvent::Playlist(_))).count();
+    assert!(changes <= 1, "one move, saw {changes}");
+}
+
+#[tokio::test]
+async fn anistream_files_with_the_same_tag_are_the_same_episode() {
+    let server = server().await;
+    let mika = server.member(ROOM, "Mika");
+    mika.open("Natsukaze Relay (other spelling), episode 9 [anilist:104321:9]", 1300.0);
+    let mut viewer = Viewer::join(&server, "Ada");
+    viewer.joined().await;
+    viewer.party.file(Some(FileInfo { name: EP9.into(), duration: Some(1440.0) }));
+    let event = viewer
+        .until("a match", |e| matches!(e, PartyEvent::Members(m) if m.iter().any(|m| m.file_matches == Some(true))))
+        .await;
+    assert!(matches!(event, PartyEvent::Members(_)));
+}
+
+#[tokio::test]
+async fn looking_in_reads_the_room_and_leaves_it() {
+    let server = server().await;
+    let mika = server.member(ROOM, "Mika");
+    mika.open(EP9, 1440.0);
+    mika.ready(true);
+    mika.set_playlist(&[EP9, EP10]);
+    mika.set_index(0);
+    let mut options = PartyOptions::new(Server::parse(&server.address()).unwrap(), ROOM, "Ada");
+    options.tls = Tls::Off;
+    let glimpse = crate::client::look(options, Duration::from_millis(300)).await.unwrap();
+    assert_eq!(glimpse.playlist.current(), Some(EP9));
+    let mika = glimpse.members.iter().find(|m| m.name == "Mika").unwrap();
+    assert_eq!(mika.ready, Some(true));
+    assert_eq!(mika.file.as_ref().map(|f| f.name.as_str()), Some(EP9));
+    room_until(&server, "was left", |r| r.members.len() == 1).await;
+}
+
+#[tokio::test]
+async fn looking_into_an_unreachable_server_says_why() {
+    let server = server().await;
+    let address = server.address();
+    drop(server);
+    let mut options = PartyOptions::new(Server::parse(&address).unwrap(), ROOM, "Ada");
+    options.tls = Tls::Off;
+    let reason = crate::client::look(options, Duration::from_millis(100)).await.unwrap_err();
+    assert!(reason.contains("Could not reach"), "{reason}");
+}

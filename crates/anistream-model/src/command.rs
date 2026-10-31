@@ -382,6 +382,8 @@ pub enum Command {
     },
     /// Leave the party. What is playing goes on from where it is, as a private session.
     PartyLeave,
+    /// The lobby and the rooms kept: see [`PartyCommand`](crate::party::PartyCommand).
+    Party(crate::party::PartyCommand),
     /// List the selectable releases for one episode, for the Sources overlay.
     LoadSources {
         id: AnilistId,

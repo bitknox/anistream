@@ -9,7 +9,7 @@ anistream                                                                       
  ◇ │    009   Station No. 9                                                                   23:55   ░░░░░░░░░  Canon
  ◎ │    010   Station No. 10                                                                  23:55   ░░░░░░░░░  Canon
  ≡ │    011   Station No. 11                                                                  23:55   ░░░░░░░░░  Canon
-   │    012   Station No. 12                                                                  23:55   ░░░░░░░░░  Canon
+ ⇄ │    012   Station No. 12                                                                  23:55   ░░░░░░░░░  Canon
    │    013   Station No. 13                                                                  23:55   ░░░░░░░░░  Canon
    │    014   Station No. 14                                                                  23:55   ░░░░░░░░░  Canon
    │    015   Station No. 15                                                                  23:55   ░░░░░░░░░  Canon
@@ -92,6 +92,7 @@ r10 c14-27 fg=text-dim
 r10 c94-98 fg=text-dim
 r10 c102-110 fg=rule
 r10 c113-117 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-10 fg=text-dim
 r11 c14-27 fg=text-dim

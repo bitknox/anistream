@@ -20,6 +20,7 @@ pub mod history;
 pub mod library_status;
 pub mod mapping;
 pub mod outbox;
+pub mod party_room;
 pub mod preference;
 pub mod schema;
 pub mod server_health;
@@ -41,6 +42,7 @@ pub use episode_notice::EpisodeNotice;
 pub use history::{MIN_RESUME_SECS, Progress, RESUME_CEILING, WatchEvent, is_complete};
 pub use mapping::{ResolutionRung, ResolvedMapping};
 pub use outbox::OutboxEntry;
+pub use party_room::PartyRoom;
 pub use preference::ReleasePin;
 pub use server_health::{ServerFailure, ServerHealth, ServerKey};
 

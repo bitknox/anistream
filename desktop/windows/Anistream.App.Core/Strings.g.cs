@@ -426,6 +426,9 @@ public static partial class T
     /// <summary>Message when the person left a watch party.</summary>
     public static string PartyLeft => Get("PartyLeft");
 
+    /// <summary>Message when a watch party's server could not be reached, in the lobby or when looking in.</summary>
+    public static string PartyServerUnreachable(string server) => Fill(Get("PartyServerUnreachable"), ("server", server));
+
     /// <summary>Toast after joining a plugin store with an invite that names this device's owner.</summary>
     public static string StoreJoined(string store, string member) => Fill(Get("StoreJoined"), ("store", store), ("member", member));
 
@@ -2928,6 +2931,9 @@ public static partial class T
     /// <summary>Name of a shortcut or tooltip: the name, then the key that does it.</summary>
     public static string TooltipWithKey(string name, string key) => Fill(Get("TooltipWithKey"), ("name", name), ("key", key));
 
+    /// <summary>Sidebar row, rail item and window title for the place that starts and joins watch parties.</summary>
+    public static string NavWatchTogether => Get("NavWatchTogether");
+
     /// <summary>Title of the welcome window.</summary>
     public static string OnboardingWelcome => Get("OnboardingWelcome");
 
@@ -3185,6 +3191,294 @@ public static partial class T
 
     /// <summary>Button that plays the chosen source with the room.</summary>
     public static string PartyPlayWith => Get("PartyPlayWith");
+
+    /// <summary>Heading of the place that starts and joins watch parties.</summary>
+    public static string TogetherTitle => Get("TogetherTitle");
+
+    /// <summary>Line under the heading of the place for watch parties. States that nothing is shared but timing.</summary>
+    public static string TogetherLine => Get("TogetherLine");
+
+    /// <summary>Accessibility label of the people button in Home's toolbar that opens the place for watch parties.</summary>
+    public static string TogetherPeopleButton => Get("TogetherPeopleButton");
+
+    /// <summary>Button that starts a watch party from the place. The one amber button there.</summary>
+    public static string TogetherStart => Get("TogetherStart");
+
+    /// <summary>Line under Start a party.</summary>
+    public static string TogetherStartLine => Get("TogetherStartLine");
+
+    /// <summary>Heading of the field that joins a watch party.</summary>
+    public static string TogetherJoin => Get("TogetherJoin");
+
+    /// <summary>Line under Join a party.</summary>
+    public static string TogetherJoinLine => Get("TogetherJoinLine");
+
+    /// <summary>Placeholder of the field that takes an invite link or a code.</summary>
+    public static string TogetherJoinField => Get("TogetherJoinField");
+
+    /// <summary>Button that pastes the clipboard into the Join field.</summary>
+    public static string TogetherPaste => Get("TogetherPaste");
+
+    /// <summary>Button that joins from the Join field.</summary>
+    public static string TogetherJoinAction => Get("TogetherJoinAction");
+
+    /// <summary>Heading of the block on the place that shows the watch party you are in.</summary>
+    public static string TogetherInParty => Get("TogetherInParty");
+
+    /// <summary>Line of the In a party block. The episode is a number or label.</summary>
+    public static string TogetherInPartyLine(string episode, long count, long ready) => Fill(Get("TogetherInPartyLine"), ("episode", episode), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ready", ready.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button that opens the lobby of the watch party you are in.</summary>
+    public static string TogetherOpenLobby => Get("TogetherOpenLobby");
+
+    /// <summary>Button that opens the player of the watch party you are in.</summary>
+    public static string TogetherOpenPlayer => Get("TogetherOpenPlayer");
+
+    /// <summary>Heading of the list of the last ten watch parties on this device.</summary>
+    public static string TogetherRecent => Get("TogetherRecent");
+
+    /// <summary>Line of a recent room under its title. The names are who was there; the time is already formatted, such as Tuesday.</summary>
+    public static string TogetherRecentRow(string episode, string names, string when) => Fill(Get("TogetherRecentRow"), ("episode", episode), ("names", names), ("when", when));
+
+    /// <summary>Line shown when no recent rooms are kept yet.</summary>
+    public static string TogetherRecentEmpty => Get("TogetherRecentEmpty");
+
+    /// <summary>Button on a recent room that goes straight to its lobby with the next episode.</summary>
+    public static string TogetherRejoin => Get("TogetherRejoin");
+
+    /// <summary>Menu item that removes a recent room from the list.</summary>
+    public static string TogetherForgetRoom => Get("TogetherForgetRoom");
+
+    /// <summary>Line that says who is in a recent room now, after looking in. The names are already joined.</summary>
+    public static string TogetherSomeoneHere(string names, long count) => Fill(GetPlural("TogetherSomeoneHere", count), ("names", names), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line that says a recent room has nobody in it now.</summary>
+    public static string TogetherNobodyHere => Get("TogetherNobodyHere");
+
+    /// <summary>Heading of the small list of servers on the place.</summary>
+    public static string TogetherServers => Get("TogetherServers");
+
+    /// <summary>Line under the suggested server. The operator is who runs it, such as the Syncplay project.</summary>
+    public static string TogetherServerSuggested(string @operator) => Fill(Get("TogetherServerSuggested"), ("operator", @operator));
+
+    /// <summary>Line under a server that parties were held on.</summary>
+    public static string TogetherServerUsed(long count) => Fill(GetPlural("TogetherServerUsed", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button that adds a server to the list.</summary>
+    public static string TogetherAddServer => Get("TogetherAddServer");
+
+    /// <summary>Hint on the place that a link or code can be pasted anywhere on the page.</summary>
+    public static string TogetherPasteShortcutHint => Get("TogetherPasteShortcutHint");
+
+    /// <summary>Heading of the step that asks what to watch in a new watch party.</summary>
+    public static string PartyPickTitle => Get("PartyPickTitle");
+
+    /// <summary>Line under a title in the picker: which episode comes next.</summary>
+    public static string PartyPickNext(string episode) => Fill(Get("PartyPickNext"), ("episode", episode));
+
+    /// <summary>Placeholder of the picker's search field.</summary>
+    public static string PartyPickSearch => Get("PartyPickSearch");
+
+    /// <summary>Heading of the step that asks for a server and a name the first time.</summary>
+    public static string PartyFirstServerTitle => Get("PartyFirstServerTitle");
+
+    /// <summary>Button that makes the room and opens the lobby.</summary>
+    public static string PartyStartParty => Get("PartyStartParty");
+
+    /// <summary>Line in the lobby when your own sources have the room's episode.</summary>
+    public static string PartyLobbySourcesFound => Get("PartyLobbySourcesFound");
+
+    /// <summary>Line in the lobby when none of your sources has the room's episode.</summary>
+    public static string PartyLobbySourcesMissing => Get("PartyLobbySourcesMissing");
+
+    /// <summary>Line in the lobby when the room's episode is not out. The day is already formatted, such as Saturday.</summary>
+    public static string PartyLobbyOutOn(string day) => Fill(Get("PartyLobbyOutOn"), ("day", day));
+
+    /// <summary>Line that says you stay in the room while you have no source for the episode.</summary>
+    public static string PartyStillInRoom => Get("PartyStillInRoom");
+
+    /// <summary>Line in the lobby that counts the room.</summary>
+    public static string PartyLobbyCount(long ready, long count) => Fill(Get("PartyLobbyCount"), ("ready", ready.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line in the lobby of an invite: who invited.</summary>
+    public static string PartyInvitedBy(string name) => Fill(Get("PartyInvitedBy"), ("name", name));
+
+    /// <summary>Line shown while the app looks into a room, after a short wait.</summary>
+    public static string PartyLookingIn => Get("PartyLookingIn");
+
+    /// <summary>Note that opening a room shows you in it for a moment.</summary>
+    public static string PartyLookingInNote => Get("PartyLookingInNote");
+
+    /// <summary>State of a member whose file is not open yet.</summary>
+    public static string PartyMemberJoining => Get("PartyMemberJoining");
+
+    /// <summary>State of a member from the second episode on who is finding a source.</summary>
+    public static string PartyMemberFinding => Get("PartyMemberFinding");
+
+    /// <summary>State of a member who is watching. The time is already formatted, such as 2:14.</summary>
+    public static string PartyMemberWatchingFrom(string time) => Fill(Get("PartyMemberWatchingFrom"), ("time", time));
+
+    /// <summary>Label of the I'm ready button once you are ready.</summary>
+    public static string PartyReadyOn => Get("PartyReadyOn");
+
+    /// <summary>Heading of the invite block in the lobby.</summary>
+    public static string PartyInvite => Get("PartyInvite");
+
+    /// <summary>Label of the short code in the lobby.</summary>
+    public static string PartyCode => Get("PartyCode");
+
+    /// <summary>Button that opens the system share sheet with the invite link.</summary>
+    public static string PartyShare => Get("PartyShare");
+
+    /// <summary>Text shared beside the invite link.</summary>
+    public static string PartyShareText(string title, string episode) => Fill(Get("PartyShareText"), ("title", title), ("episode", episode));
+
+    /// <summary>Notice after the invite link was copied.</summary>
+    public static string PartyInviteCopied => Get("PartyInviteCopied");
+
+    /// <summary>Line in the lobby before everyone is ready.</summary>
+    public static string PartyStartsLine => Get("PartyStartsLine");
+
+    /// <summary>Button that starts the room without waiting for those who are not ready.</summary>
+    public static string PartyStartAnyway => Get("PartyStartAnyway");
+
+    /// <summary>Line during the three second count before play.</summary>
+    public static string PartyStarting(long seconds) => Fill(Get("PartyStarting"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button in the lobby that changes the room's episode.</summary>
+    public static string PartyChangeEpisode => Get("PartyChangeEpisode");
+
+    /// <summary>Button that changes the server after it could not be reached.</summary>
+    public static string PartyChangeServer => Get("PartyChangeServer");
+
+    /// <summary>Label over the title and episode the room is watching.</summary>
+    public static string PartyRoomWatching => Get("PartyRoomWatching");
+
+    /// <summary>Line in the lobby of a room with nothing open.</summary>
+    public static string PartyRoomNothing => Get("PartyRoomNothing");
+
+    /// <summary>Second line under Nothing is open in the room yet.</summary>
+    public static string PartyRoomNothingLine => Get("PartyRoomNothingLine");
+
+    /// <summary>Button that picks what the room watches.</summary>
+    public static string PartyRoomPick => Get("PartyRoomPick");
+
+    /// <summary>Line in the lobby when the room is on a later episode than the invite.</summary>
+    public static string PartyRoomMovedOn(string episode) => Fill(Get("PartyRoomMovedOn"), ("episode", episode));
+
+    /// <summary>Notice when someone changes the room's episode.</summary>
+    public static string PartyRoomChanged(string name, string episode) => Fill(Get("PartyRoomChanged"), ("name", name), ("episode", episode));
+
+    /// <summary>Line in the lobby when a member plays a plain file with no title in its name. The file is its name, such as kzm_08_720p.mkv.</summary>
+    public static string PartyRoomPlainFile(string name, string file) => Fill(Get("PartyRoomPlainFile"), ("name", name), ("file", file));
+
+    /// <summary>Label under a title that was found from a plain file's name.</summary>
+    public static string PartyRoomMatched => Get("PartyRoomMatched");
+
+    /// <summary>Button that rejects a title matched from a file name.</summary>
+    public static string PartyRoomNotThis => Get("PartyRoomNotThis");
+
+    /// <summary>Heading over up to three guesses for a plain file's title.</summary>
+    public static string PartyRoomGuesses => Get("PartyRoomGuesses");
+
+    /// <summary>Line when the room's title was found by its name because its id is unknown here.</summary>
+    public static string PartyRoomFoundByName => Get("PartyRoomFoundByName");
+
+    /// <summary>Line when the room's title could not be found in your sources or on AniList.</summary>
+    public static string PartyRoomNotFound => Get("PartyRoomNotFound");
+
+    /// <summary>Error under the Join field when a code has the wrong shape. The example is a code such as kite-7qm4-xr9d.</summary>
+    public static string PartyCodeShape(string example) => Fill(Get("PartyCodeShape"), ("example", example));
+
+    /// <summary>Line in the lobby when nobody is in the room of a code.</summary>
+    public static string PartyCodeEmptyRoom(string code) => Fill(Get("PartyCodeEmptyRoom"), ("code", code));
+
+    /// <summary>Button that waits in an empty room.</summary>
+    public static string PartyCodeWait => Get("PartyCodeWait");
+
+    /// <summary>Error when a code is used on another server. The server is the suggested one.</summary>
+    public static string PartyCodeOtherServer(string server) => Fill(Get("PartyCodeOtherServer"), ("server", server));
+
+    /// <summary>Title line of the bar above the tabs while you are in a party.</summary>
+    public static string PartyBarTitle(string title, string episode) => Fill(Get("PartyBarTitle"), ("title", title), ("episode", episode));
+
+    /// <summary>Second line of the bar above the tabs.</summary>
+    public static string PartyBarLine(long count, long ready) => Fill(Get("PartyBarLine"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ready", ready.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Second line of the bar when nothing plays for you.</summary>
+    public static string PartyBarIdle => Get("PartyBarIdle");
+
+    /// <summary>Notice in the player when someone pauses.</summary>
+    public static string PartyPausedBy(string name) => Fill(Get("PartyPausedBy"), ("name", name));
+
+    /// <summary>Notice in the player when someone plays.</summary>
+    public static string PartyPlayedBy(string name) => Fill(Get("PartyPlayedBy"), ("name", name));
+
+    /// <summary>Notice in the player when someone moves the position. The time is already formatted.</summary>
+    public static string PartySeekedBy(string name, string time) => Fill(Get("PartySeekedBy"), ("name", name), ("time", time));
+
+    /// <summary>Line on the Up Next card in a party.</summary>
+    public static string PartyNextLine(long seconds) => Fill(Get("PartyNextLine"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line on the starting screen while the room waits for a member.</summary>
+    public static string PartyNextWaiting(string name, long seconds) => Fill(Get("PartyNextWaiting"), ("name", name), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Notice when a member who was behind joins. The time is already formatted.</summary>
+    public static string PartyNextJoinedAt(string name, string time) => Fill(Get("PartyNextJoinedAt"), ("name", name), ("time", time));
+
+    /// <summary>Line that replaces the autoplay switch in a party.</summary>
+    public static string PartyNextOff => Get("PartyNextOff");
+
+    /// <summary>Line in the lobby after the last episode that is out.</summary>
+    public static string PartyLastOut => Get("PartyLastOut");
+
+    /// <summary>Line after the last episode out, when the next one has a date. The day is already formatted.</summary>
+    public static string PartyLastOutAirs(string episode, string day) => Fill(Get("PartyLastOutAirs"), ("episode", episode), ("day", day));
+
+    /// <summary>Button that picks a new title for the room.</summary>
+    public static string PartyWatchSomethingElse => Get("PartyWatchSomethingElse");
+
+    /// <summary>Notice when a member joins.</summary>
+    public static string PartyMemberJoined(string name) => Fill(Get("PartyMemberJoined"), ("name", name));
+
+    /// <summary>Notice when a member leaves.</summary>
+    public static string PartyMemberLeft(string name) => Fill(Get("PartyMemberLeft"), ("name", name));
+
+    /// <summary>Notice when the member who started the party leaves.</summary>
+    public static string PartyStarterLeft(string name) => Fill(Get("PartyStarterLeft"), ("name", name));
+
+    /// <summary>Notice after you leave.</summary>
+    public static string PartyYouLeft => Get("PartyYouLeft");
+
+    /// <summary>Line under the QR code on the TV.</summary>
+    public static string PartyTvScan => Get("PartyTvScan");
+
+    /// <summary>Line over the code on the TV.</summary>
+    public static string PartyTvOrCode => Get("PartyTvOrCode");
+
+    /// <summary>Line on the TV's page: joining a friend's party goes through a paired phone.</summary>
+    public static string PartyTvJoinFromPhone => Get("PartyTvJoinFromPhone");
+
+    /// <summary>Button that pairs a phone with the TV.</summary>
+    public static string PartyTvPair => Get("PartyTvPair");
+
+    /// <summary>Button on a phone's sheet that joins on the paired TV. The device is its name, such as Living room TV.</summary>
+    public static string PartyJoinOnDevice(string device) => Fill(Get("PartyJoinOnDevice"), ("device", device));
+
+    /// <summary>Button on a phone's sheet that joins on the phone itself.</summary>
+    public static string PartyJoinOnThisPhone => Get("PartyJoinOnThisPhone");
+
+    /// <summary>Line on a phone when its paired TV is in the party.</summary>
+    public static string PartyDeviceInParty(string device) => Fill(Get("PartyDeviceInParty"), ("device", device));
+
+    /// <summary>Button on a phone that sends the invite to others.</summary>
+    public static string PartyShareInvite => Get("PartyShareInvite");
+
+    /// <summary>Button on the phone's remote screen that readies the TV.</summary>
+    public static string PartyReadyOnDevice(string device) => Fill(Get("PartyReadyOnDevice"), ("device", device));
+
+    /// <summary>Button on the phone's remote screen that leaves the party on the TV.</summary>
+    public static string PartyLeaveOnDevice(string device) => Fill(Get("PartyLeaveOnDevice"), ("device", device));
 
     /// <summary>Label on the card for the episode that plays after this one.</summary>
     public static string PlayerUpNext => Get("PlayerUpNext");
@@ -6002,6 +6296,7 @@ public static partial class T
         ["PartyServerLost"] = "Lost the watch party server. Trying again.",
         ["PartyRejoined"] = "Back in the watch party.",
         ["PartyLeft"] = "Left the watch party.",
+        ["PartyServerUnreachable"] = "Couldn't reach {server}. Check the server, or try again.",
         ["StoreJoined"] = "Joined {store} as {member}.",
         ["StoreJoinedUnnamed"] = "Joined {store} without a name.",
         ["StoreLeft"] = "Left {store}. Its plugins stay installed.",
@@ -6858,6 +7153,7 @@ public static partial class T
         ["NavCollapse"] = "Collapse navigation",
         ["NavExpand"] = "Expand navigation",
         ["TooltipWithKey"] = "{name} ({key})",
+        ["NavWatchTogether"] = "Watch together",
         ["OnboardingWelcome"] = "Welcome",
         ["OnboardingWelcomeTo"] = "Welcome to anistream",
         ["OnboardingTagline"] = "Keep track of anime and play it from sources you choose.",
@@ -6945,6 +7241,104 @@ public static partial class T
         ["PartySourceSeeders"] = "{seeders} seeders",
         ["PartyNoSourceLists"] = "No source lists episode {episode}. Sources come from plugins, which a plugin store adds.",
         ["PartyPlayWith"] = "Play with the watch party",
+        ["TogetherTitle"] = "Watch together",
+        ["TogetherLine"] = "Everyone plays the episode from their own sources. The server only keeps you in step.",
+        ["TogetherPeopleButton"] = "Watch together",
+        ["TogetherStart"] = "Start a party",
+        ["TogetherStartLine"] = "Pick something you're watching, then invite friends with a link or a code.",
+        ["TogetherJoin"] = "Join a party",
+        ["TogetherJoinLine"] = "Paste a friend's invite link, or type the code they read out.",
+        ["TogetherJoinField"] = "Link or code",
+        ["TogetherPaste"] = "Paste",
+        ["TogetherJoinAction"] = "Join",
+        ["TogetherInParty"] = "In a party",
+        ["TogetherInPartyLine"] = "Episode {episode} · {count} in the room · {ready} ready",
+        ["TogetherOpenLobby"] = "Open lobby",
+        ["TogetherOpenPlayer"] = "Open player",
+        ["TogetherRecent"] = "Recent rooms",
+        ["TogetherRecentRow"] = "Episode {episode} · with {names} · {when}",
+        ["TogetherRecentEmpty"] = "Rooms you join show here, the last ten.",
+        ["TogetherRejoin"] = "Rejoin",
+        ["TogetherForgetRoom"] = "Remove from recent rooms",
+        ["TogetherSomeoneHere_one"] = "{names} is in the room",
+        ["TogetherSomeoneHere_other"] = "{names} are in the room",
+        ["TogetherNobodyHere"] = "Nobody here now",
+        ["TogetherServers"] = "Servers",
+        ["TogetherServerSuggested"] = "Suggested · run by {operator}",
+        ["TogetherServerUsed_one"] = "Used for 1 party",
+        ["TogetherServerUsed_other"] = "Used for {count} parties",
+        ["TogetherAddServer"] = "Add a server",
+        ["TogetherPasteShortcutHint"] = "Paste a link or code anywhere on this page.",
+        ["PartyPickTitle"] = "What are you watching?",
+        ["PartyPickNext"] = "Episode {episode} next",
+        ["PartyPickSearch"] = "Search titles",
+        ["PartyFirstServerTitle"] = "Choose a server",
+        ["PartyStartParty"] = "Start party",
+        ["PartyLobbySourcesFound"] = "Plays from your sources",
+        ["PartyLobbySourcesMissing"] = "Not in your sources yet",
+        ["PartyLobbyOutOn"] = "Out on {day}",
+        ["PartyStillInRoom"] = "You're still in the room.",
+        ["PartyLobbyCount"] = "In the room · {ready} of {count} ready",
+        ["PartyInvitedBy"] = "{name} invited you",
+        ["PartyLookingIn"] = "Looking in",
+        ["PartyLookingInNote"] = "Opening a room shows you in it for a moment.",
+        ["PartyMemberJoining"] = "Joining",
+        ["PartyMemberFinding"] = "Finding a source",
+        ["PartyMemberWatchingFrom"] = "Watching from {time}",
+        ["PartyReadyOn"] = "Ready",
+        ["PartyInvite"] = "Invite",
+        ["PartyCode"] = "Code",
+        ["PartyShare"] = "Share…",
+        ["PartyShareText"] = "Watch party · {title} · Episode {episode}",
+        ["PartyInviteCopied"] = "Invite link copied",
+        ["PartyStartsLine"] = "Starts at 0:00 when everyone is ready",
+        ["PartyStartAnyway"] = "Start anyway",
+        ["PartyStarting"] = "Starting in {seconds}",
+        ["PartyChangeEpisode"] = "Change episode",
+        ["PartyChangeServer"] = "Change server",
+        ["PartyRoomWatching"] = "The room is watching",
+        ["PartyRoomNothing"] = "Nothing is open in the room yet.",
+        ["PartyRoomNothingLine"] = "It starts when someone picks an episode.",
+        ["PartyRoomPick"] = "Pick what to watch",
+        ["PartyRoomMovedOn"] = "The room has moved on to episode {episode}.",
+        ["PartyRoomChanged"] = "{name} changed the episode to {episode}",
+        ["PartyRoomPlainFile"] = "{name} has {file} open",
+        ["PartyRoomMatched"] = "Matched from the file name",
+        ["PartyRoomNotThis"] = "Not this title",
+        ["PartyRoomGuesses"] = "Which title is this?",
+        ["PartyRoomFoundByName"] = "Found by its name.",
+        ["PartyRoomNotFound"] = "Couldn't find what the room is watching in your sources or on AniList.",
+        ["PartyCodeShape"] = "A code is a word and eight letters and numbers, like {example}.",
+        ["PartyCodeEmptyRoom"] = "Nobody is in {code} yet. Check the code, or wait here.",
+        ["PartyCodeWait"] = "Wait here",
+        ["PartyCodeOtherServer"] = "Codes work on {server}. For another server, ask for the invite link.",
+        ["PartyBarTitle"] = "{title} · Episode {episode}",
+        ["PartyBarLine"] = "{count} in the room · {ready} ready",
+        ["PartyBarIdle"] = "In the room · nothing playing for you",
+        ["PartyPausedBy"] = "Paused by {name}",
+        ["PartyPlayedBy"] = "Played by {name}",
+        ["PartySeekedBy"] = "{name} moved to {time}",
+        ["PartyNextLine"] = "Everyone moves on in {seconds} s",
+        ["PartyNextWaiting"] = "Waiting for {name} · {seconds} s",
+        ["PartyNextJoinedAt"] = "{name} joined at {time}",
+        ["PartyNextOff"] = "The room moves on together at the end.",
+        ["PartyLastOut"] = "That was the last episode out.",
+        ["PartyLastOutAirs"] = "Episode {episode} is out on {day}.",
+        ["PartyWatchSomethingElse"] = "Watch something else",
+        ["PartyMemberJoined"] = "{name} joined",
+        ["PartyMemberLeft"] = "{name} left",
+        ["PartyStarterLeft"] = "{name} left. The party carries on.",
+        ["PartyYouLeft"] = "You left the watch party.",
+        ["PartyTvScan"] = "Scan to send the invite from your phone",
+        ["PartyTvOrCode"] = "Or type the code",
+        ["PartyTvJoinFromPhone"] = "To join a friend's party, open their invite on a paired phone and choose this TV.",
+        ["PartyTvPair"] = "Pair a phone",
+        ["PartyJoinOnDevice"] = "Join on {device}",
+        ["PartyJoinOnThisPhone"] = "Join on this phone",
+        ["PartyDeviceInParty"] = "{device} is in this party",
+        ["PartyShareInvite"] = "Share invite",
+        ["PartyReadyOnDevice"] = "Ready on {device}",
+        ["PartyLeaveOnDevice"] = "Leave the watch party on {device}",
         ["PlayerUpNext"] = "Up next",
         ["TitleBasedOn"] = "Based on",
         ["PlayerStarting"] = "Starting episode {episode}",

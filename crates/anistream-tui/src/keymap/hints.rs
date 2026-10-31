@@ -142,6 +142,18 @@ fn hint_sign_out() -> &'static str {
     said(t::keys_hint_sign_out())
 }
 
+fn hint_ready() -> &'static str {
+    said(t::keys_hint_ready())
+}
+
+fn hint_copy_link() -> &'static str {
+    said(t::keys_hint_copy_link())
+}
+
+fn hint_leave_party() -> &'static str {
+    said(t::keys_hint_leave_party())
+}
+
 fn hint_start_now() -> &'static str {
     said(t::keys_hint_start_now())
 }
@@ -333,6 +345,20 @@ pub(crate) fn status_hints_paged(
             hints.extend(key(Action::Open).map(|k| (k, hint_stores())));
             return with_help(keymap, hints);
         }
+        // Together: Enter joins the highlighted room or asks for a link; the party's own keys are
+        // named only while there is a party to use them on.
+        V::Section(Section::Together) => {
+            let mut hints = vec![(Action::Open, hint_open())];
+            if let Some(party) = &app.party {
+                hints.push((Action::Refresh, hint_ready()));
+                hints.push((Action::ClearCompleted, hint_copy_link()));
+                if party.can_start_anyway {
+                    hints.push((Action::ShowSources, hint_start_now()));
+                }
+                hints.push((Action::HideFromContinue, hint_leave_party()));
+            }
+            hints
+        }
         // Enter signs the highlighted tracker in or out, so it is named for which.
         V::Section(Section::Accounts) => match app.sync.get(app.cursors.accounts.selected) {
             Some(tracker) if tracker.connected && !tracker.needs_reauth => {
@@ -414,6 +440,7 @@ fn overlay_hints(
                 O::KitsuUsername => hint_next(),
                 O::KitsuPassword => hint_sign_in(),
                 O::JoinStore => hint_check(),
+                O::JoinParty => hint_open(),
                 O::InviteName => hint_make_link(),
                 _ => hint_choose(),
             };

@@ -48,9 +48,12 @@ impl Keymap {
             // cursor: `K` takes the selected source up the order, `J` down.
             bind(Binding::plain(Char('K')), A::RaiseSource);
             bind(Binding::plain(Char('J')), A::LowerSource);
-            for n in 1..=9u8 {
+            // `0` is the tenth section, the way it is the tenth key on the row.
+            for n in 1..=10u8 {
                 bind(
-                    Binding::plain(Char(char::from_digit(u32::from(n), 10).unwrap_or('1'))),
+                    Binding::plain(Char(
+                        char::from_digit(u32::from(n % 10), 10).unwrap_or('1'),
+                    )),
                     A::JumpSection(n),
                 );
             }

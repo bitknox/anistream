@@ -23,9 +23,13 @@ impl Keymap {
                 })
                 .collect();
             numbers.sort_unstable();
+            // Keys, not numbers: the tenth section is on `0`.
+            let key = |n: &u8| n % 10;
             match (numbers.first(), numbers.last()) {
-                (Some(first), Some(last)) if first != last => format!("{first}–{last}"), // i18n-skip
-                (Some(only), _) => only.to_string(),
+                (Some(first), Some(last)) if first != last => {
+                    format!("{}–{}", key(first), key(last)) // i18n-skip
+                }
+                (Some(only), _) => key(only).to_string(),
                 _ => String::new(),
             }
         };
@@ -138,9 +142,9 @@ mod tests {
             global.iter().filter(|(_, label)| *label == "Go to section").collect();
         assert_eq!(jump_rows.len(), 1);
         // Read off the live table, so adding a section cannot leave the overlay claiming a
-        // range that stops short of it.
-        let sections = crate::nav::Section::ALL.len();
-        assert_eq!(jump_rows[0].0, format!("1–{sections}"));
+        // range that stops short of it. The tenth is on `0`: the range names keys.
+        assert_eq!(crate::nav::Section::ALL.len(), 10);
+        assert_eq!(jump_rows[0].0, "1–0");
     }
 
     #[test]

@@ -44,3 +44,6 @@ nav-expand = Expand navigation
 # @arg name: text
 # @arg key: text
 tooltip-with-key = { $name } ({ $key })
+
+# Sidebar row, rail item and window title for the place that starts and joins watch parties.
+nav-watch-together = { -watch-together-cap }

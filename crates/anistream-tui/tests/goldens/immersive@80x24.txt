@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │
  ◎ │
  ≡ │
-   │
+ ⇄ │
    │
    │
    │
@@ -92,7 +92,9 @@ r10 c01-01 fg=#9298b5 bg=#161a2e
 r10 c02-02 bg=#161a2e
 r10 c03-03 fg=#434653 bg=#161a2e
 r10 c04-79 bg=#161a2e
-r11 c00-02 bg=#161a2e
+r11 c00-00 bg=#161a2e
+r11 c01-01 fg=#9298b5 bg=#161a2e
+r11 c02-02 bg=#161a2e
 r11 c03-03 fg=#434653 bg=#161a2e
 r11 c04-79 bg=#161a2e
 r12 c00-02 bg=#161a2e

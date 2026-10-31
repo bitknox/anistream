@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │
  ◎ │    Tomorrow  ───────────────────────────────────────────────────────────
  ≡ │  ▌ Umibe no Kissaten                                  E2   In 2 h 41 min
-   │
+ ⇄ │
    │    Wednesday · 21 Oct  ─────────────────────────────────────────────────
    │    Mori no Kajiya                                     E7      In 1 d 4 h
    │
@@ -66,6 +66,7 @@ r10 c03-03 fg=rule
 r10 c06-06 fg=obi
 r10 c08-24 fg=text mod=BOLD
 r10 c59-76 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r12 c03-03 fg=rule
 r12 c08-25 fg=text-dim

@@ -23,6 +23,7 @@ mod providers;
 mod settings;
 mod stores;
 mod title;
+mod together;
 
 pub use downloads::download_state_label;
 pub use episodes::episode_kind_label;
@@ -49,6 +50,7 @@ use providers::render_providers;
 use settings::render_settings;
 use stores::{render_store, render_store_members, render_stores};
 use title::render_title;
+use together::render_together;
 
 /// Write a line, or nothing at all if it would land outside the buffer.
 ///
@@ -158,6 +160,7 @@ fn render_stage(buf: &mut Buffer, app: &App, area: Rect) {
             Section::Accounts => render_accounts(buf, app, inner),
             Section::Library => render_library(buf, app, inner),
             Section::Settings => render_settings(buf, app, inner),
+            Section::Together => render_together(buf, app, inner),
         },
     }
 }

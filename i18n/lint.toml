@@ -11,7 +11,7 @@ acronyms = ["MIT", "TV", "VPN", "URL", "HLS", "RSS", "SSL", "DNS", "API", "OK", 
 
 [language.en]
 words = ["provider", "providers", "pirate", "oops", "simply", "easily", "effortless", "seamless"]
-phrases = ["watch together", "mark as seen", "mark as watched", "sub or dub", "dual audio"]
+phrases = ["mark as seen", "mark as watched", "sub or dub", "dual audio"]
 
 [code]
 # Platforms whose hardcoded-string scan fails the build. A platform is added in the last commit

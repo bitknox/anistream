@@ -64,8 +64,9 @@ Every message is an object with one or more of these keys, each a message of its
 | `Error` | Never | Why the server ends the connection |
 
 The client says it is protocol version `1.2.255`, real version `1.7.3`, with the features
-`chat`, `readiness` and `featureList` on and shared playlists, managed rooms and persistent
-rooms off.
+`chat`, `readiness`, `featureList` and `sharedPlaylists` on, and managed rooms and persistent
+rooms off. `Set` carries `playlistChange` and `playlistIndex` as well: see
+[The shared playlist](#the-shared-playlist-and-file-names).
 
 The parser is lenient: unknown keys are skipped, missing fields read as absent, and a line that
 is not JSON is logged and ignored. Several keys on one line are read in a fixed order, `TLS`,
@@ -233,6 +234,17 @@ A party command with none going is answered with `PartyLeft { reason: None }`. B
 the `party` feature, every party command is answered with an alert that watch parties aren't
 built in.
 
+These are the variants of `PartyCommand`, sent as `Command::Party(..)`; one nested enum keeps the
+uniffi metadata for `Command` within its size limit.
+
+| `Lobby { server, room, name, pick }` | Joins the room's lobby. With `pick`, this device sets what the room watches (a party it starts); without, the room says what it watches. The first name given is saved as `syncplay.name` |
+| `ChangeEpisode { id, episode }` | Sets the room's episode and the one after it, in the lobby |
+| `ChooseTitle { id }` | Uses a title for the plain file the room plays, or, with none, rejects the match and shows the guesses. Local to this device |
+| `StartAnyway` | Starts the room without waiting for those who are not ready |
+| `OpenPlayer` | Opens the player again in the room's episode |
+| `LookIn { server, room, name }` | Joins a room for a moment and says who is there and what it watches; only when a room is opened |
+| `LoadRecent`, `ForgetRoom { server, room }` | The last ten rooms on this device, newest first |
+
 ### Events
 
 | Event | When |
@@ -244,6 +256,10 @@ built in.
 | `PartyMessage(PartyMessage)` | Something to say: chat, a join or leave, a pause, resume or seek, a correction, everyone ready |
 | `PartyLeft { reason }` | The party ended; `reason` when it was not the viewer's own leaving |
 | `PartyNoSource { id, episode }` | A party play found no source for the episode: still in the room, with nothing playing. A front end offers Choose source |
+| `PartyStarted { id, episode, kind }` | The room starts (`Start`), moves on (`MoveOn`) or this device opens the player again (`Rejoin`). The engine opens the episode from this device's own sources; the front end gives the lobby way |
+| `PartyGlimpse(PartyGlimpse)`, `PartyLookFailed { server, room, reason }` | Answers `PartyCommand::LookIn` |
+| `PartyRecent(Vec<PartyRecentRoom>)` | The last ten rooms: answers `PartyCommand::LoadRecent`, and is said again when a room is joined, changed or left |
+| `PartyLastOut { episode, airs }` | The episode that ended was the last that is out; `airs` says when the next comes out, when known |
 
 ### Saved settings
 
@@ -254,20 +270,25 @@ the terminal once handed a party to.
 
 ## Invite links
 
-A party is shared as a link that names the server, the room and the episode:
+People send an https link on anistream.tv, with the room in the fragment, which browsers never
+send to the website:
 
 ```
-anistream://party?server=syncplay.example%3A8999&room=amber-anchor-k7m2xq9ad4tnwe3p&title=21&episode=3
+https://anistream.tv/party#v=2&s=syncplay.pl:8995&r=kite-7qm4-xr9d&by=Mika&n=Natsukaze%20Relay&e=9
 ```
 
-`title` is the AniList id. Values are percent-encoded per RFC 3986. Reading is lenient: the
-scheme and host in any case, `+` read as a space, parameters in any order; a link missing any
-of the four, or with id 0, is not an invite. Opened by someone who has no source for the
-episode, the invite still joins the room, and `PartyNoSource` offers Choose source.
+`s` is the server, `r` the room, `by` who invited, `n` the title's name and `e` the episode, all
+percent-encoded except the colon in `s`. The static page at `website/public/party/index.html`
+reads the fragment and opens `anistream://party#` with the same fragment, so a device with the
+app opens the lobby. `PartyShare` in the model builds both forms (`https_link`, `app_link`) and
+`PartyTarget::parse` reads either, the `www` host and a trailing slash too, the older
+`anistream://party?server=…&room=…&title=…&episode=…` form (`PartyInvite`), and a room code. The
+FFI exports `party_share_link`, `party_share_app_link` and `parse_party_target`. Android's App
+Link for `https://anistream.tv/party` needs an intent filter and the host's
+`assetlinks.json` entry.
 
-`PartyView::invite` carries the link for what plays now. `PartyInvite::link` and
-`PartyInvite::parse` in the model build and read it, and the FFI exports them as
-`party_invite_link` and `parse_party_invite`.
+`PartyView::link` carries the https invite from the moment the room exists. `PartyView::invite`
+is the older field for what plays now.
 
 ## Choosing a server
 
@@ -276,27 +297,74 @@ public one, `syncplay.pl:8995`, saying it is run by the Syncplay project, so the
 whose server their room is on before joining. A play that asks for a party with no server
 chosen is refused with the same suggestion.
 
-## Room names
+## Room names and codes
 
-A server has no lock on a room: anyone who knows its name can join it. So a new party's room
-is named so that nobody can guess it: two words, for people to tell rooms apart by, then
-sixteen random letters and digits, eighty bits drawn fresh for each form, as
-`quiet-harbor-k7m2xq9ad4tnwe3p` (`room_name` in the model). The letters leave out `l`, `o`, `0`
-and `1`, which read as one another. The name travels in the invite link, so nobody has to read
-it out.
+A server has no lock on a room: anyone who knows its name can join it. A new party's room is
+therefore named so that nobody can guess it, as a code: a word, then eight random letters and
+digits, such as `kite-7qm4-xr9d` (`room_name` in the model). The word comes from a list of 32 and
+the characters leave out `l`, `o`, `0` and `1`, which read as one another. A code is on the
+suggested server, which a code typed in implies (`clean_party_code` tidies case, spaces and
+dashes). The room travels in the invite link, so nobody has to read it out.
 
-The form's room can be replaced by a name typed by hand, which joins that room as it is: how
-someone joins a friend who started a party with Syncplay's own client, or a room with an easy
-name a group chose to be findable. There is no room password.
+A room typed in by hand still joins that room as it is: how someone joins a friend who started a
+party with Syncplay's own client, or a room with an easy name a group chose to be findable. There
+is no room password.
+
+## The shared playlist and file names
+
+Every anistream player reports its file as a readable name with a tag:
+`Natsukaze Relay, episode 9 [anilist:104321:9]` (`anistream_party::file`). Plain Syncplay
+clients show the name as it is. Only a title, an id and an episode travel, never a source, a
+link or a stream. The title is cut to fit 200 characters.
+
+The room's shared playlist holds the episode it watches and the one after it. Whoever sets the
+episode writes the playlist (`Set playlistChange`, then `playlistIndex`); the server tells
+everyone and says who. A joiner receives it after `Hello`. From it a device finds the title:
+
+1. by the AniList id in the tag, then
+2. by the readable title, when the id is not known there, then
+3. for a plain file, by matching the release name to a title: a confident match opens by itself
+   (`PartyFound::FileName`, with Not this title) and an unsure one offers up to three guesses.
+
+Then the sources check runs on this device (`PartyView::sources`) and keeps the streams it
+found for the play that follows. A device whose sources lack the episode stays in the room
+(`PartyNoSource`).
+
+## The lobby, starting and moving on
+
+`PartyView` carries the lobby: `room_episode`, `next_episode`, `starter`, `starter_present`,
+`can_start_anyway`, `sources`, `guesses`, `looking`, `code`, `link` and `starting_in`.
+
+- When everyone in the room, two or more, says ready, a count of three seconds runs
+  (`starting_in`); anyone not ready stops it. At zero the room plays (`PartyStarted` with kind
+  `Start`).
+- Start anyway is for the member who set the episode, and for everyone when that member has left
+  and somebody else is in the room.
+- Anyone controls play and seeks, as in Syncplay.
+- When an episode plays to its end, the player reports `Ended { finished: true }`, the party
+  writes the next entry (`Party::move_on`, idempotent) and every device opens it from the
+  playlist index, paused at 0:00. Each device says ready when its first frame is open; the room
+  plays when all are. With no next entry the lobby is told (`PartyLastOut`).
+- Closing the player keeps the member in the room; Leave is its own command.
+
+## Looking in and recent rooms
+
+The last ten rooms are kept on the device (`party_room` table, migration 16): server, room,
+title, episode, who was there and when. They are checked only when a room is opened: that
+command joins not ready with no file, reads the members and playlist, and leaves
+(`anistream_party::look`).
 
 ## FFI surface
 
 The commands and events cross as the model's own types. Beside them the FFI has:
 
-- `party_invite_link(invite)` and `parse_party_invite(link)`, in every build;
+- `party_invite_link(invite)` and `parse_party_invite(link)`, in every build, for the older
+  link form, and `party_share_link`, `party_share_app_link`, `parse_party_target` and
+  `clean_party_code` for the https links and codes;
 - `FfiEngine::start_fake_party()`, in builds with `party` and `testing`: a Syncplay server on
   127.0.0.1 whose members the caller plays (`add_member`, `member_opens`, `member_ready`,
-  `member_pauses`, `member_plays`, `member_seeks`, `member_says`, `member_leaves`, `go_down`),
+  `member_sets_playlist`, `member_sets_index`, `member_pauses`, `member_plays`,
+  `member_seeks`, `member_says`, `member_leaves`, `go_down`),
   joined with `PartyJoin` and its `server()`. The Fixtures apps hold a party on it offline.
 
 The FFI's `party` feature turns on the engine's. `desktop` includes it; the Mac and iOS engine

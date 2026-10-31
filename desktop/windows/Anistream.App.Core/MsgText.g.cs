@@ -134,6 +134,7 @@ public static class MsgText
         Msg.PartyServerLost => T.PartyServerLost,
         Msg.PartyRejoined => T.PartyRejoined,
         Msg.PartyLeft => T.PartyLeft,
+        Msg.PartyServerUnreachable x => T.PartyServerUnreachable(x.Server),
         Msg.StoreJoined x => T.StoreJoined(x.Store, x.Member),
         Msg.StoreJoinedUnnamed x => T.StoreJoinedUnnamed(x.Store),
         Msg.StoreLeft x => T.StoreLeft(x.Store),

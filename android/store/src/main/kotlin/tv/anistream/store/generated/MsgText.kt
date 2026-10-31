@@ -135,6 +135,7 @@ fun Msg.text(context: Context): String =
         is Msg.PartyServerLost -> Strings.partyServerLost(context)
         is Msg.PartyRejoined -> Strings.partyRejoined(context)
         is Msg.PartyLeft -> Strings.partyLeft(context)
+        is Msg.PartyServerUnreachable -> Strings.partyServerUnreachable(context, this.server)
         is Msg.StoreJoined -> Strings.storeJoined(context, this.store, this.member)
         is Msg.StoreJoinedUnnamed -> Strings.storeJoinedUnnamed(context, this.store)
         is Msg.StoreLeft -> Strings.storeLeft(context, this.store)

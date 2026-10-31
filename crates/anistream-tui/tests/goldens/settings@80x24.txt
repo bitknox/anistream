@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │    Audio                       Subbed · Dubbed this session
  ◎ │    Quality                     1080p
 ▌≡ │    Subtitles                   eng
-   │    Counts as watched at        85%
+ ⇄ │    Counts as watched at        85%
    │    Auto-play next              On
    │    Skip opening automatically  On
    │    Skip filler automatically   Off
@@ -67,6 +67,7 @@ r10 c01-01 fg=text mod=BOLD
 r10 c03-03 fg=rule
 r10 c08-16 fg=text-dim
 r10 c36-38 fg=text
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-27 fg=text-dim
 r11 c36-38 fg=text

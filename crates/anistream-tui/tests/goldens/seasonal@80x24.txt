@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │    Yuki Usagi Biyori                                                 72%
  ◎ │    Kirin Koubou                                                      71%
  ≡ │    Uta no Tou no Majo                                                70%
-   │    Akari Shokudou                                                    69%
+ ⇄ │    Akari Shokudou                                                    69%
    │    Hoshikuzu no Tabibito II                                          68%
    │    Kaze no Tegami II                                                 67%
    │    Yoru no Toshokan II                                               66%
@@ -69,6 +69,7 @@ r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-25 fg=text-dim
 r10 c74-76 fg=text-dim
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-21 fg=text-dim
 r11 c74-76 fg=text-dim

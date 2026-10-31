@@ -19,6 +19,7 @@ enum Rows {
     Downloads,
     Accounts,
     Settings,
+    Together,
     /// The Providers table, in the order failover walks it.
     Providers,
     Episodes,
@@ -54,6 +55,8 @@ pub struct Cursors {
     pub providers: Cursor,
     pub accounts: Cursor,
     pub settings: Cursor,
+    /// Together: the Join line, then the recent rooms.
+    pub together: Cursor,
     /// The episode table, kept apart from the list it was opened from so stepping back out of
     /// Episodes does not disturb where you were in the list.
     pub episodes: Cursor,
@@ -86,6 +89,7 @@ impl Cursors {
             Section::Providers => &self.providers,
             Section::Accounts => &self.accounts,
             Section::Settings => &self.settings,
+            Section::Together => &self.together,
         }
     }
 
@@ -100,6 +104,7 @@ impl Cursors {
             Section::Providers => &mut self.providers,
             Section::Accounts => &mut self.accounts,
             Section::Settings => &mut self.settings,
+            Section::Together => &mut self.together,
         }
     }
 }
@@ -174,6 +179,7 @@ impl App {
             StageView::Section(Section::Downloads) => Some(Rows::Downloads),
             StageView::Section(Section::Accounts) => Some(Rows::Accounts),
             StageView::Section(Section::Settings) => Some(Rows::Settings),
+            StageView::Section(Section::Together) => Some(Rows::Together),
             // The cursor is the row `K` and `J` move up and down the chain.
             StageView::Section(Section::Providers) => Some(Rows::Providers),
             StageView::Section(_) => Some(Rows::List),
@@ -246,6 +252,7 @@ impl App {
             Rows::Downloads => self.downloads.len(),
             Rows::Accounts => self.sync.len(),
             Rows::Settings => SettingKey::ROWS.len(),
+            Rows::Together => self.together_rows(),
             Rows::Providers => self.providers.len(),
             Rows::Episodes => self.episodes.len(),
             // The last row is the one that joins another store.
@@ -264,6 +271,7 @@ impl App {
             Rows::Downloads => &mut self.cursors.downloads.selected,
             Rows::Accounts => &mut self.cursors.accounts.selected,
             Rows::Settings => &mut self.cursors.settings.selected,
+            Rows::Together => &mut self.cursors.together.selected,
             Rows::Providers => &mut self.cursors.providers.selected,
             Rows::Episodes => &mut self.cursors.episodes.selected,
             Rows::Stores => &mut self.cursors.stores.selected,

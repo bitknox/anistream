@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌◇ │  ▌ Kumo club                   0         Member    ▲ Offline
  ◎ │    Old lab                     0         Member    ✕ Access removed
  ≡ │
-   │    + Join a store
+ ⇄ │    + Join a store
    │
    │
    │
@@ -78,6 +78,7 @@ r09 c56-56 fg=alert
 r09 c58-71 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
+r11 c01-01 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-21 fg=text
 r12 c03-03 fg=rule
