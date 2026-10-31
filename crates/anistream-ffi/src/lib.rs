@@ -107,6 +107,7 @@ mod tests {
             PlayerReport, PlayerUi, StatsAbout, StatsFixture, TrackKind,
         },
         jobs::JobId,
+        local::LocalCommand,
         notice::NoticeKind,
         playback::{NextEpisode, PlayableStream, PlaybackId, SkipKind},
         progress::TitleProgress,
@@ -207,6 +208,15 @@ mod tests {
             }),
             Command::Server(ServerCommand::Remove { server: "0f1e2d3c".into() }),
             Command::Server(ServerCommand::Load),
+            Command::Local(LocalCommand::Load),
+            Command::Local(LocalCommand::AddFolder { path: "/Volumes/Media".into() }),
+            Command::Local(LocalCommand::RemoveFolder { path: "/Volumes/Media".into() }),
+            Command::Local(LocalCommand::Scan),
+            Command::Local(LocalCommand::Choose {
+                group: "g".into(),
+                anilist: AnilistId::new(900_001),
+            }),
+            Command::Local(LocalCommand::Keep { group: "g".into() }),
             Command::LoadUpNext,
             Command::DismissUpNext { id: AnilistId::new(900_004) },
             Command::RestoreUpNext { id: AnilistId::new(900_004) },
@@ -1066,6 +1076,39 @@ mod tests {
             ] {
                 crosses_intact(Event::Server(event));
             }
+        }
+        {
+            use anistream_model::local::{
+                FolderRow, GroupState, LocalEvent, LocalGroup, LocalView, NotMatchedReason,
+            };
+            crosses_intact(Event::Local(LocalEvent::View(LocalView {
+                folders: vec![FolderRow {
+                    path: "/Volumes/Media".into(),
+                    files: 3,
+                    available: true,
+                }],
+                groups: vec![
+                    LocalGroup {
+                        id: "g".into(),
+                        name: "Stardust Wayfarer".into(),
+                        files: 3,
+                        state: GroupState::NotMatched,
+                        anilist: None,
+                        matched_title: None,
+                        reason: Some(NotMatchedReason::Offline),
+                    },
+                    LocalGroup {
+                        id: "h".into(),
+                        name: "Lantern Harbour".into(),
+                        files: 2,
+                        state: GroupState::Matched,
+                        anilist: Some(AnilistId::new(900_002)),
+                        matched_title: Some("Lantern Harbour".into()),
+                        reason: None,
+                    },
+                ],
+                scanning: false,
+            })));
         }
         crosses_intact(Event::LicensedReturn(LicensedReturn {
             id: AnilistId::new(900_001),

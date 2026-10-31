@@ -114,6 +114,9 @@ pub enum FfiScene {
     /// anime one read, three series and two of them matched. The Media servers page has its row,
     /// and the server is a source in the chain.
     Servers,
+    /// [`Self::Watching`] with one folder added, Media: a matched series, one that needs a look
+    /// and one not matched. The Your media page has its three lists.
+    Library,
     /// Nothing watched and offline from the start: the fake AniList hangs up on every request
     /// and the engine is told the path is offline, whatever the host says, so Home has nothing
     /// saved to show. [`FfiEngine::testing_set_offline`] does the same to any other scene once
@@ -153,6 +156,7 @@ impl FfiScene {
             self,
             Self::Watching
                 | Self::Servers
+                | Self::Library
                 | Self::WatchingMedia { .. }
                 | Self::Sourceless
                 | Self::Suggested
@@ -167,6 +171,7 @@ impl FfiScene {
             self,
             Self::Watching
                 | Self::Servers
+                | Self::Library
                 | Self::WatchingMedia { .. }
                 | Self::Sourceless
                 | Self::Unsure
@@ -492,6 +497,9 @@ fn library_statuses(store: &Store, world: &HomeWorld, now: i64) {
 
 /// The history `scene` describes, the newest watch an hour before `now`.
 fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
+    if *scene == FfiScene::Library {
+        anistream_engine::local::seed_fixture(store);
+    }
     if *scene == FfiScene::Servers {
         anistream_engine::servers::seed_fixture(store);
     }
@@ -519,6 +527,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
         }
         FfiScene::Watching
         | FfiScene::Servers
+        | FfiScene::Library
         | FfiScene::WatchingMedia { .. }
         | FfiScene::Sourceless
         | FfiScene::Licensed
@@ -593,6 +602,14 @@ mod tests {
             &world().provided(),
         );
         assert!(none.is_empty());
+    }
+
+    #[test]
+    fn library_has_three_groups_in_three_states() {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let store = Store::open(dir.path().join("anistream.db")).expect("a database");
+        seed_scene(&store, &FfiScene::Library, 1_800_000_000);
+        assert_eq!(anistream_engine::local::saved(&store).len(), 3);
     }
 
     #[test]

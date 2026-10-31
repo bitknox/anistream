@@ -6,13 +6,12 @@
 //! of these settle stays unmatched rather than guessed.
 
 use anistream_core::ids::{AnilistId, ExternalIds};
-use anistream_core::media::SearchHit;
 use anistream_jellyfin::{
     Jellyfin, JellyfinError, SeriesMatch,
     model::{Library, Series},
     source::ids_of,
 };
-use anistream_meta::{CONFIDENCE_FLOOR, Meta, anilist::BrowseFilter, rank};
+use anistream_meta::Meta;
 use anistream_model::servers::LibraryChoice;
 use anistream_store::Store;
 
@@ -144,27 +143,8 @@ async fn by_ids(
 
 /// The one AniList entry whose title the series' name is, when exactly one is clearly it.
 async fn by_name(meta: &Meta, series: &Series) -> Vec<(AnilistId, Option<u32>)> {
-    let Ok(found) = meta.find(&series.name, &BrowseFilter::default(), 1, 5).await else {
-        return Vec::new();
-    };
-    let mut hit = SearchHit::new(series.id.as_str(), series.name.as_str());
-    hit.year = series.production_year;
-    let mut confident = Vec::new();
-    for media in &found.page.items {
-        let target = media.match_target();
-        // Not the episode count or format: the server's series has neither to compare.
-        let target =
-            anistream_meta::MatchTarget { episode_count: None, format: None, ..target };
-        let hits = [hit.clone()];
-        if let Some(best) = rank(&target, &hits).first()
-            && best.rejected.is_none()
-            && best.score >= CONFIDENCE_FLOOR
-        {
-            confident.push((media.id, best.score));
-        }
-    }
-    match confident.as_slice() {
-        [(id, _)] => vec![(*id, None)],
+    match crate::titlematch::candidates(meta, &series.name, series.production_year).await {
+        Ok(found) if found.len() == 1 => vec![(found[0].id, None)],
         _ => Vec::new(),
     }
 }

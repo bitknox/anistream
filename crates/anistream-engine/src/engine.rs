@@ -279,8 +279,10 @@ impl Engine {
                     store.clone(),
                     http.clone(),
                 );
+                let local = crate::local::Local::new(store.clone());
                 Services {
                     servers,
+                    local,
                     power,
                     hosted,
                     hosted_player,
@@ -321,6 +323,7 @@ impl Engine {
         let services =
             Services { hosted_player, every_play_a_party, app_clients, stores, ..services };
         services.servers.join_chain(&services.registry, &config);
+        services.local.put_source(&services.registry, &config.providers.order);
         let hosted = Arc::clone(&services.hosted);
         #[cfg(feature = "cast")]
         let casts = Arc::clone(&services.casts);

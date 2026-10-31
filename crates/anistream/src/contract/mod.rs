@@ -22,6 +22,7 @@ mod jobs;
 mod keep_next;
 mod licensed;
 mod lists;
+mod local;
 mod preview;
 mod progress;
 mod servers;

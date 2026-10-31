@@ -162,6 +162,8 @@ pub enum Event {
     LicensedReturn(crate::licensed::LicensedReturn),
     // Media servers; see `ServerEvent`.
     Server(crate::servers::ServerEvent),
+    // Your media; see `LocalEvent`.
+    Local(crate::local::LocalEvent),
     /// The recent searches, newest first: at launch when asked, and after each change.
     RecentSearches(Vec<SearchQuery>),
     Detail(Box<Entry>),

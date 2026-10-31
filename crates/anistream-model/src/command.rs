@@ -436,6 +436,8 @@ pub enum Command {
     Licensed(LicensedCommand),
     // Media servers; see `ServerCommand`. A plain comment: variant docs fill uniffi's buffer.
     Server(crate::servers::ServerCommand),
+    // Your media on this computer; see `LocalCommand`.
+    Local(crate::local::LocalCommand),
     /// Open a URL in the system browser.
     OpenExternal {
         url: String,
