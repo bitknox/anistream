@@ -20,6 +20,17 @@ extension EnvironmentValues {
     }
 }
 
+extension View {
+    /// The width this view is offered, as it changes: what the column gives it, never what its
+    /// content asks for. Home sizes the spotlight's art by this width, so a measure its content
+    /// could move would feed back: content a hair wider than the column widens a scroll view, the
+    /// art grows with it, and the layout never settles.
+    func onOfferedWidth(_ action: @escaping (CGFloat) -> Void) -> some View {
+        frame(minWidth: 0, maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { action($0) }
+    }
+}
+
 /// The sizes Home draws at, by surface (native-ux, Home).
 enum HomeMetrics {
     static func card(wide: Bool) -> CGSize { wide ? CGSize(width: 272, height: 153) : CGSize(width: 240, height: 135) }
@@ -61,7 +72,7 @@ struct HomeScreen: View {
         }
         .scrollIndicators(.never)
         .environment(\.homeWide, wide)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .onOfferedWidth { width = $0 }
         .pullToRefresh(store, .home)
         #if os(macOS)
         .hoverCards()
@@ -302,8 +313,8 @@ struct HomeSpotlightPlaceholder: View {
         if wide {
             HStack(alignment: .center, spacing: 32) {
                 plate
-                text
-                Spacer(minLength: 0)
+                // What the art leaves, as the spotlight's own text has.
+                text.frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             }
         } else {
             VStack(alignment: .leading, spacing: 14) {

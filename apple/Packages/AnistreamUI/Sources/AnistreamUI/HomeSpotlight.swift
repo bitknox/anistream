@@ -24,7 +24,9 @@ struct HomeSpotlightView: View {
                 HStack(alignment: .center, spacing: 32) {
                     artView(entry, width: art)
                     text(entry, facts: facts)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // Exactly what the art leaves, even where the words need a hair more:
+                        // the row never comes out wider than Home, which sizes the art by it.
+                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 16) {
