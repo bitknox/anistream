@@ -76,6 +76,7 @@ enum class SettingsPane(val route: String, val titleRes: Int) {
     Downloads("downloads", R.string.downloads_title),
     Sources("sources", R.string.sources_title),
     Accounts("accounts", R.string.accounts_title),
+    Hidden("hidden", R.string.settings_hidden_titles),
     About("about", R.string.about_title);
 
     companion object {
@@ -180,6 +181,7 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
         SettingsPane.Downloads to storageLine(LocalContext.current, store.downloads.bytes(downloads)),
         SettingsPane.Sources to sourcesSummary(LocalContext.current, view, providers.size.takeIf { providersLoaded }),
         SettingsPane.Accounts to AccountWords.connected(LocalContext.current, trackers),
+        SettingsPane.Hidden to null,
     )
     SettingsGroup(
         rows = panes.map { (pane, line) ->
@@ -204,6 +206,7 @@ private val SettingsPane.icon
         SettingsPane.Downloads -> Icons.DownloadsPage
         SettingsPane.Sources -> Icons.SourcesPage
         SettingsPane.Accounts -> Icons.AccountsPage
+        SettingsPane.Hidden -> Icons.Hidden
         SettingsPane.About -> Icons.About
     }
 
@@ -390,6 +393,7 @@ internal fun PaneContent(pane: SettingsPane, actions: AppActions) {
         SettingsPane.Downloads -> DownloadsPane(actions)
         SettingsPane.Sources -> SourcesPane(actions)
         SettingsPane.Accounts -> AccountsPane(actions)
+        SettingsPane.Hidden -> HiddenPane()
         SettingsPane.About -> AboutPane()
     }
 }

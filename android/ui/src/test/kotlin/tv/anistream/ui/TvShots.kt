@@ -156,7 +156,7 @@ class TvShots {
 
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
         compose.setContent {
-            AnistreamTheme { AppRoot(store, Destination.Continue, startPage = page) }
+            AnistreamTheme { AppRoot(store, Destination.Home, startPage = page) }
         }
         compose.waitForIdle()
         compose.runOnUiThread { systemBars(compose.activity) }

@@ -137,7 +137,7 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
         }
         is AppLink.Continue -> {
             // The player, over Continue, on the episode Continue would play.
-            go(Destination.Continue)
+            go(Destination.Home)
             val entry = withTimeoutOrNull(LINK_WAIT_MILLIS) {
                 store.titles.entries.map { it[link.id] }.filterNotNull().first()
             }
@@ -149,7 +149,7 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
 
 /** A title's page in Continue's back stack, over Continue's start. */
 private fun Navigator.openTitleFromLink(id: AnilistId) {
-    go(Destination.Continue)
+    go(Destination.Home)
     openTitle(id, from = "link")
 }
 

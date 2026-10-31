@@ -59,12 +59,16 @@ class SceneRecorder {
 
     @Test
     fun record_the_scenes() {
-        for (scene in listOf(FixtureScene.FRESH, FixtureScene.WATCHING)) {
-            Scene.write(record(scene), out!!)
+        // Home's world changes what the notices and the widgets' record hold, so its scenes are
+        // recorded apart, under their own names, in a run with the variable set.
+        val world = System.getenv(HOME_WORLD_VAR) == "1"
+        val scenes = if (world) HOME_SCENES else listOf(FixtureScene.FRESH, FixtureScene.WATCHING)
+        for (scene in scenes) {
+            Scene.write(record(scene, if (world) "home-" else ""), out!!)
         }
     }
 
-    private fun record(scene: FixtureScene): Scene = runBlocking {
+    private fun record(scene: FixtureScene, prefix: String): Scene = runBlocking {
         val events = mutableListOf<Event>()
         val store = withContext(main) { AppStore(scope) }
         val home = File(root, scene.name.lowercase())
@@ -75,6 +79,7 @@ class SceneRecorder {
             // What every screen asks for: the lists, the library's segments, Search's start and
             // the searches the shots run, and each fixture title's page, episodes and settings
             // sheet.
+            store.loadHome()
             store.loadContinue()
             store.loadSeasonal()
             store.loadCalendar()
@@ -109,10 +114,19 @@ class SceneRecorder {
         }
         withContext(main) { store.shutdown() }
         withTimeout(10_000) { store.phase.first { it == AppStore.Phase.Stopped } }
-        Scene(scene.name.lowercase(), recordedAt, events.toList())
+        Scene(prefix + scene.name.lowercase().replace("_", ""), recordedAt, events.toList())
     }
 
     companion object {
+        /** The environment variable that puts Home's world in a scene. */
+        const val HOME_WORLD_VAR = "ANISTREAM_FIXTURES_HOME_WORLD"
+
+        /** The scenes Home's shots replay, recorded with the world on. */
+        val HOME_SCENES = listOf(
+            FixtureScene.WATCHING, FixtureScene.SUGGESTED, FixtureScene.ONE_LEFT, FixtureScene.CONTINUE_FULL,
+            FixtureScene.NOT_FOUND, FixtureScene.SLOW, FixtureScene.FAILED, FixtureScene.OFFLINE,
+        )
+
         /** The test kit's titles, 900001 to 900006. */
         val FIXTURE_IDS = (900001u..900006u).toList()
 

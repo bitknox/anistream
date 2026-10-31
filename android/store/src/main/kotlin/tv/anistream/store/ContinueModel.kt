@@ -121,8 +121,9 @@ data class ContinueQueue(
             ids: List<AnilistId>,
             titles: Map<AnilistId, Entry>,
             episodes: Map<AnilistId, List<EpisodeRow>> = emptyMap(),
+            rows: Int = ROWS,
         ): ContinueQueue {
-            val items = ids.mapNotNull { titles[it] }.take(ROWS).map { ContinueItem.of(it, episodes[it.id]) }
+            val items = ids.mapNotNull { titles[it] }.take(rows).map { ContinueItem.of(it, episodes[it.id]) }
             return ContinueQueue(items.filterNot { it.isNew }, items.filter { it.isNew })
         }
     }
@@ -138,8 +139,8 @@ class ContinueModel {
     val hidden: StateFlow<Set<AnilistId>> = _hidden.asStateFlow()
 
     /** The queue as it stands. */
-    fun queue(titles: Map<AnilistId, Entry>, episodes: Map<AnilistId, List<EpisodeRow>> = emptyMap()): ContinueQueue =
-        ContinueQueue.of(list.state.value.ids.filterNot { it in _hidden.value }, titles, episodes)
+    fun queue(titles: Map<AnilistId, Entry>, episodes: Map<AnilistId, List<EpisodeRow>> = emptyMap(), rows: Int = ContinueQueue.ROWS): ContinueQueue =
+        ContinueQueue.of(list.state.value.ids.filterNot { it in _hidden.value }, titles, episodes, rows)
 
     internal fun apply(content: ContentList, titles: TitleCache) {
         // Continue's rows carry this device's watch history; no other list's may overwrite it.

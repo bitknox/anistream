@@ -60,6 +60,9 @@ import tv.anistream.i18n.Strings
 import android.content.Context
 import tv.anistream.store.Wording
 
+/** The most titles Watching's queue lists on a tablet. */
+private const val WATCHING_QUEUE_ROWS = 50
+
 /** How the Library orders a list. */
 private enum class LibrarySort(val labelRes: Int) {
     LastWatched(R.string.library_sort_last_watched),
@@ -89,6 +92,32 @@ fun LibraryScreen(actions: AppActions) {
         }
     }
     val states = LibraryModel.order.associateWith { store.library.segment(it).state.collectAsStateWithLifecycle() }
+
+    // A tablet's Watching: the queue beside the selected title, with the lists above it. Held
+    // here so the selection and scroll outlive a fold (AT3).
+    val queueState = rememberQueueState()
+    val wide = wideWindow()
+    FoldFollowsSelection(wide, queueState)
+    val continueState by store.continuing.list.state.collectAsStateWithLifecycle()
+    val tables by store.titles.episodes.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { store.loadContinue() }
+    if (wide && !signedOut && segment == LibrarySegment.WATCHING && continueState is ListState.Loaded) {
+        val queue = store.continuing.queue(titles, tables, rows = WATCHING_QUEUE_ROWS)
+        if (!queue.isEmpty) {
+            TabletQueue(queue, actions, queueState) {
+                Column {
+                    DownloadsRow(storageLine(LocalContext.current, store.downloads.bytes(downloads)), inset = false)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(LibraryModel.order, key = { it.name }) { each ->
+                            val count = states.getValue(each).value.ids.size
+                            SegmentChip(each, count, selected = each == segment) { segment = each }
+                        }
+                    }
+                }
+            }
+            return
+        }
+    }
 
     ScreenFrame(
         title = stringResource(R.string.nav_library),

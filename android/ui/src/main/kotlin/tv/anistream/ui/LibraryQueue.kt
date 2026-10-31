@@ -1,5 +1,5 @@
-// Continue on a tablet, as AndroidTabletHome draws it: the queue as a list beside the selected
-// title's preview, in Material's list-detail scaffold. The preview's content crossfades as the
+// Library's Watching on a tablet: the queue as a list beside the selected title's preview, in
+// Material's list-detail scaffold, with the lists and Downloads above it. The preview's content crossfades as the
 // selection moves (AT2).
 
 package tv.anistream.ui
@@ -124,7 +124,7 @@ private const val QUICK_RESELECT_MILLIS = 150L
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: QueueState) {
+internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: QueueState, header: @Composable () -> Unit) {
     val items = queue.all
     val resizeQueue = stringResource(R.string.continue_resize_queue)
     val current = items.firstOrNull { it.id.toLong() == state.selected } ?: items.firstOrNull() ?: return
@@ -167,6 +167,7 @@ internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: Queue
                         state.picked = true
                     },
                     actions,
+                    header,
                 )
             }
         },
@@ -195,6 +196,7 @@ private fun QueueList(
     list: LazyListState,
     onSelect: (ContinueItem) -> Unit,
     actions: AppActions,
+    header: @Composable () -> Unit,
 ) {
     // Under the title, as on a phone: the offline line, or a job past 4 s.
     val line = frameLine(null)
@@ -202,10 +204,11 @@ private fun QueueList(
         // The headings move with the rows, so a row never slides over a heading that snapped.
         item(key = "title", contentType = "title") {
             Column(itemMotion().heightIn(min = 64.dp).padding(horizontal = 12.dp), verticalArrangement = Arrangement.Center) {
-                Text(stringResource(R.string.nav_continue), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+                Text(stringResource(R.string.nav_library), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
                 line?.let { FrameLineText(it, MaterialTheme.typography.bodyMedium, Modifier.padding(bottom = 8.dp)) }
             }
         }
+        item(key = "header", contentType = "header") { Box(itemMotion()) { header() } }
         if (queue.inProgress.isNotEmpty()) {
             item(key = "progress", contentType = "heading") { ListHeading(stringResource(R.string.group_in_progress), itemMotion()) }
             items(queue.inProgress, key = { "p-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }

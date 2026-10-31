@@ -170,7 +170,7 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
     }
 
     /** The destination on screen, which the Updated notification comes back to. */
-    var section: Destination = Destination.Continue
+    var section: Destination = Destination.Home
 
     /**
      * Mark [offer] as the one the in-app updater is installing, with the destination it was
@@ -212,7 +212,7 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
             val version = saved.getString(MARK_VERSION, null)
             val at = saved.getLong(MARK_AT, 0)
             val mark = version?.takeIf { it == installed && System.currentTimeMillis() - at in 0..MARK_MILLIS }?.let {
-                Installed(it, saved.getString(MARK_SECTION, null)?.let(Destination::named) ?: Destination.Continue, saved.getString(MARK_HEADLINE, null))
+                Installed(it, saved.getString(MARK_SECTION, null)?.let(Destination::named) ?: Destination.Home, saved.getString(MARK_HEADLINE, null))
             }
             unmark(context)
             return mark

@@ -93,6 +93,8 @@ internal object Flavour {
         val named = intent.getStringExtra("scene")
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(AnistreamApp.TAG, "no scene named $named")
+        // Home's world: invented titles dated by the scene's clock, for Home's shots.
+        if (intent.getStringExtra("world") == "1") android.system.Os.setenv("ANISTREAM_FIXTURES_HOME_WORLD", "1", true)
         intent.getStringExtra("media")?.let { fixtureMedia = it }
         FixtureCasts.scene = CastScene.named(intent.getStringExtra("cast"))
         if (intent.getStringExtra("downloads") != null) fixtureDownloadClip = downloadClip(context)

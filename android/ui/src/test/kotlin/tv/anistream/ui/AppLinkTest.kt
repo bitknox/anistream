@@ -19,7 +19,7 @@ class AppLinkTest {
         AppLink.Download(42),
         // The Updated notification's, back where the update was taken.
         AppLink.Section(Destination.Library),
-        AppLink.Section(Destination.Continue),
+        AppLink.Section(Destination.Home),
     )
 
     @Test

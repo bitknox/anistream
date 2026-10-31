@@ -62,14 +62,14 @@ internal const val SLOW_MILLIS = 4_000L
 
 /** The offline line: the wifi-off glyph and the words, in haze, never a coloured banner. */
 @Composable
-internal fun OfflineLine(modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.bodyMedium) {
+internal fun OfflineLine(modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.bodyMedium, text: String = stringResource(R.string.state_offline_line)) {
     Row(
         modifier.semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(Icons.Offline, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-        Text(stringResource(R.string.state_offline_line), style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -92,6 +92,10 @@ internal fun frameLine(subtitle: String?): FrameLine? {
 
 internal sealed interface FrameLine {
     data object Offline : FrameLine
+
+    /** Offline over a kept screen that says from when, with the glyph. */
+    data class OfflineFrom(val text: String) : FrameLine
+
     data class Words(val text: String) : FrameLine
 }
 
@@ -100,6 +104,7 @@ internal sealed interface FrameLine {
 internal fun FrameLineText(line: FrameLine, style: TextStyle, modifier: Modifier = Modifier) {
     when (line) {
         FrameLine.Offline -> OfflineLine(modifier, style)
+        is FrameLine.OfflineFrom -> OfflineLine(modifier, style, line.text)
         is FrameLine.Words -> Text(line.text, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = modifier)
     }
 }
@@ -303,7 +308,7 @@ internal fun Modifier.readingWidth(): Modifier =
     wrapContentWidth(Alignment.Start).widthIn(max = 600.dp).fillMaxWidth()
 
 @Composable
-private fun StateBlock(
+internal fun StateBlock(
     glyph: @Composable () -> Unit,
     title: String,
     line: String,

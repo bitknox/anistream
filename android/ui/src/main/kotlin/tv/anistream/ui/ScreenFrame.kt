@@ -39,19 +39,21 @@ import androidx.compose.ui.res.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ScreenFrame(
+internal fun ScreenFrame(
     title: String,
     subtitle: String? = null,
     account: Account? = null,
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
+    /** Home's own words under the title, in place of the generic offline line and job activity. */
+    line: FrameLine? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
     // Under the title: the offline line, a job past 4 s in words, or the screen's own line.
-    val line = frameLine(subtitle)
+    val line = line ?: frameLine(subtitle)
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         containerColor = colors.surface,

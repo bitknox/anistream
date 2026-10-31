@@ -1,0 +1,2183 @@
+{
+ "scene": "home-offline",
+ "recordedAt": 1793441584561,
+ "events": [
+  {
+   "@type": "Settings",
+   "v1": {
+    "rows": [
+     {
+      "key": "THEME",
+      "value": "adaptive",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "MOTION",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "TITLES",
+      "value": "AniList's choice",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "TRAILERS",
+      "value": "always",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "TRANSLATION",
+      "value": "sub",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "QUALITY",
+      "value": "1080p",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": true
+      }
+     },
+     {
+      "key": "SUBTITLES",
+      "value": "eng",
+      "change": {
+       "@type": "Typed",
+       "text": "eng"
+      }
+     },
+     {
+      "key": "COMMIT_THRESHOLD",
+      "value": "85%",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": true
+      }
+     },
+     {
+      "key": "AUTO_NEXT",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "SKIP_OPENING",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "SKIP_FILLER",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "MARK_CHAPTERS",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "SKIP_BUTTON",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "FULLSCREEN",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "UPSCALING",
+      "value": "natural · ArtCNN",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": true
+      }
+     },
+     {
+      "key": "PLAYER_UI",
+      "value": "anistream",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "NIGHT_MODE",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "DOWNLOAD_DIR",
+      "value": "kept with the torrent cache",
+      "change": {
+       "@type": "Typed",
+       "text": ""
+      }
+     },
+     {
+      "key": "MERGE_SUBTITLES",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "KEEP_SEEDING",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "DOWNLOAD_HOOK",
+      "value": "none",
+      "change": {
+       "@type": "Typed",
+       "text": ""
+      }
+     },
+     {
+      "key": "TORRENTS",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "VPN_MODE",
+      "value": "socks5",
+      "change": {
+       "@type": "Fixed"
+      }
+     },
+     {
+      "key": "SEED_RATIO",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "SEED_HOURS",
+      "value": "24 h",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": true
+      }
+     },
+     {
+      "key": "UPLOAD_LIMIT",
+      "value": "unlimited",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "PRESENCE",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "PRESENCE_TITLE",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "PRESENCE_RICH",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "TOKEN_STORAGE",
+      "value": "keychain",
+      "change": {
+       "@type": "Fixed"
+      }
+     },
+     {
+      "key": "SYNCPLAY",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "SYNCPLAY_SERVER",
+      "value": "",
+      "change": {
+       "@type": "Typed",
+       "text": ""
+      }
+     },
+     {
+      "key": "SYNCPLAY_ROOM",
+      "value": "unset — needed for parties",
+      "change": {
+       "@type": "Typed",
+       "text": ""
+      }
+     },
+     {
+      "key": "UPDATE_CHECK",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     }
+    ],
+    "refused": null,
+    "translation": "SUB",
+    "quality": "1080",
+    "theme": "ADAPTIVE",
+    "motion": true,
+    "sources": {
+     "order": [
+      "torrent",
+      "plugins"
+     ],
+     "disabled": [],
+     "torrent": false,
+     "remote": false,
+     "index": null
+    },
+    "speed": null,
+    "presenceClient": true,
+    "presenceAvailable": false,
+    "nativeRows": [
+     {
+      "key": "UP_NEXT_COUNTDOWN",
+      "value": "10 s",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": true
+      }
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "value": "standard",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "KEEP_NEXT_EPISODES",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "DOWNLOADS_ON_CELLULAR",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "TORRENTS_ON_CELLULAR",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "VPN_ON_FAILURE",
+      "value": "pause torrents",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "EPISODE_NOTIFICATIONS",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "MPV_OPTIONS",
+      "value": "none",
+      "change": {
+       "@type": "Typed",
+       "text": ""
+      }
+     },
+     {
+      "key": "ADULT_TITLES",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "EPISODE_DISCUSSIONS",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "COMMENT_IMAGES",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "CONTROLLER_INPUT",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "SWAP_FACE_BUTTONS",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "CALENDAR_MINE",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "CAST_TVS",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     },
+     {
+      "key": "TORRENTS_WHILE_CASTING",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
+     },
+     {
+      "key": "HOVER_CARDS",
+      "value": "on",
+      "change": {
+       "@type": "Steps",
+       "back": true,
+       "forward": false
+      }
+     }
+    ],
+    "overridden": [],
+    "notifySwitchedOn": "0",
+    "torrent": {
+     "protection": "PROXY",
+     "proxy": null,
+     "onFailure": "PAUSE"
+    }
+   }
+  },
+  {
+   "@type": "Autoplay",
+   "v1": {
+    "trailers": true,
+    "heldBy": null
+   }
+  },
+  {
+   "@type": "Stores",
+   "v1": []
+  },
+  {
+   "@type": "Providers",
+   "v1": [
+    {
+     "id": "fixture",
+     "kind": "native",
+     "state": "unchecked",
+     "latencyMs": null,
+     "lastError": null,
+     "usable": true,
+     "heldBack": false,
+     "name": "fixture",
+     "version": null,
+     "hosts": [],
+     "origin": {
+      "@type": "BuiltIn"
+     },
+     "disabled": false,
+     "update": null
+    }
+   ]
+  },
+  {
+   "@type": "Sync",
+   "v1": {
+    "tracker": "kitsu",
+    "connected": false,
+    "user": null,
+    "storage": "0600 file",
+    "storageDegraded": true,
+    "outbox": "0",
+    "deferred": "0",
+    "needsReauth": false,
+    "last": null,
+    "pullError": null
+   }
+  },
+  {
+   "@type": "Connectivity",
+   "offline": true
+  },
+  {
+   "@type": "Autoplay",
+   "v1": {
+    "trailers": false,
+    "heldBy": "OFFLINE"
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "1",
+   "activity": "loading home"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "2",
+   "activity": "loading continue watching"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "3",
+   "activity": "loading this season"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "4",
+   "activity": "loading the calendar"
+  },
+  {
+   "@type": "Downloads",
+   "v1": []
+  },
+  {
+   "@type": "JobStarted",
+   "job": "5",
+   "activity": "loading trending titles"
+  },
+  {
+   "@type": "RecentSearches",
+   "v1": []
+  },
+  {
+   "@type": "JobStarted",
+   "job": "6",
+   "activity": "searching “hoshi”"
+  },
+  {
+   "@type": "RecentSearches",
+   "v1": [
+    {
+     "text": "hoshi",
+     "sort": null,
+     "genres": [],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   ]
+  },
+  {
+   "@type": "JobStarted",
+   "job": "7",
+   "activity": "loading your watching list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "8",
+   "activity": "loading your planning list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "9",
+   "activity": "loading your completed list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "10",
+   "activity": "loading your paused list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PAUSED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "10"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "11",
+   "activity": "loading your dropped list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "12",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "DROPPED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "11"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "7"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "8"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "COMPLETED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "9"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Continue"
+   },
+   "content": {
+    "@type": "Empty"
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "2"
+  },
+  {
+   "@type": "Home",
+   "v1": {
+    "spotlight": null,
+    "sections": [],
+    "pending": [],
+    "end": "SIGN_IN",
+    "offline": true,
+    "offlineSince": null,
+    "failed": false,
+    "season": null
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "1"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "13",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900001",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "14",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "15",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900002",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "16",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "17",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900003",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "18",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "19",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900004",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900005",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "22",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "23",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900006",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "24",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "25",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "26",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "27",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "28",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "29",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "30",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "31",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "32",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "33",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "34",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "35",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Calendar"
+   },
+   "content": {
+    "@type": "Failed",
+    "v1": "network: error sending request for url (http://127.0.0.1:62634/graphql)"
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "4"
+  },
+  {
+   "@type": "Facets",
+   "v1": {
+    "genres": [
+     "Action",
+     "Adventure",
+     "Comedy",
+     "Drama",
+     "Ecchi",
+     "Fantasy",
+     "Horror",
+     "Mahou Shoujo",
+     "Mecha",
+     "Music",
+     "Mystery",
+     "Psychological",
+     "Romance",
+     "Sci-Fi",
+     "Slice of Life",
+     "Sports",
+     "Supernatural",
+     "Thriller"
+    ],
+    "tagGroups": [],
+    "streamingSites": []
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "12"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900001",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "13"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920012",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "35"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "34"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "32"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920010",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "33"
+  },
+  {
+   "@type": "MetaStatus",
+   "v1": [
+    {
+     "source": "anilist",
+     "state": "backing off",
+     "healthy": false,
+     "active": false,
+     "detail": "network: error sending request for url (http://127.0.0.1:62634/graphql)",
+     "retryAt": "1793441884"
+    },
+    {
+     "source": "tenrai",
+     "state": "serving",
+     "healthy": true,
+     "active": true,
+     "detail": null,
+     "retryAt": null
+    },
+    {
+     "source": "cache",
+     "state": "ready",
+     "healthy": true,
+     "active": false,
+     "detail": "0 titles",
+     "retryAt": null
+    }
+   ]
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "INFO",
+    "text": "AniList isn't answering. Showing data from another service for now.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeAnilistUnreachable"
+    }
+   }
+  },
+  {
+   "@type": "Browse",
+   "v1": []
+  },
+  {
+   "@type": "SearchPaging",
+   "query": {
+    "text": "hoshi",
+    "sort": null,
+    "genres": [],
+    "genresExcluded": [],
+    "tags": [],
+    "tagsExcluded": [],
+    "minTagRank": null,
+    "formats": [],
+    "statuses": [],
+    "season": null,
+    "years": {
+     "min": null,
+     "max": null
+    },
+    "episodes": {
+     "min": null,
+     "max": null
+    },
+    "minutes": {
+     "min": null,
+     "max": null
+    },
+    "minScore": null,
+    "minPopularity": null,
+    "sources": [],
+    "countries": [],
+    "streamingOn": [],
+    "licensedOnly": false,
+    "onList": null
+   },
+   "hasNext": false
+  },
+  {
+   "@type": "JobDone",
+   "v1": "5"
+  },
+  {
+   "@type": "Caption",
+   "view": {
+    "@type": "Search",
+    "query": {
+     "text": "hoshi",
+     "sort": null,
+     "genres": [],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   },
+   "text": ""
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Search",
+    "query": {
+     "text": "hoshi",
+     "sort": null,
+     "genres": [],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "28"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920008",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "29"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "24"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920001",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "25"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900005",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "21"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "20"
+  },
+  {
+   "@type": "Caption",
+   "view": {
+    "@type": "Seasonal"
+   },
+   "text": "fall 2026"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Seasonal"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "3"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "18"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900004",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "19"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "22"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900006",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "23"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "26"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920002",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "27"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "14"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900002",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "15"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "16"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900003",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "17"
+  },
+  {
+   "@type": "Episodes",
+   "id": "920009",
+   "rows": [],
+   "failed": {
+    "@type": "NoticeEpisodesFailed",
+    "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+   }
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load the episodes. anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeEpisodesFailed",
+     "reason": "anilist: network: error sending request for url (http://127.0.0.1:62634/graphql); fallback: tenrai: no mal id mapped for this title; nothing useful cached"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "31"
+  },
+  {
+   "@type": "Toast",
+   "v1": {
+    "kind": "ALERT",
+    "text": "Couldn't load this title. Check your connection and try again.",
+    "hint": null,
+    "msg": {
+     "@type": "NoticeTitleLoadFailed"
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "30"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "36",
+   "activity": "browsing"
+  },
+  {
+   "@type": "RecentSearches",
+   "v1": [
+    {
+     "text": "",
+     "sort": null,
+     "genres": [
+      "Fantasy"
+     ],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    },
+    {
+     "text": "hoshi",
+     "sort": null,
+     "genres": [],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   ]
+  },
+  {
+   "@type": "SearchPaging",
+   "query": {
+    "text": "",
+    "sort": null,
+    "genres": [
+     "Fantasy"
+    ],
+    "genresExcluded": [],
+    "tags": [],
+    "tagsExcluded": [],
+    "minTagRank": null,
+    "formats": [],
+    "statuses": [],
+    "season": null,
+    "years": {
+     "min": null,
+     "max": null
+    },
+    "episodes": {
+     "min": null,
+     "max": null
+    },
+    "minutes": {
+     "min": null,
+     "max": null
+    },
+    "minScore": null,
+    "minPopularity": null,
+    "sources": [],
+    "countries": [],
+    "streamingOn": [],
+    "licensedOnly": false,
+    "onList": null
+   },
+   "hasNext": false
+  },
+  {
+   "@type": "Caption",
+   "view": {
+    "@type": "Search",
+    "query": {
+     "text": "",
+     "sort": null,
+     "genres": [
+      "Fantasy"
+     ],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   },
+   "text": ""
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Search",
+    "query": {
+     "text": "",
+     "sort": null,
+     "genres": [
+      "Fantasy"
+     ],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "36"
+  }
+ ]
+}

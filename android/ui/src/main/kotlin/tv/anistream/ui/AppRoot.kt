@@ -96,7 +96,7 @@ import tv.anistream.engine.model.SearchQuery
 
 /** The top-level destinations, in the navigation bar's order. */
 enum class Destination(val route: String, @StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
-    Continue("continue", R.string.nav_continue, Icons.Continue, Icons.ContinueSelected),
+    Home("home", R.string.home_title, Icons.Continue, Icons.ContinueSelected),
     Calendar("calendar", R.string.nav_calendar, Icons.Calendar, Icons.CalendarSelected),
     Seasonal("seasonal", R.string.nav_seasonal, Icons.Seasonal, Icons.SeasonalSelected),
     Library("library", R.string.nav_library, Icons.Library, Icons.LibrarySelected),
@@ -105,7 +105,8 @@ enum class Destination(val route: String, @StringRes val label: Int, val icon: I
     companion object {
         /** The destination [name] names, by its route, case aside. */
         fun named(name: String): Destination? =
-            entries.firstOrNull { it.route.equals(name, ignoreCase = true) }
+            // "continue" is what links and saved state called Home before it had its own name.
+            if (name.equals("continue", ignoreCase = true)) Home else entries.firstOrNull { it.route.equals(name, ignoreCase = true) }
     }
 }
 
@@ -198,7 +199,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.switching(): Boole
 @Composable
 fun AppRoot(
     store: AppStore,
-    start: Destination = Destination.Continue,
+    start: Destination = Destination.Home,
     actions: AppActions = AppActions(),
     /** A title page to open on [start] as the app starts: the fixtures' `title` extra. */
     startTitle: AnilistId? = null,
@@ -377,11 +378,7 @@ private fun DestinationScreen(
 ) {
     val navigator = LocalNavigator.current
     when (destination) {
-        Destination.Continue -> ContinueScreen(
-            actions,
-            openCalendar = { navigator.go(Destination.Calendar) },
-            openSeasonal = { navigator.go(Destination.Seasonal) },
-        )
+        Destination.Home -> HomeScreen(actions)
         Destination.Calendar -> CalendarScreen()
         Destination.Seasonal -> SeasonalScreen()
         Destination.Library -> LibraryScreen(actions)
