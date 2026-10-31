@@ -16,7 +16,7 @@ use crate::{
         AdminLink, ErrorBody, Index, IndexEntry, InviteCreated, InviteRequest,
         MAX_PLUGIN_BYTES, Me, MemberList, OpenJoinRequest, OpenSetting, OpenState, PART_SIZE,
         PROTOCOL, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse, SignedIndex,
-        StoreInfo, UploadRequest, UploadStarted, is_valid_id, is_valid_version,
+        RESERVED_IDS, StoreInfo, UploadRequest, UploadStarted, is_valid_id, is_valid_version,
     },
 };
 
@@ -243,6 +243,10 @@ impl StoreClient {
     ) -> Result<Vec<u8>, ClientError> {
         if !is_valid_id(&entry.id) || !is_valid_version(&entry.version) {
             return Err(ClientError::Malformed(format!("unusable plugin id {:?}", entry.id)));
+        }
+        if RESERVED_IDS.contains(&entry.id.as_str()) {
+            tracing::warn!(plugin = %entry.id, "a reserved id is not downloaded");
+            return Err(ClientError::Malformed(format!("reserved plugin id {:?}", entry.id)));
         }
         if entry.size > MAX_PLUGIN_BYTES {
             return Err(ClientError::Integrity(format!(
@@ -553,6 +557,11 @@ pub fn verify_index(
     if let Some(bad) = index.plugins.iter().find(|p| !is_valid_id(&p.id)) {
         return Err(ClientError::Malformed(format!("unusable plugin id {:?}", bad.id)));
     }
+    // An id anistream's own sources use, the demo's among them, is not one a store may offer.
+    if let Some(bad) = index.plugins.iter().find(|p| RESERVED_IDS.contains(&p.id.as_str())) {
+        tracing::warn!(plugin = %bad.id, "a store's index offers a reserved id; refused");
+        return Err(ClientError::Malformed(format!("reserved plugin id {:?}", bad.id)));
+    }
     Ok(index)
 }
 
@@ -699,6 +708,16 @@ mod tests {
         let index = verify_index(&signed(&key, 3, &["example"]), &key.public(), 2).unwrap();
         assert_eq!(index.sequence, 3);
         assert_eq!(index.plugins[0].id, "example");
+    }
+
+    #[test]
+    fn an_index_that_offers_the_demos_id_is_refused() {
+        let key = SigningKey::generate().unwrap();
+        for id in ["demo", "torrent"] {
+            let error =
+                verify_index(&signed(&key, 3, &["example", id]), &key.public(), 0).unwrap_err();
+            assert!(matches!(error, ClientError::Malformed(_)), "{id}: {error}");
+        }
     }
 
     #[test]

@@ -109,13 +109,9 @@ pub struct SystemCaptionStyle {
     pub edge: Option<CaptionEdge>,
 }
 
-/// One mpv option, as the player sets it: `sub-color` and `#FFFFFF00`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
-pub struct MpvOption {
-    pub name: String,
-    pub value: String,
-}
+/// One mpv option, as the player sets it: the hosted player's own record, so the apps pass the
+/// options straight to it.
+pub use crate::hosted::MpvOption;
 
 fn option(name: &str, value: impl Into<String>) -> MpvOption {
     MpvOption { name: name.into(), value: value.into() }

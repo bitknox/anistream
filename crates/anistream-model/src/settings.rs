@@ -665,6 +665,11 @@ pub struct SettingsView {
     /// check scheduled while either is, and cancels it only when neither is.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub notify_switched_on: u32,
+    /// The subtitle style in effect: what the Subtitles group shows and the player draws with.
+    /// Always set by the engine. The apps send it, and the system's caption style, to
+    /// `mpv_subtitle_options`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub subtitle_style: Option<crate::subtitle_style::SubtitleStyle>,
     /// How torrent traffic is kept off the viewer's own address, as the torrent sheet and
     /// Sources show it. Boxed, as the largest part of a view every settings event carries:
     /// the bindings see the view itself.
@@ -698,7 +703,7 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         quality: effective.playback.quality,
         theme: effective.theme.mode,
         motion: effective.theme.motion,
-        sources: ConfiguredSources::of(&effective.providers),
+        sources: ConfiguredSources::of(&effective.providers).with_demo(&effective.sources),
         speed: effective.playback.persisted_speed,
         presence_client: effective.presence.resolved_client_id().is_some(),
         presence_available: true,
@@ -706,8 +711,27 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         // The shows' own are the database's, which the engine counts and puts in.
         overridden: Vec::new(),
         notify_switched_on: 0,
+        subtitle_style: Some(effective.subtitles.clone().into()),
         torrent: Box::new(crate::protection::view(&effective.providers.torrent.vpn)),
     }
+}
+
+/// Every subtitle setting at its default, for Reset subtitle style.
+pub fn subtitle_defaults() -> Vec<(SettingKey, SettingValue)> {
+    use SettingValue as V;
+    let d = SubtitlesConfig::default();
+    vec![
+        (SettingKey::SubtitleSize, V::Int(i64::from(d.size))),
+        (SettingKey::SubtitleFont, V::Str(d.font.name().into())),
+        (SettingKey::SubtitleColour, V::Str(d.colour.name().into())),
+        (SettingKey::SubtitleEdge, V::Str(d.edge.name().into())),
+        (SettingKey::SubtitleThickness, V::Str(d.thickness.name().into())),
+        (SettingKey::SubtitleBackground, V::Str(d.background.name().into())),
+        (SettingKey::SubtitleOpacity, V::Int(i64::from(d.opacity))),
+        (SettingKey::SubtitleRaise, V::Int(i64::from(d.raise))),
+        (SettingKey::StyledSubtitles, V::Str(d.styled.name().into())),
+        (SettingKey::FollowSystemCaptions, V::Bool(d.follow_system)),
+    ]
 }
 
 /// One row of the Settings screen, as the config makes it.

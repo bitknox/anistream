@@ -103,6 +103,10 @@ pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRe
             other => tracing::debug!(provider = other, "order entry left for a plugin"),
         }
     }
+    // The demo is built in, and last: it is ranked after every source the order names.
+    if config.sources.demo {
+        providers.push(anistream_providers::demo::DemoProvider::shared());
+    }
     let registry = ProviderRegistry::new(providers);
     // A plugin switched off by name joins the chain all the same, and is not tried.
     registry.set_disabled(config.providers.disabled.iter().cloned());

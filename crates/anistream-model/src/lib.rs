@@ -44,6 +44,7 @@
 pub mod bug_report;
 pub mod catalog;
 pub mod command;
+pub mod crash;
 pub mod discussion;
 pub mod downloads;
 pub mod episodes;

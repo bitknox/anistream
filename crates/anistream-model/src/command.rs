@@ -74,6 +74,7 @@ impl Command {
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
             Self::LoadStores => "checking plugin stores".into(),
+            Self::PlayDemo => "starting the demo".into(),
             Self::PreviewStore { .. } => "checking the invite".into(),
             Self::JoinStore { .. } => "joining the store".into(),
             Self::LeaveStore { .. } => "leaving the store".into(),
@@ -679,6 +680,14 @@ pub enum Command {
         playback: PlaybackId,
         command: PlayerCommand,
     },
+    /// Add the built-in demo to the sources, last in the chain. Written to `[sources] demo`.
+    AddDemo,
+    /// Take the demo out of the sources. Raises Demo removed, with Undo.
+    RemoveDemo,
+    /// Play part 1 of the demo's title, through the ordinary play path.
+    PlayDemo,
+    /// Put every subtitle setting back to its default. Raises Subtitle style reset, with Undo.
+    ResetSubtitleStyle,
     /// Read the joined stores, then refresh each one's plugin list.
     LoadStores,
     /// Check a pasted invite link against the store it names, before spending it.

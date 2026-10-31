@@ -37,6 +37,9 @@ pub struct ProviderRow {
     /// A newer version the store it came from offers, when there is one.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub update: Option<ProviderUpdate>,
+    /// The built-in demo source. It sorts last, and has no update, store or permissions.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub is_demo: bool,
 }
 
 /// Where a provider came from: the provider page's "From Hotaru Plugins".
@@ -186,6 +189,13 @@ pub struct ConfiguredSources {
     /// source asks, which anistream ships none of. `None` until one is set, torrents on or off.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub index: Option<String>,
+    /// Whether the demo is one of the sources.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub demo: bool,
+    /// Sources offers Add the demo: an install that has not got it. True whenever the demo is
+    /// off, as removing it and never having had it look the same from here.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub offer_demo: bool,
 }
 
 impl ConfiguredSources {
@@ -202,7 +212,65 @@ impl ConfiguredSources {
                 .map(str::trim)
                 .filter(|url| !url.is_empty())
                 .map(str::to_owned),
+            demo: false,
+            offer_demo: true,
         }
+    }
+
+    /// With the demo's state from `[sources]`.
+    pub fn with_demo(self, sources: &anistream_core::config::SourcesConfig) -> Self {
+        Self { demo: sources.demo, offer_demo: !sources.demo, ..self }
+    }
+}
+
+/// Where the demo stands, for Home, Search and Sources. Sent at launch and whenever it changes.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct DemoState {
+    /// The demo is one of the sources.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub on: bool,
+    /// Sources offers Add the demo.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub offer: bool,
+    /// The demo is the only source that works: Search says other titles play once a store is
+    /// joined, and Home closes with the demo-only line.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub only: bool,
+    /// Part of the demo has been played, so Home's spotlight is back to its usual cases.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub played: bool,
+}
+
+/// What the credit block and the demo's About page show. The same constants the host guard
+/// reads, so nothing on screen can name a host the demo does not reach.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct DemoInfo {
+    /// The credit block, as the licence asks for it.
+    pub credit: String,
+    /// "CC BY 4.0".
+    pub licence_name: String,
+    pub licence_url: String,
+    /// The makers' site, linked and never streamed from.
+    pub maker_url: String,
+    /// The file page on Wikimedia Commons of the first part.
+    pub file_page_url: String,
+    /// The only hosts the demo reaches.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub hosts: Vec<String>,
+}
+
+/// The demo's credit, licence and hosts.
+pub fn demo_info() -> DemoInfo {
+    use anistream_core::demo;
+    DemoInfo {
+        credit: demo::DEMO_CREDIT.into(),
+        licence_name: demo::DEMO_LICENCE_NAME.into(),
+        licence_url: demo::DEMO_LICENCE_URL.into(),
+        maker_url: demo::DEMO_MAKER_URL.into(),
+        file_page_url: demo::DEMO_FILE_PAGE_URL.into(),
+        hosts: demo::DEMO_HOSTS.iter().map(|host| (*host).to_owned()).collect(),
     }
 }
 
@@ -380,6 +448,13 @@ pub struct CurrentMatch {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_demo_info_names_only_the_two_hosts() {
+        let info = super::demo_info();
+        assert_eq!(info.hosts, ["upload.wikimedia.org", "commons.wikimedia.org"]);
+        assert!(info.credit.contains("CC BY 4.0"));
+    }
+
     use super::*;
 
     fn source_row(id: &str, kind: &str) -> ProviderRow {

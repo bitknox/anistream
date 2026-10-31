@@ -323,6 +323,8 @@ impl Engine {
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
         state.config.set_handheld(handheld);
+        // A new install has the demo on; the choice is written down before anything else is.
+        crate::demo::remember_fresh_install(&mut state, &services.paths);
         #[cfg(feature = "cast")]
         {
             casts.set_language(language);
@@ -365,6 +367,7 @@ impl Engine {
             let rows = data::provider_rows(&services.registry, &services.stores);
             launch.push_back(Event::Providers(rows));
         }
+        launch.push_back(Event::Demo(crate::demo::state(&state, &services)));
 
         // Background work reports through this, each piece holding its own sender, and the
         // engine side's messages to itself ride it too, each in its place among the events.

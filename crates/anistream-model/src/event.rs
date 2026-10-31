@@ -167,6 +167,9 @@ pub enum Event {
     TitlesChanged(TitleLanguage),
     Toast(Notice),
     Providers(Vec<ProviderRow>),
+    /// Where the demo stands: at launch, and whenever it is added, removed, played or becomes
+    /// the only source or stops being it.
+    Demo(crate::sources::DemoState),
     /// The metadata ladder's condition: which rung is serving, and why.
     MetaStatus(Vec<MetaSourceRow>),
     /// The config, as a front end shows it, whenever any of it changed: a setting written or

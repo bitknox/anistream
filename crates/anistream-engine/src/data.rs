@@ -86,6 +86,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         end_date,
         source: media.source.map(source_material),
         adult: media.is_adult.unwrap_or(false),
+        is_demo: media.id == anistream_core::demo::DEMO_ANILIST_ID,
         status,
         airing: status.map(|status| airing_fact(status, start_date, end_date, media)),
         duration: media.duration.filter(|m| *m > 0),
@@ -675,7 +676,7 @@ pub fn provider_rows(
 
     let health = registry.health();
     let mut origins = stores.origins();
-    registry
+    let mut rows = registry
         .ids()
         .iter()
         .map(|id| {
@@ -697,6 +698,7 @@ pub fn provider_rows(
                 origin,
                 disabled,
                 update,
+                is_demo: id == anistream_core::demo::DEMO_SOURCE_ID,
                 ..ProviderRow::default()
             };
             match health.get(id) {
@@ -713,7 +715,10 @@ pub fn provider_rows(
                 }
             }
         })
-        .collect()
+        .collect::<Vec<_>>();
+    // The demo is listed last, whatever its place in the chain.
+    rows.sort_by_key(|row| row.is_demo);
+    rows
 }
 
 /// How a source's episode numbers stand to AniList's for one title.

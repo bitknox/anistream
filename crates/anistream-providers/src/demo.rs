@@ -193,7 +193,7 @@ impl Default for DemoProvider {
 
 /// Whether `query` is one the demo's title answers to: either spelling of the title or the
 /// source's own name, in any case.
-fn answers_to(query: &str) -> bool {
+pub fn answers_to(query: &str) -> bool {
     let query = query.trim().to_lowercase();
     if query.is_empty() {
         return false;

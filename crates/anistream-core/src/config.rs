@@ -174,7 +174,10 @@ impl Config {
         match std::fs::read_to_string(&paths.config_file) {
             Ok(src) => Self::parse(&src),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                let cfg = Self::default();
+                // A new install has the demo; the engine writes that down when it starts, so
+                // a config file made later does not read as an existing install's.
+                let mut cfg = Self::default();
+                cfg.sources.demo = true;
                 cfg.validate()
                     .map_err(|e| ConfigProblem { line: None, message: e.to_string() })?;
                 Ok(cfg)

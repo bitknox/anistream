@@ -66,6 +66,10 @@ impl Store {
     /// meaningless. A lower episode is dropped outright rather than queued behind a
     /// higher one, which would otherwise walk a tracker's progress backwards.
     pub fn enqueue(&self, tracker_id: &str, op: &TrackOp, at: i64) -> Result<Option<i64>> {
+        // The demo's title has no AniList entry, and nothing about it is ever sent to a tracker.
+        if op.anilist_id() == anistream_core::demo::DEMO_ANILIST_ID {
+            return Ok(None);
+        }
         let anilist_id = op.anilist_id().get();
         let payload = serde_json::to_string(op)
             .map_err(|source| StoreError::Encode { what: "TrackOp", source })?;
@@ -320,6 +324,17 @@ mod tests {
         assert_eq!(ready.len(), 1);
         assert_eq!(ready[0].op, progress(11));
         assert_eq!(store.outbox_depth(Some("anilist")).unwrap(), 1);
+    }
+
+    #[test]
+    fn nothing_about_the_demo_title_is_queued_for_a_tracker() {
+        let store = Store::open_in_memory().unwrap();
+        let op = TrackOp::SetProgress {
+            anilist_id: anistream_core::demo::DEMO_ANILIST_ID,
+            episode: 1,
+        };
+        assert_eq!(store.enqueue("anilist", &op, 1_000).unwrap(), None);
+        assert_eq!(store.outbox_depth(None).unwrap(), 0);
     }
 
     #[test]
