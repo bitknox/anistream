@@ -20,6 +20,8 @@ final class HoverTrailer {
     static let giveUp: Duration = .seconds(4)
 
     @ObservationIgnored private var pending: Task<Void, Never>?
+    /// A cue that came while a closing card's trailer was still fading, for once it has gone.
+    @ObservationIgnored private var queued: (id: AnilistId, start: () -> Void)?
 
     /// Whether the video is over the art.
     var shown: Bool { visit.shown }
@@ -33,21 +35,49 @@ final class HoverTrailer {
         TrailerPool.shared.prewarm(subtitles: subtitles)
     }
 
-    /// The pointer has slowed on `entry`'s cover. The warm page switches video in place once the
-    /// card opens, so nothing is asked of YouTube before then.
-    func cue(_ entry: Entry) {}
+    /// The pointer has slowed on `entry`'s cover, 300 ms before its card opens: the warm page
+    /// starts loading its trailer then, silent and unseen, so the card opens on a playing video.
+    /// The pointer moving on lets it go (`uncue`); a pass across a row cues nothing.
+    func cue(_ entry: Entry, subtitles: String) {
+        guard entry.id != id || !visit.live, let trailer = entry.trailer else { return }
+        if pending != nil {
+            // The last card's trailer is still fading with it: this one starts once it has gone.
+            queued = (entry.id, { [weak self] in self?.cue(entry, subtitles: subtitles) })
+            return
+        }
+        start(entry.id, trailer, subtitles: subtitles, held: true)
+    }
+
+    /// The pointer left the cued cover before its card opened.
+    func uncue(_ id: AnilistId) {
+        if queued?.id == id { queued = nil }
+        guard id == self.id, visit.held, pending == nil else { return }
+        stop()
+    }
 
     /// The card for `entry` opened or was handed to it: play its trailer under the art, with the
-    /// sound as the person last left it.
+    /// sound as the person last left it. A cued trailer carries on where it is.
     func play(_ entry: Entry, subtitles: String) {
         pending?.cancel()
-        guard entry.id != id || !visit.live else { return }
+        pending = nil
+        queued = nil
+        if entry.id == id, visit.live {
+            visit.unhold()
+            return
+        }
+        guard let trailer = entry.trailer else {
+            stop()
+            return
+        }
+        start(entry.id, trailer, subtitles: subtitles, held: false)
+    }
+
+    private func start(_ id: AnilistId, _ trailer: Trailer, subtitles: String, held: Bool) {
         stop()
-        guard let trailer = entry.trailer else { return }
-        id = entry.id
+        self.id = id
         let visit = TrailerVisit(loadTimeout: Self.giveUp)
         self.visit = visit
-        visit.begin { signal in
+        visit.begin(held: held) { signal in
             TrailerPlayer(trailer: trailer, style: .banner, subtitles: subtitles, onSignal: signal)
         }
     }
@@ -58,14 +88,18 @@ final class HoverTrailer {
         pending?.cancel()
         pending = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(240))
-            guard !Task.isCancelled else { return }
-            self?.stop()
+            guard !Task.isCancelled, let self else { return }
+            let next = self.queued
+            self.stop()
+            next?.start()
         }
     }
 
     /// Stop now: nothing shows it any more.
     func stop() {
         pending?.cancel()
+        pending = nil
+        queued = nil
         visit.release()
         id = nil
     }

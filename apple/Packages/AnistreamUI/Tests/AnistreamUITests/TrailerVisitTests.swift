@@ -93,6 +93,24 @@ struct TrailerVisitTests {
         #expect(quiet.controls.isEmpty, "muted is how the page starts")
     }
 
+    @Test func aHeldTrailerStaysSilentUntilItIsSeen() {
+        let preference = sound()
+        preference.on = true
+        let visit = TrailerVisit(sound: preference)
+        let surface = FakeSurface()
+        visit.begin(held: true) { signal in
+            surface.signal = signal
+            return surface
+        }
+        surface.signal?(.playing)
+        #expect(!visit.muted, "the toggle shows the person's choice")
+        #expect(surface.controls.isEmpty, "loading ahead of its card, with no sound")
+        visit.unhold()
+        #expect(surface.controls == [.unmute])
+        visit.unhold()
+        #expect(surface.controls == [.unmute], "once")
+    }
+
     @Test func nothingPlayingInTimeLeavesTheArtAndLetsGo() async throws {
         let (visit, surface) = visit(load: .milliseconds(40))
         try await until { !visit.live }

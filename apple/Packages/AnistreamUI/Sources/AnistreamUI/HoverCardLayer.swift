@@ -91,6 +91,8 @@ final class HoverCards {
     }
     /// Called when the pointer has slowed on a cover: cue its trailer, ask for its details.
     @ObservationIgnored var cue: (AnilistId) -> Void = { _ in }
+    /// Called when the pointer left a cued cover before its card opened.
+    @ObservationIgnored var uncue: (AnilistId) -> Void = { _ in }
     /// Called as a card opens, hands off, or goes.
     @ObservationIgnored var changed: (Card?) -> Void = { _ in }
     /// A scripted pointer drives the layer instead of the real one: the motion demo and shots.
@@ -150,6 +152,8 @@ final class HoverCards {
             switch event {
             case .cue(let id):
                 cue(id)
+            case .uncue(let id):
+                uncue(id)
             case .open(let id, let frame):
                 guard let cover = layout.cover(id, near: frame) else { continue }
                 sessions += 1
@@ -262,8 +266,9 @@ private struct HoverCardLayer: ViewModifier {
                     if let url = entry.coverUrl, let image = store.artwork.image(url) {
                         CoverFocus.shared.prepare(url, image: image)
                     }
-                    if store.trailerMayAutoplay(entry) { trailer.cue(entry) }
+                    if store.trailerMayAutoplay(entry) { trailer.cue(entry, subtitles: store.settings.value(.subtitles) ?? "") }
                 }
+                cards.uncue = { [trailer] id in trailer.uncue(id) }
                 cards.changed = { [store, trailer] card in
                     guard let card, let entry = store.titles[card.id], store.trailerMayAutoplay(entry) else {
                         trailer.stopSoon()

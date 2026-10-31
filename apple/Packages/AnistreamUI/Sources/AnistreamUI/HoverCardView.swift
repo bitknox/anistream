@@ -156,7 +156,7 @@ private struct HoverCardContent: View {
                 }
                 art
                     .opacity(videoShown ? 0 : 1)
-                    .animation(videoShown ? .fadeIn : .fadeOut, value: videoShown)
+                    .animation(videoShown ? .reveal : .fadeOut, value: videoShown)
                 overBand(mayPlay: mayPlay)
                     .frame(width: HoverCardSize.width, height: HoverCardSize.band)
                     .offset(bandOffset)

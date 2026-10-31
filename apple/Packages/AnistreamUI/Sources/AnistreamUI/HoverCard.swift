@@ -24,8 +24,10 @@ enum HoverCardSize {
     static let toggle: CGFloat = 28
     /// The toggle's distance from the band's trailing edge and foot.
     static let toggleInset: CGFloat = 12
-    /// What stays with the open card round the toggle, never a flank.
-    static let toggleMargin: CGFloat = 8
+    /// What stays with the open card round the toggle, never a flank: a pointer slowing onto the
+    /// toggle comes to rest within about this of it. The action and the captions sit under the
+    /// band, which is all a flank covers.
+    static let toggleMargin: CGFloat = 24
     /// The synopsis's two lines at 19.
     static let synopsis: CGFloat = 38
     static let action: CGFloat = 28
@@ -135,6 +137,8 @@ struct HoverIntent {
     enum Event: Equatable {
         /// Cue the title's trailer, hidden.
         case cue(AnilistId)
+        /// The pointer left the cued cover before its card opened: let its trailer go.
+        case uncue(AnilistId)
         /// Open the title's card, at the frame.
         case open(AnilistId, CGRect)
         /// Slide the card to the neighbour's frame.
@@ -183,11 +187,13 @@ struct HoverIntent {
     /// A scroll, a key press, the window losing key status, a sheet or the player: the card
     /// closes, and with `holding` nothing opens again until the pointer moves.
     mutating func dismiss(holding: Bool = true) -> [Event] {
-        if holding {
-            suppressed = true
-            cued = nil
+        if holding { suppressed = true }
+        guard open != nil else {
+            // A cue with no card yet: let its trailer go.
+            guard let cued else { return [] }
+            self.cued = nil
+            return [.uncue(cued)]
         }
-        guard open != nil else { return [] }
         open = nil
         flank = nil
         cued = nil
@@ -241,6 +247,10 @@ struct HoverIntent {
             events += dismiss(holding: false)
         }
 
+        if let cued, now != .cover(cued) {
+            self.cued = nil
+            events.append(.uncue(cued))
+        }
         guard case .cover(let id) = now, !suppressed else { return events }
         let on = time - enteredAt
         guard on >= Self.cue, slowed(time) else { return events }
