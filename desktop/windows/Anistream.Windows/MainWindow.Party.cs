@@ -35,19 +35,20 @@ public sealed partial class MainWindow
     /// <summary>An <c>anistream://party</c> link: its title's page, and the dialog that asks Join.</summary>
     void OpenPartyInvite(string text)
     {
-        if (AnistreamFfiMethods.ParsePartyInvite(text) is not { } invite)
+        if (AnistreamFfiMethods.ParsePartyTarget(text) is not { } target)
         {
             ShowToast(InfoBarSeverity.Warning, T.PartyLinkIncomplete);
             return;
         }
-        if (ctx.Known.Party is { } party && party.Server == invite.Server && party.Room == invite.Room)
+        if (ctx.Known.Party is { } party && party.Server == target.Server && party.Room == target.Room)
         {
             ShowToast(InfoBarSeverity.Informational, T.PartyAlreadyIn);
             return;
         }
-        if (!Player.Showing)
-            OpenTitle(invite.Id);
-        ShowParty(new PartyDialog.For.Invite(invite));
+        // The lobby opens in its invited state: it looks in, reads what the room watches and waits for Join.
+        var server = target.Server.Length > 0 ? target.Server : ctx.Known.PartyForm?.SuggestedServer ?? "";
+        ctx.Send(new Command.Party(new PartyCommand.Lobby(server, target.Room, ctx.Known.PartyForm?.Name, null)));
+        Go("together");
     }
 
     async void ShowPartySource(uint id, string episode, NoSourceWhy why, string reason)
