@@ -478,3 +478,137 @@ settings-reset-detail = Every setting goes back to its default, VPN and proxy in
 # settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
 # @arg file: text
 settings-reset-done = Settings are back to their defaults. The old file is kept as { $file }.
+
+# Heading of the Subtitles group in Settings, Playback.
+settings-group-subtitles = Subtitles
+
+# Heading of the subtitle preview.
+settings-subs-preview = Preview
+
+# Segment of the preview that draws plain subtitles.
+settings-subs-preview-plain = Plain
+
+# Segment of the preview that draws styled subtitles.
+settings-subs-preview-styled = Styled
+
+# First sample line in the subtitle preview.
+settings-subs-preview-line = I left the lantern at the station.
+
+# Second sample line in the subtitle preview.
+settings-subs-preview-line-2 = Can you bring it back before dark?
+
+# Sample of a typeset sign at the top of the styled preview.
+settings-subs-preview-sign = Kumo no Ue Library
+
+# Link under the rows that show the system's caption style.
+settings-subs-system-change = Change in Accessibility settings
+
+# Value shown, dimmed, for a row while the system's caption style applies.
+settings-subs-system-value = From your system
+
+# Label of the subtitle size slider.
+settings-subs-size = Size
+
+# Value of the size slider. The percent is a whole number from 50 to 200.
+# @arg percent: int
+settings-subs-size-value = { $percent }%
+
+# Label of the subtitle font row.
+settings-subs-font = Font
+
+# Subtitle font choice: the player's own sans-serif.
+settings-subs-font-default = Default
+
+# Subtitle font choice.
+settings-subs-font-serif = Serif
+
+# Subtitle font choice.
+settings-subs-font-mono = Monospace
+
+# Label of the subtitle text colour row.
+settings-subs-colour = Text colour
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-white = White
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-yellow = Yellow
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-cyan = Cyan
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-green = Green
+
+# Label of the subtitle edge row.
+settings-subs-edge = Edge
+
+# Subtitle edge choice.
+settings-subs-edge-outline = Outline
+
+# Subtitle edge choice.
+settings-subs-edge-shadow = Drop shadow
+
+# Subtitle edge choice: no edge.
+settings-subs-edge-none = None
+
+# Label of the outline thickness row.
+settings-subs-thickness = Thickness
+
+# Outline thickness choice.
+settings-subs-thin = Thin
+
+# Outline thickness choice.
+settings-subs-medium = Medium
+
+# Outline thickness choice.
+settings-subs-thick = Thick
+
+# Label of the subtitle background row.
+settings-subs-background = Background
+
+# Subtitle background choice: no background.
+settings-subs-background-none = None
+
+# Subtitle background choice: a plate behind each line.
+settings-subs-background-line = Behind each line
+
+# Subtitle background choice: one plate behind all lines.
+settings-subs-background-all = Behind all lines
+
+# Label of the background opacity row.
+settings-subs-opacity = Opacity
+
+# Label of the row that raises subtitles.
+settings-subs-raise = Raise subtitles
+
+# Value of the raise slider. The percent is a whole number from 0 to 20.
+# @arg percent: int
+settings-subs-raise-value = { $percent }% of the picture
+
+# Label of the picker that says what happens to styled subtitles.
+settings-subs-styled = Styled subtitles
+
+# Styled subtitles choice: leave the authors' styling alone.
+# @max 24
+settings-subs-styled-keep = Keep their look
+
+# Line under the picker while Keep their look is chosen.
+settings-subs-styled-keep-detail = Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply.
+
+# Styled subtitles choice: apply the viewer's style over the authors'.
+# @max 24
+settings-subs-styled-restyle = Restyle
+
+# Line under the picker while Restyle is chosen.
+settings-subs-styled-restyle-detail = Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement.
+
+# Styled subtitles choice: drop all styling and show plain dialogue.
+# @max 24
+settings-subs-styled-strip = Remove all styling
+
+# Line under the picker while Remove all styling is chosen.
+settings-subs-styled-strip-detail = Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone.
+
+# Button that restores the default subtitle style.
+settings-subs-reset = Reset subtitle style

@@ -153,6 +153,9 @@ home-because = Because you finished { $title }
 # Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
 home-more-genre = More { $genre }
 
+# Line over the spotlight's title when it is the built-in demo.
+home-spotlight-demo = Demo · Shared under CC BY 4.0
+
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = { $reason }
 
@@ -648,6 +651,12 @@ notice-anilist-back = AniList is back.
 # Toast when a command needs watch parties but this app was built without them.
 notice-party-not-built = Watch parties aren't built into this app.
 
+# Notice after the demo is removed. It offers Undo for 8 seconds.
+sources-demo-removed = Demo removed
+
+# Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.
+stores-ready-demo-stays = { $store } is ready. The demo stays last in Your sources.
+
 # Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
 notice-signed-in = Signed in to { $tracker }.
 
@@ -839,6 +848,15 @@ notice-episodes-queued =
         [one] Queued one episode.
        *[other] Queued { $count } episodes.
     }
+
+# Notice after the subtitle style is reset. It offers Undo.
+settings-subs-reset-done = Subtitle style reset
+
+# Notice at the next launch after a crash, while saving and asking are on.
+crash-notice = anistream closed after a problem.
+
+# The same notice on the TV, which has no button.
+crash-notice-tv = anistream closed after a problem. You can report it from Settings, About.
 
 # Note under the connection-check group of the torrents dialog: what the check does.
 torrents-linux-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
@@ -3911,6 +3929,99 @@ about-artwork = Some artwork is licensed under Creative Commons BY-NC 4.0.
 # Line about fonts.
 about-font-licence = Licensed under the SIL Open Font License 1.1.
 
+# Button on that notice that opens Report a bug.
+crash-notice-report = Report…
+
+# Title of the Report a bug sheet.
+report-title = Report a bug
+
+# Line under the title of the Report a bug sheet.
+report-detail = This opens a new issue on GitHub, where you sign in, say what happened and submit. Issues on GitHub are public.
+
+# Heading of the list of what the report includes.
+report-included = Included
+
+# Report item that is always included.
+report-versions = App and device versions
+
+# Report item: the last error the app showed.
+report-last-error = The last error
+
+# Report item for a saved crash. The time and the place are already worded.
+report-crash-item = Crash · { $when } · { $where }
+
+# Disclosure that opens the exact text of the report.
+report-show-sent = Show what is sent
+
+# Disclosure that closes the exact text of the report.
+report-hide-sent = Hide what is sent
+
+# Button that copies the whole report text.
+report-copy = Copy report
+
+# Notice after the report text is copied.
+report-copied = Report copied
+
+# Button that opens the pre-filled issue in the browser.
+report-open-github = Open on GitHub
+
+# Line at the foot of the Report a bug sheet.
+report-privacy = Nothing leaves this device until you open the report on GitHub. Titles, addresses, file paths and names are removed.
+
+# TV only. Line over the QR code of the issue link.
+report-tv-scan = Scan the code to open the report on your phone.
+
+# Line that replaces the crash rows while saving crash reports is off.
+report-crash-off = Crash reports are off, so none is included. You can turn them on in Settings, About.
+
+# Link from that line to the crash report settings.
+report-crash-settings = Crash report settings
+
+# Heading of the Crash reports group in Settings, About.
+settings-group-crashes = Crash reports
+
+# Switch that turns saving crash reports on this device on or off.
+settings-crash-save = Save crash reports on this device
+
+# Line under that switch.
+settings-crash-save-detail = When this is on, anistream keeps a short record of each crash on this device, with titles, addresses and names removed, so you can add it to Report a bug. Nothing is sent by itself.
+
+# Switch that turns the notice after a crash on or off.
+settings-crash-ask = Ask after a crash
+
+# Line under that switch.
+settings-crash-ask-detail = Shows a notice at the next launch with Report…
+
+# Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.
+settings-crash-os-heading = Kept by { $system }
+
+# Line under that heading.
+settings-crash-os-detail = { $system } kept these crashes from before you turned this on. Nothing from them is saved unless you add it.
+
+# Row for one crash the system kept. The time is already worded.
+settings-crash-os-item = Crash · { $when }
+
+# Button that saves one crash the system kept.
+settings-crash-os-add = Add
+
+# Heading of the saved crash reports.
+settings-crash-saved = Saved reports
+
+# Empty state of the saved crash reports.
+settings-crash-none = No crash reports saved.
+
+# Button that shows the text of a saved crash report.
+settings-crash-view = View
+
+# Button that deletes one saved crash report.
+settings-crash-delete = Delete
+
+# Button that deletes every saved crash report.
+settings-crash-delete-all = Delete all
+
+# Footnote of the Crash reports group.
+settings-crash-footnote = Crash reports stay on this device. anistream sends nothing by itself. A report leaves only when you open it on GitHub from Report a bug. Reports are deleted after 30 days.
+
 # Button that shows the week before.
 calendar-previous-week = Previous week
 
@@ -5517,6 +5628,33 @@ onboarding-join = Join
 # Hint inside the invite field on the welcome page.
 onboarding-invite-hint = Invite link
 
+# Heading of the welcome page that explains where episodes come from.
+onboarding-where-title = Where episodes come from
+
+# First line of that page. States that the app hosts no content.
+onboarding-where-hosts = anistream hosts no content. It plays episodes from sources, which are plugins.
+
+# Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
+onboarding-where-stores = Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.
+
+# Heading above the Play the demo button on the welcome page.
+onboarding-demo-heading = Try it now
+
+# Line under that heading. Names the demo work and its licence.
+onboarding-demo-detail = The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons.
+
+# Button on the welcome page that plays the demo at once.
+onboarding-play-demo = Play the demo
+
+# Heading above the invite link field on the welcome page.
+onboarding-invite-heading = Have an invite link?
+
+# TV only. Button that shows a code to scan with a phone to send an invite link.
+onboarding-invite-scan = Scan with your phone
+
+# TV only. Button that opens a field to type an invite link.
+onboarding-invite-type = Type the link
+
 # Button on the title page and in the player that opens the watch party form.
 party-open = Watch party…
 
@@ -5995,6 +6133,33 @@ player-wait-note = { $what } · { $seconds } s
 
 # Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
 player-command-failed = That didn't work. Try again.
+
+# Heading of the style section in the player's subtitles panel.
+player-subs-style = Style
+
+# Accessibility label of the control that makes subtitles larger.
+player-subs-larger = Larger subtitles
+
+# Accessibility label of the control that makes subtitles smaller.
+player-subs-smaller = Smaller subtitles
+
+# Accessibility label of the control that raises subtitles.
+player-subs-raise = Raise subtitles
+
+# Accessibility label of the control that lowers subtitles.
+player-subs-lower = Lower subtitles
+
+# Quick panel choice for the subtitle background: outline, no box.
+player-subs-bg-outline = Outline
+
+# Quick panel choice for the subtitle background: drop shadow, no box.
+player-subs-bg-shadow = Shadow
+
+# Quick panel choice for the subtitle background: a box behind the lines.
+player-subs-bg-box = Box
+
+# Button in the subtitles panel that opens Settings.
+player-subs-more = More in Settings…
 
 # Button that shows the season before.
 seasonal-previous = Previous season
@@ -6691,6 +6856,135 @@ settings-reset-detail = Every setting goes back to its default, VPN and proxy in
 # Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
 settings-reset-done = Settings are back to their defaults. The old file is kept as { $file }.
 
+# Heading of the Subtitles group in Settings, Playback.
+settings-group-subtitles = Subtitles
+
+# Heading of the subtitle preview.
+settings-subs-preview = Preview
+
+# Segment of the preview that draws plain subtitles.
+settings-subs-preview-plain = Plain
+
+# Segment of the preview that draws styled subtitles.
+settings-subs-preview-styled = Styled
+
+# First sample line in the subtitle preview.
+settings-subs-preview-line = I left the lantern at the station.
+
+# Second sample line in the subtitle preview.
+settings-subs-preview-line-2 = Can you bring it back before dark?
+
+# Sample of a typeset sign at the top of the styled preview.
+settings-subs-preview-sign = Kumo no Ue Library
+
+# Link under the rows that show the system's caption style.
+settings-subs-system-change = Change in Accessibility settings
+
+# Value shown, dimmed, for a row while the system's caption style applies.
+settings-subs-system-value = From your system
+
+# Label of the subtitle size slider.
+settings-subs-size = Size
+
+# Value of the size slider. The percent is a whole number from 50 to 200.
+settings-subs-size-value = { $percent }%
+
+# Label of the subtitle font row.
+settings-subs-font = Font
+
+# Subtitle font choice: the player's own sans-serif.
+settings-subs-font-default = Default
+
+# Subtitle font choice.
+settings-subs-font-serif = Serif
+
+# Subtitle font choice.
+settings-subs-font-mono = Monospace
+
+# Label of the subtitle text colour row.
+settings-subs-colour = Text colour
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-white = White
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-yellow = Yellow
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-cyan = Cyan
+
+# Subtitle text colour name, shown beside its swatch.
+settings-subs-colour-green = Green
+
+# Label of the subtitle edge row.
+settings-subs-edge = Edge
+
+# Subtitle edge choice.
+settings-subs-edge-outline = Outline
+
+# Subtitle edge choice.
+settings-subs-edge-shadow = Drop shadow
+
+# Subtitle edge choice: no edge.
+settings-subs-edge-none = None
+
+# Label of the outline thickness row.
+settings-subs-thickness = Thickness
+
+# Outline thickness choice.
+settings-subs-thin = Thin
+
+# Outline thickness choice.
+settings-subs-medium = Medium
+
+# Outline thickness choice.
+settings-subs-thick = Thick
+
+# Label of the subtitle background row.
+settings-subs-background = Background
+
+# Subtitle background choice: no background.
+settings-subs-background-none = None
+
+# Subtitle background choice: a plate behind each line.
+settings-subs-background-line = Behind each line
+
+# Subtitle background choice: one plate behind all lines.
+settings-subs-background-all = Behind all lines
+
+# Label of the background opacity row.
+settings-subs-opacity = Opacity
+
+# Label of the row that raises subtitles.
+settings-subs-raise = Raise subtitles
+
+# Value of the raise slider. The percent is a whole number from 0 to 20.
+settings-subs-raise-value = { $percent }% of the picture
+
+# Label of the picker that says what happens to styled subtitles.
+settings-subs-styled = Styled subtitles
+
+# Styled subtitles choice: leave the authors' styling alone.
+settings-subs-styled-keep = Keep their look
+
+# Line under the picker while Keep their look is chosen.
+settings-subs-styled-keep-detail = Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply.
+
+# Styled subtitles choice: apply the viewer's style over the authors'.
+settings-subs-styled-restyle = Restyle
+
+# Line under the picker while Restyle is chosen.
+settings-subs-styled-restyle-detail = Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement.
+
+# Styled subtitles choice: drop all styling and show plain dialogue.
+settings-subs-styled-strip = Remove all styling
+
+# Line under the picker while Remove all styling is chosen.
+settings-subs-styled-strip-detail = Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone.
+
+# Button that restores the default subtitle style.
+settings-subs-reset = Reset subtitle style
+
 # Title of the screen or section that lists sources.
 sources-title = Sources
 
@@ -6973,6 +7267,57 @@ match-cleared = Matching automatically again.
 
 # Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 match-row-label = { $title }, { $facts }, { $closeness }
+
+# Name of the built-in demo source in every list of sources.
+sources-demo-name = Demo
+
+# Line under the demo source in Your sources: the work, its licence and where it streams from.
+sources-demo-line = こうしす！ · CC BY 4.0 · from Wikimedia Commons
+
+# Title of the page that describes the demo.
+sources-demo-about = About the demo
+
+# The credit block shown wherever the demo work shows as a title. The licence asks for this wording.
+sources-demo-credit = こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence.
+
+# Link to the licence text, in the credit block.
+sources-demo-link-licence = Licence
+
+# Link to the work's file page on Wikimedia Commons, in the credit block.
+sources-demo-link-commons = Wikimedia Commons
+
+# Link to the makers' site, in the credit block.
+sources-demo-link-maker = OPAP-JP
+
+# Line on the demo page that names the only two hosts the demo reaches.
+sources-demo-hosts = Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.
+
+# Line on the demo page about accounts and trackers.
+sources-demo-private = The demo never signs in anywhere and never writes to AniList.
+
+# Button on the demo page that removes the demo from the sources.
+sources-demo-remove = Remove demo
+
+# Button that adds the demo back to the sources.
+sources-demo-add = Add the demo
+
+# Closing line of Home while the demo is the only source. Plugin stores is a link.
+sources-demo-only = Only the demo is on. Join a plugin store to play from your own sources.
+
+# Line under the search field while the demo is the only source.
+search-demo-only = Only the demo is on. Other titles play once you join a plugin store.
+
+# Line under the demo title when it is a search result.
+search-demo-plays = Demo · Plays now
+
+# Main button on the demo title. The part is a number.
+title-play-part = Play part { $part }
+
+# Line on the player's starting screen for a part of the demo.
+player-starting-part = Starting part { $part }
+
+# Credit line under the starting line on the player's starting screen for the demo.
+player-demo-credit = こうしす！ by OPAP-JP contributors · CC BY 4.0
 
 # Short label for a joined store, on a row.
 stores-joined = Joined
@@ -7369,6 +7714,27 @@ stores-offers-plugins =
 
 # Button of a notice that opens the plugin stores page.
 notice-open-stores = Open plugin stores
+
+# Explainer on the empty plugin stores page.
+stores-what-is = A plugin store is a small server one person runs for the people they invite. It offers sources as plugins. anistream runs no plugin stores and lists none, so you join one with an invite link from its owner.
+
+# Button on the empty plugin stores page that opens the docs page in the browser.
+stores-what-is-link = What is a plugin store?
+
+# Line above the invite field in the Join sheet.
+stores-invite-rules = An invite link works once, for one person, and lasts seven days. Ask the plugin store's owner for a new one if yours has expired.
+
+# Accessibility label of the QR code that holds an invite link.
+stores-qr-label = QR code for the invite link
+
+# Line under the QR code of an invite for someone else.
+stores-qr-warning = Anyone who scans this code can use the invite. It works once and lasts seven days.
+
+# Line under the QR code of a link for another device of yours.
+stores-qr-warning-device = Scan this with the device you want to link. It works once and lasts seven days.
+
+# Button that opens the system share sheet for the invite link.
+stores-share = Share…
 
 # Title of the state when a title page could not load.
 title-load-failed = Couldn't load this title

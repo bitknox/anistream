@@ -260,6 +260,11 @@ pub fn home_more_genre(genre: &str) -> String {
     text("home-more-genre", &[("genre", Arg::Text(genre))])
 }
 
+/// Line over the spotlight's title when it is the built-in demo.
+pub fn home_spotlight_demo() -> String {
+    text("home-spotlight-demo", &[])
+}
+
 /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 pub fn notice_reason(reason: &str) -> String {
     text("notice-reason", &[("reason", Arg::Text(reason))])
@@ -1025,6 +1030,16 @@ pub fn notice_party_not_built() -> String {
     text("notice-party-not-built", &[])
 }
 
+/// Notice after the demo is removed. It offers Undo for 8 seconds.
+pub fn sources_demo_removed() -> String {
+    text("sources-demo-removed", &[])
+}
+
+/// Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.
+pub fn stores_ready_demo_stays(store: &str) -> String {
+    text("stores-ready-demo-stays", &[("store", Arg::Text(store))])
+}
+
 /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
 pub fn notice_signed_in(tracker: &str) -> String {
     text("notice-signed-in", &[("tracker", Arg::Text(tracker))])
@@ -1323,6 +1338,21 @@ pub fn start_failed_player(reason: &str) -> String {
 /// Toast after episodes are added to the download queue.
 pub fn notice_episodes_queued(count: i64) -> String {
     text("notice-episodes-queued", &[("count", Arg::Int(count))])
+}
+
+/// Notice after the subtitle style is reset. It offers Undo.
+pub fn settings_subs_reset_done() -> String {
+    text("settings-subs-reset-done", &[])
+}
+
+/// Notice at the next launch after a crash, while saving and asking are on.
+pub fn crash_notice() -> String {
+    text("crash-notice", &[])
+}
+
+/// The same notice on the TV, which has no button.
+pub fn crash_notice_tv() -> String {
+    text("crash-notice-tv", &[])
 }
 
 /// Note under the connection-check group of the torrents dialog: what the check does.
@@ -6230,6 +6260,161 @@ pub fn about_font_licence() -> String {
     text("about-font-licence", &[])
 }
 
+/// Button on that notice that opens Report a bug.
+pub fn crash_notice_report() -> String {
+    text("crash-notice-report", &[])
+}
+
+/// Title of the Report a bug sheet.
+pub fn report_title() -> String {
+    text("report-title", &[])
+}
+
+/// Line under the title of the Report a bug sheet.
+pub fn report_detail() -> String {
+    text("report-detail", &[])
+}
+
+/// Heading of the list of what the report includes.
+pub fn report_included() -> String {
+    text("report-included", &[])
+}
+
+/// Report item that is always included.
+pub fn report_versions() -> String {
+    text("report-versions", &[])
+}
+
+/// Report item: the last error the app showed.
+pub fn report_last_error() -> String {
+    text("report-last-error", &[])
+}
+
+/// Report item for a saved crash. The time and the place are already worded.
+pub fn report_crash_item(when: &str, where: &str) -> String {
+    text("report-crash-item", &[("when", Arg::Text(when)), ("where", Arg::Text(where))])
+}
+
+/// Disclosure that opens the exact text of the report.
+pub fn report_show_sent() -> String {
+    text("report-show-sent", &[])
+}
+
+/// Disclosure that closes the exact text of the report.
+pub fn report_hide_sent() -> String {
+    text("report-hide-sent", &[])
+}
+
+/// Button that copies the whole report text.
+pub fn report_copy() -> String {
+    text("report-copy", &[])
+}
+
+/// Notice after the report text is copied.
+pub fn report_copied() -> String {
+    text("report-copied", &[])
+}
+
+/// Button that opens the pre-filled issue in the browser.
+pub fn report_open_github() -> String {
+    text("report-open-github", &[])
+}
+
+/// Line at the foot of the Report a bug sheet.
+pub fn report_privacy() -> String {
+    text("report-privacy", &[])
+}
+
+/// TV only. Line over the QR code of the issue link.
+pub fn report_tv_scan() -> String {
+    text("report-tv-scan", &[])
+}
+
+/// Line that replaces the crash rows while saving crash reports is off.
+pub fn report_crash_off() -> String {
+    text("report-crash-off", &[])
+}
+
+/// Link from that line to the crash report settings.
+pub fn report_crash_settings() -> String {
+    text("report-crash-settings", &[])
+}
+
+/// Heading of the Crash reports group in Settings, About.
+pub fn settings_group_crashes() -> String {
+    text("settings-group-crashes", &[])
+}
+
+/// Switch that turns saving crash reports on this device on or off.
+pub fn settings_crash_save() -> String {
+    text("settings-crash-save", &[])
+}
+
+/// Line under that switch.
+pub fn settings_crash_save_detail() -> String {
+    text("settings-crash-save-detail", &[])
+}
+
+/// Switch that turns the notice after a crash on or off.
+pub fn settings_crash_ask() -> String {
+    text("settings-crash-ask", &[])
+}
+
+/// Line under that switch.
+pub fn settings_crash_ask_detail() -> String {
+    text("settings-crash-ask-detail", &[])
+}
+
+/// Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.
+pub fn settings_crash_os_heading(system: &str) -> String {
+    text("settings-crash-os-heading", &[("system", Arg::Text(system))])
+}
+
+/// Line under that heading.
+pub fn settings_crash_os_detail(system: &str) -> String {
+    text("settings-crash-os-detail", &[("system", Arg::Text(system))])
+}
+
+/// Row for one crash the system kept. The time is already worded.
+pub fn settings_crash_os_item(when: &str) -> String {
+    text("settings-crash-os-item", &[("when", Arg::Text(when))])
+}
+
+/// Button that saves one crash the system kept.
+pub fn settings_crash_os_add() -> String {
+    text("settings-crash-os-add", &[])
+}
+
+/// Heading of the saved crash reports.
+pub fn settings_crash_saved() -> String {
+    text("settings-crash-saved", &[])
+}
+
+/// Empty state of the saved crash reports.
+pub fn settings_crash_none() -> String {
+    text("settings-crash-none", &[])
+}
+
+/// Button that shows the text of a saved crash report.
+pub fn settings_crash_view() -> String {
+    text("settings-crash-view", &[])
+}
+
+/// Button that deletes one saved crash report.
+pub fn settings_crash_delete() -> String {
+    text("settings-crash-delete", &[])
+}
+
+/// Button that deletes every saved crash report.
+pub fn settings_crash_delete_all() -> String {
+    text("settings-crash-delete-all", &[])
+}
+
+/// Footnote of the Crash reports group.
+pub fn settings_crash_footnote() -> String {
+    text("settings-crash-footnote", &[])
+}
+
 /// Button that shows the week before.
 pub fn calendar_previous_week() -> String {
     text("calendar-previous-week", &[])
@@ -8840,6 +9025,51 @@ pub fn onboarding_invite_hint() -> String {
     text("onboarding-invite-hint", &[])
 }
 
+/// Heading of the welcome page that explains where episodes come from.
+pub fn onboarding_where_title() -> String {
+    text("onboarding-where-title", &[])
+}
+
+/// First line of that page. States that the app hosts no content.
+pub fn onboarding_where_hosts() -> String {
+    text("onboarding-where-hosts", &[])
+}
+
+/// Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
+pub fn onboarding_where_stores() -> String {
+    text("onboarding-where-stores", &[])
+}
+
+/// Heading above the Play the demo button on the welcome page.
+pub fn onboarding_demo_heading() -> String {
+    text("onboarding-demo-heading", &[])
+}
+
+/// Line under that heading. Names the demo work and its licence.
+pub fn onboarding_demo_detail() -> String {
+    text("onboarding-demo-detail", &[])
+}
+
+/// Button on the welcome page that plays the demo at once.
+pub fn onboarding_play_demo() -> String {
+    text("onboarding-play-demo", &[])
+}
+
+/// Heading above the invite link field on the welcome page.
+pub fn onboarding_invite_heading() -> String {
+    text("onboarding-invite-heading", &[])
+}
+
+/// TV only. Button that shows a code to scan with a phone to send an invite link.
+pub fn onboarding_invite_scan() -> String {
+    text("onboarding-invite-scan", &[])
+}
+
+/// TV only. Button that opens a field to type an invite link.
+pub fn onboarding_invite_type() -> String {
+    text("onboarding-invite-type", &[])
+}
+
 /// Button on the title page and in the player that opens the watch party form.
 pub fn party_open() -> String {
     text("party-open", &[])
@@ -9623,6 +9853,51 @@ pub fn player_wait_note(what: &str, seconds: i64) -> String {
 /// Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
 pub fn player_command_failed() -> String {
     text("player-command-failed", &[])
+}
+
+/// Heading of the style section in the player's subtitles panel.
+pub fn player_subs_style() -> String {
+    text("player-subs-style", &[])
+}
+
+/// Accessibility label of the control that makes subtitles larger.
+pub fn player_subs_larger() -> String {
+    text("player-subs-larger", &[])
+}
+
+/// Accessibility label of the control that makes subtitles smaller.
+pub fn player_subs_smaller() -> String {
+    text("player-subs-smaller", &[])
+}
+
+/// Accessibility label of the control that raises subtitles.
+pub fn player_subs_raise() -> String {
+    text("player-subs-raise", &[])
+}
+
+/// Accessibility label of the control that lowers subtitles.
+pub fn player_subs_lower() -> String {
+    text("player-subs-lower", &[])
+}
+
+/// Quick panel choice for the subtitle background: outline, no box.
+pub fn player_subs_bg_outline() -> String {
+    text("player-subs-bg-outline", &[])
+}
+
+/// Quick panel choice for the subtitle background: drop shadow, no box.
+pub fn player_subs_bg_shadow() -> String {
+    text("player-subs-bg-shadow", &[])
+}
+
+/// Quick panel choice for the subtitle background: a box behind the lines.
+pub fn player_subs_bg_box() -> String {
+    text("player-subs-bg-box", &[])
+}
+
+/// Button in the subtitles panel that opens Settings.
+pub fn player_subs_more() -> String {
+    text("player-subs-more", &[])
 }
 
 /// Button that shows the season before.
@@ -10770,6 +11045,221 @@ pub fn settings_reset_done(file: &str) -> String {
     text("settings-reset-done", &[("file", Arg::Text(file))])
 }
 
+/// Heading of the Subtitles group in Settings, Playback.
+pub fn settings_group_subtitles() -> String {
+    text("settings-group-subtitles", &[])
+}
+
+/// Heading of the subtitle preview.
+pub fn settings_subs_preview() -> String {
+    text("settings-subs-preview", &[])
+}
+
+/// Segment of the preview that draws plain subtitles.
+pub fn settings_subs_preview_plain() -> String {
+    text("settings-subs-preview-plain", &[])
+}
+
+/// Segment of the preview that draws styled subtitles.
+pub fn settings_subs_preview_styled() -> String {
+    text("settings-subs-preview-styled", &[])
+}
+
+/// First sample line in the subtitle preview.
+pub fn settings_subs_preview_line() -> String {
+    text("settings-subs-preview-line", &[])
+}
+
+/// Second sample line in the subtitle preview.
+pub fn settings_subs_preview_line_2() -> String {
+    text("settings-subs-preview-line-2", &[])
+}
+
+/// Sample of a typeset sign at the top of the styled preview.
+pub fn settings_subs_preview_sign() -> String {
+    text("settings-subs-preview-sign", &[])
+}
+
+/// Link under the rows that show the system's caption style.
+pub fn settings_subs_system_change() -> String {
+    text("settings-subs-system-change", &[])
+}
+
+/// Value shown, dimmed, for a row while the system's caption style applies.
+pub fn settings_subs_system_value() -> String {
+    text("settings-subs-system-value", &[])
+}
+
+/// Label of the subtitle size slider.
+pub fn settings_subs_size() -> String {
+    text("settings-subs-size", &[])
+}
+
+/// Value of the size slider. The percent is a whole number from 50 to 200.
+pub fn settings_subs_size_value(percent: i64) -> String {
+    text("settings-subs-size-value", &[("percent", Arg::Int(percent))])
+}
+
+/// Label of the subtitle font row.
+pub fn settings_subs_font() -> String {
+    text("settings-subs-font", &[])
+}
+
+/// Subtitle font choice: the player's own sans-serif.
+pub fn settings_subs_font_default() -> String {
+    text("settings-subs-font-default", &[])
+}
+
+/// Subtitle font choice.
+pub fn settings_subs_font_serif() -> String {
+    text("settings-subs-font-serif", &[])
+}
+
+/// Subtitle font choice.
+pub fn settings_subs_font_mono() -> String {
+    text("settings-subs-font-mono", &[])
+}
+
+/// Label of the subtitle text colour row.
+pub fn settings_subs_colour() -> String {
+    text("settings-subs-colour", &[])
+}
+
+/// Subtitle text colour name, shown beside its swatch.
+pub fn settings_subs_colour_white() -> String {
+    text("settings-subs-colour-white", &[])
+}
+
+/// Subtitle text colour name, shown beside its swatch.
+pub fn settings_subs_colour_yellow() -> String {
+    text("settings-subs-colour-yellow", &[])
+}
+
+/// Subtitle text colour name, shown beside its swatch.
+pub fn settings_subs_colour_cyan() -> String {
+    text("settings-subs-colour-cyan", &[])
+}
+
+/// Subtitle text colour name, shown beside its swatch.
+pub fn settings_subs_colour_green() -> String {
+    text("settings-subs-colour-green", &[])
+}
+
+/// Label of the subtitle edge row.
+pub fn settings_subs_edge() -> String {
+    text("settings-subs-edge", &[])
+}
+
+/// Subtitle edge choice.
+pub fn settings_subs_edge_outline() -> String {
+    text("settings-subs-edge-outline", &[])
+}
+
+/// Subtitle edge choice.
+pub fn settings_subs_edge_shadow() -> String {
+    text("settings-subs-edge-shadow", &[])
+}
+
+/// Subtitle edge choice: no edge.
+pub fn settings_subs_edge_none() -> String {
+    text("settings-subs-edge-none", &[])
+}
+
+/// Label of the outline thickness row.
+pub fn settings_subs_thickness() -> String {
+    text("settings-subs-thickness", &[])
+}
+
+/// Outline thickness choice.
+pub fn settings_subs_thin() -> String {
+    text("settings-subs-thin", &[])
+}
+
+/// Outline thickness choice.
+pub fn settings_subs_medium() -> String {
+    text("settings-subs-medium", &[])
+}
+
+/// Outline thickness choice.
+pub fn settings_subs_thick() -> String {
+    text("settings-subs-thick", &[])
+}
+
+/// Label of the subtitle background row.
+pub fn settings_subs_background() -> String {
+    text("settings-subs-background", &[])
+}
+
+/// Subtitle background choice: no background.
+pub fn settings_subs_background_none() -> String {
+    text("settings-subs-background-none", &[])
+}
+
+/// Subtitle background choice: a plate behind each line.
+pub fn settings_subs_background_line() -> String {
+    text("settings-subs-background-line", &[])
+}
+
+/// Subtitle background choice: one plate behind all lines.
+pub fn settings_subs_background_all() -> String {
+    text("settings-subs-background-all", &[])
+}
+
+/// Label of the background opacity row.
+pub fn settings_subs_opacity() -> String {
+    text("settings-subs-opacity", &[])
+}
+
+/// Label of the row that raises subtitles.
+pub fn settings_subs_raise() -> String {
+    text("settings-subs-raise", &[])
+}
+
+/// Value of the raise slider. The percent is a whole number from 0 to 20.
+pub fn settings_subs_raise_value(percent: i64) -> String {
+    text("settings-subs-raise-value", &[("percent", Arg::Int(percent))])
+}
+
+/// Label of the picker that says what happens to styled subtitles.
+pub fn settings_subs_styled() -> String {
+    text("settings-subs-styled", &[])
+}
+
+/// Styled subtitles choice: leave the authors' styling alone.
+pub fn settings_subs_styled_keep() -> String {
+    text("settings-subs-styled-keep", &[])
+}
+
+/// Line under the picker while Keep their look is chosen.
+pub fn settings_subs_styled_keep_detail() -> String {
+    text("settings-subs-styled-keep-detail", &[])
+}
+
+/// Styled subtitles choice: apply the viewer's style over the authors'.
+pub fn settings_subs_styled_restyle() -> String {
+    text("settings-subs-styled-restyle", &[])
+}
+
+/// Line under the picker while Restyle is chosen.
+pub fn settings_subs_styled_restyle_detail() -> String {
+    text("settings-subs-styled-restyle-detail", &[])
+}
+
+/// Styled subtitles choice: drop all styling and show plain dialogue.
+pub fn settings_subs_styled_strip() -> String {
+    text("settings-subs-styled-strip", &[])
+}
+
+/// Line under the picker while Remove all styling is chosen.
+pub fn settings_subs_styled_strip_detail() -> String {
+    text("settings-subs-styled-strip-detail", &[])
+}
+
+/// Button that restores the default subtitle style.
+pub fn settings_subs_reset() -> String {
+    text("settings-subs-reset", &[])
+}
+
 /// Title of the screen or section that lists sources.
 pub fn sources_title() -> String {
     text("sources-title", &[])
@@ -11213,6 +11703,91 @@ pub fn match_cleared() -> String {
 /// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 pub fn match_row_label(title: &str, facts: &str, closeness: &str) -> String {
     text("match-row-label", &[("title", Arg::Text(title)), ("facts", Arg::Text(facts)), ("closeness", Arg::Text(closeness))])
+}
+
+/// Name of the built-in demo source in every list of sources.
+pub fn sources_demo_name() -> String {
+    text("sources-demo-name", &[])
+}
+
+/// Line under the demo source in Your sources: the work, its licence and where it streams from.
+pub fn sources_demo_line() -> String {
+    text("sources-demo-line", &[])
+}
+
+/// Title of the page that describes the demo.
+pub fn sources_demo_about() -> String {
+    text("sources-demo-about", &[])
+}
+
+/// The credit block shown wherever the demo work shows as a title. The licence asks for this wording.
+pub fn sources_demo_credit() -> String {
+    text("sources-demo-credit", &[])
+}
+
+/// Link to the licence text, in the credit block.
+pub fn sources_demo_link_licence() -> String {
+    text("sources-demo-link-licence", &[])
+}
+
+/// Link to the work's file page on Wikimedia Commons, in the credit block.
+pub fn sources_demo_link_commons() -> String {
+    text("sources-demo-link-commons", &[])
+}
+
+/// Link to the makers' site, in the credit block.
+pub fn sources_demo_link_maker() -> String {
+    text("sources-demo-link-maker", &[])
+}
+
+/// Line on the demo page that names the only two hosts the demo reaches.
+pub fn sources_demo_hosts() -> String {
+    text("sources-demo-hosts", &[])
+}
+
+/// Line on the demo page about accounts and trackers.
+pub fn sources_demo_private() -> String {
+    text("sources-demo-private", &[])
+}
+
+/// Button on the demo page that removes the demo from the sources.
+pub fn sources_demo_remove() -> String {
+    text("sources-demo-remove", &[])
+}
+
+/// Button that adds the demo back to the sources.
+pub fn sources_demo_add() -> String {
+    text("sources-demo-add", &[])
+}
+
+/// Closing line of Home while the demo is the only source. Plugin stores is a link.
+pub fn sources_demo_only() -> String {
+    text("sources-demo-only", &[])
+}
+
+/// Line under the search field while the demo is the only source.
+pub fn search_demo_only() -> String {
+    text("search-demo-only", &[])
+}
+
+/// Line under the demo title when it is a search result.
+pub fn search_demo_plays() -> String {
+    text("search-demo-plays", &[])
+}
+
+/// Main button on the demo title. The part is a number.
+pub fn title_play_part(part: &str) -> String {
+    text("title-play-part", &[("part", Arg::Text(part))])
+}
+
+/// Line on the player's starting screen for a part of the demo.
+pub fn player_starting_part(part: &str) -> String {
+    text("player-starting-part", &[("part", Arg::Text(part))])
+}
+
+/// Credit line under the starting line on the player's starting screen for the demo.
+pub fn player_demo_credit() -> String {
+    text("player-demo-credit", &[])
 }
 
 /// Short label for a joined store, on a row.
@@ -11853,6 +12428,41 @@ pub fn stores_offers_plugins(count: i64) -> String {
 /// Button of a notice that opens the plugin stores page.
 pub fn notice_open_stores() -> String {
     text("notice-open-stores", &[])
+}
+
+/// Explainer on the empty plugin stores page.
+pub fn stores_what_is() -> String {
+    text("stores-what-is", &[])
+}
+
+/// Button on the empty plugin stores page that opens the docs page in the browser.
+pub fn stores_what_is_link() -> String {
+    text("stores-what-is-link", &[])
+}
+
+/// Line above the invite field in the Join sheet.
+pub fn stores_invite_rules() -> String {
+    text("stores-invite-rules", &[])
+}
+
+/// Accessibility label of the QR code that holds an invite link.
+pub fn stores_qr_label() -> String {
+    text("stores-qr-label", &[])
+}
+
+/// Line under the QR code of an invite for someone else.
+pub fn stores_qr_warning() -> String {
+    text("stores-qr-warning", &[])
+}
+
+/// Line under the QR code of a link for another device of yours.
+pub fn stores_qr_warning_device() -> String {
+    text("stores-qr-warning-device", &[])
+}
+
+/// Button that opens the system share sheet for the invite link.
+pub fn stores_share() -> String {
+    text("stores-share", &[])
 }
 
 /// Title of the state when a title page could not load.

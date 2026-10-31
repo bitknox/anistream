@@ -110,3 +110,7 @@ home-because = Because you finished { $title }
 # @arg genre: text
 # @max 40
 home-more-genre = More { $genre }
+
+# Line over the spotlight's title when it is the built-in demo.
+# @max 32
+home-spotlight-demo = Demo · Shared under CC BY 4.0

@@ -267,3 +267,10 @@ notice-anilist-back = AniList is back.
 
 # Toast when a command needs watch parties but this app was built without them.
 notice-party-not-built = { -watch-party-cap-pl } aren't built into this app.
+
+# Notice after the demo is removed. It offers Undo for 8 seconds.
+sources-demo-removed = Demo removed
+
+# Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.
+# @arg store: text
+stores-ready-demo-stays = { $store } is ready. The demo stays last in Your { -source-pl }.

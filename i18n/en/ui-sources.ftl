@@ -351,3 +351,59 @@ match-cleared = Matching automatically again.
 # @arg facts: text
 # @arg closeness: text
 match-row-label = { $title }, { $facts }, { $closeness }
+
+# Name of the built-in demo source in every list of sources.
+sources-demo-name = Demo
+
+# Line under the demo source in Your sources: the work, its licence and where it streams from.
+sources-demo-line = こうしす！ · CC BY 4.0 · from Wikimedia Commons
+
+# Title of the page that describes the demo.
+sources-demo-about = About the demo
+
+# The credit block shown wherever the demo work shows as a title. The licence asks for this wording.
+sources-demo-credit = こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence.
+
+# Link to the licence text, in the credit block.
+sources-demo-link-licence = Licence
+
+# Link to the work's file page on Wikimedia Commons, in the credit block.
+sources-demo-link-commons = Wikimedia Commons
+
+# Link to the makers' site, in the credit block.
+sources-demo-link-maker = OPAP-JP
+
+# Line on the demo page that names the only two hosts the demo reaches.
+sources-demo-hosts = Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.
+
+# Line on the demo page about accounts and trackers.
+sources-demo-private = The demo never signs in anywhere and never writes to AniList.
+
+# Button on the demo page that removes the demo from the sources.
+# @max 24
+sources-demo-remove = Remove demo
+
+# Button that adds the demo back to the sources.
+# @max 24
+sources-demo-add = Add the demo
+
+# Closing line of Home while the demo is the only source. Plugin stores is a link.
+sources-demo-only = Only the demo is on. Join a { -plugin-store } to play from your own { -source-pl }.
+
+# Line under the search field while the demo is the only source.
+search-demo-only = Only the demo is on. Other titles play once you join a { -plugin-store }.
+
+# Line under the demo title when it is a search result.
+search-demo-plays = Demo · Plays now
+
+# Main button on the demo title. The part is a number.
+# @arg part: text
+# @max 24
+title-play-part = Play part { $part }
+
+# Line on the player's starting screen for a part of the demo.
+# @arg part: text
+player-starting-part = Starting part { $part }
+
+# Credit line under the starting line on the player's starting screen for the demo.
+player-demo-credit = こうしす！ by OPAP-JP contributors · CC BY 4.0

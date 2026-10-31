@@ -452,3 +452,26 @@ stores-offers-plugins = { $count ->
 
 # Button of a notice that opens the plugin stores page.
 notice-open-stores = Open { -plugin-store-pl }
+
+# Explainer on the empty plugin stores page.
+stores-what-is = A { -plugin-store } is a small server one person runs for the people they invite. It offers { -source-pl } as { -plugin-pl }. { -app-name } runs no { -plugin-store-pl } and lists none, so you join one with an invite link from its owner.
+
+# Button on the empty plugin stores page that opens the docs page in the browser.
+# @max 32
+stores-what-is-link = What is a { -plugin-store }?
+
+# Line above the invite field in the Join sheet.
+stores-invite-rules = An invite link works once, for one person, and lasts seven days. Ask the { -plugin-store }'s owner for a new one if yours has expired.
+
+# Accessibility label of the QR code that holds an invite link.
+stores-qr-label = QR code for the invite link
+
+# Line under the QR code of an invite for someone else.
+stores-qr-warning = Anyone who scans this code can use the invite. It works once and lasts seven days.
+
+# Line under the QR code of a link for another device of yours.
+stores-qr-warning-device = Scan this with the { -device } you want to link. It works once and lasts seven days.
+
+# Button that opens the system share sheet for the invite link.
+# @max 16
+stores-share = Share…

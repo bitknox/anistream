@@ -70,3 +70,12 @@ notice-episodes-queued = { $count ->
     [one] Queued one episode.
    *[other] Queued { $count } episodes.
  }
+
+# Notice after the subtitle style is reset. It offers Undo.
+settings-subs-reset-done = Subtitle style reset
+
+# Notice at the next launch after a crash, while saving and asking are on.
+crash-notice = { -app-name } closed after a problem.
+
+# The same notice on the TV, which has no button.
+crash-notice-tv = { -app-name } closed after a problem. You can report it from Settings, About.
