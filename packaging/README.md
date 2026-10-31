@@ -23,10 +23,12 @@ release workflow like the `.deb`.
 
 ## How releases work
 
-Every push to main is a release, unless all it changes is under `website/` or `docs/`, or the
-Markdown files at the top of the repository. Nobody tags by hand. `.github/workflows/release.yml`
-works out the version, builds everything, and publishes the release and its tag once every build
-has succeeded.
+Every push to main publishes a beta, unless all it changes is under `website/` or `docs/`, or the
+Markdown files at the top of the repository. A beta is a normal numbered build published as a
+GitHub pre-release. Once a week the Promote workflow (`.github/workflows/promote.yml`) turns the
+newest beta that is ready into the stable release. Nobody tags by hand.
+`.github/workflows/release.yml` works out the version, builds everything, and publishes the beta
+and its tag once every build has succeeded.
 
 - The version comes from `next-version.sh`. The version under `[workspace.package]` in
   Cargo.toml is the base. While it has no release, the release takes it. Once it has one, each
@@ -40,9 +42,9 @@ has succeeded.
   number come from it through `apps/version.sh`.
 - release.yml builds the terminal's four targets and calls `apps-release.yml` for the apps. Once
   all of them have succeeded, `publish.sh` makes a draft release with every file and the notes,
-  then publishes it, which makes the tag `v<version>` on the pushed commit and marks the release
-  latest. Last, release.yml calls `store-image.yml`, which publishes
-  `ghcr.io/bitknox/anistream-store` at the same version.
+  then publishes it, which makes the tag `v<version>` on the pushed commit. A beta is a
+  pre-release and is never marked latest. Last, release.yml calls `store-image.yml`, which
+  publishes `ghcr.io/bitknox/anistream-store` at the same version, tagged `beta`.
 - A run that fails publishes nothing and makes no tag, so the next push to main tries the same
   version again. A failed run can also be run again from the Actions tab, or release.yml
   dispatched. A dispatch with no tag releases main's newest commit if it has no release yet; one
@@ -55,7 +57,15 @@ has succeeded.
   GitHub keeps only the newest push waiting, and its release carries the changes of the pushes
   before it.
 - A `v*` tag pushed by hand is released as it is, with the version it names. A pre-release tag
-  such as `v2.1.0-rc.1` is published as a pre-release and is not marked latest.
+  such as `v2.1.0-rc.1` is published as a pre-release and is not marked latest. A full tag is
+  published as a stable release.
+- Promote runs on Tuesday at 09:00 in Copenhagen, and can be dispatched with a beta's tag for a
+  fix release. It takes the newest beta that has all its files, a passing `CI passed` check and
+  is at least a day old (a dispatch skips the wait). The `stable-release` environment's required
+  reviewer approves every promotion. It clears the pre-release flag, marks the release latest,
+  writes the notes for every beta since the last stable (`stable-notes.sh`), and adds the image's
+  `latest`, minor, major and `stable` tags to the beta's digest. Nothing is built or signed
+  again, so stable versions skip numbers: the stable after 2.2.1 may be 2.3.4.
 
 ## Files
 
@@ -157,8 +167,8 @@ those two read from it and register under the person's team (`apple/scripts/adho
 ### Updates
 
 `appcast.xml` and `sidestore.json` are named without a version, so
-`https://github.com/bitknox/anistream/releases/latest/download/` always has the newest release's.
-Pre-releases are never marked latest, so they never reach either. The engine finds a new release
+`https://github.com/bitknox/anistream/releases/latest/download/` always has the newest stable
+release's. Betas are pre-releases and are never marked latest, so they never reach either. The engine finds a new release
 on its own (`crates/anistream-engine/src/updates.rs`) and tells the apps, which then update:
 
 - The Mac app through Sparkle 2, when the viewer presses Update. The app is signed ad hoc, so

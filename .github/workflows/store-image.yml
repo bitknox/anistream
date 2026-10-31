@@ -1,15 +1,23 @@
 name: Store image
 
 # The plugin store's container image, ghcr.io/bitknox/anistream-store, which the Fly, Render,
-# Railway, Heroku and Docker templates under deploy/ run. release.yml calls this for each release
-# once the release is published; a pull request that could change it only checks that it still
-# builds.
+# Railway, Heroku and Docker templates under deploy/ run. release.yml calls this for each beta
+# once it is published; a pull request that could change it only checks that it still builds.
+#
+# A beta is tagged with its version and `beta`. The stable tags, `latest`, the minor, the major and
+# `stable`, are added by promote.yml to the digest of the beta it promotes. They are made here
+# only for a stable release published directly (a full v* tag pushed by hand).
 on:
   workflow_call:
     inputs:
       tag:
         description: The release's tag, which the image is built from and tagged by
         required: true
+        type: string
+      channel:
+        description: beta tags the image with its version and beta. stable adds latest, the minor, the major and stable.
+        required: false
+        default: beta
         type: string
   # Publishes an existing release's image again, after a fix to the Dockerfile or to this
   # workflow, without a new release.
@@ -19,6 +27,12 @@ on:
         description: Release tag to build and publish, such as v1.0.0
         required: true
         type: string
+      channel:
+        description: beta tags the image with its version and beta. stable adds latest, the minor, the major and stable.
+        required: true
+        default: beta
+        type: choice
+        options: [beta, stable]
   pull_request:
     paths:
       - crates/anistream-store-server/**
@@ -50,12 +64,16 @@ permissions:
 env:
   IMAGE: ghcr.io/bitknox/anistream-store
   # One list for both jobs: the build job needs it for the version label, the merge job for the
-  # tags. Pre-release tags such as v2.1.0-rc.1 only get their own version tag, never `latest`
-  # or `2`.
+  # tags. Pre-release tags such as v2.1.0-rc.1 only get their own version tag, never the minor
+  # or the major. The metadata action's own `latest` is off, since it would mark every beta
+  # latest.
   IMAGE_TAGS: |
     type=semver,pattern={{version}},value=${{ inputs.tag }}
-    type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }}
-    type=semver,pattern={{major}},value=${{ inputs.tag }}
+    type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }},enable=${{ inputs.channel == 'stable' }}
+    type=semver,pattern={{major}},value=${{ inputs.tag }},enable=${{ inputs.channel == 'stable' }}
+    type=raw,value=stable,enable=${{ inputs.channel == 'stable' }}
+    type=raw,value=latest,enable=${{ inputs.channel == 'stable' && !contains(inputs.tag, '-') }}
+    type=raw,value=beta,enable=${{ inputs.channel != 'stable' }}
 
 jobs:
   # Docker's "distribute build across multiple runners" pattern: each architecture compiles on a
@@ -97,6 +115,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
+          flavor: latest=false
           tags: ${{ env.IMAGE_TAGS }}
 
       - name: Log in to GHCR
@@ -177,6 +196,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
+          flavor: latest=false
           tags: ${{ env.IMAGE_TAGS }}
 
       # Docker's documented step, with arrays in place of word splitting. GHCR shows a

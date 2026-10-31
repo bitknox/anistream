@@ -1,8 +1,10 @@
 name: Release
 
-# Every push to main is a release, unless all it changes is the website or the docs: the terminal
-# binaries built here, the apps apps-release.yml builds, and the plugin store's image, which
-# store-image.yml builds once the release is out. Nobody tags by hand. The version is
+# Every push to main publishes a beta, unless all it changes is the website or the docs: the
+# terminal binaries built here, the apps apps-release.yml builds, and the plugin store's image,
+# which store-image.yml builds once the beta is out. A beta is a GitHub pre-release, so the apps
+# on the stable channel never see it. promote.yml makes the stable release, once a week, out of
+# a beta that has waited. Nobody tags by hand. The version is
 # packaging/next-version.sh's: the workspace's version in Cargo.toml, or the next patch once that
 # version has a release. Each build sets it in its own checkout with packaging/set-version.sh,
 # and nothing is committed back.
@@ -13,7 +15,8 @@ name: Release
 # comes while one runs waits for it. GitHub keeps only the newest of those waiting, and its
 # release carries what the pushes before it changed.
 #
-# A pushed v* tag is released as it is, with the version it names. A dispatch releases main's
+# A pushed v* tag is released as it is, with the version it names: a suffixed one such as
+# v2.1.0-rc.1 as a pre-release, a full one as a stable release. A dispatch releases main's
 # newest commit if it has no release yet, or, given a tag, builds that tag and publishes it again.
 #
 # A tag's run can restore only caches saved on that tag or on main. Releases from main save the
@@ -89,6 +92,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       commit: ${{ steps.version.outputs.commit }}
       publish: ${{ steps.version.outputs.publish }}
+      channel: ${{ steps.version.outputs.channel }}
       targets: ${{ steps.targets.outputs.targets }}
     steps:
       # `inputs.tag` is empty on anything but a dispatch with a tag, and checkout then takes the
@@ -115,10 +119,14 @@ jobs:
           REF: ${{ github.ref }}
           PUSHED_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
           INPUT_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           commit="$(git rev-parse HEAD)"
           tag="${INPUT_TAG:-$PUSHED_TAG}"
           publish=false
+          # beta: a GitHub pre-release the stable channel does not see. stable: the release the
+          # apps update to.
+          channel=beta
           if [[ -n "$tag" ]]; then
             if [[ "$(git rev-parse "refs/tags/$tag^{commit}")" != "$commit" ]]; then
               echo "::error::The checkout is not on $tag's commit."
@@ -126,6 +134,14 @@ jobs:
             fi
             version="${tag#v}"
             publish=true
+            # A tag with a release keeps that release's channel, so publishing it again cannot
+            # demote a stable or promote a beta. One without is a full tag pushed by hand, which
+            # is a stable release.
+            if prerelease="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .prerelease 2>/dev/null)"; then
+              [[ "$prerelease" == true ]] || channel=stable
+            elif [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              channel=stable
+            fi
           else
             version="$(packaging/next-version.sh)"
             tag="v$version"
@@ -150,8 +166,9 @@ jobs:
             echo "tag=$tag"
             echo "commit=$commit"
             echo "publish=$publish"
+            echo "channel=$channel"
           } >> "$GITHUB_OUTPUT"
-          echo "::notice::$tag, on $commit. Published: $publish."
+          echo "::notice::$tag, on $commit. Published: $publish, as a $channel."
 
       # What a pull request changes of how a release is packaged, as opposed to what it builds.
       - uses: dorny/paths-filter@v4
@@ -528,8 +545,9 @@ jobs:
       MAC_UPDATE_ED25519_KEY: ${{ secrets.MAC_UPDATE_ED25519_KEY }}
 
   # Once every build has succeeded: the terminal's files and the apps', with the notes, as a
-  # draft, which publishing turns into the release and its tag, marked latest
-  # (packaging/publish.sh). Nothing is public before that, and a failure leaves no tag.
+  # draft, which publishing turns into the release and its tag, as a pre-release that is never
+  # marked latest (packaging/publish.sh). Nothing is public before that, and a failure leaves no
+  # tag.
   publish:
     name: Publish
     needs: [version, build, apps]
@@ -560,7 +578,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.version.outputs.tag }}
           COMMIT: ${{ needs.version.outputs.commit }}
-        run: packaging/publish.sh "$TAG" "$COMMIT" dist/terminal dist/apps
+          CHANNEL: ${{ needs.version.outputs.channel }}
+        run: packaging/publish.sh --channel "$CHANNEL" "$TAG" "$COMMIT" dist/terminal dist/apps
 
   # The plugin store's image for the release, ghcr.io/bitknox/anistream-store, once the release
   # is out. Called here rather than started by the tag, since a tag made with this run's token
@@ -575,3 +594,4 @@ jobs:
     uses: ./.github/workflows/store-image.yml
     with:
       tag: ${{ needs.version.outputs.tag }}
+      channel: ${{ needs.version.outputs.channel }}

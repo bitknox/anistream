@@ -2,7 +2,7 @@
 # Publishes a release: the terminal builds release.yml packaged and the apps apps-release.yml
 # built, with the release's notes, under a tag made as the release is published.
 #
-#   packaging/publish.sh <tag> <commit> <terminal dir> <apps dir>
+#   packaging/publish.sh [--channel beta|stable] <tag> <commit> <terminal dir> <apps dir>
 #   packaging/publish.sh --notes <tag> <commit> <apps dir>    prints the notes, publishes nothing
 #
 # <terminal dir> holds the four builds' archives, installers and AppImage, a .sha256 for each,
@@ -13,8 +13,8 @@
 # nothing else may be, so a build that stops making one, or starts making a new one, fails here
 # rather than publishing without it.
 #
-# appcast.xml and sidestore.json have no version in their names, so the newest release's are at
-# releases/latest/download/, where the apps look. sidestore.json gets the release's date and the
+# appcast.xml and sidestore.json have no version in their names, so the newest stable release's are
+# at releases/latest/download/, where the apps look. sidestore.json gets the release's date and the
 # first section of its notes here (packaging/apps/sidestore-source.sh made the rest).
 #
 # The notes start with the pull request merged as <commit>, its title and body, which GitHub
@@ -22,13 +22,19 @@
 # release before. Then come the install notes for the terminal (packaging/release-notes.md) and
 # for the apps, and last GitHub's generated notes: the pull requests since the release before.
 #
+# The channel, beta by default, is what the release is. A beta is a GitHub pre-release and is never
+# marked latest, so no app on the stable channel sees it: promote.yml makes the stable
+# release out of a beta, once a week. A stable release is published only for a full tag pushed by
+# hand, and is marked latest when no newer stable release exists. A suffixed tag is a pre-release
+# on either channel.
+#
 # Nothing is public until the end. The release is made as a draft, which has no tag, with every
 # file uploaded to it, and publishing it makes the tag on <commit>. So a run that fails leaves no
 # tag and no release, and the next run tries the same version again. A draft an earlier run left
-# for the tag is deleted first. A pre-release tag, such as v2.1.0-rc.1, is published as a
-# pre-release, and only the newest full release is marked latest. A tag that already has a
-# published release on <commit>, as when release.yml is dispatched with it, gets its files
-# replaced and its notes written again. A tag on another commit is refused.
+# for the tag is deleted first. A tag that already has a published release on <commit>, as when
+# release.yml is dispatched with it, gets its files replaced and keeps its channel, and a beta
+# gets its notes written again (a stable's notes are the promotion's, and are left). A tag on
+# another commit is refused.
 #
 # GH_TOKEN and GH_REPO say where, as in the workflow.
 set -euo pipefail
@@ -38,6 +44,12 @@ fail() {
   exit 1
 }
 
+channel=beta
+if [[ "${1:-}" == "--channel" ]]; then
+  [[ "${2:-}" == beta || "${2:-}" == stable ]] || { echo "usage: packaging/publish.sh --channel beta|stable ..." >&2; exit 2; }
+  channel="$2"
+  shift 2
+fi
 notes_only=0
 if [[ "${1:-}" == "--notes" ]]; then
   notes_only=1
@@ -45,7 +57,7 @@ if [[ "${1:-}" == "--notes" ]]; then
   [[ $# -eq 3 ]] || { echo "usage: packaging/publish.sh --notes <tag> <commit> <apps dir>" >&2; exit 2; }
   tag="$1" commit="$2" terminal="" apps="$3"
 else
-  [[ $# -eq 4 ]] || { echo "usage: packaging/publish.sh <tag> <commit> <terminal dir> <apps dir>" >&2; exit 2; }
+  [[ $# -eq 4 ]] || { echo "usage: packaging/publish.sh [--channel beta|stable] <tag> <commit> <terminal dir> <apps dir>" >&2; exit 2; }
   tag="$1" commit="$2" terminal="$3" apps="$4"
 fi
 repo="${GH_REPO:?GH_REPO names the repository, such as bitknox/anistream}"
@@ -56,7 +68,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 version="${tag#v}"
 triple="${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}"
 prerelease=false
-if [[ -n "${BASH_REMATCH[4]}" ]]; then prerelease=true; fi
+if [[ -n "${BASH_REMATCH[4]}" || "$channel" == beta ]]; then prerelease=true; fi
 [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "$commit is not a full commit SHA"
 
 work="$(mktemp -d)"
@@ -118,7 +130,14 @@ gh api --paginate "repos/$repo/git/matching-refs/tags/v" --jq '.[].ref' |
   sed -n 's|^refs/tags/\(v\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)\)$|\2 \3 \4 \1|p' |
   sort -n -k1,1 -k2,2 -k3,3 >"$work/releases"
 
-# The newest older than this version, and whether any is newer.
+# The same for the stable releases only, the published ones that are not pre-releases. A beta
+# is never newer than a stable for the purpose of marking latest.
+gh api --paginate "repos/$repo/releases?per_page=100" \
+  --jq '.[] | select((.draft | not) and (.prerelease | not)) | .tag_name' |
+  sed -n 's|^\(v\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)\)$|\2 \3 \4 \1|p' |
+  sort -n -k1,1 -k2,2 -k3,3 >"$work/stables"
+
+# The newest older than this version, and whether any stable is newer.
 previous="$(awk -v t="$triple" '
   BEGIN { split(t, v, " ") }
   ($1 < v[1]) || ($1 == v[1] && $2 < v[2]) || ($1 == v[1] && $2 == v[2] && $3 < v[3]) { last = $4 }
@@ -127,7 +146,8 @@ previous="$(awk -v t="$triple" '
 newer="$(awk -v t="$triple" '
   BEGIN { split(t, v, " ") }
   ($1 > v[1]) || ($1 == v[1] && $2 > v[2]) || ($1 == v[1] && $2 == v[2] && $3 > v[3]) { print $4; exit }
-' "$work/releases")"
+' "$work/stables")"
+# Only a stable release is ever marked latest.
 latest=false
 if [[ "$prerelease" == false && -z "$newer" ]]; then latest=true; fi
 
@@ -205,7 +225,7 @@ EOF
 
 # --- The release -----------------------------------------------------------------------------------
 
-echo "publish.sh: $tag on $commit, after ${previous:-no release}, latest $latest, pre-release $prerelease"
+echo "publish.sh: $tag on $commit, after ${previous:-no release}, $channel, latest $latest, pre-release $prerelease"
 
 # A tag on another commit already, as when a failed run is run again after a later push has
 # published the version it was to have, stops here, before its files replace that release's.
@@ -216,9 +236,15 @@ if tagged="$(gh api "repos/$repo/commits/$tag" --jq .sha 2>/dev/null)" && [[ "$t
 fi
 
 if id="$(gh api "repos/$repo/releases/tags/$tag" --jq .id 2>/dev/null)"; then
-  echo "publish.sh: $tag is published already, so its files are replaced and its notes written again"
+  # The release keeps its channel: the flags are not touched. A stable's notes are the
+  # promotion's, so only a beta gets its notes written again.
   gh release upload "$tag" "${files[@]}" --clobber
-  gh api -X PATCH "repos/$repo/releases/$id" -F body=@"$work/notes.md" --jq .html_url
+  if [[ "$(gh api "repos/$repo/releases/$id" --jq .prerelease)" == true ]]; then
+    echo "publish.sh: $tag is published already, so its files are replaced and its notes written again"
+    gh api -X PATCH "repos/$repo/releases/$id" -F body=@"$work/notes.md" --jq .html_url
+  else
+    echo "publish.sh: $tag is a stable release already, so its files are replaced and its notes kept"
+  fi
   exit 0
 fi
 

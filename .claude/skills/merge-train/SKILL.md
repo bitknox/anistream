@@ -1,11 +1,12 @@
 ---
 name: merge-train
-description: Build an anistream merge train - one branch from main merging several ready branches, checked locally, opened as one PR, reviewed by Johan on local builds, then auto-merged. Use when bundling ready branches for a single CI run and release.
+description: Build an anistream merge train - one branch from main merging several ready branches, checked locally, opened as one PR, reviewed by Johan on local builds, then auto-merged. Use when bundling ready branches for a single CI run and beta.
 ---
 
 # Merge train
 
-CI is expensive and every merge to main releases, so ready branches ship together in one train.
+CI is expensive and every merge to main publishes a beta, so ready branches ship together in one
+train.
 Johan inspects every train himself before it merges, so keep trains few and complete.
 
 1. **Base.** In your own worktree: `git fetch origin && git switch -c train/<date>[-n] origin/main`.
@@ -28,10 +29,11 @@ Johan inspects every train himself before it merges, so keep trains few and comp
    Set `[workspace.package] version` in `Cargo.toml` above the newest `v*` tag, run
    run `cargo check --locked` so `Cargo.lock` matches (fix it with `cargo update -w` if not),
    and commit `Release X.Y.Z`. A PR check fails a release that isn't newer than the newest tag.
-5. **PR.** Push the branch and open ONE PR against main. The first paragraphs become release
-   notes and the apps' update notes (about 500 characters), so keep them short and plain. List
-   the version, the branches, conflicts and resolutions, train fixes, what was checked and what
-   wasn't. End
+5. **PR.** Push the branch and open ONE PR against main. The PR title is the line stable users
+   read in the weekly list, so it says what changed for them. The first paragraphs are the
+   beta's release notes, so keep them short and plain. Put internal detail (the version, the
+   branches, conflicts and resolutions, train fixes, what was checked and what wasn't) under a
+   `## Train` heading, which the stable notes drop. End
    with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 6. **Review builds.** Don't turn on auto-merge yet. Into `~/anistream-notes/builds/train-<n>/`, put:
    - the Mac Release app from step 3, after `adhoc-sign.sh`;
@@ -49,4 +51,6 @@ Johan inspects every train himself before it merges, so keep trains few and comp
    must list `CI passed`. Then `gh pr merge <n> --auto --merge -R bitknox/anistream`. Never merge
    without `--auto`; without protection it merges at once. If he finds problems, fix them on the
    train with signed commits and rebuild step 6.
-8. **After merge,** confirm the Release run on the merge commit published (see `ci-triage`).
+8. **After merge,** confirm the beta published: the Release run on the merge commit succeeded and
+   the pre-release has all its files (see `ci-triage`). Stable comes from the weekly Promote
+   workflow; never dispatch it unless Johan says to in so many words.
