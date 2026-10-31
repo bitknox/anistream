@@ -242,6 +242,7 @@ extension SettingKey {
         case .presenceTitle: L.settingsPresenceTitle
         case .presenceRich: L.settingsPresenceRich
         case .updateCheck: L.settingsCheckUpdates
+        case .updateBeta: L.updatesBeta
         case .translation: L.settingsAudio
         case .subtitles: L.playerSubtitles
         case .quality: L.settingsQuality

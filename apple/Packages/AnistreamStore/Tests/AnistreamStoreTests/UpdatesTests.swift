@@ -52,6 +52,20 @@ struct UpdatesTests {
         #expect(store.updates.outcome == .upToDate)
     }
 
+    @Test func aBetaAheadOfTheStableSaysSoAndLabelsTheBuild() {
+        let store = AppStore()
+        store.apply(.update(.upToDate(stableBehind: "2.0.9", runningBeta: true)))
+        #expect(store.updates.outcome == .stableBehind("2.0.9"))
+        #expect(store.updates.runningBeta)
+        store.apply(.update(.upToDate(stableBehind: nil, runningBeta: false)))
+        #expect(!store.updates.runningBeta)
+    }
+
+    @Test func theMacFeedIsTheReleasesOwnAppcast() {
+        #expect(UpdatesModel.feedURL(forVersion: "2.1.0")?.absoluteString
+            == "https://github.com/bitknox/anistream/releases/download/v2.1.0/appcast.xml")
+    }
+
     @Test func checkNowAsksTheEngineOnceAndSaysWhatItFound() {
         let store = AppStore()
         var sent: [Command] = []
