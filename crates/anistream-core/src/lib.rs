@@ -16,7 +16,7 @@ pub mod track_memory;
 pub mod traits;
 
 pub use error::{Error, ProviderError, Result};
-pub use ids::{AnilistId, KitsuId, MalId, ProviderKey, TvdbId};
+pub use ids::{AnidbId, AnilistId, ExternalIds, KitsuId, MalId, ProviderKey, TmdbId, TvdbId};
 pub use media::{Episode, EpisodeNumber, MediaFormat, MediaStatus, SearchHit, Translation};
 pub use stream::{Stream, StreamKind, Subtitle};
 pub use traits::{Player, Provider, ProviderKind, ProviderManifest, Tracker};
