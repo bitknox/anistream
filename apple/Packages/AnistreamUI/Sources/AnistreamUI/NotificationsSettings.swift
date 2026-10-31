@@ -183,6 +183,7 @@ struct NotificationsPane: View {
                     ComingUpRow(row: row)
                         .padding(.horizontal, 10)
                         .frame(minHeight: 62)
+                        .contentShape(.rect)
                         .padding(.horizontal, 4)
                 }
                 .buttonStyle(.plain)

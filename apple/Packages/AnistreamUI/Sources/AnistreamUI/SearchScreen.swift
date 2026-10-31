@@ -689,13 +689,16 @@ struct ActiveFilters: View {
                     .accessibilityLabel(L.filterRemove(filter: filter.label))
                 }
                 if active.count > 1 {
-                    Button(L.searchClearAll) {
+                    Button {
                         store.searchLive(store.search.query.cleared())
+                    } label: {
+                        Text(L.searchClearAll)
+                            .frame(minHeight: compact ? 44 : 24)
+                            .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
                     .font(compact ? .ui(15, weight: .semibold) : .mac(12, weight: .semibold))
                     .foregroundStyle(.silk)
-                    .frame(minHeight: compact ? 44 : 24)
                 }
             }
         }
@@ -847,11 +850,14 @@ private struct RecentSearchList: View {
             HStack {
                 SectionHeading(L.searchRecent, compact: compact)
                 Spacer()
-                Button(L.actionClear) { store.clearRecentSearches() }
-                    .buttonStyle(.plain)
-                    .font(compact ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
-                    .foregroundStyle(.silk)
-                    .frame(minHeight: compact ? 44 : 28)
+                Button { store.clearRecentSearches() } label: {
+                    Text(L.actionClear)
+                        .frame(minHeight: compact ? 44 : 28)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .font(compact ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
+                .foregroundStyle(.silk)
             }
             ForEach(store.search.recents, id: \.self) { query in
                 HStack(spacing: 12) {
@@ -866,13 +872,16 @@ private struct RecentSearchList: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    Button(L.searchRecentRemove(query: query.recentLine), systemImage: "xmark") {
+                    Button {
                         store.forgetRecentSearch(query)
+                    } label: {
+                        Label(L.searchRecentRemove(query: query.recentLine), systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                            .frame(minWidth: compact ? 44 : 20, minHeight: compact ? 44 : 28)
+                            .contentShape(.rect)
                     }
-                    .labelStyle(.iconOnly)
                     .buttonStyle(.plain)
                     .foregroundStyle(.haze)
-                    .frame(minWidth: compact ? 44 : 20, minHeight: compact ? 44 : 28)
                 }
                 .frame(minHeight: compact ? 44 : 28)
             }
@@ -898,13 +907,16 @@ private struct RailRow: View {
                     Text(detail).font(compact ? .ui(15) : .mac(13)).foregroundStyle(.haze)
                 }
                 Spacer()
-                Button(L.searchSeeAll) {
+                Button {
                     navigator.search(rail.query, in: store)
+                } label: {
+                    Text(L.searchSeeAll)
+                        .frame(minHeight: compact ? 44 : 28)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .font(compact ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
                 .foregroundStyle(.silk)
-                .frame(minHeight: compact ? 44 : 28)
                 .pointerHover()
             }
             ScrollView(.horizontal) {

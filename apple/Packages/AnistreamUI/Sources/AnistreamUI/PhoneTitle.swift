@@ -203,6 +203,7 @@ struct PhoneTitle: View {
                                     .padding(.vertical, 4)
                                     .frame(minHeight: 32)
                                     .overlay(Capsule().strokeBorder(.faintRule))
+                                    .contentShape(.capsule)
                                 }
                                 .buttonStyle(.plain)
                                 .pointerHover()
@@ -284,6 +285,7 @@ struct PhoneTitle: View {
             .frame(minHeight: 32)
             .background(season.isThis ? Palette.selection : .clear, in: .capsule)
             .overlay(Capsule().strokeBorder(season.isThis ? .clear : Palette.faintRule))
+            .contentShape(.capsule)
         }
         .buttonStyle(.plain)
         .pointerHover()
