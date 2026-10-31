@@ -45,15 +45,20 @@ internal fun ScreenFrame(
     account: Account? = null,
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
-    /** Home's own words under the title, in place of the generic offline line and job activity. */
+    /**
+     * Home's own words under the title, in place of the generic offline line and job activity:
+     * with [ownLine], the screen's line is the only one, and none stands when it is `null`.
+     */
     line: FrameLine? = null,
+    ownLine: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
     // Under the title: the offline line, a job past 4 s in words, or the screen's own line.
-    val line = line ?: frameLine(subtitle)
+    val generic = frameLine(subtitle)
+    val line = if (ownLine) line else line ?: generic
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         containerColor = colors.surface,

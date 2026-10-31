@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,6 +71,9 @@ private fun HiddenRow(place: Place, hidden: HiddenTitle) {
             val line = if (hidden.untilAirs) Strings.settingsHiddenUntilAirs(context) else entry.genreLine
             line?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1) }
         }
-        TextButton(onClick = { store.restoreTitle(entry.id); store.loadHiddenTitles() }) { Text(Strings.settingsRestore(context)) }
+        TextButton(
+            onClick = { store.restoreTitle(entry.id); store.loadHiddenTitles() },
+            colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
+        ) { Text(Strings.settingsRestore(context)) }
     }
 }

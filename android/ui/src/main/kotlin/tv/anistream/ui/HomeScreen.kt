@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,11 +37,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -118,14 +123,20 @@ fun HomeScreen(actions: AppActions) {
     val offlineSince = view?.offlineSince
     val line = when {
         view?.offline == true && offlineSince != null -> FrameLine.OfflineFrom(Strings.homeOffline(context, clock(offlineSince)))
-        slow -> FrameLine.OfflineFrom(Strings.homeLoading(context))
+        // Offline with nothing kept: the block below says it, and Home says it once.
+        view?.offline == true && (view?.spotlight != null || view?.sections.orEmpty().isNotEmpty()) -> FrameLine.Offline
+        view?.offline == true -> null
+        slow -> FrameLine.Words(Strings.homeLoading(context))
         else -> null
     }
 
     ScreenFrame(
         title = stringResource(R.string.home_title),
-        account = Account(user, actions.openSettings),
+        // Wide windows have the account at the foot of the rail already.
+        account = if (wideWindow()) null else Account(user, actions.openSettings),
+        // Home's line is the only one: the engine's job for Home would say the same again.
         line = line,
+        ownLine = true,
     ) { padding ->
         val top = padding.calculateTopPadding()
         Refreshable({ store.loadHome(refresh = true) }, top = top) {
@@ -147,6 +158,35 @@ fun HomeScreen(actions: AppActions) {
 private fun clock(unix: Long): String =
     DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(unix * 1000))
 
+/**
+ * The parts to draw placeholders for: none for 600 ms, so a fast answer never shows them, then
+ * what is still pending, and once nothing is, the last parts shown until they have stood 0.3 s,
+ * so they never flicker away.
+ */
+@Composable
+private fun heldPlaceholders(pending: List<HomePart>): List<HomePart> {
+    var shown by remember { mutableStateOf(emptyList<HomePart>()) }
+    var since by remember { mutableLongStateOf(0L) }
+    val current by rememberUpdatedState(pending)
+    val waiting = pending.isNotEmpty()
+    LaunchedEffect(waiting) {
+        if (waiting) {
+            if (shown.isEmpty()) {
+                delay(PLACEHOLDERS_AFTER)
+                since = withFrameMillis { it }
+            }
+            snapshotFlow { current }.collect { shown = it }
+        } else if (shown.isNotEmpty()) {
+            val left = PLACEHOLDERS_HELD - (withFrameMillis { it } - since)
+            if (left > 0) delay(left)
+            shown = emptyList()
+        }
+    }
+    return shown
+}
+
+private const val PLACEHOLDERS_HELD = 300L
+
 /** Whether something has been pending for four seconds: the activity line's cue. */
 @Composable
 private fun pendingForLong(pending: Boolean): Boolean {
@@ -165,6 +205,7 @@ private fun pendingForLong(pending: Boolean): Boolean {
 private fun HomeColumn(home: HomeView, h: HomeHandlers, gone: List<AnilistId>, top: Dp) {
     val list = rememberLazyListState()
     val goneSet = gone.toSet()
+    val held = heldPlaceholders(home.pending)
     LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(top = top, bottom = 24.dp)) {
         // The spotlight changes in place: a crossfade on standard when its title or case moves, and
         // only then, so a sources check or a mark inside it never flashes.
@@ -196,10 +237,10 @@ private fun HomeColumn(home: HomeView, h: HomeHandlers, gone: List<AnilistId>, t
             }
         }
         // What is still on its way, held in place below what has arrived: nothing above it moves
-        // when it lands.
-        if (home.pending.isNotEmpty()) {
+        // when it lands. They leave in the same crossfade as the shelves arrive.
+        if (held.isNotEmpty()) {
             item(key = "pending", contentType = "pending") {
-                Box(itemMotion()) { AfterWait { HomePlaceholders(home.pending, spotlight = false) } }
+                Box(itemMotion()) { HomePlaceholders(held, spotlight = false) }
             }
         }
         home.end?.let { end ->
@@ -233,9 +274,15 @@ private fun EndLine(end: HomeEnd, actions: AppActions) {
         Spacer(Modifier.height(16.dp))
         Text(annotated, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         // A translation that words a link differently still gets its link, as a button.
-        for ((word, go) in missing) TextButton(onClick = go) { Text(word) }
+        for ((word, go) in missing) {
+            TextButton(onClick = go, colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface)) { Text(word) }
+        }
         if (end == HomeEnd.SIGN_IN) {
-            OutlinedButton(onClick = actions.connectAniList, modifier = Modifier.padding(top = 12.dp)) {
+            OutlinedButton(
+                onClick = actions.connectAniList,
+                modifier = Modifier.padding(top = 12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurface),
+            ) {
                 Text(Strings.homeSignIn(context))
             }
         }
@@ -353,11 +400,11 @@ internal fun HomePlaceholders(parts: List<HomePart>, spotlight: Boolean) {
     Column {
         if (spotlight) SpotlightPlaceholder()
         repeat(parts.size.coerceAtLeast(1)) {
-            TextPlaceholder(0.3f, 48.dp, Modifier.padding(start = 16.dp, top = 12.dp))
+            TextPlaceholder(0.3f, 48.dp, Modifier.padding(start = 16.dp, top = shelfTop()))
             androidx.compose.foundation.lazy.LazyRow(
                 userScrollEnabled = false,
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(cardGap()),
             ) {
                 items(4) { Box(Modifier.width(posterWidth())) { PosterPlaceholder() } }
             }

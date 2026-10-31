@@ -19,9 +19,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -67,13 +71,24 @@ import tv.anistream.i18n.Strings
 import tv.anistream.store.AirTime
 import tv.anistream.store.text
 
-/** Poster width: 110 on phones, 128 on wider windows. */
+/** Poster width, from the board: 112 on phones, 128 on wider windows. */
 @Composable
-internal fun posterWidth(): Dp = if (wideWindow()) 128.dp else 110.dp
+internal fun posterWidth(): Dp = if (wideWindow()) 128.dp else 112.dp
 
-/** Continue card width: 240 on phones, 272 on wider windows. */
+/** Continue card width, from the board: 208 on phones, 272 on wider windows. */
 @Composable
-internal fun cardWidth(): Dp = if (wideWindow()) 272.dp else 240.dp
+internal fun cardWidth(): Dp = if (wideWindow()) 272.dp else 208.dp
+
+/** Between cards in a shelf: 12 on phones, 16 on wider windows. */
+@Composable
+internal fun cardGap(): Dp = if (wideWindow()) 16.dp else 12.dp
+
+/**
+ * Above a shelf's heading row: with the heading's own 12 above its words, 32 between shelves on
+ * phones and 40 on wider windows.
+ */
+@Composable
+internal fun shelfTop(): Dp = if (wideWindow()) 28.dp else 20.dp
 
 /** A shelf's heading, 48 high, with the count and the link that opens the whole of it. */
 @Composable
@@ -113,6 +128,8 @@ private fun ShelfHeading(section: HomeSection) {
                     }
                 },
                 modifier = Modifier.semantics { contentDescription = "$label, $title" },
+                // Silk, as every text button on the app's pages: the one amber is the spotlight's.
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
             ) { Text(label) }
         }
     }
@@ -121,9 +138,13 @@ private fun ShelfHeading(section: HomeSection) {
 /** Continue: wide cards with their meters, up to twelve. */
 @Composable
 internal fun ContinueShelf(section: HomeSection, items: List<HomeItem>, h: HomeHandlers) {
-    Column(Modifier.padding(top = 8.dp)) {
+    Column(Modifier.padding(top = shelfTop())) {
         ShelfHeading(section)
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(
+            state = rememberShelfState(items.firstOrNull()?.entry?.id),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(cardGap()),
+        ) {
             items(items, key = { "c-${it.entry.id}" }, contentType = { "card" }) { Box(itemMotion()) { ContinueCard(it, cardWidth(), h) } }
         }
     }
@@ -233,12 +254,36 @@ private fun ContinueCard(item: HomeItem, width: Dp, h: HomeHandlers) {
     }
 }
 
+/**
+ * A shelf's row, kept at its start when a card arrives ahead of the first one, as Undo brings a
+ * card back: a lazy row holds on to the card it showed first, which would leave the new one out
+ * of sight past the left edge. A row scrolled along stays where it is.
+ */
+@Composable
+private fun rememberShelfState(first: Any?): LazyListState {
+    val state = rememberLazyListState()
+    val seen = remember { arrayOf(first) }
+    if (seen[0] != first) {
+        seen[0] = first
+        if (state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0) state.requestScrollToItem(0)
+    }
+    return state
+}
+
+/** A poster title's lines: one, and two from a font scale of 1.3, where one line holds too little. */
+@Composable
+private fun titleLines(): Int = if (LocalDensity.current.fontScale >= 1.3f) 2 else 1
+
 /** A discovery shelf: posters, each with its short reason, and Not interested on a long press. */
 @Composable
 internal fun PosterShelf(section: HomeSection, items: List<HomeItem>, h: HomeHandlers) {
-    Column(Modifier.padding(top = 8.dp)) {
+    Column(Modifier.padding(top = shelfTop())) {
         ShelfHeading(section)
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(
+            state = rememberShelfState(items.firstOrNull()?.entry?.id),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(cardGap()),
+        ) {
             items(items, key = { "p-${section.kind.name}-${it.entry.id}" }, contentType = { "poster" }) {
                 Box(itemMotion()) { HomePoster(it, posterWidth(), "home-${section.kind.name}", h) }
             }
@@ -277,7 +322,8 @@ private fun HomePoster(item: HomeItem, width: Dp, from: String, h: HomeHandlers)
                 ),
         ) {
             CoverArt(entry, width, Modifier.size(width, width * 1.5f).shared(Shared.Cover, id, from))
-            Text(entry.showTitle, style = ShowTitle.caption, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
+            // One line, so the reasons in a shelf line up; two once text is large.
+            Text(entry.showTitle, style = ShowTitle.caption, maxLines = titleLines(), overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
             detail?.let {
                 Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (item.new) WaterDot()
@@ -305,10 +351,10 @@ internal fun WeekShelf(section: HomeSection, items: List<HomeItem>) {
         else -> 3
     }
     val byDay = items.groupBy { (it.day ?: 0u).toInt() }
-    Column(Modifier.padding(top = 8.dp)) {
+    Column(Modifier.padding(top = shelfTop())) {
         ShelfHeading(section)
         if (width >= 700) {
-            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 for (day in 0 until days) Box(Modifier.weight(1f)) { DayCell(day, byDay[day].orEmpty(), cap = 3) }
             }
         } else {

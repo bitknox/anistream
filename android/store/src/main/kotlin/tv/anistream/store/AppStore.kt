@@ -686,7 +686,6 @@ class AppStore(
         send(Command.NetworkPath(cellular, constrained, offline))
     }
 
-    /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     /**
      * Ask for Home. The engine answers at once with what is local and kept, and again as each
      * part from AniList lands; asked again within the half hour it asks AniList nothing. A
@@ -716,6 +715,7 @@ class AppStore(
         send(Command.LoadHiddenTitles)
     }
 
+    /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
         send(Command.HideFromContinue(id))

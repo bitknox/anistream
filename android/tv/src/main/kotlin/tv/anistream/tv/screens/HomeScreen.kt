@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +37,7 @@ import androidx.tv.material3.Text
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
@@ -68,6 +69,7 @@ import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.HeldScroll
 import tv.anistream.tv.ui.HeroHeader
 import tv.anistream.tv.ui.LocalAppStore
+import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.ui.OfflineLine
 import tv.anistream.tv.ui.PosterCard
 import tv.anistream.tv.ui.ScrollRule
@@ -133,7 +135,9 @@ fun HomeScreen(
             } else if (placeholders) {
                 item(key = "placeholder", contentType = "hero") { HeroPlaceholder(swapFade()) }
             }
-            if (home?.offline == true) {
+            // Offline with nothing kept says so in its own block below; the line would repeat it.
+            val emptyOffline = home?.offline == true && home.offlineSince == null && spot == null && sections.isEmpty()
+            if (home?.offline == true && !emptyOffline) {
                 item(key = "offline", contentType = "line") {
                     val since = home.offlineSince
                     if (since != null) {
@@ -155,8 +159,10 @@ fun HomeScreen(
                 val key = "${section.kind.name}-${section.title}"
                 item(key = key, contentType = "row") {
                     BrowseRow(section.title.text(context), modifier = swapFade().settlesAt(list, scope, key, rowTop)) {
-                        items(items, key = { "$key-${it.entry.id}" }, contentType = { "card" }) { item ->
-                            HomeCard(section.kind, item, memory, "$key/${item.entry.id}", first && item === items.first(), onOpen, onPlay, store, gone)
+                        itemsIndexed(items, key = { _, it -> "$key-${it.entry.id}" }, contentType = { _, _ -> "card" }) { index, item ->
+                            // Where focus goes if this card leaves: the next card, else the one before.
+                            val neighbour = (items.getOrNull(index + 1) ?: items.getOrNull(index - 1))?.let { "$key/${it.entry.id}" }
+                            HomeCard(section.kind, item, memory, "$key/${item.entry.id}", neighbour, first && item === items.first(), onOpen, onPlay, store, gone, scope)
                         }
                     }
                 }
@@ -189,7 +195,7 @@ fun HomeScreen(
                     )
                 }
             }
-            if (home?.offline == true && home.offlineSince == null && spot == null && sections.isEmpty()) {
+            if (emptyOffline) {
                 item(key = "empty", contentType = "empty") {
                     Box(swapFade().fillMaxWidth().padding(top = 120.dp), contentAlignment = Alignment.Center) {
                         StateBlock(
@@ -232,15 +238,24 @@ private fun HomeCard(
     item: HomeItem,
     memory: FocusMemory,
     memoryKey: String,
+    neighbour: String?,
     first: Boolean,
     onOpen: (AnilistId) -> Unit,
     onPlay: (AnilistId, UInt) -> Unit,
     store: AppStore,
     gone: MutableList<AnilistId>,
+    /** The screen's: a card's own ends with it, before its neighbour can take focus. */
+    scope: CoroutineScope,
 ) {
     val context = LocalContext.current
+    val notices = LocalNotices.current
     val entry = item.entry
     val line = item.cardLine(context)
+    // A card that leaves the row hands focus to its neighbour, rather than to the rail.
+    val leave = {
+        gone += entry.id
+        scope.launch { memory.focusSoon(neighbour) }
+    }
     val modifier = Modifier
         .firstFocus(memory, memoryKey, first)
         .onFocusChanged { if (it.isFocused && item.playable == Playable.UNKNOWN && kind != SectionKind.CONTINUE) store.probe(entry.id) }
@@ -248,12 +263,25 @@ private fun HomeCard(
         val actions = mutableListOf<CardAction>()
         if (kind == SectionKind.CONTINUE) {
             item.episode?.let { episode ->
-                actions += CardAction(Strings.homeMarkWatched(context, episode.toInt())) { store.setWatched(entry.id, listOf(episode.toString())) }
+                actions += CardAction(Strings.homeMarkWatched(context, episode.toInt())) {
+                    store.setWatched(entry.id, listOf(episode.toString()))
+                    notices?.say(Strings.homeMarkedWatched(context, episode.toInt()))
+                }
             }
-            actions += CardAction(Strings.homeRemoveContinue(context)) { gone += entry.id; store.hideFromContinue(entry.id) }
+            actions += CardAction(Strings.homeRemoveContinue(context)) {
+                leave()
+                store.hideFromContinue(entry.id)
+                notices?.say(context.getString(R.string.continue_hidden))
+            }
         } else {
             actions += CardAction(Strings.tvAddToPlanning(context)) { store.setStatus(entry.id, LibrarySegment.PLANNING) }
-            actions += CardAction(Strings.upNextNotInterested(context)) { gone += entry.id; store.dismissTitle(entry.id) }
+            // The TV's notice holds no Undo (it never takes focus); it says where the title went,
+            // and Settings, General, Hidden titles brings it back.
+            actions += CardAction(Strings.upNextNotInterested(context)) {
+                leave()
+                store.dismissTitle(entry.id)
+                notices?.say(if (item.starts != null) Strings.upNextHiddenUntilAirs(context, entry.title) else Strings.upNextHidden(context, entry.title))
+            }
         }
         actions += CardAction(Strings.tvOpenTitlePage(context)) { onOpen(entry.id) }
         ActionSheet(entry.title, actions)
