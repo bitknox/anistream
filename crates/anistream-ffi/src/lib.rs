@@ -836,8 +836,6 @@ mod tests {
                 day: Some(9),
             }),
             action: anistream_model::up_next::UpNextAction::AddToPlanning,
-            airs_at: Some(1_800_000_000),
-            fallback: true,
         }]));
         crosses_intact(Event::Facets(SearchFacets {
             genres: vec!["Mecha".into()],

@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Plugin stores
+  ▸  Home                   │  Plugin stores
   ▤  Calendar               │
   ▦  Seasonal               │    Store                       Plugins   You       State
   /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────

@@ -261,7 +261,7 @@ pub(crate) fn status_hints_paged(
         V::Section(Section::Home) if app.content.is_empty() => Vec::new(),
         // On a suggestion `x` is Not interested, the one thing a suggestion offers besides
         // opening; on a Continue row it is named in help.
-        V::Section(Section::Home) if app.on_up_next() => {
+        V::Section(Section::Home) if app.on_discovery() => {
             vec![(Action::HideFromContinue, hint_not_interested()), (Action::Open, hint_open())]
         }
         V::Section(Section::Home) => vec![

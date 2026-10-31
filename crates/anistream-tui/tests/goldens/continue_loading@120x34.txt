@@ -1,6 +1,6 @@
 anistream                                                                                           torrent ○  plugins ·
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  Continue               │  ▒█▓  Loading…
+▌ ▸  Home                   │  ▒█▓  Loading…
   ▤  Calendar               │
   ▦  Seasonal               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   /  Search                 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -39,7 +39,7 @@ r00 c100-119 fg=text-dim
 r01 c00-119 fg=rule
 r02 c00-00 fg=obi
 r02 c02-02 fg=text
-r02 c05-12 fg=text mod=BOLD
+r02 c05-08 fg=text mod=BOLD
 r02 c28-28 fg=rule
 r02 c31-33 fg=obi
 r02 c36-43 fg=text-dim

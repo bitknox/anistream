@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  Continue               │  Couldn't load this list
+▌ ▸  Home                   │  Couldn't load this list
   ▤  Calendar               │
   ▦  Seasonal               │  AniList did not answer within 20 s — the request will be tried again on the next
   /  Search                 │  refresh, and the library on disk is untouched
@@ -44,7 +44,7 @@ r00 c109-119 fg=state
 r01 c00-119 fg=rule
 r02 c00-00 fg=text-dim
 r02 c02-02 fg=text
-r02 c05-12 fg=text mod=BOLD
+r02 c05-08 fg=text mod=BOLD
 r02 c28-28 fg=rule
 r02 c31-53 fg=alert mod=BOLD
 r03 c02-02 fg=text-dim

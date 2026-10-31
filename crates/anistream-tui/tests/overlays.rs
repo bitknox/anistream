@@ -8,11 +8,12 @@ use std::collections::BTreeMap;
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{
-    catalog::{ContentList, Entry, ResumePoint},
+    Msg,
+    catalog::{ContentList, Entry},
     command::Command,
     episodes::EpisodeRow,
     event::Event,
-    progress::TitleProgress,
+    home::{HomeAction, HomeItem, HomeSection, HomeView, Playable, SectionKind},
     settings::SettingsView,
     sync::SyncState,
 };
@@ -463,15 +464,32 @@ fn enter_is_named_for_what_it_does() {
     let mut a = at_episodes();
     assert_eq!(hint(&a, "↵"), Some("Play"), "Enter plays in the episode table");
 
-    let mut e = Entry::new(AnilistId::new(5), "Title");
-    e.progress = Some(TitleProgress { done: 7, next: 8 });
-    e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
     a = app();
-    a.apply(
-        a.content_here(ContentList::Entries(vec![e, Entry::new(AnilistId::new(6), "Other")])),
-    );
+    let item = |id: u32, action: HomeAction| HomeItem {
+        entry: Entry::new(AnilistId::new(id), "Title"),
+        action,
+        line: None,
+        episode: Some(8),
+        resume: None,
+        progress: None,
+        new: false,
+        airs_at: None,
+        day: None,
+        reason: None,
+        starts: None,
+        playable: Playable::Unknown,
+        because: None,
+    };
+    let section = HomeSection {
+        kind: SectionKind::Continue,
+        title: Msg::HomeContinue,
+        items: vec![item(5, HomeAction::Resume), item(6, HomeAction::AddToPlanning)],
+        total: 2,
+        view_all: None,
+    };
+    a.apply(Event::Home(Box::new(HomeView { sections: vec![section], ..HomeView::default() })));
     a.nav.focus_stage();
-    assert_eq!(hint(&a, "↵"), Some("Play"), "a resumable Continue row plays on Enter");
+    assert_eq!(hint(&a, "↵"), Some("Play"), "a resumable Home row plays on Enter");
     press(&mut a, &["j"]);
     assert_eq!(hint(&a, "↵"), Some("Open"), "a fresh one opens");
 
