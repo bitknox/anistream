@@ -104,7 +104,7 @@ final class TrailerSession {
             phase = [2, 5, 100, 101, 150].contains(code) ? .refused : .failed
         case .captions(let on):
             captions = on
-        case .quiet, .ending, .ended:
+        case .started, .quiet, .ending, .ended:
             break
         }
     }

@@ -216,6 +216,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   // comes forward only after that; Play trailer has YouTube's controls anyway.
   var settle = {CONTROLS} ? 0 : 4500;
   var began = 0;
+  var moved = false;
   function stopTail() {
     if (tail) { clearInterval(tail); tail = 0; }
   }
@@ -299,6 +300,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
     if (!began) { began = Date.now(); }
     watch = setInterval(function () {
       if (!player || !player.getCurrentTime || player.getCurrentTime() <= from) { return; }
+      if (!moved) { moved = true; say("started"); }
       if (Date.now() - began < settle) { return; }
       stopWatching();
       frames(function () {
@@ -356,6 +358,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             stopTail();
             showing = false;
             began = 0;
+            moved = false;
             say("ended");
           }
         },
@@ -370,6 +373,9 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
     });
   };
   window.trailer = {
+    // YouTube's state for the log when a front end gives up: -1 unstarted, 1 playing, 2 paused,
+    // 3 buffering, 5 cued; null with no player yet.
+    state: function () { return player && player.getPlayerState ? player.getPlayerState() : null; },
     play: function () { if (player && player.playVideo) { player.playVideo(); } },
     pause: function () { if (player && player.pauseVideo) { player.pauseVideo(); } },
     mute: function () {
@@ -397,6 +403,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
       showing = false;
       told = false;
       began = 0;
+      moved = false;
       if (!player || !player.loadVideoById) { pending = id; return; }
       if ({MUTE}) { player.mute(); }
       player.loadVideoById(id);
@@ -421,6 +428,12 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 /// not a [`TrailerMessage`], so [`TrailerMessage::parse`] ignores it and a front end that does not
 /// know it loses nothing; the `ended` that follows still comes.
 pub const ENDING_MESSAGE: &str = "ending";
+
+/// What the page posts as the video's clock first moves, before YouTube's own title and icons
+/// have faded and so before `playing` in the banner style: the trailer has started, and a front
+/// end that gives up on a trailer that never starts can stop waiting. Not a [`TrailerMessage`],
+/// for the same reason as [`ENDING_MESSAGE`].
+pub const STARTED_MESSAGE: &str = "started";
 
 /// What the page posts when captions start showing over the video, and when they stop, for a
 /// front end that keeps the foot of the video clear while they show. Not [`TrailerMessage`]s
@@ -494,6 +507,10 @@ pub fn load_script(trailer: &Trailer) -> Option<String> {
         .embeddable()
         .then(|| format!("window.trailer && window.trailer.load(\"{}\");", trailer.id))
 }
+
+/// The script that reads YouTube's player state back from the page, for the log when a front end
+/// gives up on a trailer: a number, or null while there is no player.
+pub const STATE_SCRIPT: &str = "window.trailer ? window.trailer.state() : null";
 
 /// What the device says about itself with
 /// [`Command::DeviceState`](crate::command::Command::DeviceState), as the engine keeps it: the
@@ -748,8 +765,19 @@ mod tests {
             None,
             "a front end that has no use for it"
         );
+        assert_eq!(TrailerMessage::parse(STARTED_MESSAGE), None);
+        assert!(
+            embed_page(&youtube("abc"), EmbedStyle::Banner, &app())
+                .unwrap()
+                .contains("    state: function () {"),
+            "{STATE_SCRIPT} has something to read"
+        );
         let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
         assert!(page.contains(&format!("say(\"{ENDING_MESSAGE}\")")), "the page says it");
+        // Started as the clock first moves, playing only once the settle is over.
+        let moving = page.find(&format!("say(\"{STARTED_MESSAGE}\")")).unwrap();
+        let settled = page.find("if (Date.now() - began < settle) { return; }").unwrap();
+        assert!(moving < settled, "started comes before the settle");
         assert_eq!(
             TrailerMessage::parse("error:150"),
             Some(TrailerMessage::Error { code: 150 })

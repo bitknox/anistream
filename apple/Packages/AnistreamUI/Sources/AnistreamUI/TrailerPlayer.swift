@@ -30,6 +30,8 @@ final class TrailerPlayer: NSObject, TrailerSurface {
     /// Whether the page was already up, and only the video was asked for.
     private let warm: Bool
     private var released = false
+    /// The last thing the page said, for the log when the visit gives up.
+    private var lastHeard = "nothing"
 
     /// Whether the page can play this trailer at all (YouTube's only).
     let playable: Bool
@@ -76,10 +78,32 @@ final class TrailerPlayer: NSObject, TrailerSurface {
         page.map { pool.give($0) }
     }
 
+    /// Nothing played in time: logged with what the page last said and YouTube's state now, read
+    /// before the pool pauses it.
+    func gaveUp(after: Duration, started: Bool) {
+        let ms = Int(after.components.seconds * 1000 + after.components.attoseconds / 1_000_000_000_000_000)
+        let what = started ? "started but never came out from under YouTube's title" : "never started"
+        let line = "\(trailer.id) gave up after \(ms) ms: \(what); last heard \(lastHeard), \(warm ? "warm" : "cold")"
+        guard let page else {
+            AppLog.warn("trailer", line)
+            return
+        }
+        page.webView.evaluateJavaScript(trailerStateScript()) { value, _ in
+            let state = (value as? NSNumber).map { "\($0.intValue)" } ?? "none" // i18n-skip: a log value
+            AppLog.warn("trailer", "\(line), player state \(state)")
+        }
+    }
+
     private func heard(_ text: String) {
         guard !released else { return }
+        let word = text.trimmingCharacters(in: .whitespaces)
+        lastHeard = word
         // The page's words that are not the player's state. i18n-skip: the page's words
-        switch text.trimmingCharacters(in: .whitespaces) {
+        switch word {
+        case "started": // i18n-skip
+            AppLog.debug("trailer", "\(trailer.id) started after \(AppLog.ms(since: started)) ms, \(warm ? "warm" : "cold")")
+            onSignal(.started)
+            return
         case "ending": onSignal(.ending); return // i18n-skip
         case "captions:on": onSignal(.captions(true)); return // i18n-skip
         case "captions:off": onSignal(.captions(false)); return // i18n-skip
