@@ -473,8 +473,8 @@ class UpdateModelTest {
     @Test
     fun the_tv_is_offered_the_tv_s_apk_and_no_other() = runTest {
         val tv = ReleaseAsset(
-            name = "anistream-2.0.3-android-tv.apk",
-            url = "https://github.com/bitknox/anistream/releases/download/v2.0.3/anistream-2.0.3-android-tv.apk",
+            name = "anistream-2.0.3-android-tv-arm64.apk",
+            url = "https://github.com/bitknox/anistream/releases/download/v2.0.3/anistream-2.0.3-android-tv-arm64.apk",
             sha256 = "1e".repeat(32),
             size = 48_000_000uL,
         )

@@ -966,6 +966,7 @@ fn offer_update(shell: &Rc<Shell>) {
             ios: None,
             android: None,
             android_tv: None,
+            android_tv_armv7: None,
             windows_x64: None,
             windows_arm64: None,
             linux_x86_64: Some(appimage("x86_64")),

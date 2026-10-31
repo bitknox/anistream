@@ -63,7 +63,10 @@ export const APP_DOWNLOADS: AppDownload[] = [
 	},
 	{
 		id: 'android-tv',
-		files: [{ name: 'anistream-<version>-android-tv.apk', suffix: '-android-tv.apk' }],
+		files: [
+			{ name: 'anistream-<version>-android-tv-armv7.apk', suffix: '-android-tv-armv7.apk' },
+			{ name: 'anistream-<version>-android-tv-arm64.apk', suffix: '-android-tv-arm64.apk' },
+		],
 		guide: `${INSTALL_GUIDE}#android-tv`,
 	},
 	{

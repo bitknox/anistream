@@ -18,7 +18,6 @@ android {
         minSdk = AnistreamSdk.TV_MIN
         versionCode = providers.gradleProperty("ANISTREAM_VERSION_CODE").map(String::toInt).getOrElse(1)
         versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse("2.0.0")
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         // The feature videos' flow, src/androidTestFixtures (website/scripts/videos).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,7 +45,24 @@ android {
         }
         named("fixtures") { applicationId = "tv.anistream.tv.fixtures" }
     }
+    // One APK for each ABI, so a 64-bit TV does not carry the 32-bit engine and libmpv nor the
+    // reverse. Both take the same versionCode: a device only ever fits one of them, and the
+    // in-app updater picks the file for the ABI the app runs as.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
     buildTypes {
+        release {
+            // R8 shrinks and optimizes the app around the engine's bindings, which it keeps whole
+            // (proguard-rules.pro, the phone's rules plus the TV's own).
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
         debug {
             // en-XA (accented, longer) and ar-XB (right to left) in the system's language list,
             // to look at rows that must not wrap.

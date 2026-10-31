@@ -153,7 +153,7 @@ $repo
 The source those libraries were built from, every archive by its SHA-256, is in
 anistream-$version-apps-sources.tar, beside this zip in the release.
 
-android/   anistream-$version-android-arm64.apk, anistream-$version-android-tv.apk
+android/   anistream-$version-android-arm64.apk, anistream-$version-android-tv-{arm64,armv7}.apk
 
   libmpv.so and FFmpeg's libraries, built from source by build/mpv.sh with NDK $ndk, for
   arm64-v8a (both APKs) and armeabi-v7a (the TV APK):

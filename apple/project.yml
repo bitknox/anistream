@@ -54,6 +54,14 @@ settings:
       ANISTREAM_ENGINE_PROFILE: app-dev
     Release:
       ANISTREAM_ENGINE_PROFILE: release
+      # The Mac app ships stripped: the engine is linked into its binary, and its symbols are tens
+      # of megabytes. Strip happens in the build, with the dSYM kept beside the app for the
+      # release to attach, so crash reports can be symbolicated later (the apps-release workflow).
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+      DEPLOYMENT_POSTPROCESSING[sdk=macosx*]: YES
+      STRIP_INSTALLED_PRODUCT[sdk=macosx*]: YES
+      COPY_PHASE_STRIP[sdk=macosx*]: YES
+      STRIP_STYLE[sdk=macosx*]: non-global
 
 targetTemplates:
   # A package's sources as a framework, for Mac, iPad and iPhone.

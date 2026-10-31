@@ -82,8 +82,9 @@ export const SUGGESTIONS: Record<DeviceId, Suggestion> = {
 	'android-tv': {
 		app: 'android-tv',
 		label: 'dl.sg.label.androidTv',
-		suffix: '-android-tv.apk',
+		suffix: '-android-tv-armv7.apk',
 		kind: { key: 'dl.sg.kind.apk' },
+		other: { arch: '64-bit', suffix: '-android-tv-arm64.apk' },
 		first: {},
 		next: APK_NEXT('App'),
 		guide: `${INSTALL_GUIDE}#android-tv`,

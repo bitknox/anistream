@@ -47,9 +47,10 @@ class TvApp : Application(), PlayerHost {
         android.util.Log.e("anistream", "the store's work failed", e)
     }
 
-    // The TV updates from the release's TV APK, never the phone's.
+    // The TV updates from the release's TV APK, never the phone's: the one built for the ABI this
+    // system runs the app as, 32-bit on most TV boxes and 64-bit on the rest.
     val store: AppStore by lazy {
-        AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, updateAsset = { it.androidTv })
+        AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, updateAsset = ::tvUpdateAsset)
     }
 
     /** The TV's own update, where the flavour has one: the release build's, or a staged fixture. */

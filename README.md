@@ -154,7 +154,7 @@ or on Google Play, so each one needs a one-time step the first time you open it.
 | Mac, macOS 26 or later, Apple silicon | `anistream-<version>-macos.dmg` | Drag Anistream to Applications. The app is ad-hoc signed and not notarized, so macOS stops it once. Choose **Done**, then open **System Settings › Privacy & Security** and choose **Open Anyway**. |
 | iPhone and iPad, iOS or iPadOS 26 or later | `anistream-<version>-ios-unsigned.ipa` | Add the source below in [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), then install anistream from it. They sign the app with your own Apple ID. |
 | Android 15 or later, 64-bit ARM | `anistream-<version>-android-arm64.apk` | Open the APK on the device and allow installs from your browser or file manager once. |
-| Android TV and Google TV, Android 11 or later, 32-bit or 64-bit ARM | `anistream-<version>-android-tv.apk` | Install it with a sideloading app or `adb install`. |
+| Android TV and Google TV, Android 11 or later, 64-bit ARM or 32-bit ARM | `anistream-<version>-android-tv-arm64.apk` or `anistream-<version>-android-tv-armv7.apk` | Install it with a sideloading app or `adb install`. |
 | Windows 10 version 2004 or later, x64 or Arm64 | `anistream-<version>-windows-x64-setup.exe` or `anistream-<version>-windows-arm64-setup.exe` | The installer is not signed: in SmartScreen, choose **More info**, then **Run anyway**. |
 | Linux with glibc 2.41 or newer (Ubuntu 25.04 or later, including 26.04 LTS, Fedora 42 or later, Debian 13), x86-64 or ARM64 | `anistream-<version>-linux-x86_64.AppImage` or `anistream-<version>-linux-aarch64.AppImage` | `chmod +x`, then open it. Ubuntu 24.04 is not supported. |
 
