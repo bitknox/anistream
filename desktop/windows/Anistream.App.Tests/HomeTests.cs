@@ -114,4 +114,13 @@ public class HomeTests
         known.Take(new Event.HiddenTitles([new HiddenTitle(new Entry(Id: 4, Title: "Moon Laundry"), true)]));
         Assert.Single(known.Hidden);
     }
+
+    [Fact]
+    public void HiddenLineUsesTheCompactAgoTheBoardShows()
+    {
+        Assert.Equal("3d ago", Wording.AgoCompact(3 * 86_400));
+        Assert.Equal("2h ago", Wording.AgoCompact(2 * 3600));
+        Assert.Equal("1d 4h ago", Wording.AgoCompact(86_400 + 4 * 3600));
+        Assert.Equal("5m ago", Wording.AgoCompact(300));
+    }
 }

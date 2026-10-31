@@ -360,7 +360,7 @@ public sealed partial class SettingsPage : Page
             if (title.HiddenAt > 0)
                 text.Children.Add(new TextBlock
                 {
-                    Text = T.SettingsHiddenOn(Wording.Ago(Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeSeconds() - title.HiddenAt))),
+                    Text = T.SettingsHiddenOn(Wording.AgoCompact(Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeSeconds() - title.HiddenAt))),
                     Style = Ui.Res<Style>("HazeCaptionStyle"),
                 });
             row.Children.Add(text);
