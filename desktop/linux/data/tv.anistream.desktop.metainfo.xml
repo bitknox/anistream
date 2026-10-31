@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>tv.anistream.desktop</id>
+  <name>anistream</name>
+  <summary>Browse, track and watch anime</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="tv.anistream">
+    <name>The anistream authors</name>
+  </developer>
+  <description>
+    <p>
+      anistream is a player for anime. It finds shows through AniList, keeps your watch history and
+      list in step with the trackers you use, and plays episodes in a built-in mpv player with
+      subtitles, skip buttons for openings and endings, and optional upscaling.
+    </p>
+    <p>
+      anistream hosts no content. Sources come from plugins that you add yourself, and every
+      episode is fetched from the source you pick.
+    </p>
+  </description>
+  <launchable type="desktop-id">tv.anistream.desktop.desktop</launchable>
+  <url type="homepage">https://github.com/bitknox/anistream</url>
+  <url type="bugtracker">https://github.com/bitknox/anistream/issues</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+    <category>Player</category>
+  </categories>
+  <keywords>
+    <keyword>anime</keyword>
+    <keyword>anilist</keyword>
+    <keyword>mpv</keyword>
+  </keywords>
+  <provides>
+    <binary>anistream-desktop</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>gamepad</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="2.3.0" date="2026-10-31"/>
+  </releases>
+</component>
