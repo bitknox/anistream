@@ -35,7 +35,6 @@ use std::{
 use anistream_core::{
     ids::AnilistId,
     media::{Episode, MediaStatus, Translation},
-    traits::ProviderKind,
 };
 use anistream_meta::anilist::Media;
 use anistream_model::{episodes::EpisodeRow, event::Event};
@@ -236,7 +235,7 @@ fn others(
         .all()
         .iter()
         .map(|source| source.manifest())
-        .filter(|manifest| manifest.kind != ProviderKind::Torrent && manifest.id != playing)
+        .filter(|manifest| !manifest.torrents && manifest.id != playing)
         .filter(|manifest| usable.contains(&manifest.id))
         .map(|manifest| {
             let rank = match store.lookup_mapping(id, &manifest.id).ok().flatten() {
@@ -520,11 +519,11 @@ mod tests {
         MockProvider::new(id).with_hits(vec![hit(&key)]).with_episodes_for(key, episodes)
     }
 
-    /// The torrent source, which lists the show's episodes by number alone.
+    /// A source that names torrents, which lists the show's episodes by number alone.
     fn torrent() -> MockProvider {
         let key = ProviderKey::new("weathervane-song-releases");
         MockProvider::new("torrent")
-            .kind(ProviderKind::Torrent)
+            .torrents()
             .with_hits(vec![hit(&key)])
             .with_episodes_for(key, (1..=12).map(Episode::new).collect())
     }

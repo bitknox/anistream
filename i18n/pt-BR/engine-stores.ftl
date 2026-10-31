@@ -60,7 +60,6 @@ notice-choice-not-saved = Não foi possível salvar essa escolha. { $reason }
 torrent-check-failed-running = A verificação da conexão falhou. Os torrents continuam rodando.
 torrent-vpn-waiting = Os torrents começam quando a proteção da VPN passar. { $reason }
 torrent-vpn-unverified = Os torrents começam quando a proteção da VPN passar. A conexão ainda não foi verificada.
-torrent-no-index = Os torrents precisam de um { -torrent-index }. A { -app-name } não traz nenhum, então adicione o seu endereço nas configurações.
 torrent-interface-closed = A { -app-name } foi fechada antes de os torrents começarem.
 torrent-session-failed = Não foi possível iniciar a sessão de torrents. { $reason }
 torrent-no-kill-switch = Nada neste { -device } interrompe o tráfego de torrents se a VPN cair. Rode "{ -app-name } --doctor" para configurar isso.

@@ -509,9 +509,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Torrenterna startar när VPN-skyddet godkänns. Anslutningen har inte verifierats än.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Torrenter kräver ett torrentindex. anistream levererar inget, så lägg till din egen adress i inställningarna.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream stängdes innan torrenterna startade.</value>
   </data>
@@ -942,7 +939,7 @@
     <value>Läs in bilder i kommentarer</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Torrent källa</value>
+    <value>Torrentuppspelning</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Anpassad</value>
@@ -4080,7 +4077,7 @@
     <value>Öppna källainställningarna</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Torrent källa</value>
+    <value>Torrentuppspelning</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Källaordning</value>

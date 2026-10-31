@@ -228,7 +228,7 @@ sources-replace-detail = Version { $version } from { $store } replaces the copy 
 sources-open-settings = Open { -source } settings
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Torrent { -source }
+sources-torrent-source = Torrent playback
 
 # Row: where the plugin's page stands.
 sources-source-order-row = { -source-cap } order
@@ -351,3 +351,6 @@ match-cleared = Matching automatically again.
 # @arg facts: text
 # @arg closeness: text
 match-row-label = { $title }, { $facts }, { $closeness }
+
+# Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.
+sources-plays-torrents = Plays through torrent playback

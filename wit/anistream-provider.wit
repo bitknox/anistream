@@ -28,7 +28,7 @@
 // `translation`, `capabilities`) are strings rather than enums, and anything a future host wants
 // to switch on is a declared capability rather than a new function.
 
-package anistream:provider@1.1.0;
+package anistream:provider@2.0.0;
 
 interface host {
     record http-request {
@@ -105,6 +105,10 @@ interface provider {
         /// on a declared capability instead of a new record shape or a new export. Unknown
         /// values are ignored, so declaring one never breaks on an older host. An empty list
         /// is the normal case.
+        ///
+        /// `torrents`: this plugin returns `torrent` streams for the host to play. The host plays
+        /// them only while the person has torrent playback on and its protection check passes,
+        /// and drops torrent streams from a plugin that does not declare it.
         capabilities: list<string>,
     }
 
@@ -157,12 +161,13 @@ interface provider {
 
     record media-stream {
         url: string,
-        /// One of `hls`, `mp4`, `torrent-http`, `external-deeplink`.
+        /// One of `hls`, `mp4`, `torrent`, `external-deeplink`.
         ///
-        /// These are exactly `anistream_core::stream::StreamKind`, because that type decides
-        /// whether the player can render a stream or has to hand it off. Anything unrecognised is
-        /// treated as `mp4` — handed to the player to judge — rather than refused, so a plugin
-        /// that knows about a container this host does not still works.
+        /// `torrent` means `url` is a magnet link or a bare info hash (40 hex or 32 base32
+        /// characters). The host starts it in its own torrent session, adds the person's
+        /// trackers and plays it over loopback; see `file-index` and the `torrents` capability.
+        /// Anything else unrecognised is treated as `mp4`, handed to the player to judge rather
+        /// than refused, so a plugin that knows about a container this host does not still works.
         kind: string,
         quality: option<u32>,
         /// Headers the player must send. Referer-locked CDNs turn a working stream into a 403
@@ -179,6 +184,10 @@ interface provider {
         /// One line saying why this stream over the others, surfaced as a toast when automatic
         /// resolution picks it. Absent when there was nothing to choose between.
         pick-note: option<string>,
+        /// For a `torrent` stream, the file to play, counting from 0 in the torrent's own file
+        /// order. Absent lets the host choose: the file whose name states the episode, else the
+        /// largest video. Ignored for other kinds.
+        file-index: option<u32>,
     }
 
     /// One selectable release for an episode, for the Sources overlay.
@@ -190,8 +199,9 @@ interface provider {
         /// The release title as listed at the source.
         title: string,
         quality: option<u32>,
-        /// Seeders, for swarm-backed sources. Absent where the concept does not apply.
-        seeders: option<u32>,
+        /// One short line of your own about this candidate, shown under its title as written.
+        /// The host ranks nothing: candidates are shown in the order `sources` returns them.
+        label: option<string>,
         /// Payload size as listed at the source, already human-readable (`"1.4 GiB"`).
         size: option<string>,
         dual-audio: bool,

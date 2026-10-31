@@ -38,8 +38,6 @@ public static class TorrentWords
     };
 
     public static string Exposed => T.TorrentsRisk;
-    /// <summary>Under the index: what it is, and the legal line beside it.</summary>
-    public static string IndexNote => $"{T.TorrentsIndexDetail} {T.LegalHostsNoContent}";
     public static string CheckNote => T.TorrentsCheckNote;
     public static string OffNote => T.TorrentsOffDetail;
 
@@ -102,23 +100,20 @@ public static class TorrentWords
 
 /// <summary>
 /// The turn-on dialog's choices before they are sent. A password left empty keeps the one kept.
-/// <see cref="NeedsIndex"/> is turning torrents on, which the engine refuses without an index.
 /// </summary>
 public sealed record TorrentDraft(
-    string Index, TorrentProtection Protection, string Host, string Port, string User, string Password, bool NeedsIndex)
+    TorrentProtection Protection, string Host, string Port, string User, string Password)
 {
     /// <summary>The draft the dialog opens on: what the engine last said, or <paramref name="start"/>'s choice.</summary>
     public static TorrentDraft From(SettingsView? settings, bool turningOn, TorrentProtection? start = null)
     {
         var proxy = settings?.Torrent.Proxy;
         return new(
-            settings?.Sources.Index ?? "",
             start ?? settings?.Torrent.Protection ?? TorrentProtection.Proxy,
             proxy?.Host ?? "",
             proxy is { } p ? p.Port.ToString(System.Globalization.CultureInfo.InvariantCulture) : "",
             proxy?.User ?? "",
-            "",
-            turningOn);
+            "");
     }
 
     /// <summary>The proxy as the engine takes it, when the fields make one.</summary>
@@ -128,9 +123,8 @@ public sealed record TorrentDraft(
             ? new TorrentProxy(host, port, User.Trim() is { Length: > 0 } user ? user : null, Password.Length > 0 ? Password : null)
             : null;
 
-    /// <summary>Whether it can be sent: the index when one is needed, and a proxy with its host and port.</summary>
-    public bool Complete =>
-        (!NeedsIndex || Index.Trim().Length > 0) && (Protection != TorrentProtection.Proxy || Proxy is not null);
+    /// <summary>Whether it can be sent: a proxy needs its host and port.</summary>
+    public bool Complete => Protection != TorrentProtection.Proxy || Proxy is not null;
 }
 
 public static class Torrents
@@ -152,14 +146,11 @@ public static class Torrents
     }
 
     /// <summary>
-    /// What the dialog sends: the index when it changed, the protection, and torrents on when
+    /// What the dialog sends: the protection, and torrents on when
     /// they are turned on here. No protection goes acknowledged, the viewer having confirmed it.
     /// </summary>
     public static IEnumerable<Command> Apply(TorrentDraft draft, SettingsView? settings, bool turningOn)
     {
-        var typed = draft.Index.Trim();
-        if (typed.Length > 0 && typed != (settings?.Sources.Index ?? ""))
-            yield return new Command.SetSetting(SettingKey.TorrentIndex, new SettingValue.Str(typed));
         yield return Protect(settings?.Torrent, draft.Protection, draft.Proxy, acknowledged: draft.Protection == TorrentProtection.None);
         if (turningOn)
             yield return new Command.SetSetting(SettingKey.Torrents, new SettingValue.Bool(true));

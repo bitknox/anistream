@@ -21,7 +21,10 @@ use anistream_core::{
     traits::{Provider, ProviderKind, SourceCandidate},
 };
 
-use crate::health::HealthTracker;
+use crate::{
+    health::HealthTracker,
+    torrent::{TorrentBridge, TorrentPlayback},
+};
 
 /// Providers in preference order, with shared health.
 #[derive(Clone)]
@@ -39,6 +42,10 @@ pub struct ProviderRegistry {
     /// Whether sources are still on their way into the chain: plugins compiling at launch.
     /// See [`Self::expect_arrivals`].
     arriving: Arc<tokio::sync::watch::Sender<bool>>,
+    /// The engine's torrent session, lent to every source that names torrents as it joins the
+    /// chain: see [`TorrentBridge`]. One for the chain and all its views, filled in and emptied
+    /// as torrent playback comes and goes.
+    torrents: TorrentPlayback,
 }
 
 impl std::fmt::Debug for ProviderRegistry {
@@ -120,12 +127,26 @@ fn described(error: &ProviderError) -> &'static str {
 impl ProviderRegistry {
     pub fn new(providers: Vec<Arc<dyn Provider>>) -> Self {
         let health = HealthTracker::new(providers.iter().map(|p| p.manifest().id.clone()));
+        let torrents = TorrentPlayback::default();
+        let providers =
+            providers.into_iter().map(|p| TorrentBridge::lend(p, &torrents)).collect();
         Self {
             providers: Arc::new(std::sync::RwLock::new(providers)),
             health,
             disabled: Arc::default(),
             arriving: Arc::new(tokio::sync::watch::Sender::new(false)),
+            torrents,
         }
+    }
+
+    /// The torrent playback every source in this chain that names torrents plays through.
+    pub fn torrents(&self) -> &TorrentPlayback {
+        &self.torrents
+    }
+
+    /// `provider` as it joins this chain: lent torrent playback when it names torrents.
+    fn joining(&self, provider: Arc<dyn Provider>) -> Arc<dyn Provider> {
+        TorrentBridge::lend(provider, &self.torrents)
     }
 
     /// Switch off the sources `ids` names, and every other back on: `providers.disabled`, as
@@ -176,6 +197,7 @@ impl ProviderRegistry {
             return;
         }
         self.health.register(more.iter().map(|p| p.manifest().id.clone()));
+        let more: Vec<_> = more.into_iter().map(|p| self.joining(p)).collect();
         let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
         providers.extend(more);
     }
@@ -185,6 +207,9 @@ impl ProviderRegistry {
     /// In place rather than by handing out a new registry: every caller holds a clone, and
     /// a new object would leave all of them talking to the old chain — which for the torrent
     /// source means a session the user has just switched off carrying on regardless.
+    ///
+    /// Takes sources as they already stand in a chain, from [`Self::all`]: they have been lent
+    /// torrent playback, if they name torrents, and are not lent it twice.
     pub fn replace(&self, providers: Vec<Arc<dyn Provider>>) {
         self.health.register(providers.iter().map(|p| p.manifest().id.clone()));
         let mut held = self.providers.write().unwrap_or_else(|e| e.into_inner());
@@ -197,6 +222,7 @@ impl ProviderRegistry {
     /// change which source serves a stream because of when it was installed, the same race
     /// [`Self::extend`] avoids for late arrivals.
     pub fn put(&self, provider: Arc<dyn Provider>) {
+        let provider = self.joining(provider);
         let id = provider.manifest().id.clone();
         self.health.register([id.clone()]);
         let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
@@ -216,6 +242,7 @@ impl ProviderRegistry {
         provider: Arc<dyn Provider>,
         rank: impl Fn(&dyn Provider) -> K,
     ) {
+        let provider = self.joining(provider);
         let id = provider.manifest().id.clone();
         self.health.register([id.clone()]);
         let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
@@ -307,6 +334,7 @@ impl ProviderRegistry {
             health: self.health.clone(),
             disabled: self.disabled.clone(),
             arriving: Arc::clone(&self.arriving),
+            torrents: self.torrents.clone(),
         })
     }
 
@@ -327,19 +355,22 @@ impl ProviderRegistry {
             health: self.health.clone(),
             disabled: self.disabled.clone(),
             arriving: Arc::clone(&self.arriving),
+            torrents: self.torrents.clone(),
         }
     }
 
-    /// The same registry without the sources of `kind`, as a view like [`Self::pinned`] that
-    /// shares the health record: what a cast plays from when torrents are not to serve it.
-    pub fn without_kind(&self, kind: ProviderKind) -> Self {
+    /// The same registry without the sources that name torrents, as a view like
+    /// [`Self::pinned`] that shares the health record: what a cast plays from when torrents are
+    /// not to serve it.
+    pub fn without_torrents(&self) -> Self {
         let providers =
-            self.snapshot().into_iter().filter(|p| p.manifest().kind != kind).collect();
+            self.snapshot().into_iter().filter(|p| !p.manifest().torrents).collect();
         Self {
             providers: Arc::new(std::sync::RwLock::new(providers)),
             health: self.health.clone(),
             disabled: self.disabled.clone(),
             arriving: Arc::clone(&self.arriving),
+            torrents: self.torrents.clone(),
         }
     }
 
@@ -607,7 +638,7 @@ mod tests {
                     provider_id: id.into(),
                     title: id.into(),
                     quality: None,
-                    seeders: None,
+                    label: None,
                     size: None,
                     dual_audio: false,
                     dubbed: false,
@@ -661,15 +692,31 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_view_without_torrents_plays_from_the_rest_and_shares_their_health() {
+    async fn a_source_that_names_torrents_waits_for_torrent_playback() {
         let r = registry(vec![
-            MockProvider::new("swarm")
-                .kind(ProviderKind::Torrent)
-                .with_streams(vec![stream("swarm's")])
-                .arc(),
+            MockProvider::new("index").torrents().with_streams(vec![stream("index's")]).arc(),
             MockProvider::new("site").with_streams(vec![stream("site's")]).arc(),
         ]);
-        let view = r.without_kind(ProviderKind::Torrent);
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.provider.as_deref(), Some("site"), "passed over, not failed");
+        let index = r.health().get("index").unwrap();
+        assert_eq!(index.held_back.as_deref(), Some(crate::torrent::bridge::PLAYBACK_OFF));
+        assert_eq!(
+            index.health,
+            anistream_core::error::Health::Unknown,
+            "never contacted, and policy is not a failure"
+        );
+        // The views share the chain's playback, so one session reaches every one of them.
+        assert!(r.preferring("index").torrents().session().is_none());
+    }
+
+    #[tokio::test]
+    async fn a_view_without_torrents_plays_from_the_rest_and_shares_their_health() {
+        let r = registry(vec![
+            MockProvider::new("swarm").torrents().with_streams(vec![stream("swarm's")]).arc(),
+            MockProvider::new("site").with_streams(vec![stream("site's")]).arc(),
+        ]);
+        let view = r.without_torrents();
         assert_eq!(view.ids(), ["site"]);
         assert_eq!(r.ids(), ["swarm", "site"], "the registry itself keeps them");
         let attempt = view.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;

@@ -210,9 +210,8 @@ what an owner can do.
 
 ## Torrents
 
-Torrents are off until you turn them on, and anistream comes with no indexer. Once you set one up,
-the indexer receives your search terms, and a curation service, if you set one, receives the
-AniList id of the title. The torrent's trackers and every peer in the swarm see the IP address you
+Torrents are off until you turn them on, and anistream finds no torrents itself. A source plugin
+that names torrents receives your searches like any other source. The torrent's trackers and every peer in the swarm see the IP address you
 connect from and the torrent you are downloading or sharing.
 
 The [VPN guard](/docs/guides/torrents-vpn/) checks where torrent traffic leaves from before any

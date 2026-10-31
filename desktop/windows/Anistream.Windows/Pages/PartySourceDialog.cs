@@ -265,8 +265,8 @@ sealed class PartySourceDialog
             parts.Add($"{q}p");
         if (c.Size is { Length: > 0 } size)
             parts.Add(size);
-        if (c.Seeders is { } seeders)
-            parts.Add(T.SourcePickerSeeders(seeders));
+        if (c.Label is { Length: > 0 } label)
+            parts.Add(label);
         return string.Join(" · ", parts);
     }
 }

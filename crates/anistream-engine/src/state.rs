@@ -29,7 +29,7 @@ use crate::{
     widgets::Schedule,
 };
 
-/// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
+/// Where a bring-up of torrent playback reports in, tagged with the bring-up it answers.
 pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, Msg>)>;
 
 /// The effect layer's own state: what commands read and leave for the commands after them.
@@ -54,10 +54,10 @@ pub struct EngineState {
     /// The torrent stack's live parts, held so a settings change can tear them down and stand
     /// them back up without a restart.
     pub torrent_tasks: TorrentTasks,
-    /// The VPN guard and the session it protects, once the torrent source is up. Replaced along
+    /// The VPN guard and the session it protects, once torrent playback is up. Replaced along
     /// with the tasks above when the settings stand the stack down and back up.
     pub vpn_guard: Option<(VpnGuard, Arc<TorrentSession>)>,
-    /// Where the torrent source reports in once it is up. The actor holds the other end.
+    /// Where torrent playback reports in once it is up. The actor holds the other end.
     pub arrivals: Arrivals,
     /// Playbacks started so far: what the next one is numbered after, so that what each says
     /// is told apart from what another of the same episode says.

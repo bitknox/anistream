@@ -509,9 +509,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Torrents starten, sobald der VPN-Wächter freigibt. Die Verbindung wurde noch nicht geprüft.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Torrents brauchen einen Torrent-Index. anistream liefert keinen mit, füge deshalb in den Einstellungen deine eigene Adresse hinzu.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream wurde geschlossen, bevor die Torrents starteten.</value>
   </data>
@@ -942,7 +939,7 @@
     <value>Bilder in Kommentaren laden</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Torrent-Quelle</value>
+    <value>Torrent-Wiedergabe</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Automatisch</value>
@@ -4083,7 +4080,7 @@
     <value>Einstellungen für Quellen öffnen</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Quelle für Torrents</value>
+    <value>Torrent-Wiedergabe</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Reihenfolge der Quelle</value>

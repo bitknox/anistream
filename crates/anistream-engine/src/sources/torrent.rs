@@ -1,6 +1,6 @@
 //! The torrent stack as the settings stand it up and down: the tasks that run beside a torrent
-//! session once the VPN guard passes, and the source chain rebuilt when a setting changes which
-//! sources there are.
+//! session once the VPN guard passes, the session lent to the sources that name torrents, and
+//! the source chain rebuilt when a setting changes which sources there are.
 
 use anistream_model::Msg;
 use std::{sync::Arc, time::Duration};
@@ -19,10 +19,10 @@ use crate::{
 /// How long a bring-up waits for the session it replaces to stand down.
 const TEARDOWN_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
 
-/// Everything the torrent source runs in the background: the download manager and the
+/// Everything torrent playback runs in the background: the download manager and the
 /// VPN guard's re-verification loop.
 ///
-/// Grouped so they can be stopped and started as one. A source the user has just switched
+/// Grouped so they can be stopped and started as one. Playback the user has just switched
 /// off must stop *seeding*, not merely stop being offered — and that means the tasks
 /// holding its session have to end with it.
 #[derive(Default)]
@@ -30,7 +30,7 @@ pub struct TorrentTasks {
     /// Waiting for the VPN guard to pass, before there is a session.
     bring_up: Option<tokio::task::JoinHandle<()>>,
     /// Which bring-up the current one is. A result from an earlier one — the settings changed
-    /// while it waited — describes a source that has since been switched off or replaced.
+    /// while it waited — describes playback that has since been switched off or replaced.
     generation: u64,
     downloads: Option<tokio::task::JoinHandle<()>>,
     watcher: Option<tokio::task::JoinHandle<()>>,
@@ -87,7 +87,7 @@ impl TorrentTasks {
         }
     }
 
-    /// Start bringing the torrent source up, when the configuration asks for it.
+    /// Start bringing torrent playback up, when the configuration asks for it.
     ///
     /// In the background: the guard's check is a network request through a tunnel that may
     /// be down, and the first frame must not wait on it. The badge says what the guard found
@@ -108,10 +108,9 @@ impl TorrentTasks {
         let check = Arc::clone(&self.check);
         let fixture = services.fixture_exit.clone();
         let teardown = self.teardown.take();
-        let (config, http, paths, store, tx, arrivals) = (
+        let (config, paths, store, tx, arrivals) = (
             // With the proxy's password, which only this copy holds.
             crate::protection::with_proxy_password(config, services),
-            services.http.clone(),
             services.paths.clone(),
             services.store.clone(),
             tx.clone(),
@@ -132,13 +131,13 @@ impl TorrentTasks {
                 return;
             }
             let outcome =
-                sources::bring_up_torrent(config, http, paths, store, tx, check, fixture).await;
+                sources::bring_up_torrent(config, paths, store, tx, check, fixture).await;
             let _ = arrivals.send((generation, outcome));
         }));
     }
 
-    /// A bring-up finished: put the source in the chain and start what runs beside it, or say
-    /// why it will not come up.
+    /// A bring-up finished: lend the session to the sources that name torrents and start what
+    /// runs beside it, or say why it will not come up.
     pub(crate) fn arrived(
         &mut self,
         generation: u64,
@@ -156,7 +155,7 @@ impl TorrentTasks {
         let up = match outcome {
             Ok(up) => up,
             Err(reason) => {
-                tracing::warn!(reason = %reason.english(), "torrent source not started");
+                tracing::warn!(reason = %reason.english(), "torrent playback not started");
                 let _ = tx.send(Event::ProviderNote(reason));
                 return;
             }
@@ -164,8 +163,8 @@ impl TorrentTasks {
         let registry = &services.registry;
         let snapshot =
             config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
-        sources::place(registry, up.provider, &snapshot);
-        // A source joined the chain: what is on screen was listed without it.
+        sources::lend_torrents(registry, Some(&up.session), &snapshot);
+        // The sources that name torrents are usable now: what is on screen was listed without.
         let _ = tx.internal(crate::outbox::Internal::SourcesReordered);
         // Its advice is a terminal command, so an app that hosts its own player is not told.
         match up.warning {
@@ -180,7 +179,7 @@ impl TorrentTasks {
         *self =
             Self { generation, ..Self::start(vpn_guard, &services.store, config, tx, &check) };
         let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
-        tracing::info!(providers = ?registry.ids(), "torrent source up");
+        tracing::info!(providers = ?registry.ids(), "torrent playback up");
     }
 
     /// Check where torrent traffic leaves from now, as Sources' Check Now asks, rather than at
@@ -189,8 +188,8 @@ impl TorrentTasks {
     ///
     /// What waits on the guard checks at once, so a failed check does what the guard's own
     /// does: the watcher halts the session, or a bring-up keeps waiting. With neither, as when
-    /// the source could not come up for want of an index, the guard is checked on its own and
-    /// nothing else follows from it.
+    /// the session could not start, the guard is checked on its own and nothing else follows
+    /// from it.
     pub(crate) fn check_now(&self, config: &Config, services: &Services, tx: &Outbox) {
         if self.bring_forward(config, tx) {
             check_alone(
@@ -225,7 +224,7 @@ impl TorrentTasks {
     /// asks.
     ///
     /// Closing is the whole point: dropping the handles would leave librqbit seeding whatever
-    /// it holds until the process exits, which for a source the user just turned off is
+    /// it holds until the process exits, which for playback the user just turned off is
     /// precisely the traffic they meant to stop. The close pauses each torrent in turn, which
     /// on a slow disk takes a while, so it runs in a task of its own rather than on the actor:
     /// the next bring-up waits for it. The watchers go first, so none of them reacts to the
@@ -273,6 +272,37 @@ impl TorrentTasks {
             session.close().await;
         }
     }
+}
+
+/// Take built-in torrent search out of the config file, as the first launch after its removal
+/// does: the index and curation addresses, and `"torrent"` in the source order and the
+/// disabled list. The rest of the file is left as it was, and `config` and `saved` lose the
+/// same entries, so nothing on screen lists a source that no longer exists.
+///
+/// The notice to say once, when an index address was set: the person chose one, so they are
+/// told where it went. A file that cannot be read or written is left alone, and the stale
+/// entries name nothing.
+pub(crate) fn retire_torrent_search(
+    paths: &anistream_core::config::Paths,
+    config: &mut Config,
+    saved: &mut Option<Config>,
+) -> Option<Msg> {
+    let retired = match anistream_core::settings::retire_torrent_search(paths) {
+        Ok(retired) => retired,
+        Err(error) => {
+            tracing::warn!(%error, "torrent search not taken out of the config");
+            return None;
+        }
+    };
+    for config in std::iter::once(config).chain(saved.as_mut()) {
+        let providers = &mut config.providers;
+        providers.order.retain(|id| id != "torrent");
+        providers.disabled.retain(|id| id != "torrent");
+    }
+    if retired.changed {
+        tracing::info!(had_index = retired.had_index, "built-in torrent search taken out");
+    }
+    retired.had_index.then_some(Msg::TorrentSearchMoved)
 }
 
 /// Check the guard `config` describes on its own, with no session or bring-up to act on what it
@@ -357,6 +387,8 @@ pub fn reload_sources(
     torrent_tasks.stop();
     *vpn_guard = None;
     let registry = &services.registry;
+    // The sources that name torrents wait for the next session, not the one going.
+    sources::lend_torrents(registry, None, &Config::default());
 
     let plugins = registry.of_kind(anistream_core::traits::ProviderKind::Plugin);
     let snapshot = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
@@ -391,12 +423,11 @@ mod tests {
 
     use super::*;
 
-    /// Torrents on, protected the way `mode` says, with the invented index they need.
+    /// Torrents on, protected the way `mode` says.
     fn torrents(mode: VpnMode) -> Config {
         let mut config = Config::default();
         let torrent = &mut config.providers.torrent;
         torrent.enabled = true;
-        torrent.rss_url = Some("https://index.example/rss".into());
         torrent.vpn.mode = mode;
         torrent.vpn.i_understand_my_ip_is_exposed = true;
         config

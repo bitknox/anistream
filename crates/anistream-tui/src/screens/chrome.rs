@@ -658,8 +658,7 @@ mod tests {
 
     #[test]
     fn the_status_line_reports_source_translation_and_quality() {
-        // Torrents lead the default order and are off by default, so the source named is the
-        // first one that is not switched off rather than the first in the list.
+        // Nothing has played yet, so the source named is the first configured one.
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(
@@ -670,7 +669,7 @@ mod tests {
 
     #[test]
     fn the_header_shows_each_source_as_it_stands() {
-        // Torrents off, plugins serving: nothing is failing, and nothing alerts.
+        // Plugins serving: nothing is failing, and nothing alerts.
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Paper Kite")]));
         app.apply(Event::Providers(vec![anistream_model::sources::ProviderRow {
             kind: "plugin".into(),
@@ -678,9 +677,9 @@ mod tests {
         }]));
         let buf = render_to_buffer(&mut app, 120, 30);
         let header = text_of(&buf).lines().next().unwrap_or_default().to_owned();
-        assert!(header.contains("torrent ○"), "{header}");
         assert!(header.contains("plugins ●"), "{header}");
-        assert!(!header.contains('▲'), "off is not degraded: {header}");
+        assert!(!header.contains("torrent"), "torrent search is not a source: {header}");
+        assert!(!header.contains('▲'), "{header}");
         let alert = app.palette.color(Role::Alert);
         assert!((0..120).all(|x| buf[(x, 0)].fg != alert), "nothing in the header alerts");
 

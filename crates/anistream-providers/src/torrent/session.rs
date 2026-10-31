@@ -61,12 +61,22 @@ pub fn is_playable_video(name: &str) -> bool {
     !EXCLUDED_FRAGMENTS.iter().any(|fragment| lowered.contains(fragment))
 }
 
-/// Choose the file holding `episode`.
+/// Choose the file to play: the one the link selects with `so=`, else the one holding `episode`.
 ///
-/// Single-file torrents are unambiguous. For a batch, the episode number parsed out of each
-/// filename decides — falling back to the largest playable file, which for a season pack is
-/// at least a real episode rather than a sample.
-pub fn choose_file(files: &[TorrentFile], episode: Option<u32>) -> Option<&TorrentFile> {
+/// A source that names the file is taken at its word, as long as the torrent has that file.
+/// Single-file torrents are unambiguous. For a batch, the episode number each file name states
+/// decides, falling back to the largest playable file, which for a season pack is at least a real
+/// episode rather than a sample.
+pub fn choose_file(
+    files: &[TorrentFile],
+    episode: Option<u32>,
+    selected: Option<u32>,
+) -> Option<&TorrentFile> {
+    if let Some(index) = selected
+        && let Some(file) = files.iter().find(|f| u32::try_from(f.index).ok() == Some(index))
+    {
+        return Some(file);
+    }
     let playable: Vec<&TorrentFile> =
         files.iter().filter(|f| is_playable_video(&f.name)).collect();
 
@@ -81,10 +91,10 @@ pub fn choose_file(files: &[TorrentFile], episode: Option<u32>) -> Option<&Torre
 
     if let Some(wanted) = episode {
         // Match on the episode number the filename itself states.
-        let matched = playable.iter().copied().find(|f| {
-            let parsed = crate::torrent::release::parse(&f.name);
-            parsed.episode == Some(wanted)
-        });
+        let matched = playable
+            .iter()
+            .copied()
+            .find(|f| crate::torrent::names::episode_in(&f.name) == Some(wanted));
         if let Some(file) = matched {
             return Some(file);
         }
@@ -591,7 +601,9 @@ impl TorrentSession {
             .map_err(|e| ProviderError::Transport(format!("waiting for metadata: {e}")))?;
 
         let files = files_of(&handle);
-        let file = choose_file(&files, episode).ok_or(ProviderError::NotFound)?.clone();
+        let selected = anistream_core::stream::torrent_link_file(magnet);
+        let file =
+            choose_file(&files, episode, selected).ok_or(ProviderError::NotFound)?.clone();
 
         tracing::info!(file = %file.name, size = file.length, "streaming torrent file");
 
@@ -701,7 +713,9 @@ impl TorrentSession {
             .map_err(|e| ProviderError::Transport(format!("waiting for metadata: {e}")))?;
 
         let files = files_of(&handle);
-        let file = choose_file(&files, episode).ok_or(ProviderError::NotFound)?.clone();
+        let selected = anistream_core::stream::torrent_link_file(magnet);
+        let file =
+            choose_file(&files, episode, selected).ok_or(ProviderError::NotFound)?.clone();
         tracing::info!(file = %file.name, size = file.length, "downloading torrent file");
 
         // The queue owns this torrent now. Off the stream ledger — the same infohash may
@@ -1225,9 +1239,9 @@ mod tests {
     #[test]
     fn a_single_file_torrent_is_unambiguous() {
         let files = [file(0, "[G] Show - 12 (1080p).mkv", 1_400_000_000)];
-        assert_eq!(choose_file(&files, Some(12)).unwrap().index, 0);
+        assert_eq!(choose_file(&files, Some(12), None).unwrap().index, 0);
         // Even with no episode hint.
-        assert_eq!(choose_file(&files, None).unwrap().index, 0);
+        assert_eq!(choose_file(&files, None, None).unwrap().index, 0);
     }
 
     #[test]
@@ -1238,8 +1252,20 @@ mod tests {
             file(1, "[G] Show - 02 (1080p).mkv", 1_400_000_000),
             file(2, "[G] Show - 03 (1080p).mkv", 1_400_000_000),
         ];
-        assert_eq!(choose_file(&files, Some(2)).unwrap().index, 1);
-        assert_eq!(choose_file(&files, Some(3)).unwrap().index, 2);
+        assert_eq!(choose_file(&files, Some(2), None).unwrap().index, 1);
+        assert_eq!(choose_file(&files, Some(3), None).unwrap().index, 2);
+    }
+
+    #[test]
+    fn the_file_a_source_names_is_played_whatever_the_names_say() {
+        let files = [
+            file(0, "Show - 01.mkv", 1_400_000_000),
+            file(1, "Show - 02.mkv", 1_400_000_000),
+            file(2, "Show - 03.mkv", 1_400_000_000),
+        ];
+        assert_eq!(choose_file(&files, Some(1), Some(2)).unwrap().index, 2);
+        // A file the torrent does not have falls back to the episode's own.
+        assert_eq!(choose_file(&files, Some(1), Some(9)).unwrap().index, 0);
     }
 
     #[test]
@@ -1248,9 +1274,9 @@ mod tests {
             file(0, "Sample/sample.mkv", 30_000_000),
             file(1, "[G] Show - 12 (1080p).mkv", 1_400_000_000),
         ];
-        assert_eq!(choose_file(&files, Some(12)).unwrap().index, 1);
+        assert_eq!(choose_file(&files, Some(12), None).unwrap().index, 1);
         // And also when there is no episode hint at all.
-        assert_eq!(choose_file(&files, None).unwrap().index, 1);
+        assert_eq!(choose_file(&files, None, None).unwrap().index, 1);
     }
 
     #[test]
@@ -1259,7 +1285,7 @@ mod tests {
             file(0, "bonus_artbook.pdf", 9_000_000_000),
             file(1, "[G] Show - 12 (1080p).mkv", 1_400_000_000),
         ];
-        assert_eq!(choose_file(&files, None).unwrap().index, 1);
+        assert_eq!(choose_file(&files, None, None).unwrap().index, 1);
     }
 
     #[test]
@@ -1269,7 +1295,7 @@ mod tests {
             file(0, "[G] Show - 01 (1080p).mkv", 700_000_000),
             file(1, "[G] Show - 02 (1080p).mkv", 1_400_000_000),
         ];
-        assert_eq!(choose_file(&files, Some(99)).unwrap().index, 1);
+        assert_eq!(choose_file(&files, Some(99), None).unwrap().index, 1);
     }
 
     #[test]
@@ -1277,13 +1303,14 @@ mod tests {
         // Some releases use containers we do not list; giving up entirely would be worse
         // than handing mpv the largest file and letting it try.
         let files = [file(0, "readme.txt", 1_000), file(1, "episode.ts", 1_400_000_000)];
-        assert_eq!(choose_file(&files, None).unwrap().index, 1);
+        assert_eq!(choose_file(&files, None, None).unwrap().index, 1);
     }
 
     #[test]
     fn an_empty_torrent_yields_nothing_rather_than_panicking() {
-        assert!(choose_file(&[], Some(1)).is_none());
-        assert!(choose_file(&[], None).is_none());
+        assert!(choose_file(&[], Some(1), None).is_none());
+        assert!(choose_file(&[], None, Some(0)).is_none());
+        assert!(choose_file(&[], None, None).is_none());
     }
 
     #[tokio::test]

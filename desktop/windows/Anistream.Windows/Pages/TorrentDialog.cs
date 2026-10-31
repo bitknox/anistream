@@ -11,7 +11,7 @@ namespace Anistream.Windows.Pages;
 
 /// <summary>
 /// Turning torrents on, the same dialog asking for a proxy once they are on, and Edit proxy on
-/// the saved one: the torrent index, what protects the connection with a proxy's address, and
+/// the saved one: what protects the connection with a proxy's address, and
 /// how the connection is checked, said before anything starts. No protection asks to be
 /// confirmed, and Cancel there comes back to this dialog with what was chosen. A proxy is
 /// checked before anything is saved: the form locks while the check runs, only a passed check
@@ -23,7 +23,7 @@ sealed class TorrentDialog
     /// <summary>What the dialog is open for.</summary>
     public enum Purpose
     {
-        /// <summary>Torrents turning on: the index, then what protects them.</summary>
+        /// <summary>Torrents turning on: what protects them.</summary>
         TurnOn,
         /// <summary>What protects them, changing once they are on.</summary>
         Protect,
@@ -34,7 +34,6 @@ sealed class TorrentDialog
     readonly Ctx ctx;
     readonly Purpose purpose;
     readonly ContentDialog dialog;
-    readonly TextBox index = new() { Header = T.TorrentsIndex, PlaceholderText = T.TorrentsIndexHint };
     readonly StackPanel protections = new() { Spacing = 4, XYFocusKeyboardNavigation = XYFocusKeyboardNavigationMode.Enabled };
     readonly List<RadioButton> choices = [];
     readonly TextBox host = new() { Header = T.TorrentsProxyHost, PlaceholderText = T.TorrentsProxyHostExample };
@@ -65,17 +64,6 @@ sealed class TorrentDialog
 
         var body = new StackPanel { Spacing = 12, Width = 460 };
         body.Children.Add(Ui.Text(editing ? TorrentWords.EditNote : TorrentWords.Exposed, "BodyTextBlockStyle"));
-        if (turningOn)
-        {
-            index.Text = draft.Index;
-            index.InputScope = new InputScope { Names = { new(InputScopeNameValue.Url) } };
-            index.TextChanged += (_, _) => Changed(draft with { Index = index.Text });
-            body.Children.Add(index);
-            var indexNote = Ui.Text(TorrentWords.IndexNote, "HazeCaptionStyle");
-            indexNote.Margin = new Thickness(0, -6, 0, 4);
-            body.Children.Add(indexNote);
-        }
-
         if (editing)
         {
             // Only the proxy: what protects torrents stays the proxy.
@@ -242,7 +230,7 @@ sealed class TorrentDialog
     /// <summary>The form while its check runs: nothing to change, and Save waits in its place.</summary>
     void Lock(bool locked)
     {
-        index.IsEnabled = host.IsEnabled = port.IsEnabled = user.IsEnabled = password.IsEnabled = !locked;
+        host.IsEnabled = port.IsEnabled = user.IsEnabled = password.IsEnabled = !locked;
         foreach (var choice in choices)
             choice.IsEnabled = !locked;
         dialog.IsPrimaryButtonEnabled = !locked && draft.Complete;

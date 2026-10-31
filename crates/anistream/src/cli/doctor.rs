@@ -159,12 +159,6 @@ pub async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool)
         }
     );
 
-    // Which indexer, if any. anistream ships none, so "enabled" on its own does not mean
-    // the source has anything to search.
-    match config.providers.torrent.indexer_host() {
-        Some(host) => println!("  indexer     {host}"),
-        None => println!("  indexer     none configured (set providers.torrent.rss_url)"),
-    }
     if config.providers.torrent.trackers.is_empty() {
         println!(
             "  trackers    none configured — DHT is off in proxy mode, so no peers will be found"

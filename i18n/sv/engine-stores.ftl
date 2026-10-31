@@ -58,7 +58,6 @@ notice-choice-not-saved = Det gick inte att spara valet. { $reason }
 torrent-check-failed-running = Anslutningskontrollen misslyckades. Torrenterna fortsätter att köra.
 torrent-vpn-waiting = Torrenterna startar när VPN-skyddet godkänns. { $reason }
 torrent-vpn-unverified = Torrenterna startar när VPN-skyddet godkänns. Anslutningen har inte verifierats än.
-torrent-no-index = Torrenter kräver ett { -torrent-index }. { -app-name } levererar inget, så lägg till din egen adress i inställningarna.
 torrent-interface-closed = { -app-name } stängdes innan torrenterna startade.
 torrent-session-failed = Det gick inte att starta torrentsessionen. { $reason }
 torrent-no-kill-switch = Ingenting på den här { -device }en stoppar torrenttrafiken om VPN:en tappas. Kör "{ -app-name } --doctor" för att ställa in det.

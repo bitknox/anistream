@@ -58,7 +58,6 @@ notice-choice-not-saved = Diese Auswahl konnte nicht gespeichert werden. { $reas
 torrent-check-failed-running = Die Verbindungsprüfung ist fehlgeschlagen. Torrents laufen weiter.
 torrent-vpn-waiting = Torrents starten, sobald der VPN-Wächter freigibt. { $reason }
 torrent-vpn-unverified = Torrents starten, sobald der VPN-Wächter freigibt. Die Verbindung wurde noch nicht geprüft.
-torrent-no-index = Torrents brauchen einen { -torrent-index }. { -app-name } liefert keinen mit, füge deshalb in den Einstellungen deine eigene Adresse hinzu.
 torrent-interface-closed = { -app-name } wurde geschlossen, bevor die Torrents starteten.
 torrent-session-failed = Die Torrent-Sitzung konnte nicht gestartet werden. { $reason }
 torrent-no-kill-switch = Auf diesem { -device } stoppt nichts den Torrent-Verkehr, wenn das VPN ausfällt. Führe „{ -app-name } --doctor“ aus, um das einzurichten.

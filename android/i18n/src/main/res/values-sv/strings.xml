@@ -178,7 +178,6 @@
     <string name="torrent_check_failed_running">Anslutningskontrollen misslyckades. Torrenterna fortsätter att köra.</string>
     <string name="torrent_vpn_waiting">Torrenterna startar när VPN-skyddet godkänns. %1$s</string>
     <string name="torrent_vpn_unverified">Torrenterna startar när VPN-skyddet godkänns. Anslutningen har inte verifierats än.</string>
-    <string name="torrent_no_index">Torrenter kräver ett torrentindex. anistream levererar inget, så lägg till din egen adress i inställningarna.</string>
     <string name="torrent_interface_closed">anistream stängdes innan torrenterna startade.</string>
     <string name="torrent_session_failed">Det gick inte att starta torrentsessionen. %1$s</string>
     <string name="torrent_no_kill_switch">Ingenting på den här enheten stoppar torrenttrafiken om VPN:en tappas. Kör \"anistream --doctor\" för att ställa in det.</string>
@@ -1636,7 +1635,7 @@
     <string name="sources_update_detail">Version %1$s från %2$s ersätter %3$s.</string>
     <string name="sources_replace_detail">Version %1$s från %2$s ersätter kopian som lades till för hand. %3$s.</string>
     <string name="sources_open_settings">Öppna källainställningarna</string>
-    <string name="sources_torrent_source">Torrent källa</string>
+    <string name="sources_torrent_source">Torrentuppspelning</string>
     <string name="sources_source_order_row">Källaordning</string>
     <string name="sources_torrents_note">Torrent ingår i anistream, inte i ett tillägg. Vad som skyddar deras trafik, anslutningskontrollen och seedningen ställs in i Inställningar, under Källor.</string>
     <string name="sources_rebuilding">Källor ställs in på nytt</string>

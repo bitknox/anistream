@@ -3,7 +3,7 @@
 //!
 //! [`Engine::start`] stands the engine up and spawns its actor: one task that owns the engine
 //! side's state and every handle the work shares, and reads, in one place, the commands
-//! [`Engine::send`] hands it, the inbox the work answers on, and the torrent source reporting in.
+//! [`Engine::send`] hands it, the inbox the work answers on, and torrent playback reporting in.
 //! The front end reads what happened from the [`EventStream`], in the order the actor applied
 //! it. Nothing else of the engine is the front end's to call, and nothing of the front end's
 //! reaches the engine except as a command.
@@ -184,8 +184,8 @@ impl Engine {
     /// Does what the app's launch did on the engine side, in the same order: the sweeps of old
     /// files, the source chain and its plugins loading behind it, the handles the work shares,
     /// the update check and the airing digest, the plugin load's outcome said when it comes, the
-    /// joined stores asked for their lists, the trackers' sync loops, the mapping datasets, the
-    /// torrent source brought up, and the check of the player.
+    /// joined stores asked for their lists, the trackers' sync loops, the mapping datasets, torrent
+    /// playback brought up, and the check of the player.
     ///
     /// What was true at launch is queued at the head of the [`EventStream`], for the front end
     /// to apply before its first frame: the settings, the joined stores, the chain's rows when
@@ -220,6 +220,11 @@ impl Engine {
             #[cfg(feature = "testing")]
             free_space,
         } = options;
+        // Before anything reads the source order: built-in torrent search is gone, and a file
+        // from before says where it was.
+        let (mut config, mut saved) = (config, saved);
+        let search_moved =
+            crate::sources::torrent::retire_torrent_search(&paths, &mut config, &mut saved);
 
         if background.prune {
             // Old logs, stale covers and the player's leftovers, off the critical path.
@@ -245,7 +250,7 @@ impl Engine {
         let (registry, plugins_loading) = match given {
             Some(registry) => (registry, None),
             None => {
-                // Without the torrent source, which comes up behind the interface once the VPN
+                // Without torrent playback, which comes up behind the interface once the VPN
                 // guard passes: see `TorrentTasks::bring_up`.
                 let registry = sources::build_registry_deferred(&config, &http);
                 tracing::info!(providers = ?registry.ids(), "provider registry ready");
@@ -318,7 +323,7 @@ impl Engine {
         #[cfg(feature = "cast")]
         let casts = Arc::clone(&services.casts);
 
-        // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
+        // Where torrent playback reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
@@ -346,6 +351,10 @@ impl Engine {
         if let Some(aside) = set_aside {
             let path = aside.display().to_string();
             launch.push_back(Event::Toast(Notice::alert(Msg::NoticeDatabaseSetAside { path })));
+        }
+        // Said once: the next launch finds no index address to take out.
+        if let Some(moved) = search_moved {
+            launch.push_back(Event::Toast(Notice::info(moved)));
         }
 
         // Joined stores as they were left, so Providers can count them on the first frame.
@@ -429,7 +438,7 @@ impl Engine {
         // stand them back up without a restart. Both are replaced together: the download
         // manager and the guard's watcher are the two things holding a session alive, and
         // leaving either behind would mean traffic outliving the source it belongs to. A chain
-        // given whole has its torrent source in it already, or none.
+        // given whole has torrent playback in it already, or none.
         if own_chain {
             let tx = inbox.sender();
             let EngineState { config, torrent_tasks, arrivals, .. } = &mut state;
@@ -824,7 +833,7 @@ struct Actor {
 impl Actor {
     /// Read and act until the front end lets go of the engine or shuts it down.
     ///
-    /// Commands first, then the inbox, then the torrent source: a command is routed as soon as
+    /// Commands first, then the inbox, then torrent playback: a command is routed as soon as
     /// it is sent, as the loop dispatched it in the same pass that produced it, and what a
     /// bring-up says on its way up is in the inbox before its arrival is.
     async fn run(mut self) {
@@ -1132,7 +1141,7 @@ impl Actor {
         });
     }
 
-    /// The torrent source is up, or will not come up; only the latest bring-up counts.
+    /// Torrent playback is up, or will not come up; only the latest bring-up counts.
     fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, Msg>) {
         let tx = self.inbox.sender();
         let crate::phases::Gate { hold, refusal } = crate::phases::gate_now(&mut self.state);
@@ -1633,7 +1642,7 @@ mod tests {
         assert!(!view.sources.torrent);
         assert_eq!(refusal.kind, NoticeKind::Alert);
         assert!(
-            matches!(&refusal.msg, Some(Msg::NoticeNotSaved { reason }) if reason.starts_with("torrents need")),
+            matches!(&refusal.msg, Some(Msg::NoticeNotSaved { reason }) if reason.contains("no socks_url is set")),
             "{:?}",
             refusal.msg
         );

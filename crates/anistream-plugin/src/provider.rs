@@ -43,6 +43,7 @@ impl WasmProvider {
                 .iter()
                 .filter_map(|t| translation_from(t))
                 .collect(),
+            torrents: guest.capabilities.iter().any(|c| c.trim() == TORRENTS),
         };
         Self { plugin, manifest }
     }
@@ -52,10 +53,30 @@ impl WasmProvider {
     }
 
     /// Guest stream → core stream, shared by `resolve` and `resolve_source`.
-    fn stream_from(&self, stream: crate::engine::MediaStream) -> Stream {
-        Stream {
-            url: stream.url,
-            kind: stream_kind_from(&stream.kind),
+    ///
+    /// A `torrent` stream becomes the magnet link the host's session will start, with the file
+    /// it names carried in the link. It is dropped from a plugin that did not declare
+    /// [`TORRENTS`], and when its `url` names no torrent.
+    fn stream_from(&self, stream: crate::engine::MediaStream) -> Option<Stream> {
+        let kind = stream_kind_from(&stream.kind);
+        let url = if kind == StreamKind::Torrent {
+            if !self.manifest.torrents {
+                tracing::warn!(plugin = %self.manifest.id, "torrent stream from a plugin that did not declare `torrents`; dropped");
+                return None;
+            }
+            let Some(link) =
+                anistream_core::stream::torrent_link(&stream.url, stream.file_index)
+            else {
+                tracing::warn!(plugin = %self.manifest.id, "torrent stream that names no torrent; dropped");
+                return None;
+            };
+            link
+        } else {
+            stream.url
+        };
+        Some(Stream {
+            url,
+            kind,
             download_source: stream.download_source,
             pick_note: stream.pick_note,
             quality: stream.quality,
@@ -75,9 +96,12 @@ impl WasmProvider {
             // another source.
             provider_id: self.manifest.id.clone(),
             thumbnail_url: None,
-        }
+        })
     }
 }
+
+/// The capability a plugin declares to return `torrent` streams.
+pub const TORRENTS: &str = "torrents";
 
 /// Parse a translation tag from a manifest.
 ///
@@ -149,7 +173,9 @@ fn flatten<T>(result: Result<Result<T, GuestError>, PluginError>) -> Result<T, P
 fn stream_kind_from(kind: &str) -> StreamKind {
     match kind.trim().to_ascii_lowercase().as_str() {
         "hls" | "m3u8" => StreamKind::Hls,
-        "torrent-http" => StreamKind::TorrentHttp,
+        // A torrent the host starts. `torrent-http` names the host's own loopback stream, which a
+        // plugin cannot make, so it is read like any unknown kind.
+        "torrent" | "magnet" => StreamKind::Torrent,
         "external-deeplink" | "external" => StreamKind::ExternalDeepLink,
         _ => StreamKind::Mp4,
     }
@@ -216,7 +242,7 @@ impl Provider for WasmProvider {
             self.plugin.resolve(key.as_str(), episode, translation_tag(translation)).await,
         )?;
 
-        Ok(streams.into_iter().map(|stream| self.stream_from(stream)).collect())
+        Ok(streams.into_iter().filter_map(|stream| self.stream_from(stream)).collect())
     }
 
     async fn sources(
@@ -237,7 +263,7 @@ impl Provider for WasmProvider {
                 provider_id: self.manifest.id.clone(),
                 title: candidate.title,
                 quality: candidate.quality,
-                seeders: candidate.seeders,
+                label: candidate.label,
                 size: candidate.size,
                 dual_audio: candidate.dual_audio,
                 dubbed: candidate.dubbed,
@@ -260,7 +286,7 @@ impl Provider for WasmProvider {
                 .resolve_source(key.as_str(), episode, translation_tag(translation), source_id)
                 .await,
         )?;
-        Ok(streams.into_iter().map(|stream| self.stream_from(stream)).collect())
+        Ok(streams.into_iter().filter_map(|stream| self.stream_from(stream)).collect())
     }
 
     async fn health_check(&self) -> Result<(), ProviderError> {
@@ -343,7 +369,9 @@ mod tests {
         assert_eq!(stream_kind_from("HLS"), StreamKind::Hls);
         assert_eq!(stream_kind_from("m3u8"), StreamKind::Hls);
         assert_eq!(stream_kind_from("mp4"), StreamKind::Mp4);
-        assert_eq!(stream_kind_from("torrent-http"), StreamKind::TorrentHttp);
+        assert_eq!(stream_kind_from("torrent"), StreamKind::Torrent);
+        // The host's own loopback kind is not a plugin's to claim.
+        assert_eq!(stream_kind_from("torrent-http"), StreamKind::Mp4);
         assert_eq!(stream_kind_from("external-deeplink"), StreamKind::ExternalDeepLink);
     }
 

@@ -88,7 +88,7 @@ settings-comment-images = Load images in comments
 
 # Setting: the switch that turns torrents on.
 # @only windows
-settings-torrent-source = Torrent { -source }
+settings-torrent-source = Torrent playback
 
 ## Setting values
 

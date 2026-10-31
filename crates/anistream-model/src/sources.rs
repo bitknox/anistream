@@ -37,13 +37,16 @@ pub struct ProviderRow {
     /// A newer version the store it came from offers, when there is one.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub update: Option<ProviderUpdate>,
+    /// It names torrents, which play through torrent playback: unusable while that is off.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub torrents: bool,
 }
 
 /// Where a provider came from: the provider page's "From Hotaru Plugins".
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum ProviderOrigin {
-    /// Part of anistream: the torrent source, or a remote API you run.
+    /// Part of anistream: a remote API you run.
     #[default]
     BuiltIn,
     /// Installed from a plugin store, which keeps it updated. `name` is the store's, or `None`
@@ -114,8 +117,8 @@ pub struct ProviderUpdate {
 /// `order` with the source `id` moved one place up the chain (`step` below zero) or down it, or
 /// `None` when it is already at that end or has no row.
 ///
-/// One place is past the next row on screen. An entry with no row — `"plugins"`, torrents while
-/// they are off, a plugin named but not installed — is stepped over rather than counted, so
+/// One place is past the next row on screen. An entry with no row — `"plugins"`, a remote that
+/// is not set up, a plugin named but not installed — is stepped over rather than counted, so
 /// every press moves the row the user is looking at. It is kept all the same: the order is the
 /// user's, and only one entry was asked to move.
 ///
@@ -154,14 +157,11 @@ pub fn order_with_source_moved(
 ///
 /// The built-in entries say which sources exist; a plugin's id in the order only ranks it. So the
 /// same built-ins in any order need no rebuild, and a rebuild would restart the torrent session
-/// and cut off whatever it is playing.
+/// and cut off whatever it is playing. `"torrent"`, the torrent search that is no longer built
+/// in, names nothing either way.
 pub fn only_reorders(before: &[String], after: &[String]) -> bool {
     let built_in = |order: &[String]| -> std::collections::BTreeSet<String> {
-        order
-            .iter()
-            .filter(|id| matches!(id.as_str(), "torrent" | "remote" | "plugins"))
-            .cloned()
-            .collect()
+        order.iter().filter(|id| matches!(id.as_str(), "remote" | "plugins")).cloned().collect()
     };
     built_in(before) == built_in(after)
 }
@@ -176,16 +176,12 @@ pub struct ConfiguredSources {
     /// Those switched off by name.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub disabled: Vec<String>,
-    /// Whether the torrent source is switched on.
+    /// Whether torrent playback is switched on, for the sources that name torrents.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub torrent: bool,
     /// Whether a remote source is set up.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub remote: bool,
-    /// The torrent index, `providers.torrent.rss_url`: the RSS search address the torrent
-    /// source asks, which anistream ships none of. `None` until one is set, torrents on or off.
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub index: Option<String>,
 }
 
 impl ConfiguredSources {
@@ -195,13 +191,6 @@ impl ConfiguredSources {
             disabled: providers.disabled.clone(),
             torrent: providers.torrent.enabled,
             remote: providers.remote_url.is_some(),
-            index: providers
-                .torrent
-                .rss_url
-                .as_deref()
-                .map(str::trim)
-                .filter(|url| !url.is_empty())
-                .map(str::to_owned),
         }
     }
 }
@@ -218,14 +207,8 @@ pub struct SourceChip {
 ///
 /// The header's chips. Read from the registered providers' `rows` rather than the config alone:
 /// a configured source can be ready, failing, held back by the VPN guard, still loading, or off
-/// on purpose — and only the last is something the config can say by itself. `explained` is
-/// whether the sources came with a note on why there are none, which is how a torrent source
-/// the guard refused to start is told from one still coming up.
-pub fn source_states(
-    configured: &ConfiguredSources,
-    rows: &[ProviderRow],
-    explained: bool,
-) -> Vec<SourceChip> {
+/// on purpose — and only the last is something the config can say by itself.
+pub fn source_states(configured: &ConfiguredSources, rows: &[ProviderRow]) -> Vec<SourceChip> {
     let of_kind = |kind: &str| -> SourceState {
         let of_kind: Vec<&ProviderRow> = rows.iter().filter(|p| p.kind == kind).collect();
         // Each switched off by name is off, not failing: a choice, not a fault.
@@ -248,13 +231,6 @@ pub fn source_states(
         .filter(|id| !configured.disabled.contains(id))
         .filter_map(|id| {
             let state = match id.as_str() {
-                "torrent" if !configured.torrent => SourceState::Off,
-                // Configured but not registered: the guard refused to start it, and the
-                // Providers screen carries the reason.
-                "torrent" => match of_kind("torrent") {
-                    SourceState::Pending if explained => SourceState::Failing,
-                    state => state,
-                },
                 "plugins" => of_kind("plugin"),
                 "remote" if !configured.remote => return None,
                 "remote" => of_kind("remote"),
@@ -405,7 +381,7 @@ mod tests {
             ConfiguredSources { order: strings(&["plugins"]), ..ConfiguredSources::default() };
         let off =
             |id| ProviderRow { disabled: true, usable: false, ..source_row(id, "plugin") };
-        let state = |rows: &[ProviderRow]| source_states(&configured, rows, false)[0].state;
+        let state = |rows: &[ProviderRow]| source_states(&configured, rows)[0].state;
         assert_eq!(state(&[off("a"), off("b")]), SourceState::Off);
         assert_eq!(state(&[off("a"), source_row("b", "plugin")]), SourceState::Ready);
         let failing = ProviderRow { usable: false, ..source_row("b", "plugin") };
@@ -415,29 +391,29 @@ mod tests {
     #[test]
     fn moving_a_plugin_names_the_plugins_on_screen_and_keeps_plugins_after_them() {
         let rows = [
-            source_row("torrent", "torrent"),
+            source_row("remote", "remote"),
             source_row("alpha", "plugin"),
             source_row("beta", "plugin"),
         ];
-        let order = strings(&["torrent", "plugins"]);
+        let order = strings(&["remote", "plugins"]);
         assert_eq!(
             order_with_source_moved(&order, &rows, "beta", -1),
-            Some(strings(&["torrent", "beta", "alpha", "plugins"]))
+            Some(strings(&["remote", "beta", "alpha", "plugins"]))
         );
         assert_eq!(
             order_with_source_moved(&order, &rows, "alpha", -1),
-            Some(strings(&["alpha", "torrent", "beta", "plugins"]))
+            Some(strings(&["alpha", "remote", "beta", "plugins"]))
         );
         assert_eq!(
-            order_with_source_moved(&order, &rows, "torrent", 1),
-            Some(strings(&["alpha", "torrent", "beta", "plugins"]))
+            order_with_source_moved(&order, &rows, "remote", 1),
+            Some(strings(&["alpha", "remote", "beta", "plugins"]))
         );
     }
 
     #[test]
     fn a_move_steps_over_entries_with_no_row_and_keeps_them() {
-        // Torrents are off, so they have no row; `gamma` is named but not installed. Both stay,
-        // and neither costs a press.
+        // `torrent` is the torrent search that is no longer built in, so it has no row; `gamma`
+        // is named but not installed. Both stay, and neither costs a press.
         let rows = [source_row("remote", "remote"), source_row("alpha", "plugin")];
         let order = strings(&["torrent", "remote", "gamma", "plugins"]);
         assert_eq!(
@@ -454,9 +430,9 @@ mod tests {
 
     #[test]
     fn a_move_past_either_end_or_of_no_row_changes_nothing() {
-        let rows = [source_row("torrent", "torrent"), source_row("alpha", "plugin")];
-        let order = strings(&["torrent", "plugins", "remote"]);
-        assert_eq!(order_with_source_moved(&order, &rows, "torrent", -1), None);
+        let rows = [source_row("remote", "remote"), source_row("alpha", "plugin")];
+        let order = strings(&["remote", "plugins"]);
+        assert_eq!(order_with_source_moved(&order, &rows, "remote", -1), None);
         assert_eq!(order_with_source_moved(&order, &rows, "alpha", 1), None);
         assert_eq!(order_with_source_moved(&order, &rows, "nothing", 1), None);
     }
@@ -464,10 +440,10 @@ mod tests {
     #[test]
     fn without_plugins_in_the_order_a_plugin_on_screen_is_named_at_the_end() {
         // A rebuild that dropped `"plugins"` keeps the plugins it had, last in the chain.
-        let rows = [source_row("torrent", "torrent"), source_row("alpha", "plugin")];
+        let rows = [source_row("remote", "remote"), source_row("alpha", "plugin")];
         assert_eq!(
-            order_with_source_moved(&strings(&["torrent"]), &rows, "alpha", -1),
-            Some(strings(&["alpha", "torrent"]))
+            order_with_source_moved(&strings(&["remote"]), &rows, "alpha", -1),
+            Some(strings(&["alpha", "remote"]))
         );
     }
 
@@ -476,16 +452,15 @@ mod tests {
         let order =
             |entries: &[&str]| entries.iter().map(|e| (*e).to_owned()).collect::<Vec<_>>();
         // Moved, or with a plugin named: the same sources, so the session can stay up.
+        assert!(only_reorders(&order(&["remote", "plugins"]), &order(&["plugins", "remote"])));
         assert!(only_reorders(
-            &order(&["torrent", "plugins"]),
-            &order(&["plugins", "torrent"])
+            &order(&["remote", "plugins"]),
+            &order(&["alpha", "plugins", "remote", "beta"])
         ));
-        assert!(only_reorders(
-            &order(&["torrent", "plugins"]),
-            &order(&["alpha", "plugins", "torrent", "beta"])
-        ));
+        // The torrent search that is no longer built in names nothing.
+        assert!(only_reorders(&order(&["torrent", "plugins"]), &order(&["plugins"])));
         // A built-in source added or taken away is a rebuild.
-        assert!(!only_reorders(&order(&["torrent", "plugins"]), &order(&["plugins"])));
+        assert!(!only_reorders(&order(&["remote", "plugins"]), &order(&["plugins"])));
         assert!(!only_reorders(&order(&["plugins"]), &order(&["plugins", "remote"])));
     }
 }

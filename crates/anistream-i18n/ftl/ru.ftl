@@ -501,9 +501,6 @@ torrent-vpn-waiting = Торренты запустятся, когда прой
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = Торренты запустятся, когда пройдёт проверка VPN. Подключение ещё не проверено.
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = Торрентам нужен торрент-индекс. anistream не содержит ни одного, поэтому добавьте свой адрес в настройках.
-
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = anistream закрылся до запуска торрентов.
 
@@ -1592,15 +1589,6 @@ title-source-failing = Не работает
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = Тот релиз, который источник ставит первым
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-        [one] { $count } сид
-        [few] { $count } сида
-        [many] { $count } сидов
-       *[other] { $count } сидов
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = Доступно на: { $services }
@@ -3114,11 +3102,8 @@ settings-label-presence-title = Название в статусе
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Расширенный статус
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Торрент-источник
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = Торрент-индекс
+# Settings row: torrent playback on or off.
+settings-label-torrents = Воспроизведение торрентов
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Раздавать после просмотра
@@ -3237,7 +3222,7 @@ settings-note-presence-title = При выключении показывает�
 # Note under the rich presence row.
 settings-note-presence-rich = Добавляет обложку, полосу прогресса и ссылку на AniList. Нужно, чтобы название было показано.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Нужен настроенный VPN. Действует сразу.
 
 # Note under the VPN mode row.
@@ -6649,7 +6634,7 @@ sources-replace-detail = Версия { $version } из { $store } замени�
 sources-open-settings = Открыть настройки источника
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Торрент-источник
+sources-torrent-source = Воспроизведение торрентов
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Порядок проверки

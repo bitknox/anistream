@@ -146,13 +146,10 @@ public sealed partial class ProvidersPage : Page
             facts.Children.Add(Ui.Haze(T.SourcesDetailSite));
         if (row.HeldBack)
             facts.Children.Add(Ui.Haze(T.SourcesDetailHeldBack));
-        if (!info.IsTorrent)
-        {
-            var hosts = info.Hosts.Count > 0 ? info.Hosts : row.Hosts ?? [];
-            facts.Children.Add(Ui.Haze(hosts.Count > 0 ? T.SourcesContactsOne(string.Join(", ", hosts)) : T.SourcesContactsNone));
-        }
-        else
-            facts.Children.Add(Ui.Haze(T.SourcesTorrentIndexes));
+        var hosts = info.Hosts.Count > 0 ? info.Hosts : row.Hosts ?? [];
+        facts.Children.Add(Ui.Haze(hosts.Count > 0 ? T.SourcesContactsOne(string.Join(", ", hosts)) : T.SourcesContactsNone));
+        if (row.Torrents)
+            facts.Children.Add(Ui.Haze(T.SourcesPlaysTorrents));
         Detail.Children.Add(Ui.Card(facts));
 
         if (info.Update is { } next && info.Store is { } store && info.Listing is { } listing)

@@ -563,9 +563,6 @@
   <data name="TorrentVpnUnverified" xml:space="preserve">
     <value>Торренты запустятся, когда пройдёт проверка VPN. Подключение ещё не проверено.</value>
   </data>
-  <data name="TorrentNoIndex" xml:space="preserve">
-    <value>Торрентам нужен торрент-индекс. anistream не содержит ни одного, поэтому добавьте свой адрес в настройках.</value>
-  </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
     <value>anistream закрылся до запуска торрентов.</value>
   </data>
@@ -1020,7 +1017,7 @@
     <value>Загружать картинки в комментариях</value>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
-    <value>Торрент-источник</value>
+    <value>Воспроизведение торрентов</value>
   </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Системная</value>
@@ -4287,7 +4284,7 @@
     <value>Открыть настройки источника</value>
   </data>
   <data name="SourcesTorrentSource" xml:space="preserve">
-    <value>Торрент-источник</value>
+    <value>Воспроизведение торрентов</value>
   </data>
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Порядок проверки</value>

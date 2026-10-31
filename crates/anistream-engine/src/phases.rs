@@ -9,7 +9,7 @@
 //! bound again on its own port, with what plays opened again from it.
 //!
 //! On cellular, torrents and downloads run only as the settings let them: `[providers.torrent]
-//! on_cellular` for the episode streaming, what gives back after it, and the torrent source
+//! on_cellular` for the episode streaming, what gives back after it, and torrent playback
 //! itself, which is unavailable there while it is off; `[downloads] on_cellular` for the
 //! download queue. Both are off by default. In Low Data Mode downloads and seeding wait,
 //! whatever the settings say, while what plays goes on.
@@ -74,7 +74,7 @@ pub fn gate_for(phase: AppState, network: Network, config: &Config) -> Gate {
     Gate { hold, refusal }
 }
 
-/// Why the torrent source is unavailable on cellular, with torrents not to run on it.
+/// Why torrent playback is unavailable on cellular, with torrents not to run on it.
 pub const CELLULAR: &str = "torrents don't run on cellular while torrents on cellular is off";
 
 /// The app moved to `phase`.
@@ -206,7 +206,7 @@ mod tests {
         let foreground =
             |network, config: &Config| gate_for(AppState::Foreground, network, config);
 
-        // The defaults: neither runs on cellular, and the torrent source is not asked there.
+        // The defaults: neither runs on cellular, and torrent playback is not asked there.
         let off = foreground(CELL, &Config::default());
         assert_eq!(off.hold, Hold::EVERYTHING);
         assert_eq!(off.refusal.as_deref(), Some(CELLULAR));

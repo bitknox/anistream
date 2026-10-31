@@ -104,7 +104,6 @@ public static class ProviderRows
 /// <summary>What the Sources page says of one source, from its row and the stores it came from.</summary>
 public sealed record ProviderInfo(ProviderRow Row, string Name, string Origin, StoreRow? Store, StorePluginRow? Listing)
 {
-    public bool IsTorrent => Row.Kind == "torrent";
     public bool IsPlugin => Row.Kind == "plugin";
 
     /// <summary>A newer version its store offers.</summary>
@@ -117,8 +116,6 @@ public sealed record ProviderInfo(ProviderRow Row, string Name, string Origin, S
         var listing = Stores.OriginOf(stores, row.Id);
         switch (row.Kind)
         {
-            case "torrent":
-                return new(row, T.SourcesTorrents, T.SourcesOriginBuiltIn, null, null);
             case "remote":
                 return new(row, T.SourcesRemote, T.SourcesOriginConfig, null, null);
         }

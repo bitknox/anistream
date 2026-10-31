@@ -11459,16 +11459,10 @@
     "by": "haiku",
     "at": "2026-10-31"
   },
-  "settings-label-torrent-index": {
-    "source": "3e137d7a1f87",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31"
-  },
   "settings-label-torrents": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
+    "by": "agent",
     "at": "2026-10-31"
   },
   "settings-label-torrents-on-cellular": {
@@ -12708,9 +12702,9 @@
     "at": "2026-10-31"
   },
   "settings-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
+    "by": "agent",
     "at": "2026-10-31"
   },
   "settings-torrents-cellular": {
@@ -14448,9 +14442,9 @@
     "at": "2026-10-31"
   },
   "sources-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
+    "by": "agent",
     "at": "2026-10-31"
   },
   "sources-torrents": {
@@ -17555,12 +17549,6 @@
     "by": "haiku",
     "at": "2026-10-31"
   },
-  "title-release-seeders": {
-    "source": "23dcf20126cb",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31"
-  },
   "title-season": {
     "source": "a88e71fd292f",
     "state": "draft",
@@ -17797,12 +17785,6 @@
   },
   "torrent-interface-closed": {
     "source": "5adb14e508de",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31"
-  },
-  "torrent-no-index": {
-    "source": "ac7603f0872a",
     "state": "draft",
     "by": "haiku",
     "at": "2026-10-31"

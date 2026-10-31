@@ -1,25 +1,21 @@
-//! The torrent source.
+//! Torrent playback.
 //!
-//! anistream provides the *transport* — a librqbit session behind the VPN guard, streaming
-//! over loopback HTTP — and no index of what to fetch. The indexer is a URL the user
-//! supplies; see [`indexer`] and [`curation`]. Nothing is contacted until one is configured.
+//! anistream provides the transport: a librqbit session behind the protection check, streaming
+//! over loopback HTTP. It finds no torrents. A source plugin that declares the `torrents`
+//! capability names them, and [`bridge::TorrentBridge`] plays what it names; a link the person
+//! opens plays the same way. Nothing here searches an index, ranks releases or picks one.
 //!
-//! Structurally different from a web source, and that is the point: it fails for unrelated
-//! reasons, so the two are unlikely to be down together.
-//!
-//! Gated by [`crate::vpn::VpnGuard`]. The provider reports itself unavailable — and is
-//! therefore never contacted — until the guard passes.
+//! Gated by [`crate::vpn::VpnGuard`]. No session exists, and no torrent starts, until the guard
+//! passes.
 
+pub mod bridge;
 pub mod cache;
-pub mod curation;
 pub mod http;
-pub mod indexer;
+pub mod names;
+pub mod open;
 pub mod pieces;
-pub mod provider;
-pub mod release;
 pub mod session;
 
+pub use bridge::{TorrentBridge, TorrentPlayback};
 pub use http::{ReadySource, StreamServer, StreamSource};
-pub use provider::TorrentProvider;
-pub use release::Release;
 pub use session::TorrentSession;

@@ -1,4 +1,4 @@
-anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+anistream                                                                                      plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
   ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
@@ -35,8 +35,7 @@ plugins · Subbed · 1080p                                                      
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text bg=#161a2e mod=BOLD
-r00 c09-83 bg=#161a2e
-r00 c84-94 fg=#9298b5 bg=#161a2e
+r00 c09-94 bg=#161a2e
 r00 c95-103 fg=state bg=#161a2e
 r00 c104-105 fg=#9298b5 bg=#161a2e
 r00 c106-106 fg=#434653 bg=#161a2e

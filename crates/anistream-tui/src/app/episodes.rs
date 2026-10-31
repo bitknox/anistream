@@ -674,7 +674,7 @@ mod tests {
             provider_id: "torrent".into(),
             title: title.into(),
             quality: Some(1080),
-            seeders: Some(120),
+            label: Some("120 peers".into()),
             size: Some("1.4 GiB".into()),
             dual_audio: false,
             dubbed: false,

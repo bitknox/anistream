@@ -1535,29 +1535,31 @@ fn disambiguate(s: &mut Screen) {
     });
 }
 
-/// The releases for an episode, from its table: a healthy swarm, a thin one, one about to
-/// fail, and a direct stream with no swarm at all.
+/// The releases for an episode, from its table: three from a source that names torrents, each
+/// with its own line, and a direct stream with none.
 fn sources(s: &mut Screen) {
     episodes(s);
     s.press(&["s"]);
-    let release = |title: &str, provider: &str, seeders, size: Option<&str>| SourceCandidate {
-        id: title.to_lowercase(),
-        provider_id: provider.into(),
-        title: title.into(),
-        quality: Some(1080),
-        seeders,
-        size: size.map(Into::into),
-        dual_audio: false,
-        dubbed: false,
-        auto_pick: false,
+    let release = |title: &str, provider: &str, label: Option<&str>, size: Option<&str>| {
+        SourceCandidate {
+            id: title.to_lowercase(),
+            provider_id: provider.into(),
+            title: title.into(),
+            quality: Some(1080),
+            label: label.map(Into::into),
+            size: size.map(Into::into),
+            dual_audio: false,
+            dubbed: false,
+            auto_pick: false,
+        }
     };
     let candidates = vec![
         SourceCandidate {
             auto_pick: true,
             ..release(
                 "[Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)",
-                "torrent",
-                Some(212),
+                "index",
+                Some("212 peers"),
                 Some("1.4 GiB"),
             )
         },
@@ -1565,12 +1567,12 @@ fn sources(s: &mut Screen) {
             dual_audio: true,
             ..release(
                 "[Lanternlight] Hoshikuzu no Tabibito 04 [Dual]",
-                "torrent",
-                Some(14),
+                "index",
+                Some("14 peers"),
                 Some("2.1 GiB"),
             )
         },
-        release("[Nagi] Hoshikuzu no Tabibito - 04", "torrent", Some(3), Some("0.9 GiB")),
+        release("[Nagi] Hoshikuzu no Tabibito - 04", "index", Some("3 peers"), Some("0.9 GiB")),
         SourceCandidate {
             dubbed: true,
             ..release("Hoshikuzu no Tabibito — episode 4 (dub)", "yamabiko", None, None)

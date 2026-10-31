@@ -11,7 +11,7 @@ fingerprint; your plugin is a parser. It cannot reach anything outside its decla
 
 ## The interface
 
-`wit/anistream-provider.wit` is the contract, package `anistream:provider@1.1.0`:
+`wit/anistream-provider.wit` is the contract, package `anistream:provider@2.0.0`:
 
 ```wit
 interface host {                          // what you may call
@@ -45,6 +45,24 @@ interface provider {                      // what you must export
 - `aes-decrypt`: AES-CBC. The key length selects 128, 192 or 256.
 - `config-get`: reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
   Every key is optional, so work with all of them unset.
+
+## Torrents
+
+anistream finds no torrents and ranks none. A plugin that finds them declares the `torrents`
+capability in its manifest and returns `torrent` streams: `url` is a magnet link or a bare info
+hash (40 hex or 32 base32 characters), and `file-index` names the file to play, counting from 0,
+when the torrent holds more than one. Without it the host plays the file whose name carries the
+episode number, else the largest video.
+
+The host turns each into a magnet link, adds the user's trackers and plays it through torrent
+playback, behind the user's proxy or VPN check. It starts the first torrent in your order and
+tries the next only when that one fails. While torrent playback is off or the check has not
+passed, your source is passed over as unavailable, which is not counted against it. A plugin
+without the capability has its torrent streams dropped. `torrent-http` is the host's own
+loopback stream and is not accepted from a plugin.
+
+Ranking is yours: `resolve` returns your pick, `sources` your candidates best first, and `label`
+on a candidate is one short line of your own, shown as written (a peer count, say).
 
 Record fields are documented in the WIT. Easy to miss: `synonyms`/`format` on a search hit (title
 matching), `description`/`thumbnail`/`air-date`/`filler` on an episode, `format` on a subtitle
@@ -83,7 +101,7 @@ cd plugins/example-ts && npm install && npm run build
 
 Five differences from Rust:
 
-- Imports carry the package version: `anistream:provider/host@1.1.0`.
+- Imports carry the package version: `anistream:provider/host@2.0.0`.
 - Names are lowerCamelCase: `list-episodes` → `listEpisodes`.
 - Errors are thrown, not returned: `throw { tag: 'not-found' }`. `fetch` needs `try`/`catch`.
 - Exports run without a receiver: `this.resolve(…)` traps, so share a plain function.

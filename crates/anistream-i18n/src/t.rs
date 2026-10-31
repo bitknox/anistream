@@ -960,9 +960,14 @@ pub fn torrent_vpn_unverified() -> String {
     text("torrent-vpn-unverified", &[])
 }
 
-/// Error: torrents are on, but no torrent index is set.
-pub fn torrent_no_index() -> String {
-    text("torrent-no-index", &[])
+/// Notice, once, on the first launch after the update that removed built-in torrent search.
+pub fn torrent_search_moved() -> String {
+    text("torrent-search-moved", &[])
+}
+
+/// Error: the link or file given to open is not a magnet link, an info hash or a torrent file.
+pub fn torrent_link_unusable() -> String {
+    text("torrent-link-unusable", &[])
 }
 
 /// Error: the torrent session did not start because the interface closed first.
@@ -2658,11 +2663,6 @@ pub fn title_source_failing() -> String {
 /// First choice in the { -release } picker: the { -source } decides.
 pub fn title_release_first() -> String {
     text("title-release-first", &[])
-}
-
-/// Beside a { -release } in the picker: how many people share it.
-pub fn title_release_seeders(count: i64) -> String {
-    text("title-release-seeders", &[("count", Arg::Int(count))])
 }
 
 /// The services a title is available on, under its metadata. The list is already joined.
@@ -5105,14 +5105,9 @@ pub fn settings_label_presence_rich() -> String {
     text("settings-label-presence-rich", &[])
 }
 
-/// Settings row: the torrent source on or off.
+/// Settings row: torrent playback on or off.
 pub fn settings_label_torrents() -> String {
     text("settings-label-torrents", &[])
-}
-
-/// Settings row: the { -torrent-index } used to look up releases.
-pub fn settings_label_torrent_index() -> String {
-    text("settings-label-torrent-index", &[])
 }
 
 /// Settings row: how long watched episodes keep being shared, by ratio.
@@ -5315,7 +5310,7 @@ pub fn settings_note_presence_rich() -> String {
     text("settings-note-presence-rich", &[])
 }
 
-/// Note under the torrent source row.
+/// Note under the torrent playback row.
 pub fn settings_note_torrents() -> String {
     text("settings-note-torrents", &[])
 }
@@ -11213,6 +11208,11 @@ pub fn match_cleared() -> String {
 /// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 pub fn match_row_label(title: &str, facts: &str, closeness: &str) -> String {
     text("match-row-label", &[("title", Arg::Text(title)), ("facts", Arg::Text(facts)), ("closeness", Arg::Text(closeness))])
+}
+
+/// Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.
+pub fn sources_plays_torrents() -> String {
+    text("sources-plays-torrents", &[])
 }
 
 /// Short label for a joined store, on a row.

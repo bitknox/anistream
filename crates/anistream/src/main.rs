@@ -9,7 +9,7 @@ use cli::{
     doctor::{doctor, refresh_data},
     library::{export_cli, import_cli, random_cli, stats_cli},
     login::{forget_token, login, migrate_token, print_login_url},
-    play::{play_cli, stream_url},
+    play::{open_torrent, play_cli, stream_url},
     plugins::{PluginCommand, list_plugins},
     search::search_cli,
     store::store_command,
@@ -149,6 +149,7 @@ struct Cli {
     #[arg(long, requires = "json_command", conflicts_with_all = [
         "doctor", "update", "refresh_data", "preview", "login", "login_url", "logout", "sync",
         "token_to_file", "export", "import", "stream_url", "play", "continue_watching", "plugins",
+        "open_torrent",
     ])]
     json: bool,
 
@@ -174,6 +175,12 @@ struct Cli {
     /// id, this plays it.
     #[arg(long, value_name = "ANILIST_ID")]
     play: Option<u32>,
+
+    /// Play a magnet link, an info hash or a torrent file you have, in mpv, then exit.
+    ///
+    /// Through torrent playback and its protection check, as a source's torrents are.
+    #[arg(long, value_name = "LINK_OR_FILE")]
+    open_torrent: Option<String>,
 
     /// Pick up where you left off: resume the most recent episode, or start the next one.
     #[arg(long = "continue")]
@@ -320,6 +327,9 @@ async fn main() -> Result<()> {
             None => (store.completed_episode_count(id).unwrap_or(0) + 1).to_string(),
         };
         return play_cli(&config, &http, &store, &paths, id, episode).await;
+    }
+    if let Some(input) = &args.open_torrent {
+        return open_torrent(&config, &http, &store, &paths, input).await;
     }
     if args.continue_watching {
         let Some(top) = store.continue_list(1).unwrap_or_default().into_iter().next() else {

@@ -773,9 +773,13 @@ object Strings {
     fun torrentVpnUnverified(context: Context): String =
         context.getString(R.string.torrent_vpn_unverified)
 
-    /** Error: torrents are on, but no torrent index is set. */
-    fun torrentNoIndex(context: Context): String =
-        context.getString(R.string.torrent_no_index)
+    /** Notice, once, on the first launch after the update that removed built-in torrent search. */
+    fun torrentSearchMoved(context: Context): String =
+        context.getString(R.string.torrent_search_moved)
+
+    /** Error: the link or file given to open is not a magnet link, an info hash or a torrent file. */
+    fun torrentLinkUnusable(context: Context): String =
+        context.getString(R.string.torrent_link_unusable)
 
     /** Error: the torrent session did not start because the interface closed first. */
     fun torrentInterfaceClosed(context: Context): String =
@@ -6608,6 +6612,10 @@ object Strings {
     /** Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. */
     fun matchRowLabel(context: Context, title: String, facts: String, closeness: String): String =
         context.getString(R.string.match_row_label, title, facts, closeness)
+
+    /** Detail under a { -plugin } { -source } that names torrents: they play through torrent playback. */
+    fun sourcesPlaysTorrents(context: Context): String =
+        context.getString(R.string.sources_plays_torrents)
 
     /** Short label for a joined store, on a row. */
     fun storesJoined(context: Context): String =

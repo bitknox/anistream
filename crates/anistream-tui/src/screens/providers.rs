@@ -120,7 +120,7 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
                 COL_PROVIDER_KIND,
                 COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
                 y,
-                &kind_text(&provider.kind),
+                &kind_text(if provider.torrents { "torrent" } else { &provider.kind }),
                 app.palette.style(Role::TextDim),
             );
         }
@@ -297,7 +297,8 @@ fn meta_detail(row: &anistream_model::sources::MetaSourceRow, clock: &Clock) -> 
     })
 }
 
-/// A source's kind as the table says it. A kind the catalogue does not know stays as sent.
+/// A source's kind as the table says it, `"torrent"` for a plugin that names torrents. A kind
+/// the catalogue does not know stays as sent.
 fn kind_text(kind: &str) -> String {
     match kind {
         "native" => t::sources_kind_native(),

@@ -196,7 +196,6 @@
     <string name="torrent_check_failed_running">Проверка подключения не прошла. Торренты продолжают работать.</string>
     <string name="torrent_vpn_waiting">Торренты запустятся, когда пройдёт проверка VPN. %1$s</string>
     <string name="torrent_vpn_unverified">Торренты запустятся, когда пройдёт проверка VPN. Подключение ещё не проверено.</string>
-    <string name="torrent_no_index">Торрентам нужен торрент-индекс. anistream не содержит ни одного, поэтому добавьте свой адрес в настройках.</string>
     <string name="torrent_interface_closed">anistream закрылся до запуска торрентов.</string>
     <string name="torrent_session_failed">Не удалось запустить сессию торрентов. %1$s</string>
     <string name="torrent_no_kill_switch">Ничто не останавливает торрент-трафик, если VPN отключится. Запустите «anistream --doctor», чтобы настроить защиту.</string>
@@ -1731,7 +1730,7 @@
     <string name="sources_update_detail">Версия %1$s из %2$s заменит %3$s.</string>
     <string name="sources_replace_detail">Версия %1$s из %2$s заменит копию, добавленную вручную. %3$s.</string>
     <string name="sources_open_settings">Открыть настройки источника</string>
-    <string name="sources_torrent_source">Торрент-источник</string>
+    <string name="sources_torrent_source">Воспроизведение торрентов</string>
     <string name="sources_source_order_row">Порядок проверки</string>
     <string name="sources_torrents_note">Торренты входят в anistream, а не плагин. Защита трафика, проверка соединения и раздача настраиваются в разделе «Источники» в настройках.</string>
     <string name="sources_rebuilding">Источники настраиваются заново</string>

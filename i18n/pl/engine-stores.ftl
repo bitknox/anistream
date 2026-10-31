@@ -62,7 +62,6 @@ notice-choice-not-saved = Nie udało się zapisać wyboru. { $reason }
 torrent-check-failed-running = Sprawdzenie połączenia nie powiodło się. Torrenty działają dalej.
 torrent-vpn-waiting = Torrenty ruszą po przejściu kontroli VPN. { $reason }
 torrent-vpn-unverified = Torrenty ruszą po przejściu kontroli VPN. Połączenie nie zostało jeszcze sprawdzone.
-torrent-no-index = Torrenty wymagają { -torrent-index }. { -app-name } nie dołącza żadnego, więc dodaj własny adres w ustawieniach.
 torrent-interface-closed = Zamknięto { -app-name }, zanim ruszyły torrenty.
 torrent-session-failed = Nie udało się uruchomić sesji torrentów. { $reason }
 torrent-no-kill-switch = Żadna reguła zapory nie zatrzyma ruchu torrentów, jeśli VPN się rozłączy. Uruchom „{ -app-name } --doctor”, aby to skonfigurować.

@@ -17,7 +17,7 @@ only parses. [The plugin sandbox](/docs/plugins/sandbox/) covers what is enforce
 
 ## The interface
 
-`wit/anistream-provider.wit` is the contract, package `anistream:provider@1.1.0`:
+`wit/anistream-provider.wit` is the contract, package `anistream:provider@2.0.0`:
 
 ```wit
 interface host {                          // what you may call
@@ -89,7 +89,7 @@ cd plugins/example-ts && npm install && npm run build
 
 Five differences from Rust:
 
-- Imports carry the package version: `anistream:provider/host@1.1.0`.
+- Imports carry the package version: `anistream:provider/host@2.0.0`.
 - Names are lowerCamelCase: `list-episodes` → `listEpisodes`.
 - Errors are thrown, not returned: `throw { tag: 'not-found' }`. `fetch` needs `try`/`catch`.
 - Exports run without a receiver: `this.resolve(…)` traps, so share a plain function.

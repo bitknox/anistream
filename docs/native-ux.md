@@ -416,7 +416,7 @@ The app then opens on Home.
 
 ### Torrents
 
-Torrents are off by default and live in Settings > Sources as “Torrent source”, on Mac, iPad and iPhone. Turning the switch on opens a sheet before anything starts:
+Torrents are off by default and live in Settings > Sources as “Torrent playback”, on Mac, iPad and iPhone. Turning the switch on opens a sheet before anything starts:
 
 - “Torrents download from other people and share what you download with them while you watch. They can see your IP address.”
 - A “Protect with” picker: SOCKS5 proxy (host, port, user name, password), VPN on this device, or No protection.
@@ -425,6 +425,8 @@ Torrents are off by default and live in Settings > Sources as “Torrent source�
 - Once a SOCKS5 proxy is set, “Edit proxy…” sits beside the “Protect with” choice. It opens the same proxy form, filled in, and the new settings apply only after the connection check passes. The engine's `CheckTorrentProtection` runs that check against the form's settings and writes nothing, so a failed check leaves the saved proxy and its password as they were.
 - Every new or changed proxy goes through that check before it is saved: turning torrents on with a proxy, switching “Protect with” to one, and Edit proxy. The sheet says “Checking the proxy” while it runs. Only a passed check saves the settings and turns torrents on, and a notice says what was saved (“Proxy saved”). A failed one saves nothing and says why, and the sheet stays open. VoiceOver hears both lines as they come. One check runs at a time: a check asked for while an earlier one is out waits for that one's verdict, so a verdict can only ever answer the check its sheet is waiting for.
 - The seeding settings (seed after watching, seed for at most, upload limit) appear only once the source is on.
+
+The switch turns on torrent playback, not a source. anistream finds no torrents: a source plugin that declares the `torrents` capability names them, and they play through this switch and its check. There is no index address. Such a plugin's row on Sources says “Plays through torrent playback”, and the release picker shows each candidate's own line (`label`) as the plugin wrote it, in the plugin's order.
 
 On iPhone and iPad, torrents run while the app is open:
 

@@ -13348,19 +13348,11 @@
     "at": "2026-10-31",
     "back": "Token storage location"
   },
-  "settings-label-torrent-index": {
-    "source": "3e137d7a1f87",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "{ -torrent-index-cap }"
-  },
   "settings-label-torrents": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrent { -source }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-label-torrents-on-cellular": {
     "source": "718979e305f6",
@@ -14808,11 +14800,10 @@
     "back": "Token storage location"
   },
   "settings-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrent { -source }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "settings-torrents-cellular": {
     "source": "718979e305f6",
@@ -16834,11 +16825,10 @@
     "back": "Searches the { -torrent-index } you turned on in settings."
   },
   "sources-torrent-source": {
-    "source": "f515eb43cad3",
+    "source": "b871d0a30bf7",
     "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrent { -source }"
+    "by": "agent",
+    "at": "2026-10-31"
   },
   "sources-torrents": {
     "source": "5e719fad3ef5",
@@ -20456,13 +20446,6 @@
     "at": "2026-10-31",
     "back": "The { -release } the { -source } ranks highest"
   },
-  "title-release-seeders": {
-    "source": "23dcf20126cb",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Seeders { $count }"
-  },
   "title-season": {
     "source": "a88e71fd292f",
     "state": "draft",
@@ -20747,13 +20730,6 @@
     "by": "haiku",
     "at": "2026-10-31",
     "back": "{ -app-name } quit before the torrent started."
-  },
-  "torrent-no-index": {
-    "source": "ac7603f0872a",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "Torrents need a { -torrent-index }. It is not included in { -app-name }, so add an address in settings."
   },
   "torrent-no-kill-switch": {
     "source": "dfcde0ae51dc",

@@ -142,6 +142,7 @@ impl Guest for Component {
             // This source streams only. Absent is how the download queue knows to say so.
             download_source: None,
             pick_note: None,
+            file_index: None,
         }])
     }
 
@@ -161,7 +162,7 @@ impl Guest for Component {
                 id: format!("{slug}:{episode}:1080"),
                 title: format!("[Echo] {slug} - {episode} (1080p)"),
                 quality: Some(1080),
-                seeders: None,
+                label: None,
                 size: Some("1.4 GiB".into()),
                 dual_audio: false,
                 dubbed: false,
@@ -170,7 +171,7 @@ impl Guest for Component {
                 id: format!("{slug}:{episode}:720"),
                 title: format!("[Echo] {slug} - {episode} (720p)"),
                 quality: Some(720),
-                seeders: None,
+                label: None,
                 size: Some("700 MiB".into()),
                 dual_audio: false,
                 dubbed: false,

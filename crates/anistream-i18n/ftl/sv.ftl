@@ -483,9 +483,6 @@ torrent-vpn-waiting = Torrenterna startar när VPN-skyddet godkänns. { $reason 
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = Torrenterna startar när VPN-skyddet godkänns. Anslutningen har inte verifierats än.
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = Torrenter kräver ett torrentindex. anistream levererar inget, så lägg till din egen adress i inställningarna.
-
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = anistream stängdes innan torrenterna startade.
 
@@ -1549,13 +1546,6 @@ title-source-failing = Fungerar inte
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = Den utgåva som källa rankar först
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-        [one] { $count } seedare
-       *[other] { $count } seedare
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = Finns på { $services }
@@ -3053,11 +3043,8 @@ settings-label-presence-title = Närvaron visar titeln
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = Rik närvaro
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = Torrent källa
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = Torrentindex
+# Settings row: torrent playback on or off.
+settings-label-torrents = Torrentuppspelning
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = Fortsätt dela efter visning
@@ -3176,7 +3163,7 @@ settings-note-presence-title = Av visar “Tittar på anime” utan att nämna s
 # Note under the rich presence row.
 settings-note-presence-rich = Lägger till omslag, en förloppsindikator och en AniList-länk. Kräver att titeln visas.
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = Kräver en konfigurerad VPN. Gäller direkt.
 
 # Note under the VPN mode row.
@@ -6541,7 +6528,7 @@ sources-replace-detail = Version { $version } från { $store } ersätter kopian 
 sources-open-settings = Öppna källainställningarna
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = Torrent källa
+sources-torrent-source = Torrentuppspelning
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Källaordning

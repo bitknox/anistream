@@ -187,7 +187,6 @@
     <string name="torrent_check_failed_running">A verificação da conexão falhou. Os torrents continuam rodando.</string>
     <string name="torrent_vpn_waiting">Os torrents começam quando a proteção da VPN passar. %1$s</string>
     <string name="torrent_vpn_unverified">Os torrents começam quando a proteção da VPN passar. A conexão ainda não foi verificada.</string>
-    <string name="torrent_no_index">Os torrents precisam de um índice de torrents. A anistream não traz nenhum, então adicione o seu endereço nas configurações.</string>
     <string name="torrent_interface_closed">A anistream foi fechada antes de os torrents começarem.</string>
     <string name="torrent_session_failed">Não foi possível iniciar a sessão de torrents. %1$s</string>
     <string name="torrent_no_kill_switch">Nada neste dispositivo interrompe o tráfego de torrents se a VPN cair. Rode \"anistream --doctor\" para configurar isso.</string>
@@ -1684,7 +1683,7 @@
     <string name="sources_update_detail">v%1$s de %2$s substitui %3$s.</string>
     <string name="sources_replace_detail">v%1$s de %2$s substitui a cópia adicionada manualmente. %3$s.</string>
     <string name="sources_open_settings">Abrir configurações de fontes</string>
-    <string name="sources_torrent_source">fonte de torrents</string>
+    <string name="sources_torrent_source">Reprodução de torrents</string>
     <string name="sources_source_order_row">Ordem da fonte</string>
     <string name="sources_torrents_note">Torrents fazem parte do anistream, e não de um plugin. A proteção do tráfego, a verificação de conexão e a semeadura são definidas em Configurações, em Fontes.</string>
     <string name="sources_rebuilding">Fontes estão sendo configuradas de novo</string>

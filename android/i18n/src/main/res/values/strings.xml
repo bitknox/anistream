@@ -411,8 +411,10 @@
     <string name="torrent_vpn_waiting">Torrents start once the VPN guard passes. %1$s</string>
     <!-- Note on the sources screen: the VPN guard has no verdict yet. -->
     <string name="torrent_vpn_unverified">Torrents start once the VPN guard passes. The connection hasn\'t been verified yet.</string>
-    <!-- Error: torrents are on, but no torrent index is set. -->
-    <string name="torrent_no_index">Torrents need a torrent index. anistream ships none, so add your own address in the settings.</string>
+    <!-- Notice, once, on the first launch after the update that removed built-in torrent search. -->
+    <string name="torrent_search_moved">Torrent search is now a plugin. Your torrent index address was removed. Torrent playback and your protection settings are as they were.</string>
+    <!-- Error: the link or file given to open is not a magnet link, an info hash or a torrent file. -->
+    <string name="torrent_link_unusable">That isn\'t a magnet link or a torrent file.</string>
     <!-- Error: the torrent session did not start because the interface closed first. -->
     <string name="torrent_interface_closed">anistream closed before torrents started.</string>
     <!-- Error: the torrent session could not start. The reason comes from the torrent engine. -->
@@ -3392,7 +3394,7 @@
     <!-- Button that opens the settings for sources. -->
     <string name="sources_open_settings">Open source settings</string>
     <!-- Heading of the torrent group in the settings. -->
-    <string name="sources_torrent_source">Torrent source</string>
+    <string name="sources_torrent_source">Torrent playback</string>
     <!-- Row: where the plugin's page stands. -->
     <string name="sources_source_order_row">Source order</string>
     <!-- Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin. -->
@@ -3452,6 +3454,8 @@
     <string name="match_cleared">Matching automatically again.</string>
     <!-- Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. -->
     <string name="match_row_label">%1$s, %2$s, %3$s</string>
+    <!-- Detail under a { -plugin } { -source } that names torrents: they play through torrent playback. -->
+    <string name="sources_plays_torrents">Plays through torrent playback</string>
     <!-- Short label for a joined store, on a row. -->
     <string name="stores_joined">Joined</string>
     <!-- Title of the empty list. -->

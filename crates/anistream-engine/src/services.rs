@@ -98,7 +98,7 @@ impl Services {
     /// The handles as the app builds them at launch, around the source chain it starts with.
     ///
     /// The chain is passed in because the entry points stand it up differently: the interface
-    /// without its torrent source, which comes up behind it, and a preview with every source in.
+    /// without torrent playback, which comes up behind it, and a preview with every source in.
     /// The player's theme and the host are passed in because they are the front end's.
     /// A test assembles `Services` from parts of its own instead, an offline client and a fake
     /// AniList among them, so that nothing it runs can reach the network.

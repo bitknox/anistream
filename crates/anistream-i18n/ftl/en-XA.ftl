@@ -609,8 +609,11 @@ torrent-vpn-waiting = [Ţöŕŕéñţš šţàŕţ öñçé ţĥé ṼÞÑ ĝü�
 # Note on the sources screen: the VPN guard has no verdict yet.
 torrent-vpn-unverified = [Ţöŕŕéñţš šţàŕţ öñçé ţĥé ṼÞÑ ĝüàŕð þàššéš. Ţĥé çöññéçţîöñ ĥàšñ'ţ ƀééñ ṽéŕîƒîéð ýéţ.~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Error: torrents are on, but no torrent index is set.
-torrent-no-index = [Ţöŕŕéñţš ñééð à ţöŕŕéñţ îñðéẋ. àñîšţŕéàɱ šĥîþš ñöñé, šö àðð ýöüŕ öŵñ àððŕéšš îñ ţĥé šéţţîñĝš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+# Notice, once, on the first launch after the update that removed built-in torrent search.
+torrent-search-moved = [Ţöŕŕéñţ šéàŕçĥ îš ñöŵ à þļüĝîñ. Ýöüŕ ţöŕŕéñţ îñðéẋ àððŕéšš ŵàš ŕéɱöṽéð. Ţöŕŕéñţ þļàýƀàçķ àñð ýöüŕ þŕöţéçţîöñ šéţţîñĝš àŕé àš ţĥéý ŵéŕé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Error: the link or file given to open is not a magnet link, an info hash or a torrent file.
+torrent-link-unusable = [Ţĥàţ îšñ'ţ à ɱàĝñéţ ļîñķ öŕ à ţöŕŕéñţ ƒîļé.~~~~~~~~~~~~~]
 
 # Error: the torrent session did not start because the interface closed first.
 torrent-interface-closed = [àñîšţŕéàɱ çļöšéð ƀéƒöŕé ţöŕŕéñţš šţàŕţéð.~~~~~~~~~~~~~]
@@ -1696,13 +1699,6 @@ title-source-failing = [Ƒàîļîñĝ~~~]
 
 # First choice in the { -release } picker: the { -source } decides.
 title-release-first = [Ŵĥîçĥéṽéŕ ŕéļéàšé ţĥé šöüŕçé ŕàñķš ƒîŕšţ~~~~~~~~~~~~]
-
-# Beside a { -release } in the picker: how many people share it.
-title-release-seeders =
-    { $count ->
-        [one] [{ $count } šééðéŕ~~~]
-       *[other] [{ $count } šééðéŕš~~~~]
-    }
 
 # The services a title is available on, under its metadata. The list is already joined.
 title-available-on = [Åṽàîļàƀļé öñ { $services }~~~~~]
@@ -3200,11 +3196,8 @@ settings-label-presence-title = [Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~
 # Settings row: whether Discord shows a card with cover and progress.
 settings-label-presence-rich = [Ŕîçĥ þŕéšéñçé~~~~]
 
-# Settings row: the torrent source on or off.
-settings-label-torrents = [Ţöŕŕéñţ šöüŕçé~~~~~]
-
-# Settings row: the { -torrent-index } used to look up releases.
-settings-label-torrent-index = [Ţöŕŕéñţ îñðéẋ~~~~]
+# Settings row: torrent playback on or off.
+settings-label-torrents = [Ţöŕŕéñţ þļàýƀàçķ~~~~~]
 
 # Settings row: how long watched episodes keep being shared, by ratio.
 settings-label-seed-ratio = [Šééð àƒţéŕ ŵàţçĥîñĝ~~~~~~]
@@ -3326,7 +3319,7 @@ settings-note-presence-title = [Öƒƒ šĥöŵš “Ŵàţçĥîñĝ àñîɱé
 # Note under the rich presence row.
 settings-note-presence-rich = [Åððš ţĥé çöṽéŕ, à þŕöĝŕéšš ƀàŕ àñð àñ ÅñîĻîšţ ļîñķ. Ñééðš ţĥé ţîţļé šĥöŵñ.~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Note under the torrent source row.
+# Note under the torrent playback row.
 settings-note-torrents = [Ñééðš à ṼÞÑ çöñƒîĝüŕéð. Ţàķéš éƒƒéçţ îɱɱéðîàţéļý.~~~~~~~~~~~~~~~]
 
 # Note under the VPN mode row.
@@ -6887,7 +6880,7 @@ sources-replace-detail = [Ṽéŕšîöñ { $version } ƒŕöɱ { $store } ŕé�
 sources-open-settings = [Öþéñ šöüŕçé šéţţîñĝš~~~~~~]
 
 # Heading of the torrent group in the settings.
-sources-torrent-source = [Ţöŕŕéñţ šöüŕçé~~~~~]
+sources-torrent-source = [Ţöŕŕéñţ þļàýƀàçķ~~~~~]
 
 # Row: where the plugin's page stands.
 sources-source-order-row = [Šöüŕçé öŕðéŕ~~~~]
@@ -6973,6 +6966,9 @@ match-cleared = [Ṁàţçĥîñĝ àüţöɱàţîçàļļý àĝàîñ.~~~~~~~
 
 # Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 match-row-label = [{ $title }, { $facts }, { $closeness }~~~~]
+
+# Detail under a { -plugin } { -source } that names torrents: they play through torrent playback.
+sources-plays-torrents = [Þļàýš ţĥŕöüĝĥ ţöŕŕéñţ þļàýƀàçķ~~~~~~~~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]

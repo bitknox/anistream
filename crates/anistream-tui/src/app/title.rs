@@ -265,8 +265,10 @@ impl App {
             if let Some(size) = &release.size {
                 push_detail(&mut label, size);
             }
-            if let Some(seeders) = release.seeders {
-                push_detail(&mut label, &t::title_release_seeders(i64::from(seeders)));
+            if let Some(line) =
+                release.label.as_deref().map(str::trim).filter(|l| !l.is_empty())
+            {
+                push_detail(&mut label, line);
             }
             (Some(release.id.clone()), label)
         }));
@@ -889,7 +891,7 @@ mod tests {
             provider_id: "torrent".into(),
             title: "Batch".into(),
             quality: Some(1080),
-            seeders: Some(9),
+            label: Some("9 peers".into()),
             size: None,
             dual_audio: false,
             dubbed: false,
@@ -935,7 +937,7 @@ mod tests {
                     provider_id: "torrent".into(),
                     title: "Batch".into(),
                     quality: None,
-                    seeders: None,
+                    label: None,
                     size: None,
                     dual_audio: false,
                     dubbed: false,

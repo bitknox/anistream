@@ -158,6 +158,70 @@ fn set_in(
     Ok(())
 }
 
+/// What [`retire_torrent_search`] took out of the config file.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RetiredTorrentSearch {
+    /// An index address was set, so the person used built-in torrent search and is told it moved.
+    pub had_index: bool,
+    /// Anything at all was taken out.
+    pub changed: bool,
+}
+
+/// The settings of built-in torrent search, which 3.0.0 removed: the index and curation addresses
+/// and the unused seeder age under `[providers.torrent]`, and the `torrent` source in
+/// `providers.order` and `providers.disabled`.
+const RETIRED_TORRENT_KEYS: [&str; 3] = ["rss_url", "curation_url", "max_seeders_age_days"];
+
+/// Take built-in torrent search's settings out of the config file, leaving the rest of it byte
+/// for byte. Run once at launch, before the file is read: what it removes is gone afterwards, so a
+/// second run changes nothing and says nothing.
+///
+/// Torrent playback, its protection, trackers, seeding and cache settings stay as they were. A
+/// file that is not valid TOML is left alone, for the loader to report.
+pub fn retire_torrent_search(paths: &Paths) -> Result<RetiredTorrentSearch, crate::Error> {
+    let path = &paths.config_file;
+    let existing = match std::fs::read_to_string(path) {
+        Ok(src) => src,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Default::default()),
+        Err(e) => {
+            return Err(crate::Error::Config(format!("cannot read {}: {e}", path.display())));
+        }
+    };
+    let Ok(mut doc) = existing.parse::<toml_edit::DocumentMut>() else {
+        return Ok(Default::default());
+    };
+    let retired = retire_in(&mut doc);
+    if retired.changed {
+        write_atomically(path, doc.to_string().as_bytes())?;
+    }
+    Ok(retired)
+}
+
+fn retire_in(doc: &mut toml_edit::DocumentMut) -> RetiredTorrentSearch {
+    let mut retired = RetiredTorrentSearch::default();
+    let Some(providers) = doc.get_mut("providers").and_then(|p| p.as_table_like_mut()) else {
+        return retired;
+    };
+    if let Some(torrent) = providers.get_mut("torrent").and_then(|t| t.as_table_like_mut()) {
+        for key in RETIRED_TORRENT_KEYS {
+            if let Some(item) = torrent.remove(key) {
+                retired.changed = true;
+                if key == "rss_url" && item.as_str().is_some_and(|url| !url.trim().is_empty()) {
+                    retired.had_index = true;
+                }
+            }
+        }
+    }
+    for list in ["order", "disabled"] {
+        if let Some(array) = providers.get_mut(list).and_then(|o| o.as_array_mut()) {
+            let before = array.len();
+            array.retain(|entry| entry.as_str() != Some("torrent"));
+            retired.changed |= array.len() != before;
+        }
+    }
+    retired
+}
+
 /// Write via a temporary file in the same directory, then rename.
 ///
 /// Truncating the real file first would leave the user with an empty config if the process died
@@ -286,6 +350,50 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn upgrading_takes_out_torrent_search_and_nothing_else() {
+        let dir = temp_dir("retire-torrent-search");
+        let paths = paths_in(&dir);
+        let before = "# mine\n[providers]\norder = [\"torrent\", \"plugins\"]  # kept\n\
+                      disabled = [\"torrent\"]\n\n[providers.torrent]\nenabled = true\n\
+                      rss_url = \"https://index.example/rss?q={query}\"\n\
+                      curation_url = \"https://index.example/pick\"\n\
+                      trackers = [\"udp://tracker.example:1337\"]\ncache_limit_gb = 5\n\
+                      [providers.torrent.vpn]\nmode = \"external\"\n";
+        std::fs::write(&paths.config_file, before).unwrap();
+
+        let retired = retire_torrent_search(&paths).unwrap();
+        assert_eq!(retired, RetiredTorrentSearch { had_index: true, changed: true });
+        let after = std::fs::read_to_string(&paths.config_file).unwrap();
+        assert_eq!(
+            after,
+            "# mine\n[providers]\norder = [ \"plugins\"]  # kept\ndisabled = []\n\n\
+             [providers.torrent]\nenabled = true\ntrackers = [\"udp://tracker.example:1337\"]\n\
+             cache_limit_gb = 5\n[providers.torrent.vpn]\nmode = \"external\"\n"
+        );
+        let config = crate::config::Config::load(&paths).unwrap();
+        assert!(config.providers.torrent.enabled, "playback stays on");
+        assert_eq!(config.providers.order, ["plugins"]);
+
+        // Once is all it takes: a second launch finds nothing to do.
+        assert_eq!(retire_torrent_search(&paths).unwrap(), RetiredTorrentSearch::default());
+        assert_eq!(std::fs::read_to_string(&paths.config_file).unwrap(), after);
+    }
+
+    #[test]
+    fn upgrading_a_file_without_torrent_search_leaves_it_alone() {
+        let dir = temp_dir("retire-nothing");
+        let paths = paths_in(&dir);
+        assert_eq!(retire_torrent_search(&paths).unwrap(), RetiredTorrentSearch::default());
+        assert!(!paths.config_file.exists(), "no file is made");
+        // A blank address was never an index; the key goes all the same.
+        std::fs::write(&paths.config_file, "[providers.torrent]\nrss_url = \" \"\n").unwrap();
+        let retired = retire_torrent_search(&paths).unwrap();
+        assert_eq!(retired, RetiredTorrentSearch { had_index: false, changed: true });
+        std::fs::write(&paths.config_file, "not = [toml").unwrap();
+        assert_eq!(retire_torrent_search(&paths).unwrap(), RetiredTorrentSearch::default());
     }
 
     #[test]
@@ -490,12 +598,13 @@ i_understand_a_failed_check_keeps_torrents_running = true
         let config = crate::config::Config::load(&paths).unwrap();
         assert_eq!(config.providers.torrent.vpn.on_leak, crate::config::LeakAction::Warn);
 
-        // Torrents on with no indexer: refused whole, the key that would have loaded included.
+        // Torrents on with no protection and no acknowledgement: refused whole, the key that
+        // would have loaded on its own included.
         let before = std::fs::read_to_string(&paths.config_file).unwrap();
         let refused = write_keys(
             &paths,
             vec![
-                (vpn, "mode", SettingValue::Str("external".into())),
+                (vpn, "mode", SettingValue::Str("none".into())),
                 (&["providers", "torrent"], "enabled", SettingValue::Bool(true)),
             ],
         );

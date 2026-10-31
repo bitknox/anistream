@@ -54,7 +54,7 @@
 //!
 //! What stays is everything a player of any kind would need: the lists, search and the titles'
 //! pages, episodes and their match, the streams found for an episode and ahead of the next one
-//! (`LoadSources`, `Prefetch`), sync with the trackers, downloads and the torrent source, the
+//! (`LoadSources`, `Prefetch`), sync with the trackers, downloads and torrent playback, the
 //! plugins and their stores, settings and artwork. The mending proxy stays too,
 //! `playback::mend`: a stream served in disguise is as unplayable for a phone's player as for
 //! mpv, and a loopback server runs on a phone as it does on a desktop.
