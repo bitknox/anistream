@@ -356,6 +356,13 @@ public sealed partial class SettingsPage : Page
             text.Children.Add(new TextBlock { Text = title.Entry.Title, Style = Ui.Res<Style>("ShowTitleStyle") });
             if (title.UntilAirs)
                 text.Children.Add(new TextBlock { Text = T.SettingsHiddenUntilAirs, Style = Ui.Res<Style>("HazeCaptionStyle") });
+            // When it was hidden, as the engine words it ("Hidden 3d ago"); nothing when the time was not kept.
+            if (title.HiddenAt > 0)
+                text.Children.Add(new TextBlock
+                {
+                    Text = T.SettingsHiddenOn(Wording.Ago(Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeSeconds() - title.HiddenAt))),
+                    Style = Ui.Res<Style>("HazeCaptionStyle"),
+                });
             row.Children.Add(text);
             var restore = new Button { Content = T.SettingsRestore, MinHeight = 32, VerticalAlignment = VerticalAlignment.Center };
             AutomationProperties.SetName(restore, $"{T.SettingsRestore}, {title.Entry.Title}");
