@@ -1,4 +1,4 @@
-version 2.1
+version 2.2
 anistream-store-core (./crates/anistream-store-core) 
 anistream-store-wasm (./crates/anistream-store-wasm) 
 async-trait v0.1.92 (proc-macro) 
