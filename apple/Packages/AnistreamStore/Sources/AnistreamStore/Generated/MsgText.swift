@@ -34,9 +34,17 @@ extension Msg {
         case .homeSpotlightContinuing: L.homeSpotlightContinuing
         case .homeSpotlightNewSeason(let title): L.homeSpotlightNewSeason(title: title)
         case .homeSpotlightPlanning: L.homeSpotlightPlanning
-        case .homeSpotlightRecommended(let title): L.homeSpotlightRecommended(title: title)
-        case .homeSpotlightRecommendedPlain: L.homeSpotlightRecommendedPlain
+        case .homeSpotlightBecause(let title): L.homeSpotlightBecause(title: title)
+        case .homeSpotlightRecommended: L.homeSpotlightRecommended
         case .homeSpotlightPopular: L.homeSpotlightPopular
+        case .homeTimeLeft(let episode, let minutes): L.homeTimeLeft(episode: Int(episode), minutes: Int(minutes))
+        case .homeEpisodeOut(let episode): L.homeEpisodeOut(episode: Int(episode))
+        case .homeEpisodeOutToday(let episode): L.homeEpisodeOutToday(episode: Int(episode))
+        case .homeEpisodeOutShort(let episode): L.homeEpisodeOutShort(episode: Int(episode))
+        case .homeOutAgo(let ago): L.homeOutAgo(ago: spanText(ago))
+        case .homeReasonNewSeason: L.homeReasonNewSeason
+        case .homeReasonPlanning: L.homeReasonPlanning
+        case .homeReasonRecommended: L.homeReasonRecommended
         case .homeContinue: L.homeContinue
         case .homeStartingWinter: L.homeStartingWinter
         case .homeStartingSpring: L.homeStartingSpring
@@ -48,13 +56,6 @@ extension Msg {
         case .homeThisSeason: L.homeThisSeason
         case .homeBecause(let title): L.homeBecause(title: title)
         case .homeMoreGenre(let genre): L.homeMoreGenre(genre: genre)
-        case .homeLineLeft(let episode, let minutes): L.homeLineLeft(episode: Int(episode), minutes: Int(minutes))
-        case .homeLineResume(let episode): L.homeLineResume(episode: Int(episode))
-        case .homeLineNext(let episode): L.homeLineNext(episode: Int(episode))
-        case .homeLineOut(let episode, let ago): L.homeLineOut(episode: Int(episode), ago: spanText(ago))
-        case .homeLineNewSeason: L.homeLineNewSeason
-        case .homeLinePlanning: L.homeLinePlanning
-        case .homeLineLike(let title): L.homeLineLike(title: title)
         case .noticeReason(let reason): L.noticeReason(reason: reason.text)
         case .noticeNotAired(let episode, let when): L.noticeNotAired(episode: Int(episode), when: when.text)
         case .noticeNotAiredYet(let episode, let next, let when): L.noticeNotAiredYet(episode: Int(episode), next: Int(next), when: when.text)

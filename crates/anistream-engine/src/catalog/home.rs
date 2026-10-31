@@ -93,6 +93,8 @@ pub struct HomeAsk {
     pub offline: bool,
     /// Ask again even what was kept less than half an hour ago.
     pub refresh: bool,
+    /// A source is installed and on, so something on Home can play.
+    pub sources: bool,
 }
 
 /// What the engine remembers of Home between sends. Cheap to clone; every clone is the same.
@@ -414,8 +416,16 @@ fn poster(entry: Entry, viewer: &Viewer<'_>, line: Option<Msg>, now: i64) -> Hom
         reason: None,
         starts,
         playable,
+        because: None,
         entry,
     }
+}
+
+/// The newest episode out, under a poster of a title still airing.
+fn newest_out(entry: &Entry) -> Option<Msg> {
+    let airing = matches!(entry.status, Some(AiringStatus::Releasing | AiringStatus::Hiatus));
+    let (episode, _) = entry.latest_aired().filter(|_| airing)?;
+    Some(Msg::HomeEpisodeOutShort { episode: i64::from(episode) })
 }
 
 fn viewer_store<'a>(viewer: &Viewer<'a>) -> &'a Store {
@@ -424,7 +434,7 @@ fn viewer_store<'a>(viewer: &Viewer<'a>) -> &'a Store {
 
 /// A Continue card, when the show has something waiting: an episode left part-way, or one out
 /// past the last watched.
-fn continue_card(entry: &Entry, store: &Store, now: i64) -> Option<HomeItem> {
+fn continue_card(entry: &Entry, store: &Store, now: i64, today: i64) -> Option<HomeItem> {
     let row = QueueItem::of(entry, Casing::Sentence);
     // Watched to the end is finished, not waiting, though the row would offer a rewatch.
     let past_the_end = row.resume.is_none()
@@ -432,22 +442,22 @@ fn continue_card(entry: &Entry, store: &Store, now: i64) -> Option<HomeItem> {
     if !row.playable || past_the_end {
         return None;
     }
+    let episode = i64::from(row.episode);
     let line = match (row.resume, row.fraction, row.aired_ago) {
         (Some(resume), Some(fraction), _) if fraction > 0.0 => {
             let left = resume.position / fraction - resume.position;
             let minutes = ((left / 60.0).round() as i64).max(1);
-            Msg::HomeLineLeft { episode: i64::from(row.episode), minutes }
+            Some(Msg::HomeTimeLeft { episode, minutes })
         }
-        (Some(_), _, _) => Msg::HomeLineResume { episode: i64::from(row.episode) },
-        (None, _, Some(ago)) => {
-            Msg::HomeLineOut { episode: i64::from(row.episode), ago: Span::countdown(ago) }
-        }
-        (None, _, None) => Msg::HomeLineNext { episode: i64::from(row.episode) },
+        // Part way through an episode whose length is not known: the action says Resume.
+        (Some(_), _, _) => None,
+        (None, _, Some(ago)) if now - ago >= today => Some(Msg::HomeEpisodeOutToday { episode }),
+        (None, _, _) => Some(Msg::HomeEpisodeOut { episode }),
     };
     Some(HomeItem {
         entry: entry.clone(),
         action: if row.resume.is_some() { HomeAction::Resume } else { HomeAction::Play },
-        line: Some(line),
+        line,
         episode: Some(row.episode),
         resume: row.resume,
         progress: row.fraction,
@@ -457,16 +467,17 @@ fn continue_card(entry: &Entry, store: &Store, now: i64) -> Option<HomeItem> {
         reason: None,
         starts: None,
         playable: playable(store, entry.id, now),
+        because: None,
     })
 }
 
 /// The shows with something waiting, most recent first, as many as are cached.
-fn continue_cards(meta: &Meta, store: &Store, now: i64) -> Vec<HomeItem> {
+fn continue_cards(meta: &Meta, store: &Store, now: i64, today: i64) -> Vec<HomeItem> {
     let ids = continue_ids(store);
     meta.cached(&ids)
         .iter()
         .map(|m| data::entry_from(m, Some(store)))
-        .filter_map(|entry| continue_card(&entry, store, now))
+        .filter_map(|entry| continue_card(&entry, store, now, today))
         .collect()
 }
 
@@ -494,12 +505,11 @@ fn suggestions(
         let item = up_next::item(&pick, entry.clone());
         let playable = playable(store, entry.id, now);
         let out_now = item.action == UpNextAction::PlayFirstEpisode;
+        // The short reason; the full one is the app's, from `because`.
         let line = match item.reason {
-            UpNextReason::NewSeason => Some(Msg::HomeLineNewSeason),
-            UpNextReason::Planning => Some(Msg::HomeLinePlanning),
-            UpNextReason::Recommended => {
-                item.because.clone().map(|title| Msg::HomeLineLike { title })
-            }
+            UpNextReason::NewSeason => Some(Msg::HomeReasonNewSeason),
+            UpNextReason::Planning => Some(Msg::HomeReasonPlanning),
+            UpNextReason::Recommended => Some(Msg::HomeReasonRecommended),
             UpNextReason::AiringToday => None,
         };
         let home = HomeItem {
@@ -515,6 +525,7 @@ fn suggestions(
             reason: Some(item.reason),
             starts: item.starts,
             playable,
+            because: item.because.clone(),
         };
         out.push((home, item.entry));
     }
@@ -537,14 +548,14 @@ fn suggested_label(meta: &Meta, viewer: &Viewer<'_>, item: &HomeItem, pick: Opti
                 Some(media) => Msg::HomeSpotlightNewSeason {
                     title: meta.titles().pick(&media.title).to_owned(),
                 },
-                None => Msg::HomeLineNewSeason,
+                None => Msg::HomeReasonNewSeason,
             }
         }
         Some(UpNextReason::Planning) => Msg::HomeSpotlightPlanning,
         Some(UpNextReason::Recommended) => {
             match pick.and_then(|p| p.because.clone()) {
-                Some(title) => Msg::HomeSpotlightRecommended { title },
-                None => Msg::HomeSpotlightRecommendedPlain,
+                Some(title) => Msg::HomeSpotlightBecause { title },
+                None => Msg::HomeSpotlightRecommended,
             }
         }
         _ => Msg::HomeSpotlightPopular,
@@ -591,7 +602,7 @@ fn compose(
     let mut pending: Vec<HomePart> = Vec::new();
 
     // Continue, and the spotlight when something in it is waiting.
-    let cards = continue_cards(meta, store, now);
+    let cards = continue_cards(meta, store, now, day_mark(ask));
     let mut spotlight = cards.first().map(|card| Spotlight {
         case: SpotlightCase::Continuing,
         label: Msg::HomeSpotlightContinuing,
@@ -602,6 +613,13 @@ fn compose(
         resume: card.resume,
         starts: None,
         playable: card.playable,
+        // The minutes left, or that the episode is out, whenever it came out.
+        line: match &card.line {
+            Some(left @ Msg::HomeTimeLeft { .. }) => Some(left.clone()),
+            Some(_) => card.episode.map(|e| Msg::HomeEpisodeOut { episode: i64::from(e) }),
+            None => None,
+        },
+        because: None,
     });
     if !cards.is_empty() {
         sections.push(HomeSection {
@@ -736,7 +754,10 @@ fn compose(
         let items = entries(meta, store, &part.this)
             .into_iter()
             .filter(|e| viewer.eligible(e))
-            .map(|e| poster(e, &viewer, None, now))
+            .map(|e| {
+                let line = newest_out(&e);
+                poster(e, &viewer, line, now)
+            })
             .collect();
         let items = shelf(items, SHELF_SHOWN, &mut seen);
         if !items.is_empty() {
@@ -780,7 +801,7 @@ fn compose(
         if !items.is_empty() {
             sections.push(HomeSection {
                 kind: SectionKind::MoreGenre,
-                title: Msg::HomeMoreGenre { genre: rail.name.clone() },
+                title: Msg::HomeMoreGenre { genre: rail.name.to_lowercase() },
                 total: items.len() as u32,
                 items,
                 view_all: Some(HomeLink::Browse { query: genre_query(&rail.name) }),
@@ -806,6 +827,8 @@ fn compose(
                 resume: None,
                 starts: item.starts,
                 playable: item.playable,
+                line: None,
+                because: item.because.clone(),
             }
         });
         if spotlight.is_none()
@@ -825,13 +848,30 @@ fn compose(
                     resume: None,
                     starts: item.starts,
                     playable: item.playable,
+                    line: None,
+                    because: None,
                     entry: item.entry,
                 }
             });
         }
     }
 
-    let end = pending.is_empty().then_some(if ask.listed { HomeEnd::Everything } else { HomeEnd::SignIn });
+    // Up next for you leaves out the suggestion the spotlight shows.
+    if let Some(spot) = spotlight.as_ref().filter(|s| s.case == SpotlightCase::Suggested) {
+        if let Some(section) = sections.iter_mut().find(|s| s.kind == SectionKind::UpNext) {
+            section.items.retain(|item| item.entry.id != spot.entry.id);
+            section.total = section.items.len() as u32;
+        }
+        sections.retain(|s| !s.items.is_empty());
+    }
+
+    let end = pending.is_empty().then_some(if !ask.sources {
+        HomeEnd::NoSources
+    } else if ask.listed {
+        HomeEnd::Everything
+    } else {
+        HomeEnd::SignIn
+    });
     let kept_any = personal.is_some()
         || season.is_some()
         || kept::<SchedulePart>(store, WEEK_KEY).is_some()
@@ -898,10 +938,7 @@ fn broadcast_cards(
                 .map(|span| span.get_days().max(0) as u32);
             Some(HomeItem {
                 action: if out { HomeAction::Play } else { HomeAction::Nothing },
-                line: out.then(|| Msg::HomeLineOut {
-                    episode: i64::from(b.episode),
-                    ago: Span::countdown(ask.now - b.at),
-                }),
+                line: out.then(|| Msg::HomeOutAgo { ago: Span::countdown(ask.now - b.at) }),
                 episode: Some(b.episode),
                 resume: None,
                 progress: None,
@@ -911,6 +948,7 @@ fn broadcast_cards(
                 reason: None,
                 starts: None,
                 playable: playable(store, entry.id, ask.now),
+                because: None,
                 entry,
             })
         })

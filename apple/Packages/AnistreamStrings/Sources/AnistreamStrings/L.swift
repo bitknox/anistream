@@ -98,85 +98,88 @@ public enum L {
     }
 
     /// Line over the spotlight's title when it is on the person's Planning list.
-    public static var homeSpotlightPlanning: String { string("home-spotlight-planning", fallback: "On your Planning") }
+    public static var homeSpotlightPlanning: String { string("home-spotlight-planning", fallback: "On your Planning list") }
 
-    /// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.
-    public static func homeSpotlightRecommended(title: String) -> String {
-        Self.format("home-spotlight-recommended", fallback: "Like %1$@", title)
+    /// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+    public static func homeSpotlightBecause(title: String) -> String {
+        Self.format("home-spotlight-because", fallback: "Because you finished %1$@", title)
     }
 
     /// Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
-    public static var homeSpotlightRecommendedPlain: String { string("home-spotlight-recommended-plain", fallback: "Recommended for you") }
+    public static var homeSpotlightRecommended: String { string("home-spotlight-recommended", fallback: "Recommended for you") }
 
     /// Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
     public static var homeSpotlightPopular: String { string("home-spotlight-popular", fallback: "Popular this season") }
 
+    /// Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+    public static func homeTimeLeft(episode: Int, minutes: Int) -> String {
+        Self.format("home-time-left", fallback: "Episode %1$lld · %2$lld min left", episode, minutes)
+    }
+
+    /// Line under the spotlight's title for a show part way through with its next episode waiting.
+    public static func homeEpisodeOut(episode: Int) -> String {
+        Self.format("home-episode-out", fallback: "Episode %1$lld is out", episode)
+    }
+
+    /// Line under a { -continue-cap } card whose next episode came out today.
+    public static func homeEpisodeOutToday(episode: Int) -> String {
+        Self.format("home-episode-out-today", fallback: "Episode %1$lld · out today", episode)
+    }
+
+    /// Line under a poster on This season: the newest episode out.
+    public static func homeEpisodeOutShort(episode: Int) -> String {
+        Self.format("home-episode-out-short", fallback: "Episode %1$lld out", episode)
+    }
+
+    /// Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+    public static func homeOutAgo(ago: String) -> String {
+        Self.format("home-out-ago", fallback: "Out %1$@ ago", ago)
+    }
+
+    /// Short reason under a poster: a new season of a show the person finished.
+    public static var homeReasonNewSeason: String { string("home-reason-new-season", fallback: "New season") }
+
+    /// Short reason under a poster: the title is on the person's Planning list.
+    public static var homeReasonPlanning: String { string("home-reason-planning", fallback: "On your Planning list") }
+
+    /// Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+    public static var homeReasonRecommended: String { string("home-reason-recommended", fallback: "Recommended for you") }
+
     /// Heading over the shows the person is part way through.
     public static var homeContinue: String { string("home-continue", fallback: "Continue") }
 
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     public static var homeStartingWinter: String { string("home-starting-winter", fallback: "Starting in Winter") }
 
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     public static var homeStartingSpring: String { string("home-starting-spring", fallback: "Starting in Spring") }
 
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     public static var homeStartingSummer: String { string("home-starting-summer", fallback: "Starting in Summer") }
 
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     public static var homeStartingAutumn: String { string("home-starting-autumn", fallback: "Starting in Autumn") }
 
-    /// Heading over the week's broadcasts of the shows the person follows, from today.
+    /// Heading over this week's episodes of the shows the person follows.
     public static var homeThisWeek: String { string("home-this-week", fallback: "This week") }
 
-    /// Heading over today's broadcasts, shown to someone who has not watched anything yet.
+    /// Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
     public static var homeAiringToday: String { string("home-airing-today", fallback: "Airing today") }
 
-    /// Heading over the suggestions from the person's own history and lists.
+    /// Heading over the suggestions made from what the person watched and their lists.
     public static var homeUpNext: String { string("home-up-next", fallback: "Up next for you") }
 
-    /// Heading over this season's most popular shows.
+    /// Heading over this season's most popular titles.
     public static var homeThisSeason: String { string("home-this-season", fallback: "This season") }
 
-    /// Heading over the shows recommended from the one the person finished most recently. The title is that show.
+    /// Heading over recommendations from one show the person finished and rated well. The title is that show.
     public static func homeBecause(title: String) -> String {
         Self.format("home-because", fallback: "Because you finished %1$@", title)
     }
 
-    /// Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.
+    /// Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
     public static func homeMoreGenre(genre: String) -> String {
         Self.format("home-more-genre", fallback: "More %1$@", genre)
-    }
-
-    /// Line under a card of a show part way through an episode: the episode and the minutes left in it.
-    public static func homeLineLeft(episode: Int, minutes: Int) -> String {
-        Self.format("home-line-left", fallback: "Episode %1$lld · %2$lld min left", episode, minutes)
-    }
-
-    /// Line under a card of a show part way through an episode when its length is not known.
-    public static func homeLineResume(episode: Int) -> String {
-        Self.format("home-line-resume", fallback: "Resume episode %1$lld", episode)
-    }
-
-    /// Line under a card of a show whose next episode is out.
-    public static func homeLineNext(episode: Int) -> String {
-        Self.format("home-line-next", fallback: "Episode %1$lld", episode)
-    }
-
-    /// Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.
-    public static func homeLineOut(episode: Int, ago: String) -> String {
-        Self.format("home-line-out", fallback: "Episode %1$lld · out %2$@ ago", episode, ago)
-    }
-
-    /// Line under a suggestion that is a new season of a show the person finished.
-    public static var homeLineNewSeason: String { string("home-line-new-season", fallback: "New season") }
-
-    /// Line under a suggestion on the person's Planning list.
-    public static var homeLinePlanning: String { string("home-line-planning", fallback: "On your Planning") }
-
-    /// Line under a suggestion that people who liked a finished show rated highly. The title is that show.
-    public static func homeLineLike(title: String) -> String {
-        Self.format("home-line-like", fallback: "Like %1$@", title)
     }
 
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
@@ -3856,38 +3859,86 @@ public enum L {
     /// Name of the Home section in the sidebar, the tab bar and the window title.
     public static var homeTitle: String { string("home-title", fallback: "Home") }
 
-    /// Count beside the { -continue-cap } heading on Home.
+    /// Main action for an episode part way through.
+    public static func homeResumeEpisode(episode: Int) -> String {
+        Self.format("home-resume-episode", fallback: "Resume episode %1$lld", episode)
+    }
+
+    /// Main action for an episode not started.
+    public static func homePlayEpisode(episode: Int) -> String {
+        Self.format("home-play-episode", fallback: "Play episode %1$lld", episode)
+    }
+
+    /// Shown in place of Add to Planning while it saves, after a moment.
+    public static var homeAdding: String { string("home-adding", fallback: "Adding") }
+
+    /// Second action that opens the title's page.
+    public static var homeDetails: String { string("home-details", fallback: "Details") }
+
+    /// Accessible name of the button that opens more actions.
+    public static var homeMore: String { string("home-more", fallback: "More") }
+
+    /// Action in the spotlight's More menu for a show part way through.
+    public static func homeMarkWatched(episode: Int) -> String {
+        Self.format("home-mark-watched", fallback: "Mark episode %1$lld as watched", episode)
+    }
+
+    /// Notice after the action above. It has an Undo button.
+    public static func homeMarkedWatched(episode: Int) -> String {
+        Self.format("home-marked-watched", fallback: "Episode %1$lld marked as watched", episode)
+    }
+
+    /// Action on a { -continue-cap } card and in the spotlight's More menu.
+    public static var homeRemoveContinue: String { string("home-remove-continue", fallback: "Remove from Continue") }
+
+    /// Count beside the { -continue-cap } heading when there are more than twelve shows.
     public static func homeContinueCount(count: Int) -> String {
         Self.format("home-continue-count", fallback: "%1$lld shows", count)
     }
 
-    /// Link at the end of a shelf that opens the full list.
+    /// Link beside a heading that opens the full list.
     public static var homeViewAll: String { string("home-view-all", fallback: "View all") }
 
-    /// Link at the end of This week that opens the calendar.
+    /// Link beside This week and Airing today that opens the calendar.
     public static var homeFullCalendar: String { string("home-full-calendar", fallback: "Full calendar") }
 
-    /// Line under a This week card for an episode still to air. The time is worded already, such as 22:30.
-    public static func homeWeekAirs(episode: Int, time: String) -> String {
-        Self.format("home-week-airs", fallback: "Episode %1$lld · %2$@", episode, time)
+    /// The first day of This week.
+    public static var homeToday: String { string("home-today", fallback: "Today") }
+
+    /// A day of This week with nothing on it.
+    public static var homeNothingAiring: String { string("home-nothing-airing", fallback: "Nothing airing") }
+
+    /// A day of This week with more titles than fit.
+    public static func homeDayMore(count: Int) -> String {
+        Self.format("home-day-more", fallback: "%1$lld more", count)
     }
 
-    /// The closing line at the end of Home.
+    /// Link beside This season and Starting in that opens Seasonal.
+    public static var homeSeasonal: String { string("home-seasonal", fallback: "Seasonal") }
+
+    /// Link beside a genre shelf that opens Search with that genre.
+    public static var homeSearch: String { string("home-search", fallback: "Search") }
+
+    /// The closing line at the end of Home. Seasonal and Calendar are links.
     public static var homeEnd: String { string("home-end", fallback: "That's everything for now. Seasonal and Calendar have the full lists.") }
 
     /// The closing line at the end of Home when no { -tracker } is signed in.
     public static var homeEndSignedOut: String { string("home-end-signed-out", fallback: "Sign in to AniList to bring in your list and Planning.") }
 
+    /// Button in the closing line when no { -tracker } is signed in.
+    public static var homeSignIn: String { string("home-sign-in", fallback: "Sign in to AniList") }
+
+    /// The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.
+    public static var homeEndNoSources: String { string("home-end-no-sources", fallback: "Add a source to play from Home. Plugin stores has some to choose from.") }
+
     /// Line on a title that no installed { -source } has. The main action becomes Add to Planning.
     public static var homeNotFound: String { string("home-not-found", fallback: "Not found in your sources") }
 
-    /// Notice after Not interested on Home. It has an Undo button.
-    public static func homeHidden(title: String) -> String {
-        Self.format("home-hidden", fallback: "%1$@ is hidden from Up next for you", title)
-    }
-
     /// Notice when part of Home could not be loaded. It has a Try again button.
     public static var homeFailed: String { string("home-failed", fallback: "Couldn't load suggestions") }
+
+    /// Button in the notice above.
+    public static var homeTryAgain: String { string("home-try-again", fallback: "Try again") }
 
     /// Activity line while Home's suggestions take longer than a few seconds.
     public static var homeLoading: String { string("home-loading", fallback: "Loading suggestions") }
@@ -3897,17 +3948,40 @@ public enum L {
         Self.format("home-offline", fallback: "Offline. Showing Home from %1$@.", time)
     }
 
-    /// Settings row that lists the titles hidden with Not interested.
+    /// Heading when Home is offline and has nothing saved.
+    public static var homeOfflineEmptyTitle: String { string("home-offline-empty-title", fallback: "You're offline") }
+
+    /// Text under the heading above.
+    public static var homeOfflineEmptyBody: String { string("home-offline-empty-body", fallback: "Home needs a connection the first time it opens. Downloads still play.") }
+
+    /// Button under the text above.
+    public static var homeOpenDownloads: String { string("home-open-downloads", fallback: "Open Downloads") }
+
+    /// Settings row and page that lists the titles hidden with Not interested.
     public static var settingsHiddenTitles: String { string("settings-hidden-titles", fallback: "Hidden titles") }
 
-    /// Settings, Hidden titles, when nothing is hidden.
-    public static var settingsHiddenTitlesEmpty: String { string("settings-hidden-titles-empty", fallback: "Nothing is hidden. Titles you mark Not interested on Home show here.") }
+    /// Text under the list of hidden titles.
+    public static var settingsHiddenTitlesBody: String { string("settings-hidden-titles-body", fallback: "Titles you marked Not interested. They stay out of Home and Up next for you until you restore them.") }
+
+    /// Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".
+    public static func settingsHiddenOn(date: String) -> String {
+        Self.format("settings-hidden-on", fallback: "Hidden %1$@", date)
+    }
 
     /// Line under a hidden title that comes back by itself once it starts airing.
-    public static var settingsHiddenUntilAirs: String { string("settings-hidden-until-airs", fallback: "Hidden until it airs") }
+    public static var settingsHiddenUntilAirs: String { string("settings-hidden-until-airs", fallback: "Comes back when it airs") }
 
     /// Button beside a hidden title that brings it back to Home.
-    public static var settingsHiddenRestore: String { string("settings-hidden-restore", fallback: "Restore") }
+    public static var settingsRestore: String { string("settings-restore", fallback: "Restore") }
+
+    /// Settings, Hidden titles, when nothing is hidden.
+    public static var settingsHiddenEmpty: String { string("settings-hidden-empty", fallback: "Nothing hidden. Titles you mark Not interested appear here.") }
+
+    /// Accessible name of the arrow that pages a shelf back.
+    public static var homePrevious: String { string("home-previous", fallback: "Previous") }
+
+    /// Accessible name of the arrow that pages a shelf on.
+    public static var homeNext: String { string("home-next", fallback: "Next") }
 
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {

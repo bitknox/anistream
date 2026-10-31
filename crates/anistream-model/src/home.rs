@@ -79,6 +79,9 @@ pub enum HomeEnd {
     Everything,
     /// The same, with Sign in to AniList: no tracker is signed in.
     SignIn,
+    /// Add a source to play from Home, with Plugin stores: no source is installed. Said in
+    /// place of the other two, as nothing on Home plays without one.
+    NoSources,
 }
 
 /// Why the spotlight holds its title.
@@ -146,6 +149,14 @@ pub struct Spotlight {
     pub starts: Option<FuzzyDate>,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub playable: Playable,
+    /// The line under the title: the minutes left in the episode, or that it is out. Case 1
+    /// only; "Not found in your sources" is the app's, from [`Self::playable`].
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub line: Option<Msg>,
+    /// For a recommendation, the finished show it is recommended from, for the full reason in
+    /// the hover card and the accessibility label.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub because: Option<String>,
 }
 
 /// Which section a shelf is. The order of [`HomeView::sections`] is the engine's; this says what
@@ -236,6 +247,10 @@ pub struct HomeItem {
     pub starts: Option<FuzzyDate>,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub playable: Playable,
+    /// For a recommendation, the finished show it is recommended from: the poster shows the
+    /// short reason, the hover card and the accessibility label the full one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub because: Option<String>,
 }
 
 /// A title hidden with Not interested, for Settings, Hidden titles.
@@ -286,6 +301,8 @@ mod tests {
             resume: None,
             starts: None,
             playable: Playable::Unknown,
+            line: None,
+            because: None,
         }
     }
 

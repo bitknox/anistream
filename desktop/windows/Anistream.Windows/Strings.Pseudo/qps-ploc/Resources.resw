@@ -132,14 +132,14 @@
     <comment>Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.</comment>
   </data>
   <data name="HomeSpotlightPlanning" xml:space="preserve">
-    <value>[Öñ ýöüŕ Þļàññîñĝ~~~~~]</value>
+    <value>[Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]</value>
     <comment>Line over the spotlight's title when it is on the person's Planning list.</comment>
   </data>
-  <data name="HomeSpotlightRecommended" xml:space="preserve">
-    <value>[Ļîķé {title}~~~]</value>
-    <comment>Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.</comment>
+  <data name="HomeSpotlightBecause" xml:space="preserve">
+    <value>[Ɓéçàüšé ýöü ƒîñîšĥéð {title}~~~~~~~~]</value>
+    <comment>Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.</comment>
   </data>
-  <data name="HomeSpotlightRecommendedPlain" xml:space="preserve">
+  <data name="HomeSpotlightRecommended" xml:space="preserve">
     <value>[Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]</value>
     <comment>Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.</comment>
   </data>
@@ -147,81 +147,81 @@
     <value>[Þöþüļàŕ ţĥîš šéàšöñ~~~~~~]</value>
     <comment>Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.</comment>
   </data>
+  <data name="HomeTimeLeft" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · {minutes} ɱîñ ļéƒţ~~~~~~~~]</value>
+    <comment>Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.</comment>
+  </data>
+  <data name="HomeEpisodeOut" xml:space="preserve">
+    <value>[Éþîšöðé {episode} îš öüţ~~~~~~]</value>
+    <comment>Line under the spotlight's title for a show part way through with its next episode waiting.</comment>
+  </data>
+  <data name="HomeEpisodeOutToday" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · öüţ ţöðàý~~~~~~~]</value>
+    <comment>Line under a { -continue-cap } card whose next episode came out today.</comment>
+  </data>
+  <data name="HomeEpisodeOutShort" xml:space="preserve">
+    <value>[Éþîšöðé {episode} öüţ~~~~~]</value>
+    <comment>Line under a poster on This season: the newest episode out.</comment>
+  </data>
+  <data name="HomeOutAgo" xml:space="preserve">
+    <value>[Öüţ {ago} àĝö~~~~]</value>
+    <comment>Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.</comment>
+  </data>
+  <data name="HomeReasonNewSeason" xml:space="preserve">
+    <value>[Ñéŵ šéàšöñ~~~]</value>
+    <comment>Short reason under a poster: a new season of a show the person finished.</comment>
+  </data>
+  <data name="HomeReasonPlanning" xml:space="preserve">
+    <value>[Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]</value>
+    <comment>Short reason under a poster: the title is on the person's Planning list.</comment>
+  </data>
+  <data name="HomeReasonRecommended" xml:space="preserve">
+    <value>[Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]</value>
+    <comment>Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.</comment>
+  </data>
   <data name="HomeContinue" xml:space="preserve">
     <value>[Çöñţîñüé~~~]</value>
     <comment>Heading over the shows the person is part way through.</comment>
   </data>
   <data name="HomeStartingWinter" xml:space="preserve">
     <value>[Šţàŕţîñĝ îñ Ŵîñţéŕ~~~~~~]</value>
-    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
   </data>
   <data name="HomeStartingSpring" xml:space="preserve">
     <value>[Šţàŕţîñĝ îñ Šþŕîñĝ~~~~~~]</value>
-    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
   </data>
   <data name="HomeStartingSummer" xml:space="preserve">
     <value>[Šţàŕţîñĝ îñ Šüɱɱéŕ~~~~~~]</value>
-    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
   </data>
   <data name="HomeStartingAutumn" xml:space="preserve">
     <value>[Šţàŕţîñĝ îñ Åüţüɱñ~~~~~~]</value>
-    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
   </data>
   <data name="HomeThisWeek" xml:space="preserve">
     <value>[Ţĥîš ŵééķ~~~]</value>
-    <comment>Heading over the week's broadcasts of the shows the person follows, from today.</comment>
+    <comment>Heading over this week's episodes of the shows the person follows.</comment>
   </data>
   <data name="HomeAiringToday" xml:space="preserve">
     <value>[Åîŕîñĝ ţöðàý~~~~]</value>
-    <comment>Heading over today's broadcasts, shown to someone who has not watched anything yet.</comment>
+    <comment>Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.</comment>
   </data>
   <data name="HomeUpNext" xml:space="preserve">
     <value>[Ûþ ñéẋţ ƒöŕ ýöü~~~~~]</value>
-    <comment>Heading over the suggestions from the person's own history and lists.</comment>
+    <comment>Heading over the suggestions made from what the person watched and their lists.</comment>
   </data>
   <data name="HomeThisSeason" xml:space="preserve">
     <value>[Ţĥîš šéàšöñ~~~~]</value>
-    <comment>Heading over this season's most popular shows.</comment>
+    <comment>Heading over this season's most popular titles.</comment>
   </data>
   <data name="HomeBecause" xml:space="preserve">
     <value>[Ɓéçàüšé ýöü ƒîñîšĥéð {title}~~~~~~~~]</value>
-    <comment>Heading over the shows recommended from the one the person finished most recently. The title is that show.</comment>
+    <comment>Heading over recommendations from one show the person finished and rated well. The title is that show.</comment>
   </data>
   <data name="HomeMoreGenre" xml:space="preserve">
     <value>[Ṁöŕé {genre}~~~]</value>
-    <comment>Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.</comment>
-  </data>
-  <data name="HomeLineLeft_one" xml:space="preserve">
-    <value>[Éþîšöðé {episode} · 1 ɱîñ ļéƒţ~~~~~~~~]</value>
-    <comment>Line under a card of a show part way through an episode: the episode and the minutes left in it.</comment>
-  </data>
-  <data name="HomeLineLeft_other" xml:space="preserve">
-    <value>[Éþîšöðé {episode} · {minutes} ɱîñ ļéƒţ~~~~~~~~]</value>
-    <comment>Line under a card of a show part way through an episode: the episode and the minutes left in it.</comment>
-  </data>
-  <data name="HomeLineResume" xml:space="preserve">
-    <value>[Ŕéšüɱé éþîšöðé {episode}~~~~~~]</value>
-    <comment>Line under a card of a show part way through an episode when its length is not known.</comment>
-  </data>
-  <data name="HomeLineNext" xml:space="preserve">
-    <value>[Éþîšöðé {episode}~~~~]</value>
-    <comment>Line under a card of a show whose next episode is out.</comment>
-  </data>
-  <data name="HomeLineOut" xml:space="preserve">
-    <value>[Éþîšöðé {episode} · öüţ {ago} àĝö~~~~~~~~]</value>
-    <comment>Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.</comment>
-  </data>
-  <data name="HomeLineNewSeason" xml:space="preserve">
-    <value>[Ñéŵ šéàšöñ~~~]</value>
-    <comment>Line under a suggestion that is a new season of a show the person finished.</comment>
-  </data>
-  <data name="HomeLinePlanning" xml:space="preserve">
-    <value>[Öñ ýöüŕ Þļàññîñĝ~~~~~]</value>
-    <comment>Line under a suggestion on the person's Planning list.</comment>
-  </data>
-  <data name="HomeLineLike" xml:space="preserve">
-    <value>[Ļîķé {title}~~~]</value>
-    <comment>Line under a suggestion that people who liked a finished show rated highly. The title is that show.</comment>
+    <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
   </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>[{reason}~]</value>
@@ -3059,45 +3059,101 @@
     <value>[Ĥöɱé~~]</value>
     <comment>Name of the Home section in the sidebar, the tab bar and the window title.</comment>
   </data>
+  <data name="HomeResumeEpisode" xml:space="preserve">
+    <value>[Ŕéšüɱé éþîšöðé {episode}~~~~~~]</value>
+    <comment>Main action for an episode part way through.</comment>
+  </data>
+  <data name="HomePlayEpisode" xml:space="preserve">
+    <value>[Þļàý éþîšöðé {episode}~~~~~]</value>
+    <comment>Main action for an episode not started.</comment>
+  </data>
+  <data name="HomeAdding" xml:space="preserve">
+    <value>[Åððîñĝ~~]</value>
+    <comment>Shown in place of Add to Planning while it saves, after a moment.</comment>
+  </data>
+  <data name="HomeDetails" xml:space="preserve">
+    <value>[Ðéţàîļš~~~]</value>
+    <comment>Second action that opens the title's page.</comment>
+  </data>
+  <data name="HomeMore" xml:space="preserve">
+    <value>[Ṁöŕé~~]</value>
+    <comment>Accessible name of the button that opens more actions.</comment>
+  </data>
+  <data name="HomeMarkWatched" xml:space="preserve">
+    <value>[Ṁàŕķ éþîšöðé {episode} àš ŵàţçĥéð~~~~~~~~~]</value>
+    <comment>Action in the spotlight's More menu for a show part way through.</comment>
+  </data>
+  <data name="HomeMarkedWatched" xml:space="preserve">
+    <value>[Éþîšöðé {episode} ɱàŕķéð àš ŵàţçĥéð~~~~~~~~~]</value>
+    <comment>Notice after the action above. It has an Undo button.</comment>
+  </data>
+  <data name="HomeRemoveContinue" xml:space="preserve">
+    <value>[Ŕéɱöṽé ƒŕöɱ Çöñţîñüé~~~~~~]</value>
+    <comment>Action on a { -continue-cap } card and in the spotlight's More menu.</comment>
+  </data>
   <data name="HomeContinueCount_one" xml:space="preserve">
     <value>[1 šĥöŵ~~]</value>
-    <comment>Count beside the { -continue-cap } heading on Home.</comment>
+    <comment>Count beside the { -continue-cap } heading when there are more than twelve shows.</comment>
   </data>
   <data name="HomeContinueCount_other" xml:space="preserve">
     <value>[{count} šĥöŵš~~~]</value>
-    <comment>Count beside the { -continue-cap } heading on Home.</comment>
+    <comment>Count beside the { -continue-cap } heading when there are more than twelve shows.</comment>
   </data>
   <data name="HomeViewAll" xml:space="preserve">
     <value>[Ṽîéŵ àļļ~~~]</value>
-    <comment>Link at the end of a shelf that opens the full list.</comment>
+    <comment>Link beside a heading that opens the full list.</comment>
   </data>
   <data name="HomeFullCalendar" xml:space="preserve">
     <value>[Ƒüļļ çàļéñðàŕ~~~~]</value>
-    <comment>Link at the end of This week that opens the calendar.</comment>
+    <comment>Link beside This week and Airing today that opens the calendar.</comment>
   </data>
-  <data name="HomeWeekAirs" xml:space="preserve">
-    <value>[Éþîšöðé {episode} · {time}~~~~~~]</value>
-    <comment>Line under a This week card for an episode still to air. The time is worded already, such as 22:30.</comment>
+  <data name="HomeToday" xml:space="preserve">
+    <value>[Ţöðàý~~]</value>
+    <comment>The first day of This week.</comment>
+  </data>
+  <data name="HomeNothingAiring" xml:space="preserve">
+    <value>[Ñöţĥîñĝ àîŕîñĝ~~~~~]</value>
+    <comment>A day of This week with nothing on it.</comment>
+  </data>
+  <data name="HomeDayMore" xml:space="preserve">
+    <value>[{count} ɱöŕé~~~]</value>
+    <comment>A day of This week with more titles than fit.</comment>
+  </data>
+  <data name="HomeSeasonal" xml:space="preserve">
+    <value>[Šéàšöñàļ~~~]</value>
+    <comment>Link beside This season and Starting in that opens Seasonal.</comment>
+  </data>
+  <data name="HomeSearch" xml:space="preserve">
+    <value>[Šéàŕçĥ~~]</value>
+    <comment>Link beside a genre shelf that opens Search with that genre.</comment>
   </data>
   <data name="HomeEnd" xml:space="preserve">
     <value>[Ţĥàţ'š éṽéŕýţĥîñĝ ƒöŕ ñöŵ. Šéàšöñàļ àñð Çàļéñðàŕ ĥàṽé ţĥé ƒüļļ ļîšţš.~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>The closing line at the end of Home.</comment>
+    <comment>The closing line at the end of Home. Seasonal and Calendar are links.</comment>
   </data>
   <data name="HomeEndSignedOut" xml:space="preserve">
     <value>[Šîĝñ îñ ţö ÅñîĻîšţ ţö ƀŕîñĝ îñ ýöüŕ ļîšţ àñð Þļàññîñĝ.~~~~~~~~~~~~~~~~~]</value>
     <comment>The closing line at the end of Home when no { -tracker } is signed in.</comment>
   </data>
+  <data name="HomeSignIn" xml:space="preserve">
+    <value>[Šîĝñ îñ ţö ÅñîĻîšţ~~~~~~]</value>
+    <comment>Button in the closing line when no { -tracker } is signed in.</comment>
+  </data>
+  <data name="HomeEndNoSources" xml:space="preserve">
+    <value>[Åðð à šöüŕçé ţö þļàý ƒŕöɱ Ĥöɱé. Þļüĝîñ šţöŕéš ĥàš šöɱé ţö çĥööšé ƒŕöɱ.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.</comment>
+  </data>
   <data name="HomeNotFound" xml:space="preserve">
     <value>[Ñöţ ƒöüñð îñ ýöüŕ šöüŕçéš~~~~~~~~]</value>
     <comment>Line on a title that no installed { -source } has. The main action becomes Add to Planning.</comment>
   </data>
-  <data name="HomeHidden" xml:space="preserve">
-    <value>[{title} îš ĥîððéñ ƒŕöɱ Ûþ ñéẋţ ƒöŕ ýöü~~~~~~~~~~~]</value>
-    <comment>Notice after Not interested on Home. It has an Undo button.</comment>
-  </data>
   <data name="HomeFailed" xml:space="preserve">
     <value>[Çöüļðñ'ţ ļöàð šüĝĝéšţîöñš~~~~~~~~]</value>
     <comment>Notice when part of Home could not be loaded. It has a Try again button.</comment>
+  </data>
+  <data name="HomeTryAgain" xml:space="preserve">
+    <value>[Ţŕý àĝàîñ~~~]</value>
+    <comment>Button in the notice above.</comment>
   </data>
   <data name="HomeLoading" xml:space="preserve">
     <value>[Ļöàðîñĝ šüĝĝéšţîöñš~~~~~~]</value>
@@ -3107,21 +3163,49 @@
     <value>[Öƒƒļîñé. Šĥöŵîñĝ Ĥöɱé ƒŕöɱ {time}.~~~~~~~~~~]</value>
     <comment>Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.</comment>
   </data>
+  <data name="HomeOfflineEmptyTitle" xml:space="preserve">
+    <value>[Ýöü'ŕé öƒƒļîñé~~~~~]</value>
+    <comment>Heading when Home is offline and has nothing saved.</comment>
+  </data>
+  <data name="HomeOfflineEmptyBody" xml:space="preserve">
+    <value>[Ĥöɱé ñééðš à çöññéçţîöñ ţĥé ƒîŕšţ ţîɱé îţ öþéñš. Ðöŵñļöàðš šţîļļ þļàý.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Text under the heading above.</comment>
+  </data>
+  <data name="HomeOpenDownloads" xml:space="preserve">
+    <value>[Öþéñ Ðöŵñļöàðš~~~~~]</value>
+    <comment>Button under the text above.</comment>
+  </data>
   <data name="SettingsHiddenTitles" xml:space="preserve">
     <value>[Ĥîððéñ ţîţļéš~~~~]</value>
-    <comment>Settings row that lists the titles hidden with Not interested.</comment>
+    <comment>Settings row and page that lists the titles hidden with Not interested.</comment>
   </data>
-  <data name="SettingsHiddenTitlesEmpty" xml:space="preserve">
-    <value>[Ñöţĥîñĝ îš ĥîððéñ. Ţîţļéš ýöü ɱàŕķ Ñöţ îñţéŕéšţéð öñ Ĥöɱé šĥöŵ ĥéŕé.~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Settings, Hidden titles, when nothing is hidden.</comment>
+  <data name="SettingsHiddenTitlesBody" xml:space="preserve">
+    <value>[Ţîţļéš ýöü ɱàŕķéð Ñöţ îñţéŕéšţéð. Ţĥéý šţàý öüţ öƒ Ĥöɱé àñð Ûþ ñéẋţ ƒöŕ ýöü üñţîļ ýöü ŕéšţöŕé ţĥéɱ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Text under the list of hidden titles.</comment>
+  </data>
+  <data name="SettingsHiddenOn" xml:space="preserve">
+    <value>[Ĥîððéñ {date}~~~]</value>
+    <comment>Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".</comment>
   </data>
   <data name="SettingsHiddenUntilAirs" xml:space="preserve">
-    <value>[Ĥîððéñ üñţîļ îţ àîŕš~~~~~~]</value>
+    <value>[Çöɱéš ƀàçķ ŵĥéñ îţ àîŕš~~~~~~~]</value>
     <comment>Line under a hidden title that comes back by itself once it starts airing.</comment>
   </data>
-  <data name="SettingsHiddenRestore" xml:space="preserve">
+  <data name="SettingsRestore" xml:space="preserve">
     <value>[Ŕéšţöŕé~~~]</value>
     <comment>Button beside a hidden title that brings it back to Home.</comment>
+  </data>
+  <data name="SettingsHiddenEmpty" xml:space="preserve">
+    <value>[Ñöţĥîñĝ ĥîððéñ. Ţîţļéš ýöü ɱàŕķ Ñöţ îñţéŕéšţéð àþþéàŕ ĥéŕé.~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Settings, Hidden titles, when nothing is hidden.</comment>
+  </data>
+  <data name="HomePrevious" xml:space="preserve">
+    <value>[Þŕéṽîöüš~~~]</value>
+    <comment>Accessible name of the arrow that pages a shelf back.</comment>
+  </data>
+  <data name="HomeNext" xml:space="preserve">
+    <value>[Ñéẋţ~~]</value>
+    <comment>Accessible name of the arrow that pages a shelf on.</comment>
   </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>[Öñé éþîšöðé ļéƒţ îñ {title}~~~~~~~]</value>

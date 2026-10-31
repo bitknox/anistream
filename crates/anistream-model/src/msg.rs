@@ -61,48 +61,50 @@ pub enum Msg {
     HomeSpotlightNewSeason { title: String },
     /// Line over the spotlight's title when it is on the person's Planning list.
     HomeSpotlightPlanning,
-    /// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.
-    HomeSpotlightRecommended { title: String },
+    /// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+    HomeSpotlightBecause { title: String },
     /// Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
-    HomeSpotlightRecommendedPlain,
+    HomeSpotlightRecommended,
     /// Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
     HomeSpotlightPopular,
+    /// Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+    HomeTimeLeft { episode: i64, minutes: i64 },
+    /// Line under the spotlight's title for a show part way through with its next episode waiting.
+    HomeEpisodeOut { episode: i64 },
+    /// Line under a { -continue-cap } card whose next episode came out today.
+    HomeEpisodeOutToday { episode: i64 },
+    /// Line under a poster on This season: the newest episode out.
+    HomeEpisodeOutShort { episode: i64 },
+    /// Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+    HomeOutAgo { ago: Span },
+    /// Short reason under a poster: a new season of a show the person finished.
+    HomeReasonNewSeason,
+    /// Short reason under a poster: the title is on the person's Planning list.
+    HomeReasonPlanning,
+    /// Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+    HomeReasonRecommended,
     /// Heading over the shows the person is part way through.
     HomeContinue,
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     HomeStartingWinter,
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     HomeStartingSpring,
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     HomeStartingSummer,
-    /// Heading over next season's shows, in the two weeks before it starts.
+    /// Heading over next season's titles in the two weeks before it starts.
     HomeStartingAutumn,
-    /// Heading over the week's broadcasts of the shows the person follows, from today.
+    /// Heading over this week's episodes of the shows the person follows.
     HomeThisWeek,
-    /// Heading over today's broadcasts, shown to someone who has not watched anything yet.
+    /// Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
     HomeAiringToday,
-    /// Heading over the suggestions from the person's own history and lists.
+    /// Heading over the suggestions made from what the person watched and their lists.
     HomeUpNext,
-    /// Heading over this season's most popular shows.
+    /// Heading over this season's most popular titles.
     HomeThisSeason,
-    /// Heading over the shows recommended from the one the person finished most recently. The title is that show.
+    /// Heading over recommendations from one show the person finished and rated well. The title is that show.
     HomeBecause { title: String },
-    /// Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.
+    /// Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
     HomeMoreGenre { genre: String },
-    /// Line under a card of a show part way through an episode: the episode and the minutes left in it.
-    HomeLineLeft { episode: i64, minutes: i64 },
-    /// Line under a card of a show part way through an episode when its length is not known.
-    HomeLineResume { episode: i64 },
-    /// Line under a card of a show whose next episode is out.
-    HomeLineNext { episode: i64 },
-    /// Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.
-    HomeLineOut { episode: i64, ago: Span },
-    /// Line under a suggestion that is a new season of a show the person finished.
-    HomeLineNewSeason,
-    /// Line under a suggestion on the person's Planning list.
-    HomeLinePlanning,
-    /// Line under a suggestion that people who liked a finished show rated highly. The title is that show.
-    HomeLineLike { title: String },
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     NoticeReason { reason: Cause },
     /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
@@ -508,9 +510,17 @@ impl Msg {
             Self::HomeSpotlightContinuing => "home-spotlight-continuing",
             Self::HomeSpotlightNewSeason { .. } => "home-spotlight-new-season",
             Self::HomeSpotlightPlanning => "home-spotlight-planning",
-            Self::HomeSpotlightRecommended { .. } => "home-spotlight-recommended",
-            Self::HomeSpotlightRecommendedPlain => "home-spotlight-recommended-plain",
+            Self::HomeSpotlightBecause { .. } => "home-spotlight-because",
+            Self::HomeSpotlightRecommended => "home-spotlight-recommended",
             Self::HomeSpotlightPopular => "home-spotlight-popular",
+            Self::HomeTimeLeft { .. } => "home-time-left",
+            Self::HomeEpisodeOut { .. } => "home-episode-out",
+            Self::HomeEpisodeOutToday { .. } => "home-episode-out-today",
+            Self::HomeEpisodeOutShort { .. } => "home-episode-out-short",
+            Self::HomeOutAgo { .. } => "home-out-ago",
+            Self::HomeReasonNewSeason => "home-reason-new-season",
+            Self::HomeReasonPlanning => "home-reason-planning",
+            Self::HomeReasonRecommended => "home-reason-recommended",
             Self::HomeContinue => "home-continue",
             Self::HomeStartingWinter => "home-starting-winter",
             Self::HomeStartingSpring => "home-starting-spring",
@@ -522,13 +532,6 @@ impl Msg {
             Self::HomeThisSeason => "home-this-season",
             Self::HomeBecause { .. } => "home-because",
             Self::HomeMoreGenre { .. } => "home-more-genre",
-            Self::HomeLineLeft { .. } => "home-line-left",
-            Self::HomeLineResume { .. } => "home-line-resume",
-            Self::HomeLineNext { .. } => "home-line-next",
-            Self::HomeLineOut { .. } => "home-line-out",
-            Self::HomeLineNewSeason => "home-line-new-season",
-            Self::HomeLinePlanning => "home-line-planning",
-            Self::HomeLineLike { .. } => "home-line-like",
             Self::NoticeReason { .. } => "notice-reason",
             Self::NoticeNotAired { .. } => "notice-not-aired",
             Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
@@ -747,9 +750,17 @@ impl Msg {
             Self::HomeSpotlightContinuing => Vec::new(),
             Self::HomeSpotlightNewSeason { title } => vec![("title", Value::Text(title.clone()))],
             Self::HomeSpotlightPlanning => Vec::new(),
-            Self::HomeSpotlightRecommended { title } => vec![("title", Value::Text(title.clone()))],
-            Self::HomeSpotlightRecommendedPlain => Vec::new(),
+            Self::HomeSpotlightBecause { title } => vec![("title", Value::Text(title.clone()))],
+            Self::HomeSpotlightRecommended => Vec::new(),
             Self::HomeSpotlightPopular => Vec::new(),
+            Self::HomeTimeLeft { episode, minutes } => vec![("episode", Value::Int(*episode)), ("minutes", Value::Int(*minutes))],
+            Self::HomeEpisodeOut { episode } => vec![("episode", Value::Int(*episode))],
+            Self::HomeEpisodeOutToday { episode } => vec![("episode", Value::Int(*episode))],
+            Self::HomeEpisodeOutShort { episode } => vec![("episode", Value::Int(*episode))],
+            Self::HomeOutAgo { ago } => vec![("ago", Value::Span(*ago))],
+            Self::HomeReasonNewSeason => Vec::new(),
+            Self::HomeReasonPlanning => Vec::new(),
+            Self::HomeReasonRecommended => Vec::new(),
             Self::HomeContinue => Vec::new(),
             Self::HomeStartingWinter => Vec::new(),
             Self::HomeStartingSpring => Vec::new(),
@@ -761,13 +772,6 @@ impl Msg {
             Self::HomeThisSeason => Vec::new(),
             Self::HomeBecause { title } => vec![("title", Value::Text(title.clone()))],
             Self::HomeMoreGenre { genre } => vec![("genre", Value::Text(genre.clone()))],
-            Self::HomeLineLeft { episode, minutes } => vec![("episode", Value::Int(*episode)), ("minutes", Value::Int(*minutes))],
-            Self::HomeLineResume { episode } => vec![("episode", Value::Int(*episode))],
-            Self::HomeLineNext { episode } => vec![("episode", Value::Int(*episode))],
-            Self::HomeLineOut { episode, ago } => vec![("episode", Value::Int(*episode)), ("ago", Value::Span(*ago))],
-            Self::HomeLineNewSeason => Vec::new(),
-            Self::HomeLinePlanning => Vec::new(),
-            Self::HomeLineLike { title } => vec![("title", Value::Text(title.clone()))],
             Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
             Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
             Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],

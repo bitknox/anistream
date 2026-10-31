@@ -178,6 +178,7 @@ fn home_ask(engine: &EngineState, services: &Services, refresh: bool) -> HomeAsk
         zone: services.clock.zone(),
         offline: engine.network.offline,
         refresh,
+        sources: !services.registry.usable_ids().is_empty(),
     }
 }
 

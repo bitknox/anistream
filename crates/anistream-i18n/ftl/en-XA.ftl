@@ -73,74 +73,73 @@ home-spotlight-continuing = [Çöñţîñüé ŵàţçĥîñĝ~~~~~~]
 home-spotlight-new-season = [Ñéŵ šéàšöñ · Ýöü ƒîñîšĥéð { $title }~~~~~~~~~]
 
 # Line over the spotlight's title when it is on the person's Planning list.
-home-spotlight-planning = [Öñ ýöüŕ Þļàññîñĝ~~~~~]
+home-spotlight-planning = [Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]
 
-# Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.
-home-spotlight-recommended = [Ļîķé { $title }~~~]
+# Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.
+home-spotlight-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
 
 # Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
-home-spotlight-recommended-plain = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+home-spotlight-recommended = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
 
 # Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
 home-spotlight-popular = [Þöþüļàŕ ţĥîš šéàšöñ~~~~~~]
 
+# Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.
+home-time-left = [Éþîšöðé { $episode } · { $minutes } ɱîñ ļéƒţ~~~~~~~~]
+
+# Line under the spotlight's title for a show part way through with its next episode waiting.
+home-episode-out = [Éþîšöðé { $episode } îš öüţ~~~~~~]
+
+# Line under a { -continue-cap } card whose next episode came out today.
+home-episode-out-today = [Éþîšöðé { $episode } · öüţ ţöðàý~~~~~~~]
+
+# Line under a poster on This season: the newest episode out.
+home-episode-out-short = [Éþîšöðé { $episode } öüţ~~~~~]
+
+# Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.
+home-out-ago = [Öüţ { $ago } àĝö~~~~]
+
+# Short reason under a poster: a new season of a show the person finished.
+home-reason-new-season = [Ñéŵ šéàšöñ~~~]
+
+# Short reason under a poster: the title is on the person's Planning list.
+home-reason-planning = [Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]
+
+# Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.
+home-reason-recommended = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+
 # Heading over the shows the person is part way through.
 home-continue = [Çöñţîñüé~~~]
 
-# Heading over next season's shows, in the two weeks before it starts.
+# Heading over next season's titles in the two weeks before it starts.
 home-starting-winter = [Šţàŕţîñĝ îñ Ŵîñţéŕ~~~~~~]
 
-# Heading over next season's shows, in the two weeks before it starts.
+# Heading over next season's titles in the two weeks before it starts.
 home-starting-spring = [Šţàŕţîñĝ îñ Šþŕîñĝ~~~~~~]
 
-# Heading over next season's shows, in the two weeks before it starts.
+# Heading over next season's titles in the two weeks before it starts.
 home-starting-summer = [Šţàŕţîñĝ îñ Šüɱɱéŕ~~~~~~]
 
-# Heading over next season's shows, in the two weeks before it starts.
+# Heading over next season's titles in the two weeks before it starts.
 home-starting-autumn = [Šţàŕţîñĝ îñ Åüţüɱñ~~~~~~]
 
-# Heading over the week's broadcasts of the shows the person follows, from today.
+# Heading over this week's episodes of the shows the person follows.
 home-this-week = [Ţĥîš ŵééķ~~~]
 
-# Heading over today's broadcasts, shown to someone who has not watched anything yet.
+# Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.
 home-airing-today = [Åîŕîñĝ ţöðàý~~~~]
 
-# Heading over the suggestions from the person's own history and lists.
+# Heading over the suggestions made from what the person watched and their lists.
 home-up-next = [Ûþ ñéẋţ ƒöŕ ýöü~~~~~]
 
-# Heading over this season's most popular shows.
+# Heading over this season's most popular titles.
 home-this-season = [Ţĥîš šéàšöñ~~~~]
 
-# Heading over the shows recommended from the one the person finished most recently. The title is that show.
+# Heading over recommendations from one show the person finished and rated well. The title is that show.
 home-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
 
-# Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.
+# Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
 home-more-genre = [Ṁöŕé { $genre }~~~]
-
-# Line under a card of a show part way through an episode: the episode and the minutes left in it.
-home-line-left =
-    { $minutes ->
-        [one] [Éþîšöðé { $episode } · 1 ɱîñ ļéƒţ~~~~~~~~]
-       *[other] [Éþîšöðé { $episode } · { $minutes } ɱîñ ļéƒţ~~~~~~~~]
-    }
-
-# Line under a card of a show part way through an episode when its length is not known.
-home-line-resume = [Ŕéšüɱé éþîšöðé { $episode }~~~~~~]
-
-# Line under a card of a show whose next episode is out.
-home-line-next = [Éþîšöðé { $episode }~~~~]
-
-# Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.
-home-line-out = [Éþîšöðé { $episode } · öüţ { $ago } àĝö~~~~~~~~]
-
-# Line under a suggestion that is a new season of a show the person finished.
-home-line-new-season = [Ñéŵ šéàšöñ~~~]
-
-# Line under a suggestion on the person's Planning list.
-home-line-planning = [Öñ ýöüŕ Þļàññîñĝ~~~~~]
-
-# Line under a suggestion that people who liked a finished show rated highly. The title is that show.
-home-line-like = [Ļîķé { $title }~~~]
 
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = [{ $reason }~]
@@ -4758,36 +4757,78 @@ episode-download-failed = [Çöüļðñ'ţ ðöŵñļöàð éþîšöðé { $ep
 # Name of the Home section in the sidebar, the tab bar and the window title.
 home-title = [Ĥöɱé~~]
 
-# Count beside the { -continue-cap } heading on Home.
+# Main action for an episode part way through.
+home-resume-episode = [Ŕéšüɱé éþîšöðé { $episode }~~~~~~]
+
+# Main action for an episode not started.
+home-play-episode = [Þļàý éþîšöðé { $episode }~~~~~]
+
+# Shown in place of Add to Planning while it saves, after a moment.
+home-adding = [Åððîñĝ~~]
+
+# Second action that opens the title's page.
+home-details = [Ðéţàîļš~~~]
+
+# Accessible name of the button that opens more actions.
+home-more = [Ṁöŕé~~]
+
+# Action in the spotlight's More menu for a show part way through.
+home-mark-watched = [Ṁàŕķ éþîšöðé { $episode } àš ŵàţçĥéð~~~~~~~~~]
+
+# Notice after the action above. It has an Undo button.
+home-marked-watched = [Éþîšöðé { $episode } ɱàŕķéð àš ŵàţçĥéð~~~~~~~~~]
+
+# Action on a { -continue-cap } card and in the spotlight's More menu.
+home-remove-continue = [Ŕéɱöṽé ƒŕöɱ Çöñţîñüé~~~~~~]
+
+# Count beside the { -continue-cap } heading when there are more than twelve shows.
 home-continue-count =
     { $count ->
         [one] [1 šĥöŵ~~]
        *[other] [{ $count } šĥöŵš~~~]
     }
 
-# Link at the end of a shelf that opens the full list.
+# Link beside a heading that opens the full list.
 home-view-all = [Ṽîéŵ àļļ~~~]
 
-# Link at the end of This week that opens the calendar.
+# Link beside This week and Airing today that opens the calendar.
 home-full-calendar = [Ƒüļļ çàļéñðàŕ~~~~]
 
-# Line under a This week card for an episode still to air. The time is worded already, such as 22:30.
-home-week-airs = [Éþîšöðé { $episode } · { $time }~~~~~~]
+# The first day of This week.
+home-today = [Ţöðàý~~]
 
-# The closing line at the end of Home.
+# A day of This week with nothing on it.
+home-nothing-airing = [Ñöţĥîñĝ àîŕîñĝ~~~~~]
+
+# A day of This week with more titles than fit.
+home-day-more = [{ $count } ɱöŕé~~~]
+
+# Link beside This season and Starting in that opens Seasonal.
+home-seasonal = [Šéàšöñàļ~~~]
+
+# Link beside a genre shelf that opens Search with that genre.
+home-search = [Šéàŕçĥ~~]
+
+# The closing line at the end of Home. Seasonal and Calendar are links.
 home-end = [Ţĥàţ'š éṽéŕýţĥîñĝ ƒöŕ ñöŵ. Šéàšöñàļ àñð Çàļéñðàŕ ĥàṽé ţĥé ƒüļļ ļîšţš.~~~~~~~~~~~~~~~~~~~~~]
 
 # The closing line at the end of Home when no { -tracker } is signed in.
 home-end-signed-out = [Šîĝñ îñ ţö ÅñîĻîšţ ţö ƀŕîñĝ îñ ýöüŕ ļîšţ àñð Þļàññîñĝ.~~~~~~~~~~~~~~~~~]
 
+# Button in the closing line when no { -tracker } is signed in.
+home-sign-in = [Šîĝñ îñ ţö ÅñîĻîšţ~~~~~~]
+
+# The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.
+home-end-no-sources = [Åðð à šöüŕçé ţö þļàý ƒŕöɱ Ĥöɱé. Þļüĝîñ šţöŕéš ĥàš šöɱé ţö çĥööšé ƒŕöɱ.~~~~~~~~~~~~~~~~~~~~~]
+
 # Line on a title that no installed { -source } has. The main action becomes Add to Planning.
 home-not-found = [Ñöţ ƒöüñð îñ ýöüŕ šöüŕçéš~~~~~~~~]
 
-# Notice after Not interested on Home. It has an Undo button.
-home-hidden = [{ $title } îš ĥîððéñ ƒŕöɱ Ûþ ñéẋţ ƒöŕ ýöü~~~~~~~~~~~]
-
 # Notice when part of Home could not be loaded. It has a Try again button.
 home-failed = [Çöüļðñ'ţ ļöàð šüĝĝéšţîöñš~~~~~~~~]
+
+# Button in the notice above.
+home-try-again = [Ţŕý àĝàîñ~~~]
 
 # Activity line while Home's suggestions take longer than a few seconds.
 home-loading = [Ļöàðîñĝ šüĝĝéšţîöñš~~~~~~]
@@ -4795,17 +4836,38 @@ home-loading = [Ļöàðîñĝ šüĝĝéšţîöñš~~~~~~]
 # Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.
 home-offline = [Öƒƒļîñé. Šĥöŵîñĝ Ĥöɱé ƒŕöɱ { $time }.~~~~~~~~~~]
 
-# Settings row that lists the titles hidden with Not interested.
+# Heading when Home is offline and has nothing saved.
+home-offline-empty-title = [Ýöü'ŕé öƒƒļîñé~~~~~]
+
+# Text under the heading above.
+home-offline-empty-body = [Ĥöɱé ñééðš à çöññéçţîöñ ţĥé ƒîŕšţ ţîɱé îţ öþéñš. Ðöŵñļöàðš šţîļļ þļàý.~~~~~~~~~~~~~~~~~~~~~]
+
+# Button under the text above.
+home-open-downloads = [Öþéñ Ðöŵñļöàðš~~~~~]
+
+# Settings row and page that lists the titles hidden with Not interested.
 settings-hidden-titles = [Ĥîððéñ ţîţļéš~~~~]
 
-# Settings, Hidden titles, when nothing is hidden.
-settings-hidden-titles-empty = [Ñöţĥîñĝ îš ĥîððéñ. Ţîţļéš ýöü ɱàŕķ Ñöţ îñţéŕéšţéð öñ Ĥöɱé šĥöŵ ĥéŕé.~~~~~~~~~~~~~~~~~~~~~]
+# Text under the list of hidden titles.
+settings-hidden-titles-body = [Ţîţļéš ýöü ɱàŕķéð Ñöţ îñţéŕéšţéð. Ţĥéý šţàý öüţ öƒ Ĥöɱé àñð Ûþ ñéẋţ ƒöŕ ýöü üñţîļ ýöü ŕéšţöŕé ţĥéɱ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".
+settings-hidden-on = [Ĥîððéñ { $date }~~~]
 
 # Line under a hidden title that comes back by itself once it starts airing.
-settings-hidden-until-airs = [Ĥîððéñ üñţîļ îţ àîŕš~~~~~~]
+settings-hidden-until-airs = [Çöɱéš ƀàçķ ŵĥéñ îţ àîŕš~~~~~~~]
 
 # Button beside a hidden title that brings it back to Home.
-settings-hidden-restore = [Ŕéšţöŕé~~~]
+settings-restore = [Ŕéšţöŕé~~~]
+
+# Settings, Hidden titles, when nothing is hidden.
+settings-hidden-empty = [Ñöţĥîñĝ ĥîððéñ. Ţîţļéš ýöü ɱàŕķ Ñöţ îñţéŕéšţéð àþþéàŕ ĥéŕé.~~~~~~~~~~~~~~~~~~]
+
+# Accessible name of the arrow that pages a shelf back.
+home-previous = [Þŕéṽîöüš~~~]
+
+# Accessible name of the arrow that pages a shelf on.
+home-next = [Ñéẋţ~~]
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =

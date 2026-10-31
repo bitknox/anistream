@@ -197,7 +197,8 @@ async fn a_show_with_an_episode_waiting_is_the_spotlight_and_first_in_continue()
     assert_eq!(shelf(home, SectionKind::Continue), [WATCHING, WATCHING_TOO]);
     assert_eq!(cont.total, 2);
     assert_eq!(cont.view_all, Some(HomeLink::Watching));
-    assert!(matches!(cont.items[0].line, Some(Msg::HomeLineNext { episode: 4 })));
+    assert_eq!(cont.items[0].line, Some(Msg::HomeEpisodeOut { episode: 4 }));
+    assert_eq!(spotlight.line, Some(Msg::HomeEpisodeOut { episode: 4 }));
     // Never a spotlight that is then replaced by another as the parts land.
     let mut shown: Vec<_> = sent.iter().filter_map(spotlit).collect();
     shown.dedup();
@@ -241,9 +242,9 @@ async fn with_nothing_waiting_a_suggestion_comes_before_the_popular_pick() {
         Msg::HomeSpotlightNewSeason { title: format!("Invented {FINISHED}") }
     );
     assert_eq!(spotlight.action, HomeAction::Play);
-    assert!(shelf(home, SectionKind::UpNext).contains(&NEW_SEASON));
-    // One shelf a title: the new season is not on This season as well.
-    assert!(!shelf(home, SectionKind::ThisSeason).contains(&NEW_SEASON));
+    assert_eq!(spotlight.line, None);
+    // The spotlight's title is on no shelf below it: not Up next for you, not This season.
+    assert!(!everywhere(home).iter().skip(1).any(|n| *n == NEW_SEASON), "{:?}", everywhere(home));
     let mut shown: Vec<_> = sent.iter().filter_map(spotlit).collect();
     shown.dedup();
     assert_eq!(shown, [(NEW_SEASON, SpotlightCase::Suggested)], "decided once");
@@ -268,7 +269,10 @@ async fn the_popular_pick_is_the_most_popular_title_out_that_may_be_offered() {
     // The spoiler rule holds on every shelf.
     assert!(!everywhere(&home).contains(&POP_SEQUEL));
     // What is not out yet offers Planning, with its start.
-    let unaired = &home.section(SectionKind::ThisSeason).unwrap().items[0];
+    let this_season = &home.section(SectionKind::ThisSeason).unwrap().items;
+    assert_eq!(this_season[1].line, Some(Msg::HomeEpisodeOutShort { episode: 1 }));
+    let unaired = &this_season[0];
+    assert_eq!(unaired.line, None, "the app says when it starts");
     assert_eq!(unaired.action, HomeAction::AddToPlanning);
     assert!(unaired.starts.is_some());
     assert_eq!(
@@ -641,5 +645,18 @@ async fn this_week_has_the_followed_shows_from_today_in_order() {
         assert_eq!(item.day, Some(day));
         let out = item.airs_at.unwrap() <= now;
         assert_eq!(item.action == HomeAction::Play, out);
+        assert_eq!(matches!(item.line, Some(Msg::HomeOutAgo { .. })), out);
     }
+}
+
+#[tokio::test]
+async fn with_no_source_the_closing_line_says_to_add_one() {
+    let now = autumn();
+    let mut h = at(now, Some(ProviderRegistry::new(Vec::new()))).await;
+    season(&h, []);
+    watch(&h, FINISHED, 1..=12, now, 30 * DAY);
+
+    let home = last(&mut h).await;
+
+    assert_eq!(home.end, Some(HomeEnd::NoSources));
 }

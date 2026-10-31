@@ -109,89 +109,93 @@ object Strings {
     fun homeSpotlightPlanning(context: Context): String =
         context.getString(R.string.home_spotlight_planning)
 
-    /** Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show. */
-    fun homeSpotlightRecommended(context: Context, title: String): String =
-        context.getString(R.string.home_spotlight_recommended, title)
+    /** Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates. */
+    fun homeSpotlightBecause(context: Context, title: String): String =
+        context.getString(R.string.home_spotlight_because, title)
 
     /** Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known. */
-    fun homeSpotlightRecommendedPlain(context: Context): String =
-        context.getString(R.string.home_spotlight_recommended_plain)
+    fun homeSpotlightRecommended(context: Context): String =
+        context.getString(R.string.home_spotlight_recommended)
 
     /** Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started. */
     fun homeSpotlightPopular(context: Context): String =
         context.getString(R.string.home_spotlight_popular)
 
+    /** Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it. */
+    fun homeTimeLeft(context: Context, episode: Int, minutes: Int): String =
+        context.getString(R.string.home_time_left, episode, minutes)
+
+    /** Line under the spotlight's title for a show part way through with its next episode waiting. */
+    fun homeEpisodeOut(context: Context, episode: Int): String =
+        context.getString(R.string.home_episode_out, episode)
+
+    /** Line under a { -continue-cap } card whose next episode came out today. */
+    fun homeEpisodeOutToday(context: Context, episode: Int): String =
+        context.getString(R.string.home_episode_out_today, episode)
+
+    /** Line under a poster on This season: the newest episode out. */
+    fun homeEpisodeOutShort(context: Context, episode: Int): String =
+        context.getString(R.string.home_episode_out_short, episode)
+
+    /** Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m. */
+    fun homeOutAgo(context: Context, ago: String): String =
+        context.getString(R.string.home_out_ago, ago)
+
+    /** Short reason under a poster: a new season of a show the person finished. */
+    fun homeReasonNewSeason(context: Context): String =
+        context.getString(R.string.home_reason_new_season)
+
+    /** Short reason under a poster: the title is on the person's Planning list. */
+    fun homeReasonPlanning(context: Context): String =
+        context.getString(R.string.home_reason_planning)
+
+    /** Short reason under a poster: recommended from what the person watched. The hover card gives the full reason. */
+    fun homeReasonRecommended(context: Context): String =
+        context.getString(R.string.home_reason_recommended)
+
     /** Heading over the shows the person is part way through. */
     fun homeContinue(context: Context): String =
         context.getString(R.string.home_continue)
 
-    /** Heading over next season's shows, in the two weeks before it starts. */
+    /** Heading over next season's titles in the two weeks before it starts. */
     fun homeStartingWinter(context: Context): String =
         context.getString(R.string.home_starting_winter)
 
-    /** Heading over next season's shows, in the two weeks before it starts. */
+    /** Heading over next season's titles in the two weeks before it starts. */
     fun homeStartingSpring(context: Context): String =
         context.getString(R.string.home_starting_spring)
 
-    /** Heading over next season's shows, in the two weeks before it starts. */
+    /** Heading over next season's titles in the two weeks before it starts. */
     fun homeStartingSummer(context: Context): String =
         context.getString(R.string.home_starting_summer)
 
-    /** Heading over next season's shows, in the two weeks before it starts. */
+    /** Heading over next season's titles in the two weeks before it starts. */
     fun homeStartingAutumn(context: Context): String =
         context.getString(R.string.home_starting_autumn)
 
-    /** Heading over the week's broadcasts of the shows the person follows, from today. */
+    /** Heading over this week's episodes of the shows the person follows. */
     fun homeThisWeek(context: Context): String =
         context.getString(R.string.home_this_week)
 
-    /** Heading over today's broadcasts, shown to someone who has not watched anything yet. */
+    /** Heading over what airs today, for someone with nothing watched and no { -tracker } signed in. */
     fun homeAiringToday(context: Context): String =
         context.getString(R.string.home_airing_today)
 
-    /** Heading over the suggestions from the person's own history and lists. */
+    /** Heading over the suggestions made from what the person watched and their lists. */
     fun homeUpNext(context: Context): String =
         context.getString(R.string.home_up_next)
 
-    /** Heading over this season's most popular shows. */
+    /** Heading over this season's most popular titles. */
     fun homeThisSeason(context: Context): String =
         context.getString(R.string.home_this_season)
 
-    /** Heading over the shows recommended from the one the person finished most recently. The title is that show. */
+    /** Heading over recommendations from one show the person finished and rated well. The title is that show. */
     fun homeBecause(context: Context, title: String): String =
         context.getString(R.string.home_because, title)
 
-    /** Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery. */
+    /** Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha". */
     fun homeMoreGenre(context: Context, genre: String): String =
         context.getString(R.string.home_more_genre, genre)
-
-    /** Line under a card of a show part way through an episode: the episode and the minutes left in it. */
-    fun homeLineLeft(context: Context, episode: Int, minutes: Int): String =
-        context.resources.getQuantityString(R.plurals.home_line_left, minutes, episode, minutes)
-
-    /** Line under a card of a show part way through an episode when its length is not known. */
-    fun homeLineResume(context: Context, episode: Int): String =
-        context.getString(R.string.home_line_resume, episode)
-
-    /** Line under a card of a show whose next episode is out. */
-    fun homeLineNext(context: Context, episode: Int): String =
-        context.getString(R.string.home_line_next, episode)
-
-    /** Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h. */
-    fun homeLineOut(context: Context, episode: Int, ago: String): String =
-        context.getString(R.string.home_line_out, episode, ago)
-
-    /** Line under a suggestion that is a new season of a show the person finished. */
-    fun homeLineNewSeason(context: Context): String =
-        context.getString(R.string.home_line_new_season)
-
-    /** Line under a suggestion on the person's Planning list. */
-    fun homeLinePlanning(context: Context): String =
-        context.getString(R.string.home_line_planning)
-
-    /** Line under a suggestion that people who liked a finished show rated highly. The title is that show. */
-    fun homeLineLike(context: Context, title: String): String =
-        context.getString(R.string.home_line_like, title)
 
     /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
     fun noticeReason(context: Context, reason: String): String =
@@ -3645,23 +3649,71 @@ object Strings {
     fun homeTitle(context: Context): String =
         context.getString(R.string.home_title)
 
-    /** Count beside the { -continue-cap } heading on Home. */
+    /** Main action for an episode part way through. */
+    fun homeResumeEpisode(context: Context, episode: Int): String =
+        context.getString(R.string.home_resume_episode, episode)
+
+    /** Main action for an episode not started. */
+    fun homePlayEpisode(context: Context, episode: Int): String =
+        context.getString(R.string.home_play_episode, episode)
+
+    /** Shown in place of Add to Planning while it saves, after a moment. */
+    fun homeAdding(context: Context): String =
+        context.getString(R.string.home_adding)
+
+    /** Second action that opens the title's page. */
+    fun homeDetails(context: Context): String =
+        context.getString(R.string.home_details)
+
+    /** Accessible name of the button that opens more actions. */
+    fun homeMore(context: Context): String =
+        context.getString(R.string.home_more)
+
+    /** Action in the spotlight's More menu for a show part way through. */
+    fun homeMarkWatched(context: Context, episode: Int): String =
+        context.getString(R.string.home_mark_watched, episode)
+
+    /** Notice after the action above. It has an Undo button. */
+    fun homeMarkedWatched(context: Context, episode: Int): String =
+        context.getString(R.string.home_marked_watched, episode)
+
+    /** Action on a { -continue-cap } card and in the spotlight's More menu. */
+    fun homeRemoveContinue(context: Context): String =
+        context.getString(R.string.home_remove_continue)
+
+    /** Count beside the { -continue-cap } heading when there are more than twelve shows. */
     fun homeContinueCount(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.home_continue_count, count, count)
 
-    /** Link at the end of a shelf that opens the full list. */
+    /** Link beside a heading that opens the full list. */
     fun homeViewAll(context: Context): String =
         context.getString(R.string.home_view_all)
 
-    /** Link at the end of This week that opens the calendar. */
+    /** Link beside This week and Airing today that opens the calendar. */
     fun homeFullCalendar(context: Context): String =
         context.getString(R.string.home_full_calendar)
 
-    /** Line under a This week card for an episode still to air. The time is worded already, such as 22:30. */
-    fun homeWeekAirs(context: Context, episode: Int, time: String): String =
-        context.getString(R.string.home_week_airs, episode, time)
+    /** The first day of This week. */
+    fun homeToday(context: Context): String =
+        context.getString(R.string.home_today)
 
-    /** The closing line at the end of Home. */
+    /** A day of This week with nothing on it. */
+    fun homeNothingAiring(context: Context): String =
+        context.getString(R.string.home_nothing_airing)
+
+    /** A day of This week with more titles than fit. */
+    fun homeDayMore(context: Context, count: Int): String =
+        context.getString(R.string.home_day_more, count)
+
+    /** Link beside This season and Starting in that opens Seasonal. */
+    fun homeSeasonal(context: Context): String =
+        context.getString(R.string.home_seasonal)
+
+    /** Link beside a genre shelf that opens Search with that genre. */
+    fun homeSearch(context: Context): String =
+        context.getString(R.string.home_search)
+
+    /** The closing line at the end of Home. Seasonal and Calendar are links. */
     fun homeEnd(context: Context): String =
         context.getString(R.string.home_end)
 
@@ -3669,17 +3721,25 @@ object Strings {
     fun homeEndSignedOut(context: Context): String =
         context.getString(R.string.home_end_signed_out)
 
+    /** Button in the closing line when no { -tracker } is signed in. */
+    fun homeSignIn(context: Context): String =
+        context.getString(R.string.home_sign_in)
+
+    /** The closing line at the end of Home when no { -source } is installed. Plugin stores is a link. */
+    fun homeEndNoSources(context: Context): String =
+        context.getString(R.string.home_end_no_sources)
+
     /** Line on a title that no installed { -source } has. The main action becomes Add to Planning. */
     fun homeNotFound(context: Context): String =
         context.getString(R.string.home_not_found)
 
-    /** Notice after Not interested on Home. It has an Undo button. */
-    fun homeHidden(context: Context, title: String): String =
-        context.getString(R.string.home_hidden, title)
-
     /** Notice when part of Home could not be loaded. It has a Try again button. */
     fun homeFailed(context: Context): String =
         context.getString(R.string.home_failed)
+
+    /** Button in the notice above. */
+    fun homeTryAgain(context: Context): String =
+        context.getString(R.string.home_try_again)
 
     /** Activity line while Home's suggestions take longer than a few seconds. */
     fun homeLoading(context: Context): String =
@@ -3689,21 +3749,49 @@ object Strings {
     fun homeOffline(context: Context, time: String): String =
         context.getString(R.string.home_offline, time)
 
-    /** Settings row that lists the titles hidden with Not interested. */
+    /** Heading when Home is offline and has nothing saved. */
+    fun homeOfflineEmptyTitle(context: Context): String =
+        context.getString(R.string.home_offline_empty_title)
+
+    /** Text under the heading above. */
+    fun homeOfflineEmptyBody(context: Context): String =
+        context.getString(R.string.home_offline_empty_body)
+
+    /** Button under the text above. */
+    fun homeOpenDownloads(context: Context): String =
+        context.getString(R.string.home_open_downloads)
+
+    /** Settings row and page that lists the titles hidden with Not interested. */
     fun settingsHiddenTitles(context: Context): String =
         context.getString(R.string.settings_hidden_titles)
 
-    /** Settings, Hidden titles, when nothing is hidden. */
-    fun settingsHiddenTitlesEmpty(context: Context): String =
-        context.getString(R.string.settings_hidden_titles_empty)
+    /** Text under the list of hidden titles. */
+    fun settingsHiddenTitlesBody(context: Context): String =
+        context.getString(R.string.settings_hidden_titles_body)
+
+    /** Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October". */
+    fun settingsHiddenOn(context: Context, date: String): String =
+        context.getString(R.string.settings_hidden_on, date)
 
     /** Line under a hidden title that comes back by itself once it starts airing. */
     fun settingsHiddenUntilAirs(context: Context): String =
         context.getString(R.string.settings_hidden_until_airs)
 
     /** Button beside a hidden title that brings it back to Home. */
-    fun settingsHiddenRestore(context: Context): String =
-        context.getString(R.string.settings_hidden_restore)
+    fun settingsRestore(context: Context): String =
+        context.getString(R.string.settings_restore)
+
+    /** Settings, Hidden titles, when nothing is hidden. */
+    fun settingsHiddenEmpty(context: Context): String =
+        context.getString(R.string.settings_hidden_empty)
+
+    /** Accessible name of the arrow that pages a shelf back. */
+    fun homePrevious(context: Context): String =
+        context.getString(R.string.home_previous)
+
+    /** Accessible name of the arrow that pages a shelf on. */
+    fun homeNext(context: Context): String =
+        context.getString(R.string.home_next)
 
     /** Continue row subtitle. The show's title is cut first when the row is short. */
     fun queueEpisodesLeft(context: Context, count: Int, title: String): String =

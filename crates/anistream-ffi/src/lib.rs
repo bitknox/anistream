@@ -868,7 +868,7 @@ mod tests {
         let item = HomeItem {
             entry: entry.clone(),
             action: HomeAction::Resume,
-            line: Some(Msg::HomeLineLeft { episode: 4, minutes: 12 }),
+            line: Some(Msg::HomeEpisodeOutToday { episode: 4 }),
             episode: Some(4),
             resume,
             progress: Some(0.52),
@@ -878,6 +878,7 @@ mod tests {
             reason: Some(UpNextReason::NewSeason),
             starts,
             playable: Playable::NotFound,
+            because: Some("Stardust Wayfarer".into()),
         };
         crosses_intact(Event::Home(HomeView {
             spotlight: Some(Spotlight {
@@ -890,6 +891,8 @@ mod tests {
                 resume,
                 starts,
                 playable: Playable::Found,
+                line: Some(Msg::HomeTimeLeft { episode: 3, minutes: 12 }),
+                because: Some("Stardust Wayfarer".into()),
             }),
             sections: vec![
                 HomeSection {
@@ -908,7 +911,7 @@ mod tests {
                 },
             ],
             pending: vec![HomePart::Week, HomePart::Season],
-            end: Some(HomeEnd::SignIn),
+            end: Some(HomeEnd::NoSources),
             offline: true,
             offline_since: Some(1_799_990_000),
             failed: true,

@@ -6249,8 +6249,20 @@
         }
       }
     },
+    "home-adding" : {
+      "comment" : "Shown in place of Add to Planning while it saves, after a moment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding"
+          }
+        }
+      }
+    },
     "home-airing-today" : {
-      "comment" : "Heading over today's broadcasts, shown to someone who has not watched anything yet.",
+      "comment" : "Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6262,7 +6274,7 @@
       }
     },
     "home-because" : {
-      "comment" : "Heading over the shows recommended from the one the person finished most recently. The title is that show. Argument 1: title (Text).",
+      "comment" : "Heading over recommendations from one show the person finished and rated well. The title is that show. Argument 1: title (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6286,7 +6298,7 @@
       }
     },
     "home-continue-count" : {
-      "comment" : "Count beside the { -continue-cap } heading on Home. Argument 1: count (Int).",
+      "comment" : "Count beside the { -continue-cap } heading when there are more than twelve shows. Argument 1: count (Int).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6319,14 +6331,50 @@
         }
       }
     },
+    "home-day-more" : {
+      "comment" : "A day of This week with more titles than fit. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld more"
+          }
+        }
+      }
+    },
+    "home-details" : {
+      "comment" : "Second action that opens the title's page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
+    },
     "home-end" : {
-      "comment" : "The closing line at the end of Home.",
+      "comment" : "The closing line at the end of Home. Seasonal and Calendar are links.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "That's everything for now. Seasonal and Calendar have the full lists."
+          }
+        }
+      }
+    },
+    "home-end-no-sources" : {
+      "comment" : "The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a source to play from Home. Plugin stores has some to choose from."
           }
         }
       }
@@ -6339,6 +6387,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign in to AniList to bring in your list and Planning."
+          }
+        }
+      }
+    },
+    "home-episode-out" : {
+      "comment" : "Line under the spotlight's title for a show part way through with its next episode waiting. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld is out"
+          }
+        }
+      }
+    },
+    "home-episode-out-short" : {
+      "comment" : "Line under a poster on This season: the newest episode out. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld out"
+          }
+        }
+      }
+    },
+    "home-episode-out-today" : {
+      "comment" : "Line under a { -continue-cap } card whose next episode came out today. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld · out today"
           }
         }
       }
@@ -6356,131 +6440,13 @@
       }
     },
     "home-full-calendar" : {
-      "comment" : "Link at the end of This week that opens the calendar.",
+      "comment" : "Link beside This week and Airing today that opens the calendar.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Full calendar"
-          }
-        }
-      }
-    },
-    "home-hidden" : {
-      "comment" : "Notice after Not interested on Home. It has an Undo button. Argument 1: title (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ is hidden from Up next for you"
-          }
-        }
-      }
-    },
-    "home-line-left" : {
-      "comment" : "Line under a card of a show part way through an episode: the episode and the minutes left in it. Argument 1: episode (Int). Argument 2: minutes (Int).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%#@minutes@"
-          },
-          "substitutions" : {
-            "minutes" : {
-              "argNum" : 2,
-              "formatSpecifier" : "lld",
-              "variations" : {
-                "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "translated",
-                      "value" : "Episode %1$lld · 1 min left"
-                    }
-                  },
-                  "other" : {
-                    "stringUnit" : {
-                      "state" : "translated",
-                      "value" : "Episode %1$lld · %2$lld min left"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "home-line-like" : {
-      "comment" : "Line under a suggestion that people who liked a finished show rated highly. The title is that show. Argument 1: title (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Like %1$@"
-          }
-        }
-      }
-    },
-    "home-line-new-season" : {
-      "comment" : "Line under a suggestion that is a new season of a show the person finished.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New season"
-          }
-        }
-      }
-    },
-    "home-line-next" : {
-      "comment" : "Line under a card of a show whose next episode is out. Argument 1: episode (Int).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode %1$lld"
-          }
-        }
-      }
-    },
-    "home-line-out" : {
-      "comment" : "Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h. Argument 1: episode (Int). Argument 2: ago (Seconds).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode %1$lld · out %2$@ ago"
-          }
-        }
-      }
-    },
-    "home-line-planning" : {
-      "comment" : "Line under a suggestion on the person's Planning list.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On your Planning"
-          }
-        }
-      }
-    },
-    "home-line-resume" : {
-      "comment" : "Line under a card of a show part way through an episode when its length is not known. Argument 1: episode (Int).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resume episode %1$lld"
           }
         }
       }
@@ -6497,14 +6463,62 @@
         }
       }
     },
+    "home-mark-watched" : {
+      "comment" : "Action in the spotlight's More menu for a show part way through. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark episode %1$lld as watched"
+          }
+        }
+      }
+    },
+    "home-marked-watched" : {
+      "comment" : "Notice after the action above. It has an Undo button. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld marked as watched"
+          }
+        }
+      }
+    },
+    "home-more" : {
+      "comment" : "Accessible name of the button that opens more actions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        }
+      }
+    },
     "home-more-genre" : {
-      "comment" : "Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery. Argument 1: genre (Text).",
+      "comment" : "Heading over popular titles of the genre the person finished most of. The genre is lower case, such as \"mecha\". Argument 1: genre (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "More %1$@"
+          }
+        }
+      }
+    },
+    "home-next" : {
+      "comment" : "Accessible name of the arrow that pages a shelf on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
           }
         }
       }
@@ -6521,6 +6535,18 @@
         }
       }
     },
+    "home-nothing-airing" : {
+      "comment" : "A day of This week with nothing on it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing airing"
+          }
+        }
+      }
+    },
     "home-offline" : {
       "comment" : "Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20. Argument 1: time (Text).",
       "extractionState" : "manual",
@@ -6529,6 +6555,186 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline. Showing Home from %1$@."
+          }
+        }
+      }
+    },
+    "home-offline-empty-body" : {
+      "comment" : "Text under the heading above.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home needs a connection the first time it opens. Downloads still play."
+          }
+        }
+      }
+    },
+    "home-offline-empty-title" : {
+      "comment" : "Heading when Home is offline and has nothing saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline"
+          }
+        }
+      }
+    },
+    "home-open-downloads" : {
+      "comment" : "Button under the text above.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Downloads"
+          }
+        }
+      }
+    },
+    "home-out-ago" : {
+      "comment" : "Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m. Argument 1: ago (Seconds).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out %1$@ ago"
+          }
+        }
+      }
+    },
+    "home-play-episode" : {
+      "comment" : "Main action for an episode not started. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play episode %1$lld"
+          }
+        }
+      }
+    },
+    "home-previous" : {
+      "comment" : "Accessible name of the arrow that pages a shelf back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous"
+          }
+        }
+      }
+    },
+    "home-reason-new-season" : {
+      "comment" : "Short reason under a poster: a new season of a show the person finished.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New season"
+          }
+        }
+      }
+    },
+    "home-reason-planning" : {
+      "comment" : "Short reason under a poster: the title is on the person's Planning list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On your Planning list"
+          }
+        }
+      }
+    },
+    "home-reason-recommended" : {
+      "comment" : "Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended for you"
+          }
+        }
+      }
+    },
+    "home-remove-continue" : {
+      "comment" : "Action on a { -continue-cap } card and in the spotlight's More menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from Continue"
+          }
+        }
+      }
+    },
+    "home-resume-episode" : {
+      "comment" : "Main action for an episode part way through. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume episode %1$lld"
+          }
+        }
+      }
+    },
+    "home-search" : {
+      "comment" : "Link beside a genre shelf that opens Search with that genre.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        }
+      }
+    },
+    "home-seasonal" : {
+      "comment" : "Link beside This season and Starting in that opens Seasonal.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seasonal"
+          }
+        }
+      }
+    },
+    "home-sign-in" : {
+      "comment" : "Button in the closing line when no { -tracker } is signed in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to AniList"
+          }
+        }
+      }
+    },
+    "home-spotlight-because" : {
+      "comment" : "Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Because you finished %1$@"
           }
         }
       }
@@ -6564,7 +6770,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "On your Planning"
+            "value" : "On your Planning list"
           }
         }
       }
@@ -6582,18 +6788,6 @@
       }
     },
     "home-spotlight-recommended" : {
-      "comment" : "Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show. Argument 1: title (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Like %1$@"
-          }
-        }
-      }
-    },
-    "home-spotlight-recommended-plain" : {
       "comment" : "Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.",
       "extractionState" : "manual",
       "localizations" : {
@@ -6606,7 +6800,7 @@
       }
     },
     "home-starting-autumn" : {
-      "comment" : "Heading over next season's shows, in the two weeks before it starts.",
+      "comment" : "Heading over next season's titles in the two weeks before it starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6618,7 +6812,7 @@
       }
     },
     "home-starting-spring" : {
-      "comment" : "Heading over next season's shows, in the two weeks before it starts.",
+      "comment" : "Heading over next season's titles in the two weeks before it starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6630,7 +6824,7 @@
       }
     },
     "home-starting-summer" : {
-      "comment" : "Heading over next season's shows, in the two weeks before it starts.",
+      "comment" : "Heading over next season's titles in the two weeks before it starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6642,7 +6836,7 @@
       }
     },
     "home-starting-winter" : {
-      "comment" : "Heading over next season's shows, in the two weeks before it starts.",
+      "comment" : "Heading over next season's titles in the two weeks before it starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6654,7 +6848,7 @@
       }
     },
     "home-this-season" : {
-      "comment" : "Heading over this season's most popular shows.",
+      "comment" : "Heading over this season's most popular titles.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6666,13 +6860,25 @@
       }
     },
     "home-this-week" : {
-      "comment" : "Heading over the week's broadcasts of the shows the person follows, from today.",
+      "comment" : "Heading over this week's episodes of the shows the person follows.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This week"
+          }
+        }
+      }
+    },
+    "home-time-left" : {
+      "comment" : "Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it. Argument 1: episode (Int). Argument 2: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld · %2$lld min left"
           }
         }
       }
@@ -6689,8 +6895,32 @@
         }
       }
     },
+    "home-today" : {
+      "comment" : "The first day of This week.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "home-try-again" : {
+      "comment" : "Button in the notice above.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        }
+      }
+    },
     "home-up-next" : {
-      "comment" : "Heading over the suggestions from the person's own history and lists.",
+      "comment" : "Heading over the suggestions made from what the person watched and their lists.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6702,25 +6932,13 @@
       }
     },
     "home-view-all" : {
-      "comment" : "Link at the end of a shelf that opens the full list.",
+      "comment" : "Link beside a heading that opens the full list.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "View all"
-          }
-        }
-      }
-    },
-    "home-week-airs" : {
-      "comment" : "Line under a This week card for an episode still to air. The time is worded already, such as 22:30. Argument 1: episode (Int). Argument 2: time (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode %1$lld · %2$@"
           }
         }
       }
@@ -15119,20 +15337,32 @@
         }
       }
     },
-    "settings-hidden-restore" : {
-      "comment" : "Button beside a hidden title that brings it back to Home.",
+    "settings-hidden-empty" : {
+      "comment" : "Settings, Hidden titles, when nothing is hidden.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restore"
+            "value" : "Nothing hidden. Titles you mark Not interested appear here."
+          }
+        }
+      }
+    },
+    "settings-hidden-on" : {
+      "comment" : "Line under a hidden title: when it was hidden. The date is worded already, such as \"today\" or \"3 October\". Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden %1$@"
           }
         }
       }
     },
     "settings-hidden-titles" : {
-      "comment" : "Settings row that lists the titles hidden with Not interested.",
+      "comment" : "Settings row and page that lists the titles hidden with Not interested.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -15143,14 +15373,14 @@
         }
       }
     },
-    "settings-hidden-titles-empty" : {
-      "comment" : "Settings, Hidden titles, when nothing is hidden.",
+    "settings-hidden-titles-body" : {
+      "comment" : "Text under the list of hidden titles.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nothing is hidden. Titles you mark Not interested on Home show here."
+            "value" : "Titles you marked Not interested. They stay out of Home and Up next for you until you restore them."
           }
         }
       }
@@ -15162,7 +15392,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hidden until it airs"
+            "value" : "Comes back when it airs"
           }
         }
       }
@@ -15941,6 +16171,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read online"
+          }
+        }
+      }
+    },
+    "settings-restore" : {
+      "comment" : "Button beside a hidden title that brings it back to Home.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
           }
         }
       }
