@@ -61,7 +61,7 @@ settings:
       DEPLOYMENT_POSTPROCESSING[sdk=macosx*]: YES
       STRIP_INSTALLED_PRODUCT[sdk=macosx*]: YES
       COPY_PHASE_STRIP[sdk=macosx*]: YES
-      STRIP_STYLE[sdk=macosx*]: all
+      STRIP_STYLE[sdk=macosx*]: non-global
 
 targetTemplates:
   # A package's sources as a framework, for Mac, iPad and iPhone.

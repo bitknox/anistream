@@ -573,12 +573,20 @@ jobs:
           done
           hdiutil verify "dist/$dmg"
 
+          # The Mac app ships stripped (apple/project.yml); its symbols stay here, one dSYM for
+          # the app and each framework, so a crash report can be symbolicated later.
+          dsyms="anistream-$VERSION-macos-dsyms.zip"
+          products="$(dirname "$APP_MAC")"
+          (cd "$products" && zip -qry -X "$GITHUB_WORKSPACE/dist/$dsyms" *.dSYM)
+          unzip -l "dist/$dsyms" | grep -q "Anistream.app.dSYM/Contents/Resources/DWARF/Anistream" ||
+            { echo "::error::The dSYM zip has no dSYM for the app"; exit 1; }
+
           ipa="anistream-$VERSION-ios-unsigned.ipa"
           ditto "$APP_IOS" "$RUNNER_TEMP/ipa/Payload/Anistream.app"
           (cd "$RUNNER_TEMP/ipa" && zip -qry -X "$GITHUB_WORKSPACE/dist/$ipa" Payload)
 
           cd dist
-          for file in "$dmg" "$ipa"; do shasum -a 256 "$file" > "$file.sha256"; done
+          for file in "$dmg" "$dsyms" "$ipa"; do shasum -a 256 "$file" > "$file.sha256"; done
 
       # The key goes to a file of the runner's, never into the environment the other steps share.
       - name: The Mac update key

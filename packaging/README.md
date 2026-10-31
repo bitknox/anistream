@@ -102,7 +102,7 @@ packaging/linux/glibc-floor.sh target/x86_64-unknown-linux-gnu/release/anistream
 ## The apps
 
 A release carries the apps beside the terminal binaries: `anistream-<version>-android-arm64.apk`,
-`anistream-<version>-android-tv-{arm64,armv7}.apk`, `anistream-<version>-macos.dmg`, `anistream-<version>-ios-unsigned.ipa`,
+`anistream-<version>-android-tv-{arm64,armv7}.apk`, `anistream-<version>-macos.dmg`, `anistream-<version>-macos-dsyms.zip` (the Mac app's symbols, which it ships without, for symbolicating its crash reports), `anistream-<version>-ios-unsigned.ipa`,
 `anistream-<version>-windows-{x64,arm64}-setup.exe` and
 `anistream-<version>-linux-{x86_64,aarch64}.AppImage` (each AppImage with its `.zsync`), with
 `anistream-<version>-apps-third-party.zip` and `anistream-<version>-apps-sources.tar`, each with a
