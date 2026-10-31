@@ -58,6 +58,7 @@ export function SignedOut({
  */
 function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say: Say }) {
 	const [code, setCode] = useState('');
+	const [contact, setContact] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [claimed, setClaimed] = useState<Claimed | null>(null);
@@ -71,11 +72,12 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
 		const given = code.trim();
-		if (!given || busy) return;
+		const reach = contact.trim();
+		if (!given || !reach || busy) return;
 		setBusy(true);
 		setError(null);
 		try {
-			setClaimed(await api.claim(given));
+			setClaimed(await api.claim(given, reach));
 			setCode('');
 		} catch (failure) {
 			setError(failure instanceof Error ? failure.message : 'something went wrong');
@@ -141,6 +143,11 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 			<Hero title="Claim this store">
 				{reason && <p className="hero-reason">{reason}</p>}
 				<p className="hero-sub">
+					You run this store. You choose which plugins it lists and who can join, and you are
+					responsible for them and for the sources they reach. anistream does not see, review or
+					approve what a store lists.
+				</p>
+				<p className="hero-sub">
 					Nobody owns <b>{store.name}</b> yet. Enter the setup code it was deployed with, its{' '}
 					<code>ANISTREAM_STORE_SETUP_CODE</code>, to get the owner invite link.
 				</p>
@@ -155,7 +162,26 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 							onChange={(event) => setCode(event.target.value)}
 						/>
 					</label>
-					<button type="submit" className="btn btn-primary" disabled={busy || !code.trim()}>
+					<label className="field">
+						<span>Contact for this store</span>
+						<input
+							type="text"
+							value={contact}
+							autoComplete="email"
+							spellCheck={false}
+							aria-describedby="contact-hint"
+							onChange={(event) => setContact(event.target.value)}
+						/>
+						<small id="contact-hint">
+							An email address or link members and others can use to reach you. Shown on the store's
+							page.
+						</small>
+					</label>
+					<button
+						type="submit"
+						className="btn btn-primary"
+						disabled={busy || !code.trim() || !contact.trim()}
+					>
 						{busy ? 'Claiming…' : 'Claim the store'}
 					</button>
 				</form>

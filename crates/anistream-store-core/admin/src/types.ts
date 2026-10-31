@@ -15,6 +15,8 @@ export interface StoreInfo {
 	key: string;
 	/** Present, and true, while nobody owns the store and it was deployed with a setup code. */
 	claimable?: boolean;
+	/** How to reach whoever runs the store, once they have given it. */
+	contact?: string;
 }
 
 export interface IndexEntry {
@@ -59,6 +61,8 @@ export interface PendingInvite {
  */
 export interface OpenState {
 	open: boolean;
+	/** The contact for the store. Anyone-with-the-link joining cannot be turned on without one. */
+	contact?: string;
 	/** `{base}/join/{code}?open#{key}`, while the store is open. */
 	link?: string;
 	/** Devices that joined with a link and still work here. */
@@ -145,6 +149,13 @@ export interface PublishRequest {
 /** `POST /v1/setup`: claim a store nobody owns yet. */
 export interface ClaimRequest {
 	code: string;
+	/** An email address or a link where people can reach whoever runs the store. Required. */
+	contact: string;
+}
+
+/** `PUT /v1/contact`. */
+export interface ContactSetting {
+	contact: string;
 }
 
 /** The owner invite a claim produces. */

@@ -4,6 +4,7 @@ import type {
 	AdminOverview,
 	Claimed,
 	ClaimRequest,
+	ContactSetting,
 	ErrorBody,
 	IndexEntry,
 	InviteCreated,
@@ -133,7 +134,8 @@ async function publish(file: File, onStep: (step: PublishStep) => void): Promise
 
 export const api = {
 	store: () => call<StoreInfo>('GET', 'v1/store'),
-	claim: (code: string) => call<Claimed>('POST', 'v1/setup', { code } satisfies ClaimRequest),
+	claim: (code: string, contact: string) =>
+		call<Claimed>('POST', 'v1/setup', { code, contact } satisfies ClaimRequest),
 	login: (code: string) => call<Member>('POST', 'v1/admin/session', { code } satisfies AdminLogin),
 	logout: () => call<void>('DELETE', 'v1/admin/session'),
 	overview: () => call<AdminOverview>('GET', 'v1/admin/overview'),
@@ -153,5 +155,7 @@ export const api = {
 		call<void>('PATCH', `v1/members/${id(member)}`, { name } satisfies MemberChange),
 	revokeDevice: (device: string) => call<void>('DELETE', `v1/devices/${id(device)}`),
 	setOpen: (open: boolean) => call<OpenState>('PUT', 'v1/open', { open } satisfies OpenSetting),
+	setContact: (contact: string) =>
+		call<OpenState>('PUT', 'v1/contact', { contact } satisfies ContactSetting),
 	removeAnonymous: () => call<OpenState>('DELETE', 'v1/open/devices'),
 };

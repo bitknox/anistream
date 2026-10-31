@@ -184,6 +184,9 @@ export function App() {
 
 	const data = view.kind === 'ready' ? view.data : null;
 	const update = useUpdate(data?.server);
+	const contact =
+		data?.open.contact ??
+		(view.kind === 'home' || view.kind === 'signed-out' ? view.store?.contact : undefined);
 
 	return (
 		<>
@@ -210,7 +213,7 @@ export function App() {
 					<SignedOut reason={view.reason} store={view.store} say={say} />
 				)}
 			</main>
-			<Footer note={HOME ? 'This page talks only to this store.' : undefined} />
+			<Footer note={HOME ? 'This page talks only to this store.' : undefined} contact={contact} />
 			<StatusLine status={status} />
 			{data && <DropBand onFiles={publish} />}
 		</>

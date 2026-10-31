@@ -12,10 +12,10 @@ use crate::{
     db::Database,
     inspect::Inspector,
     protocol::{
-        AdminLink, AdminLogin, AdminOverview, ClaimRequest, Claimed, ErrorBody, InviteCreated,
-        InviteRequest, Me, Member, MemberChange, MemberList, OpenJoinRequest, OpenSetting,
-        PART_SIZE, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse, Role,
-        ServerInfo, StoreInfo, UploadRequest, UploadStarted,
+        AdminLink, AdminLogin, AdminOverview, ClaimRequest, Claimed, ContactSetting, ErrorBody,
+        InviteCreated, InviteRequest, Me, Member, MemberChange, MemberList, OpenJoinRequest,
+        OpenSetting, PART_SIZE, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse,
+        Role, ServerInfo, StoreInfo, UploadRequest, UploadStarted,
     },
     store::{NewInvite, SESSION_SECS, Store, StoreError},
 };
@@ -177,7 +177,8 @@ impl<D: Database, B: Blobs> Service<D, B> {
         match (request.method.as_str(), segments.as_slice()) {
             ("GET", []) => {
                 let name = escape(&store.name().await);
-                let fallback = home_page(&name, self.unclaimed().await);
+                let contact = store.contact().await.ok().flatten().map(|c| escape(&c));
+                let fallback = home_page(&name, self.unclaimed().await, contact.as_deref());
                 Ok(admin::home(
                     &escape(&site.prefix),
                     &format!("{name} · anistream"),
@@ -220,6 +221,13 @@ impl<D: Database, B: Blobs> Service<D, B> {
                 let setting: OpenSetting = read_json(request)?;
                 store.set_open(setting.open).await?;
                 tracing::info!(by = %owner.name, open = setting.open, "who can join changed");
+                json(200, &store.open_state(&site.base).await?)
+            }
+            ("PUT", ["v1", "contact"]) => {
+                let owner = self.owner(request).await?;
+                let setting: ContactSetting = read_json(request)?;
+                store.set_contact(&setting.contact).await?;
+                tracing::info!(by = %owner.name, "the store's contact changed");
                 json(200, &store.open_state(&site.base).await?)
             }
             ("DELETE", ["v1", "open", "devices"]) => {
@@ -482,7 +490,11 @@ impl<D: Database, B: Blobs> Service<D, B> {
         };
         self.limited(request, "setup codes").await?;
         let body: ClaimRequest = read_json(request)?;
-        match self.store.claim(&body.code, configured, &request.site.base, request.now).await {
+        match self
+            .store
+            .claim(&body.code, configured, &body.contact, &request.site.base, request.now)
+            .await
+        {
             Ok((invite, expires_at)) => {
                 tracing::info!("claimed with the setup code");
                 json(200, &Claimed { link: invite.link(), expires_at })
@@ -732,7 +744,8 @@ fn page(title: &str, body: &str) -> String {
 
 /// What the store's root says without script: its name, what it is, and how to join. `name` is
 /// escaped already. Links resolve against the admin page's directory, so `./` is that page.
-fn home_page(name: &str, unclaimed: bool) -> String {
+fn home_page(name: &str, unclaimed: bool, contact: Option<&str>) -> String {
+    let contact = contact.map(|c| format!(" Contact: {c}.")).unwrap_or_default();
     let claim = if unclaimed {
         "<p class=\"lede\">Nobody owns this store yet. If you deployed it, \
          <a href=\"./\">open the admin page</a> and claim it with its setup code.</p>"
@@ -746,7 +759,8 @@ fn home_page(name: &str, unclaimed: bool) -> String {
          </span></p><main><p class=\"hero-eyebrow\">Plugin store</p><h1>{name}</h1>\
          <p class=\"lede\">A plugin store for anistream, run by its owners. People join it with \
          an invite link from them, and install its plugins from anistream.</p>{claim}</main>\
-         <p class=\"nojs-legal\">anistream hosts no content.</p></div>"
+         <p class=\"nojs-legal\">This store is run by its operator, not by anistream. It holds \
+         plugins, not episodes.{contact}</p></div>"
     )
 }
 
@@ -830,6 +844,7 @@ impl From<StoreError> for Failure {
             StoreError::InvalidPlugin(_) => Self::new(400, "invalid_plugin", message),
             StoreError::BadRequest(_) => Self::new(400, "bad_request", message),
             StoreError::OpenUnusable => Self::new(404, "open_unusable", message),
+            StoreError::ContactNeeded => Self::new(409, "contact_needed", message),
             StoreError::TooManyJoins => Self::new(429, "rate_limited", message),
             StoreError::Setup(_)
             | StoreError::Db(_)

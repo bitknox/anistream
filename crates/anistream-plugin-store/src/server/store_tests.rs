@@ -217,13 +217,20 @@ async fn only_the_latest_owner_invite_works_until_one_is_claimed() {
 async fn a_claim_needs_the_code_and_an_unowned_store() {
     let (_dir, store) = open().await;
     assert!(matches!(
-        store.claim("nope", "code", BASE, NOW).await,
+        store.claim("nope", "code", CONTACT, BASE, NOW).await,
         Err(StoreError::Forbidden(_))
     ));
-    let (invite, _) = store.claim("code", "code", BASE, NOW).await.unwrap();
+    // No contact, no claim: the store stays unowned.
+    assert!(matches!(
+        store.claim("code", "code", " ", BASE, NOW).await,
+        Err(StoreError::BadRequest(_))
+    ));
+    assert!(!store.has_owner().await.unwrap());
+    let (invite, _) = store.claim("code", "code", CONTACT, BASE, NOW).await.unwrap();
+    assert_eq!(store.contact().await.unwrap().as_deref(), Some(CONTACT));
     store.redeem(&invite.code, "desk", NOW).await.unwrap();
     assert!(matches!(
-        store.claim("code", "code", BASE, NOW).await,
+        store.claim("code", "code", CONTACT, BASE, NOW).await,
         Err(StoreError::Conflict(_))
     ));
 }
@@ -411,8 +418,24 @@ async fn a_range_is_read_from_a_file_without_the_rest() {
 
 // --- open joining ---------------------------------------------------------------------------
 
+const CONTACT: &str = "owner@store.example";
+
+#[tokio::test]
+async fn open_joining_is_off_by_default_and_needs_a_contact() {
+    let (_dir, store) = open().await;
+    assert_eq!(store.open_code().await.unwrap(), None);
+    assert!(matches!(store.set_open(true).await, Err(StoreError::ContactNeeded)));
+    assert_eq!(store.open_code().await.unwrap(), None);
+    store.set_contact(CONTACT).await.unwrap();
+    store.set_open(true).await.unwrap();
+    assert!(store.open_code().await.unwrap().is_some());
+    // Closing never needs a contact.
+    store.set_open(false).await.unwrap();
+}
+
 /// Open the store to anyone with its link, and return the link's code.
 async fn opened(store: &TestStore) -> String {
+    store.set_contact("owner@store.example").await.unwrap();
     store.set_open(true).await.unwrap();
     store.open_code().await.unwrap().expect("an open store has a code")
 }

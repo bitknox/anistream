@@ -85,7 +85,7 @@ async fn a_whole_journey_against_a_running_store() {
     assert_eq!(wrong.status(), 403, "a wrong setup code is refused");
     let claimed: Claimed = http
         .post(format!("{base}/v1/setup"))
-        .json(&serde_json::json!({ "code": code }))
+        .json(&serde_json::json!({ "code": code, "contact": "owner@store.example" }))
         .send()
         .await
         .unwrap()

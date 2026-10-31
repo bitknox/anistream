@@ -688,6 +688,7 @@ mod tests {
                 .collect(),
             owners: Vec::new(),
             open: false,
+            contact: None,
         };
         let index = serde_json::to_string(&index).unwrap();
         SignedIndex { signature: key.sign_index(&index), index }

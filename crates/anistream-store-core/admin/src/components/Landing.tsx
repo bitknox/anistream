@@ -44,6 +44,11 @@ export function Landing({ store }: { store?: StoreInfo }) {
 					A plugin store for anistream, run by its owners. It shares source plugins with the people
 					they invite, who install and update them from Plugin stores in anistream.
 				</p>
+				{store?.contact && (
+					<p className="hero-sub">
+						Run by its operator, who can be reached at <b>{store.contact}</b>.
+					</p>
+				)}
 				{store?.claimable && (
 					<p className="hero-sub">
 						Nobody owns this store yet. If you deployed it, <a href="./">open the admin page</a> and

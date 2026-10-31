@@ -32,11 +32,23 @@ async fn start() -> Running {
 /// A store whose URL has `path` after the host, to exercise a reverse proxy that forwards with
 /// or without it.
 async fn start_under(path: &str) -> Running {
+    start_with(path, true).await
+}
+
+/// A store with no operator contact, as one is before its operator gives one.
+async fn start_without_contact() -> Running {
+    start_with("", false).await
+}
+
+async fn start_with(path: &str, contact: bool) -> Running {
     let dir = tempfile::tempdir().unwrap();
     let (listener, addr) = bind("127.0.0.1:0".parse().unwrap()).await.unwrap();
     let base = format!("http://{addr}{path}");
     let store =
         open(&Storage::Dir(dir.path().into()), Some(&base), Some("Test store")).await.unwrap();
+    if contact {
+        store.set_contact("owner@store.example").await.unwrap();
+    }
     let server = Arc::new(Server::new(
         store,
         Some(base.clone()),
@@ -716,12 +728,21 @@ async fn a_store_is_claimed_once_with_its_setup_code() {
     let http = reqwest::Client::new();
     let claim = |code: &str| {
         http.post(format!("{}/v1/setup", running.base))
-            .json(&serde_json::json!({ "code": code }))
+            .json(&serde_json::json!({ "code": code, "contact": "owner@store.example" }))
             .send()
     };
     // The admin page asks before it offers the setup code form.
     assert!(client().info(&running.base).await.unwrap().claimable);
     assert_eq!(claim("wrong").await.unwrap().status(), 403);
+    // The contact is required, and a refused claim leaves the store unclaimed.
+    let no_contact = http
+        .post(format!("{}/v1/setup", running.base))
+        .json(&serde_json::json!({ "code": "let-me-in" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(no_contact.status(), 400);
+    assert!(client().info(&running.base).await.unwrap().claimable);
     let claimed: crate::protocol::Claimed =
         claim("let-me-in").await.unwrap().json().await.unwrap();
     let invite = Invite::parse(&claimed.link).unwrap();
@@ -729,7 +750,9 @@ async fn a_store_is_claimed_once_with_its_setup_code() {
     assert_eq!(owner.member.role, Role::Owner);
     // Claimed: the code does nothing more.
     assert_eq!(claim("let-me-in").await.unwrap().status(), 409);
-    assert!(!client().info(&running.base).await.unwrap().claimable);
+    let info = client().info(&running.base).await.unwrap();
+    assert!(!info.claimable);
+    assert_eq!(info.contact.as_deref(), Some("owner@store.example"));
 }
 
 #[tokio::test]
@@ -799,7 +822,9 @@ async fn behind_a_platforms_proxy_the_store_learns_its_address_from_the_request(
         .post(format!("http://{addr}/v1/setup"))
         .header("x-forwarded-host", "my-store.example")
         .header("x-forwarded-proto", "https")
-        .json(&serde_json::json!({ "code": "code" }))
+        .json(
+            &serde_json::json!({ "code": "code", "contact": "https://my-store.example/about" }),
+        )
         .send()
         .await
         .unwrap()
@@ -1042,4 +1067,56 @@ async fn the_admin_page_sees_and_changes_who_can_join() {
         .await
         .unwrap();
     assert_eq!(forged.status(), 403);
+}
+
+#[tokio::test]
+async fn open_joining_needs_a_contact_and_is_off_until_then() {
+    let running = start_without_contact().await;
+    let (_, owner) = join_as_owner(&running).await;
+
+    // Off by default, and not something an owner can turn on yet.
+    let state = client().open_state(&running.base, &owner).await.unwrap();
+    assert!(!state.open && state.contact.is_none());
+    let refused = client().set_open(&running.base, &owner, true).await.unwrap_err();
+    assert_eq!(refused.code(), Some("contact_needed"), "{refused}");
+    assert!(!client().open_state(&running.base, &owner).await.unwrap().open);
+
+    // A contact that is not one plain line is not kept.
+    let http = reqwest::Client::new();
+    let put = |contact: &str| {
+        http.put(format!("{}/v1/contact", running.base))
+            .bearer_auth(&owner)
+            .json(&serde_json::json!({ "contact": contact }))
+            .send()
+    };
+    assert_eq!(put("  ").await.unwrap().status(), 400);
+    assert_eq!(put("two\nlines").await.unwrap().status(), 400);
+    let kept: crate::protocol::OpenState =
+        put(" owner@store.example ").await.unwrap().json().await.unwrap();
+    assert_eq!(kept.contact.as_deref(), Some("owner@store.example"));
+
+    let opened = client().set_open(&running.base, &owner, true).await.unwrap();
+    assert!(opened.open);
+    // The store's page and its signed list carry the contact.
+    let info = client().info(&running.base).await.unwrap();
+    assert_eq!(info.contact.as_deref(), Some("owner@store.example"));
+    let link = Invite::parse(opened.link.as_deref().unwrap()).unwrap();
+    let preview = client().preview(&link).await.unwrap();
+    assert_eq!(preview.contact.as_deref(), Some("owner@store.example"));
+}
+
+#[tokio::test]
+async fn only_an_owner_sets_the_contact() {
+    let running = start().await;
+    let (_, owner) = join_as_owner(&running).await;
+    let invite = invite_member(&running, &owner, "Alex").await;
+    let alex = client().redeem(&invite, "phone").await.unwrap();
+    let response = reqwest::Client::new()
+        .put(format!("{}/v1/contact", running.base))
+        .bearer_auth(&alex.token)
+        .json(&serde_json::json!({ "contact": "alex@example.test" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 403);
 }

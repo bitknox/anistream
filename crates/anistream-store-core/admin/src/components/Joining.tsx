@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Act } from '../App';
 import { api } from '../api';
 import { ago, plural } from '../format';
@@ -24,6 +25,9 @@ export function Joining({
 	say: (text: string, tone?: Status['tone']) => void;
 }) {
 	const open = state.open && Boolean(state.link);
+	const [contact, setContact] = useState(state.contact ?? '');
+	const hasContact = Boolean(state.contact);
+	const unchanged = contact.trim() === (state.contact ?? '');
 	const copy = async () => {
 		if (!state.link) return;
 		try {
@@ -47,7 +51,7 @@ export function Joining({
 				)
 			}
 		/>
-	) : (
+	) : hasContact ? (
 		<Confirm
 			label="Let anyone with the link join"
 			confirm="Make the store's link"
@@ -56,6 +60,8 @@ export function Joining({
 				act(() => api.setOpen(true), 'Anyone with the link can join now. Copy it below.')
 			}
 		/>
+	) : (
+		<span className="dim">Add a contact first</span>
 	);
 
 	return (
@@ -68,8 +74,41 @@ export function Joining({
 					: "Only people you invite can join. You can let anyone with the store's link join instead: they join without a name, and the store keeps nothing about who they are."
 			}
 		>
+			<Row
+				label="Contact"
+				actions={
+					<button
+						type="button"
+						className="btn btn-small"
+						disabled={unchanged || !contact.trim()}
+						onClick={() => act(() => api.setContact(contact.trim()), 'Saved the contact.')}
+					>
+						Save contact
+					</button>
+				}
+			>
+				<label className="field">
+					<span>Contact for this store</span>
+					<input
+						type="text"
+						value={contact}
+						spellCheck={false}
+						aria-describedby="contact-hint"
+						onChange={(event) => setContact(event.target.value)}
+					/>
+					<small id="contact-hint">
+						An email address or link members and others can use to reach you. Shown on the store's
+						page. Required before anyone with the link can join.
+					</small>
+				</label>
+			</Row>
+
 			<Row label={open ? 'Open' : 'Invites'} actions={toggle}>
 				<h3>{open ? "Anyone with the store's link" : 'Only people you invite'}</h3>
+				<p className="dim">
+					Anyone with the link can join, and the link can be passed on. Keep it to people you know.
+					You are responsible for who you let in.
+				</p>
 				<Facts
 					items={
 						open

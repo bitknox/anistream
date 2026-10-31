@@ -60,6 +60,10 @@ pub const MIGRATIONS: &[&[&str]] = &[
         "CREATE TABLE IF NOT EXISTS open_joins (
             key TEXT PRIMARY KEY, window_start {int} NOT NULL, attempts {int} NOT NULL)",
     ],
+    // 2: open-join links are off for every store. Turning one on now needs an operator contact,
+    // so a store that was open before that rule closes, and its owner opens it again once there
+    // is a contact. The devices that joined keep working.
+    &["DELETE FROM meta WHERE key = 'open_code'"],
 ];
 
 /// The version this code takes a database to.

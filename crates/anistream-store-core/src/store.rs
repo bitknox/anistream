@@ -59,6 +59,9 @@ pub enum StoreError {
     InvalidPlugin(String),
     #[error("{0}")]
     BadRequest(String),
+    /// Open joining was asked for on a store whose operator has given no contact.
+    #[error("add a contact for this store before letting anyone with the link join")]
+    ContactNeeded,
     /// The store does not let anyone join, or not with that code any more: closed, or opened
     /// again since with a new link. One error for both, like [`Self::InviteUnusable`].
     #[error(
@@ -264,7 +267,21 @@ impl<D: Database, B: Blobs> Store<D, B> {
             name: self.name().await,
             key: self.key.public().encode(),
             claimable: false,
+            contact: self.contact().await.ok().flatten(),
         }
+    }
+
+    /// How to reach whoever runs the store, once they have given it.
+    pub async fn contact(&self) -> Result<Option<String>, StoreError> {
+        Ok(self.meta("contact").await?.filter(|contact| !contact.trim().is_empty()))
+    }
+
+    /// Keep the operator's contact, which the store's pages show. Answers the tidied text.
+    pub async fn set_contact(&self, contact: &str) -> Result<String, StoreError> {
+        let contact = crate::protocol::clean_contact(contact)
+            .map_err(|message| StoreError::BadRequest(message.into()))?;
+        self.set_meta("contact", &contact).await?;
+        Ok(contact)
     }
 
     pub fn public_key(&self) -> PublicKey {
@@ -536,6 +553,9 @@ impl<D: Database, B: Blobs> Store<D, B> {
     /// joins and leaves the devices that joined, which the owner removes when they choose.
     pub async fn set_open(&self, open: bool) -> Result<(), StoreError> {
         if open {
+            if self.contact().await?.is_none() {
+                return Err(StoreError::ContactNeeded);
+            }
             self.exec(sql!(
                 "INSERT INTO meta (key, value) VALUES ('open_code', ?1)
                  ON CONFLICT(key) DO NOTHING",
@@ -667,6 +687,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
         let link = self.open_link(base).await?;
         Ok(OpenState {
             open: link.is_some(),
+            contact: self.contact().await?,
             link: link.map(|invite| invite.link()),
             devices: u32::try_from(devices.max(0)).unwrap_or(u32::MAX),
             device_list,
@@ -1078,6 +1099,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
             plugins,
             owners: self.owner_names().await?,
             open: self.open_code().await?.is_some(),
+            contact: self.contact().await?,
         };
         let index = serde_json::to_string(&index)
             .map_err(|e| StoreError::Setup(format!("encoding the index: {e}")))?;
@@ -1404,14 +1426,20 @@ impl<D: Database, B: Blobs> Store<D, B> {
         &self,
         given: &str,
         configured: &str,
+        contact: &str,
         base: &str,
         now: i64,
     ) -> Result<(Invite, i64), StoreError> {
         if !codes_match(given, configured) {
             return Err(StoreError::Forbidden("that is not this store's setup code".into()));
         }
+        let contact = crate::protocol::clean_contact(contact)
+            .map_err(|message| StoreError::BadRequest(message.into()))?;
         match self.fresh_owner_invite(base, now).await? {
-            Some(invite) => Ok((invite, Self::default_expiry(now))),
+            Some(invite) => {
+                self.set_meta("contact", &contact).await?;
+                Ok((invite, Self::default_expiry(now)))
+            }
             None => Err(StoreError::Conflict(
                 "this store already has an owner — ask them for an invite".into(),
             )),
