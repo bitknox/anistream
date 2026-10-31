@@ -331,8 +331,8 @@ fn start_fixtures(
     let home = match args.scene.as_deref() {
         None => fixtures::HomeScene::default(),
         Some(name) => {
-            fixtures::HomeScene::named(name).ok_or_else(|| format!("no scene named {name}"))?
-        } // i18n-skip
+            fixtures::HomeScene::named(name).ok_or_else(|| format!("no scene named {name}"))? // i18n-skip
+        }
     };
     let scene =
         fixtures::Scene { media: args.media.clone(), downloading: args.downloading, home };

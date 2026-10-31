@@ -1709,14 +1709,14 @@ fn card_menu(
     if kind == SectionKind::Continue {
         second.append(
             Some(&t::home_remove_continue()),
-            Some(&format!("win.hide-continue(uint32 {id})")),
-        ); // i18n-skip
+            Some(&format!("win.hide-continue(uint32 {id})")), // i18n-skip
+        );
     }
     if suggestion {
         second.append(
             Some(&t::up_next_not_interested()),
-            Some(&format!("win.home-dismiss(uint32 {id})")),
-        ); // i18n-skip
+            Some(&format!("win.home-dismiss(uint32 {id})")), // i18n-skip
+        );
     }
     if second.n_items() > 0 {
         menu.append_section(None, &second);
