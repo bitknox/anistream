@@ -433,12 +433,14 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
         if (row.unsourced) {
             // Nothing to play or download: marking it watched is all that is left.
         } else if (row.metadataOnly) {
+            // A source that listed titles but could not choose: the question, not another source.
+            val asking = store.match.state.collectAsStateWithLifecycle().value.asks(entry.id)
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.title_button_add_source)) },
-                leadingIcon = { Icon(Icons.Providers, contentDescription = null) },
+                text = { Text(stringResource(if (asking) R.string.match_choose else R.string.title_button_add_source)) },
+                leadingIcon = { Icon(if (asking) Icons.Search else Icons.Providers, contentDescription = null) },
                 onClick = {
                     onDismiss()
-                    navigator.open(PROVIDERS_ROUTE)
+                    if (asking) store.match.open(entry.id, fromMenu = false) else navigator.open(PROVIDERS_ROUTE)
                 },
             )
         } else {

@@ -20,7 +20,8 @@
 //             widgets' record made at once, with its art
 //   tv        a Play on TV scene, on the two fake TVs: paired, picker, code or remote (TvScene)
 //   discussion an episode number of the first fixture whose discussion opens in its sheet
-//   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
+//   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2); match, match-fix,
+//             match-found or match-empty open the match picker on the first fixture (unsure scene)
 //   player    a player state to shoot (from A3)
 //   code      a tracker whose device-code sheet opens, with a made-up code that expires in 15 minutes
 //   expires   seconds the `code` sheet's code has left, 0 for one already expired
@@ -50,6 +51,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.store.EngineEpisodeCheck
 import tv.anistream.store.covers
 import tv.anistream.store.AppStore
+import tv.anistream.store.MatchSearch
 import tv.anistream.store.EngineHome
 import tv.anistream.store.NewEpisode
 import tv.anistream.store.EngineLaunch
@@ -166,6 +168,7 @@ internal object Flavour {
      * screen: what announceReady waits on besides the store. True with no scene asked for.
      */
     suspend fun reachedTv(intent: Intent, store: AppStore): Boolean {
+        intent.getStringExtra("sheet")?.takeIf { it.startsWith("match") }?.let { stageMatch(store, it) }
         intent.getStringExtra("discussion")?.let { value ->
             // "row" waits for the thread to be found without opening it, for the episode row's quiet line.
             if (value == "row") {
@@ -243,9 +246,28 @@ internal object Flavour {
             val expiresAt = System.currentTimeMillis() / 1000 + codeSecondsLeft(intent)
             store.apply(Event.DeviceCode(DeviceCodePrompt(tracker, "4F2K9QX1", "https://activate.example/pin", expiresAt)))
         }
-        for (later in listOf("sheet", "player")) {
-            intent.getStringExtra(later)?.let { Log.w(AnistreamApp.TAG, "$later=$it is not in this build yet") }
+        intent.getStringExtra("player")?.let { Log.w(AnistreamApp.TAG, "player=$it is not in this build yet") }
+    }
+
+    /**
+     * The match picker for the first fixture, once its page has asked (the `unsure` scene): `match`
+     * opens it as the page's button does, `match-fix` from the More menu, `match-found` after a
+     * search that finds the show, `match-empty` after one that finds nothing.
+     */
+    private suspend fun stageMatch(store: AppStore, sheet: String) {
+        val id = 900001u
+        store.loadDetail(id)
+        withTimeoutOrNull(30_000) { store.match.state.first { it.asks(id) } }
+        store.match.open(id, fromMenu = sheet != "match")
+        val source = store.match.state.value.source(id)?.first
+        when (sheet) {
+            "match-found" -> store.searchMatch(id, "Stardust Wayfarer", source)
+            "match-empty" -> store.searchMatch(id, "Zzyzx Nothing", source)
+            else -> return
         }
+        withTimeoutOrNull(10_000) { store.match.state.first { it.searches[id].let { s -> s != null && s !is MatchSearch.Searching } } }
+        // The sheet's own animation in.
+        delay(800)
     }
 
     /** How long a `code` extra's prompt has left: `expires=<seconds>`, 0 for an expired code, or 899. */

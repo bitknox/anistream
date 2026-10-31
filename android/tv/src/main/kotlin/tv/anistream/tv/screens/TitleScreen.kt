@@ -114,6 +114,8 @@ import tv.anistream.tv.ui.cardLabel
 import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.showSettingsSheet
 import tv.anistream.tv.ui.sourcePickerSheet
+import tv.anistream.tv.ui.matchPanel
+import tv.anistream.store.MatchWords
 import tv.anistream.tv.ui.statusSheet
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.TvIcons
@@ -253,6 +255,11 @@ private fun Header(
     HeroHeader(entry, rows, modifier) {
         Spacer(Modifier.height(6.dp))
         Text(entry.metadataLine(context), style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
+        val uncertain = store.match.state.collectAsStateWithLifecycle().value.asked[entry.id]
+        if (uncertain != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(MatchWords.uncertain(context, uncertain), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 2)
+        }
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (noSources) {
@@ -264,6 +271,22 @@ private fun Header(
                     enabled = action.playable,
                     modifier = Modifier.firstFocus(memory, "play"),
                 ) { ButtonLabel(if (action.unsourced) Strings.episodeUnsourced(context) else action.label(context)) }
+            }
+            val match by store.match.state.collectAsStateWithLifecycle()
+            val asks = match.asks(entry.id)
+            // Once the match is settled the button is gone: focus goes back to Play.
+            var wasAsking by remember { mutableStateOf(asks) }
+            LaunchedEffect(asks) {
+                if (wasAsking && !asks) memory.focus("play")
+                wasAsking = asks
+            }
+            if (asks) {
+                Spacer(Modifier.width(16.dp))
+                AmberButton(
+                    onClick = { actions?.open(matchPanel(context, store, entry, fromMenu = false, host = actions)) },
+                    icon = TvIcons.Search,
+                    modifier = Modifier.remembered(memory, "match"),
+                ) { ButtonLabel(Strings.matchChoose(context)) }
             }
             Spacer(Modifier.width(16.dp))
             val trailer = entry.trailer
@@ -290,7 +313,7 @@ private fun Header(
             TonalIconButton(
                 TvIcons.More,
                 stringResource(R.string.action_more),
-                onClick = { actions?.open(titleSheet(context, store, entry, rows, action, Strings.sourcePickerTitle(context))) },
+                onClick = { actions?.open(titleSheet(context, store, entry, rows, action, Strings.sourcePickerTitle(context), actions)) },
                 modifier = Modifier.remembered(memory, "more"),
             )
         }
@@ -599,13 +622,18 @@ fun episodeSheet(
  * The title page's More: Show settings, Mark watched up to the episode it would play, Hide from
  * Continue, Drop (keeps progress).
  */
-fun titleSheet(context: Context, store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction, sourcesLabel: String): ActionSheet {
+fun titleSheet(context: Context, store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction, sourcesLabel: String, host: tv.anistream.tv.ui.ActionsHost? = null): ActionSheet {
     val before = rows?.takeWhile { it.number != action.episode.toString() }?.filter { !it.completed }?.map { it.number }.orEmpty()
     return ActionSheet(
         entry.title,
         listOfNotNull(
             CardAction(Strings.showSettingsTitle(context), then = showSettingsSheet(context, store, entry.id, entry.title)),
             CardAction(sourcesLabel, then = sourcePickerSheet(store, entry, sourcesLabel)),
+            if (store.match.canFix(store.providers.rows.value)) {
+                CardAction(Strings.matchFix(context), then = matchPanel(context, store, entry, fromMenu = true, host = host))
+            } else {
+                null
+            },
             before.takeIf { it.isNotEmpty() }?.let { upTo ->
                 CardAction(Strings.episodeMarkUpTo(context, (action.episode - 1u).toInt())) { store.setWatched(entry.id, upTo) }
             },
