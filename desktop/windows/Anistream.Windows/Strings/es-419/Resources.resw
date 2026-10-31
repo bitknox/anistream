@@ -2789,9 +2789,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Bienvenido a anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Lleva el registro de tus animes y reprodúcelos desde las fuentes que elijas.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Continuar viendo</value>
   </data>
@@ -2806,9 +2803,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Fuentes</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Las fuentes son complementos que se comparten por invitación desde tiendas de complementos.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Unirse</value>
@@ -3974,9 +3968,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Todavía no hay fuentes. Únete a una tienda de complementos para añadir algunas.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Los complementos los escriben otras personas y se ejecutan en tu dispositivo. Instala solo los que vengan de personas en las que confíes.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Fuente para este título</value>
   </data>
@@ -4045,9 +4036,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Todavía no hay fuentes</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Fuentes vienen de tiendas de complementos. Únete a una con el enlace de invitación que te envíe su propietario.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrents</value>

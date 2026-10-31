@@ -1377,6 +1377,12 @@ public static partial class T
     /// <summary>Line with the licence.</summary>
     public static string AboutLicence => Get("AboutLicence");
 
+    /// <summary>Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.</summary>
+    public static string AboutLegal => Get("AboutLegal");
+
+    /// <summary>Row opening the legal and contact page on the website.</summary>
+    public static string AboutLegalLink => Get("AboutLegalLink");
+
     /// <summary>Row opening the list of acknowledgements.</summary>
     public static string AboutAcknowledgements => Get("AboutAcknowledgements");
 
@@ -4401,6 +4407,9 @@ public static partial class T
     /// <summary>Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.</summary>
     public static string StoresNotFromApp => Get("StoresNotFromApp");
 
+    /// <summary>Line under the join form's confirmation: who answers for the store. Shown before Join.</summary>
+    public static string StoresJoinOwnerResponsible(string owner) => Fill(Get("StoresJoinOwnerResponsible"), ("owner", owner));
+
     /// <summary>Line when the store has no plugins.</summary>
     public static string StoresNoPlugins => Get("StoresNoPlugins");
 
@@ -6331,6 +6340,8 @@ public static partial class T
         ["AboutTitleApp"] = "About anistream",
         ["AboutVersion"] = "Version {version}",
         ["AboutLicence"] = "Released under the MIT licence.",
+        ["AboutLegal"] = "anistream supplies no sources. Plugins come from plugin stores run by other people.",
+        ["AboutLegalLink"] = "Legal and contact",
         ["AboutAcknowledgements"] = "Acknowledgements",
         ["AboutLicences"] = "Licences",
         ["AboutWebsite"] = "Website",
@@ -6860,13 +6871,13 @@ public static partial class T
         ["TooltipWithKey"] = "{name} ({key})",
         ["OnboardingWelcome"] = "Welcome",
         ["OnboardingWelcomeTo"] = "Welcome to anistream",
-        ["OnboardingTagline"] = "Keep track of anime and play it from sources you choose.",
+        ["OnboardingTagline"] = "Keep track of anime and play what you're entitled to watch.",
         ["OnboardingContinue"] = "Continue",
         ["OnboardingSkip"] = "Skip",
         ["OnboardingSkipForNow"] = "Skip for now",
         ["OnboardingNotNow"] = "Not now",
         ["OnboardingSourcesTitle"] = "Sources",
-        ["OnboardingSourcesDetail"] = "Sources are plugins, shared through plugin stores by invite.",
+        ["OnboardingSourcesDetail"] = "Join a plugin store with an invite from its owner. anistream supplies no sources.",
         ["OnboardingJoin"] = "Join",
         ["OnboardingInviteHint"] = "Invite link",
         ["PartyOpen"] = "Watch party…",
@@ -7261,7 +7272,7 @@ public static partial class T
         ["SettingsResetDone"] = "Settings are back to their defaults. The old file is kept as {file}.",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
-        ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
+        ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use.",
         ["SourcePickerTitle"] = "Source for this title",
         ["SourcePickerAutomatic"] = "Automatic",
         ["SourcePickerAutomaticDetail"] = "Each episode from the first source that has it",
@@ -7284,7 +7295,7 @@ public static partial class T
         ["SourcesMoveDown"] = "Move down",
         ["SourcesLoadFailed"] = "Couldn't load sources",
         ["SourcesEmptyTitle"] = "No sources yet",
-        ["SourcesEmptyDetail"] = "Sources come from plugin stores. Join one with the invite link its owner sends you.",
+        ["SourcesEmptyDetail"] = "Join a plugin store with the invite link its owner sends you.",
         ["SourcesTorrents"] = "Torrents",
         ["SourcesRemote"] = "Remote",
         ["SourcesOriginConfig"] = "Set in the config file",
@@ -7357,6 +7368,7 @@ public static partial class T
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",
         ["StoresIntro"] = "Plugins add sources. Each one lists the hosts it contacts before you install it.",
         ["StoresNotFromApp"] = "Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.",
+        ["StoresJoinOwnerResponsible"] = "{owner} runs this plugin store and chose its plugins. anistream did not make, review or approve them.",
         ["StoresNoPlugins"] = "This plugin store offers no plugins yet.",
         ["StoresPlugins"] = "Plugins",
         ["StoresPluginLimits"] = "Each plugin can contact only the hosts listed with it and cannot read your files.",

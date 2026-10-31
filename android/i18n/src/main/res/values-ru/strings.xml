@@ -1251,13 +1251,11 @@
     <string name="tooltip_with_key">%1$s (%2$s)</string>
     <string name="onboarding_welcome">Добро пожаловать</string>
     <string name="onboarding_welcome_to">Добро пожаловать в anistream</string>
-    <string name="onboarding_tagline">Ведите список аниме и смотрите его через источники, которые вы выбираете.</string>
     <string name="onboarding_continue">Продолжить просмотр</string>
     <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_skip_for_now">Пропустить пока</string>
     <string name="onboarding_not_now">Не сейчас</string>
     <string name="onboarding_sources_title">Источники</string>
-    <string name="onboarding_sources_detail">Источники: это плагины, которыми делятся через магазины плагинов по приглашению.</string>
     <string name="onboarding_join">Подключиться</string>
     <string name="onboarding_invite_hint">Ссылка-приглашение</string>
     <string name="party_open">Совместный просмотр…</string>
@@ -1657,7 +1655,6 @@
     <string name="settings_trailers_wifi_only">Только по Wi-Fi</string>
     <string name="sources_title">Источники</string>
     <string name="sources_empty">Источники пока не установлены. Подключите магазин плагинов, чтобы добавить их.</string>
-    <string name="plugin_risk_warning">Плагины пишут другие люди, и они запускаются в ваше устройство. Устанавливайте только у тех, кому доверяете.</string>
     <string name="source_picker_title">Источник для этого названия</string>
     <string name="source_picker_automatic">Автоматически</string>
     <string name="source_picker_automatic_detail">Каждый эпизод из первого источника, где он есть</string>
@@ -1684,7 +1681,6 @@
     <string name="sources_move_down">Опустить</string>
     <string name="sources_load_failed">Не удалось загрузить источники</string>
     <string name="sources_empty_title">Источники пока не установлены</string>
-    <string name="sources_empty_detail">Подключите магазин плагинов, чтобы добавить источники. Нужна пригласительная ссылка, которую присылает владелец магазина.</string>
     <string name="sources_torrents">Торренты</string>
     <string name="sources_remote">Удалённый</string>
     <string name="sources_origin_config">Задан в файле настроек</string>

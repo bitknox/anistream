@@ -1209,13 +1209,11 @@
     <string name="tooltip_with_key">%1$s (%2$s)</string>
     <string name="onboarding_welcome">Boas-vindas</string>
     <string name="onboarding_welcome_to">Bem-vindo ao anistream</string>
-    <string name="onboarding_tagline">Acompanhe seus animes e assista a partir das fontes que você escolher.</string>
     <string name="onboarding_continue">Continuar assistindo</string>
     <string name="onboarding_skip">Pular</string>
     <string name="onboarding_skip_for_now">Pular por enquanto</string>
     <string name="onboarding_not_now">Agora não</string>
     <string name="onboarding_sources_title">Fontes</string>
-    <string name="onboarding_sources_detail">Fontes são plugins, compartilhados por convite nas lojas de plugins.</string>
     <string name="onboarding_join">Entrar</string>
     <string name="onboarding_invite_hint">Link de convite</string>
     <string name="party_open">Abrir sessão em grupo…</string>
@@ -1613,7 +1611,6 @@
     <string name="settings_trailers_wifi_only">Só no Wi-Fi</string>
     <string name="sources_title">Fontes</string>
     <string name="sources_empty">Ainda não há fontes. Entre em uma loja de plugins para adicionar algumas.</string>
-    <string name="plugin_risk_warning">Plugins são escritos por outras pessoas e rodam no seu dispositivo. Instale somente de pessoas em quem você confia.</string>
     <string name="source_picker_title">Fonte para este título</string>
     <string name="source_picker_automatic">Automática</string>
     <string name="source_picker_automatic_detail">Cada episódio da primeira fonte que o tenha</string>
@@ -1639,7 +1636,6 @@
     <string name="sources_move_down">Mover para baixo</string>
     <string name="sources_load_failed">Não foi possível carregar fontes</string>
     <string name="sources_empty_title">Ainda não há fontes</string>
-    <string name="sources_empty_detail">Fontes vêm de lojas de plugins. Entre em uma com o link de convite que o dono enviar para você.</string>
     <string name="sources_torrents">Torrents</string>
     <string name="sources_remote">Remota</string>
     <string name="sources_origin_config">Definida no arquivo de configuração</string>

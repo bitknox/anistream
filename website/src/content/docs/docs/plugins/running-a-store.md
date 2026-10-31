@@ -3,6 +3,11 @@ title: Running a store
 description: Deploy a plugin store, claim it, and look after it.
 ---
 
+A store is yours. You choose its plugins and its members, and you are responsible for what it
+lists and for the sources those plugins reach. List only plugins for sources you and your members
+are entitled to use. anistream makes the store's software and does not run, list or review
+stores.
+
 A store is one small program, and it is the same program wherever it runs. Run it on what you
 already have: an account on a hosting platform, a server, or a computer that stays on.
 

@@ -5221,9 +5221,6 @@ onboarding-welcome = Boas-vindas
 # Title of the first page.
 onboarding-welcome-to = Bem-vindo ao anistream
 
-# Line under the title.
-onboarding-tagline = Acompanhe seus animes e assista a partir das fontes que você escolher.
-
 # Button that goes to the next page.
 onboarding-continue = Continuar assistindo
 
@@ -5238,9 +5235,6 @@ onboarding-not-now = Agora não
 
 # Heading of the page about sources.
 onboarding-sources-title = Fontes
-
-# Line under it.
-onboarding-sources-detail = Fontes são plugins, compartilhados por convite nas lojas de plugins.
 
 # Button that joins a store from the welcome page.
 onboarding-join = Entrar
@@ -6405,9 +6399,6 @@ sources-title = Fontes
 # Shown on the sources screen when none is installed.
 sources-empty = Ainda não há fontes. Entre em uma loja de plugins para adicionar algumas.
 
-# Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = Plugins são escritos por outras pessoas e rodam no seu dispositivo. Instale somente de pessoas em quem você confia.
-
 # Menu and palette entry that opens the picker, and the picker's title.
 source-picker-title = Fonte para este título
 
@@ -6475,9 +6466,6 @@ sources-load-failed = Não foi possível carregar fontes
 
 # Title when no source is installed.
 sources-empty-title = Ainda não há fontes
-
-# Line under it.
-sources-empty-detail = Fontes vêm de lojas de plugins. Entre em uma com o link de convite que o dono enviar para você.
 
 # Row for the built-in torrent source.
 sources-torrents = Torrents

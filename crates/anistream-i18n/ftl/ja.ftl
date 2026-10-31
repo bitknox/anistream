@@ -5121,9 +5121,6 @@ onboarding-welcome = ようこそ
 # Title of the first page.
 onboarding-welcome-to = anistreamへようこそ
 
-# Line under the title.
-onboarding-tagline = アニメの視聴記録を管理し、選んだソースから再生できます。
-
 # Button that goes to the next page.
 onboarding-continue = 続きを見る
 
@@ -5138,9 +5135,6 @@ onboarding-not-now = 今はしない
 
 # Heading of the page about sources.
 onboarding-sources-title = ソース
-
-# Line under it.
-onboarding-sources-detail = ソースはプラグインで、招待制のプラグインストアを通じて共有されます。
 
 # Button that joins a store from the welcome page.
 onboarding-join = 参加
@@ -6294,9 +6288,6 @@ sources-title = ソース
 # Shown on the sources screen when none is installed.
 sources-empty = ソースはまだありません。プラグインストアに参加すると追加できます。
 
-# Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = プラグインは他の人が作成したもので、デバイス上で実行されます。信頼できる相手からのみインストールしてください。
-
 # Menu and palette entry that opens the picker, and the picker's title.
 source-picker-title = この作品のソース
 
@@ -6362,9 +6353,6 @@ sources-load-failed = ソースを読み込めませんでした
 
 # Title when no source is installed.
 sources-empty-title = ソースはまだありません
-
-# Line under it.
-sources-empty-detail = ソースはプラグインストアから提供されます。所有者から届く招待リンクで参加してください。
 
 # Row for the built-in torrent source.
 sources-torrents = トレント

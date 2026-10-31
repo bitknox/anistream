@@ -1,13 +1,22 @@
 # Writing a plugin
 
+## Before you write a plugin
+
+A plugin connects anistream to a source: your own server, an API whose terms allow a third-party
+client, or a catalogue licensed for it. You are responsible for your plugin, for the sources it
+reaches and for the rights it relies on. Write plugins only for sources you, and the people who
+install them, are entitled to use. A plugin must not get round DRM, paywalls, sign-ins or other
+access controls. anistream does not review, sign or distribute plugins; stores are run by the
+people who own them.
+
 A plugin is a WebAssembly component: search terms in, episodes and stream URLs out.
 anistream loads `*.wasm` from the plugin directory (`anistream --plugins` prints it) and treats it
 like a native source, with the same ranking, health tracking and failover. Any WASI 0.2 language
 works, and reference implementations in Rust and JavaScript live in `plugins/`.
 
-**The sandbox has no sockets. The host lends `fetch`.** The host owns the browser-shaped TLS
-fingerprint; your plugin is a parser. It cannot reach anything outside its declared
-`allowed-hosts`, enforced host-side.
+**The sandbox has no sockets. The host lends `fetch`.** The host makes each request, enforces
+`allowed-hosts`, rate-limits and keeps the cookie jar, so your plugin is a parser. It cannot reach
+anything outside its declared `allowed-hosts`.
 
 ## The interface
 
@@ -17,7 +26,6 @@ fingerprint; your plugin is a parser. It cannot reach anything outside its decla
 interface host {                          // what you may call
     fetch:          func(req: http-request) -> result<http-response, host-error>;
     log:            func(level: string, msg: string);
-    aes-decrypt:    func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
     regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
     fetch-many:     func(reqs: list<http-request>) -> list<result<http-response, host-error>>;
     config-get:     func(key: string) -> option<string>;
@@ -42,7 +50,6 @@ interface provider {                      // what you must export
 - `sources`: the selectable releases for the Sources overlay, best-first. An empty list means
   "nothing to choose between", which is an answer and not a failure.
 - `resolve-source`: one candidate's id back into streams. Never fall back to the automatic pick.
-- `aes-decrypt`: AES-CBC. The key length selects 128, 192 or 256.
 - `config-get`: reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
   Every key is optional, so work with all of them unset.
 
@@ -52,12 +59,12 @@ whose URL has no extension, `download-source` on a stream.
 
 Errors map one-for-one onto the registry's failover rules:
 
-| Return         | Meaning                                      | Failover?                   |
-| -------------- | -------------------------------------------- | --------------------------- |
-| `not-found`    | Works, no such title or episode              | Yes, not counted as a fault |
-| `blocked(msg)` | Bot protection, rate limit, geo-block, ban   | Yes                         |
-| `parse(msg)`   | Response arrived, did not look like expected | Yes                         |
-| `other(msg)`   | Anything else                                | Yes                         |
+| Return         | Meaning                                         | Failover?                   |
+| -------------- | ----------------------------------------------- | --------------------------- |
+| `not-found`    | Works, no such title or episode                 | Yes, not counted as a fault |
+| `blocked(msg)` | The host refused it or asked to slow down       | Yes                         |
+| `parse(msg)`   | Response arrived, did not look like expected    | Yes                         |
+| `other(msg)`   | Anything else                                   | Yes                         |
 
 Do not flatten `not-found` into `other`. A missing title is an answer, and reported as one: the
 Sources screen and the failure message would otherwise show a fault where the source only lacks

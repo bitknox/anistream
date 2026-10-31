@@ -6195,6 +6195,16 @@ pub fn about_licence() -> String {
     text("about-licence", &[])
 }
 
+/// Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.
+pub fn about_legal() -> String {
+    text("about-legal", &[])
+}
+
+/// Row opening the legal and contact page on the website.
+pub fn about_legal_link() -> String {
+    text("about-legal-link", &[])
+}
+
 /// Row opening the list of acknowledgements.
 pub fn about_acknowledgements() -> String {
     text("about-acknowledgements", &[])
@@ -11238,6 +11248,11 @@ pub fn stores_intro() -> String {
 /// Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
 pub fn stores_not_from_app() -> String {
     text("stores-not-from-app", &[])
+}
+
+/// Line under the join form's confirmation: who answers for the store. Shown before Join.
+pub fn stores_join_owner_responsible(owner: &str) -> String {
+    text("stores-join-owner-responsible", &[("owner", Arg::Text(owner))])
 }
 
 /// Line when the store has no plugins.

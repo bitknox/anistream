@@ -5271,9 +5271,6 @@ onboarding-welcome = Добро пожаловать
 # Title of the first page.
 onboarding-welcome-to = Добро пожаловать в anistream
 
-# Line under the title.
-onboarding-tagline = Ведите список аниме и смотрите его через источники, которые вы выбираете.
-
 # Button that goes to the next page.
 onboarding-continue = Продолжить просмотр
 
@@ -5288,9 +5285,6 @@ onboarding-not-now = Не сейчас
 
 # Heading of the page about sources.
 onboarding-sources-title = Источники
-
-# Line under it.
-onboarding-sources-detail = Источники: это плагины, которыми делятся через магазины плагинов по приглашению.
 
 # Button that joins a store from the welcome page.
 onboarding-join = Подключиться
@@ -6453,9 +6447,6 @@ sources-title = Источники
 # Shown on the sources screen when none is installed.
 sources-empty = Источники пока не установлены. Подключите магазин плагинов, чтобы добавить их.
 
-# Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = Плагины пишут другие люди, и они запускаются в ваше устройство. Устанавливайте только у тех, кому доверяете.
-
 # Menu and palette entry that opens the picker, and the picker's title.
 source-picker-title = Источник для этого названия
 
@@ -6524,9 +6515,6 @@ sources-load-failed = Не удалось загрузить источники
 
 # Title when no source is installed.
 sources-empty-title = Источники пока не установлены
-
-# Line under it.
-sources-empty-detail = Подключите магазин плагинов, чтобы добавить источники. Нужна пригласительная ссылка, которую присылает владелец магазина.
 
 # Row for the built-in torrent source.
 sources-torrents = Торренты

@@ -2888,9 +2888,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Добро пожаловать в anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Ведите список аниме и смотрите его через источники, которые вы выбираете.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Продолжить просмотр</value>
   </data>
@@ -2905,9 +2902,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Источники</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Источники: это плагины, которыми делятся через магазины плагинов по приглашению.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Подключиться</value>
@@ -4082,9 +4076,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Источники пока не установлены. Подключите магазин плагинов, чтобы добавить их.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Плагины пишут другие люди, и они запускаются в ваше устройство. Устанавливайте только у тех, кому доверяете.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Источник для этого названия</value>
   </data>
@@ -4156,9 +4147,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Источники пока не установлены</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Подключите магазин плагинов, чтобы добавить источники. Нужна пригласительная ссылка, которую присылает владелец магазина.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Торренты</value>

@@ -79,9 +79,8 @@ with open(ipa, "rb") as f:
         digest.update(block)
 
 icon = f"https://raw.githubusercontent.com/{repo}/main/assets/icon/512x512.png"
-about = ("anistream for iPhone and iPad, on the same engine as the terminal and Mac apps: browse, "
-         "watch, track and sync anime in one client, with sources as plugins you add. anistream hosts "
-         "no content. What you point a plugin at is your own decision, at your own risk.")
+about = ("anistream for iPhone and iPad: browse anime on AniList, play the sources you add, and sync "
+         "your progress to five trackers. anistream hosts no content and supplies no sources.")
 source = {
     "version": 2,
     "name": "anistream",

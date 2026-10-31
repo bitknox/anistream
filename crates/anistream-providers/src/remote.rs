@@ -1,12 +1,9 @@
-//! A provider backed by a self-hosted HTTP API.
+//! A source backed by a JSON API you host, such as an index of your own media. It answers
+//! `search`, `info` and `watch` under `providers.remote_url` and does nothing until that is set.
 //!
-//! The escape hatch. When a native source dies, pointing this at a Consumet-shaped service
-//! you run yourself restores playback with a config edit rather than a release — which is
-//! the whole reason the `Provider` trait exists.
-//!
-//! Deliberately tolerant about response shape. Every one of these services names its fields
-//! slightly differently, and a provider that refuses to parse a working API because it said
-//! `episodeId` instead of `id` would defeat the point of being an escape hatch.
+//! Tolerant about response shape. Servers name their fields slightly differently, and a
+//! provider that refuses to parse a working API because it said `episodeId` instead of `id`
+//! would be needlessly brittle.
 
 use anistream_core::{
     error::ProviderError,
@@ -148,7 +145,7 @@ pub fn parse_episodes(payload: &Value) -> Vec<Episode> {
             Some(Episode {
                 title: field(item, &["title", "name"]).map(str::to_owned),
                 duration: number_duration(item),
-                // Consumet-shaped services publish a still under one of these names.
+                // Servers publish a still under one of these names.
                 thumbnail: field(item, &["image", "thumbnail", "img"])
                     .filter(|url| url.starts_with("http"))
                     .map(str::to_owned),
@@ -268,7 +265,7 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn hits_parse_from_the_common_consumet_shape() {
+    fn hits_parse_from_the_common_shape() {
         let payload = json!({
             "results": [
                 {"id": "hoshikuzu", "title": "Hoshikuzu", "totalEpisodes": 28, "type": "TV"}
@@ -283,7 +280,7 @@ mod tests {
 
     #[test]
     fn hits_parse_when_the_service_uses_different_field_names() {
-        // The point of an escape hatch is that it works with whatever you pointed it at.
+        // The source works with whatever API you pointed it at.
         let payload = json!({
             "data": [{"animeId": "x1", "name": "Tsukiakari", "episodeCount": "12"}]
         });
@@ -381,8 +378,8 @@ mod tests {
     #[test]
     fn the_manifest_declares_only_the_configured_host() {
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
-        let p = RemoteHttpProvider::new("https://consumet.internal:8080/anime/", http);
-        assert_eq!(p.manifest().allowed_hosts, vec!["consumet.internal:8080"]);
+        let p = RemoteHttpProvider::new("https://api.example:8080/anime/", http);
+        assert_eq!(p.manifest().allowed_hosts, vec!["api.example:8080"]);
         assert_eq!(p.manifest().kind, ProviderKind::Remote);
     }
 }

@@ -2804,9 +2804,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Benvenuto in anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Tieni traccia degli anime e riproducili dalle fonti che scegli.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Continua a guardare</value>
   </data>
@@ -2821,9 +2818,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Fonti</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Le fonti sono plugin, condivisi tramite i negozi di plugin su invito.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Unisciti</value>
@@ -3992,9 +3986,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Ancora nessuna fonte. Unisciti a un negozio di plugin per aggiungerne.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>I Plugin sono scritti da altre persone e girano sul tuo dispositivo. Installa solo da persone di cui ti fidi.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Fonte per questo titolo</value>
   </data>
@@ -4063,9 +4054,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Ancora nessuna fonte</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Le fonti arrivano dai negozi di plugin. Unisciti a uno con il link di invito che ti manda il proprietario.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrent</value>

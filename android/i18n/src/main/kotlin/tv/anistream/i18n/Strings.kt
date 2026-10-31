@@ -2589,6 +2589,14 @@ object Strings {
     fun aboutLicence(context: Context): String =
         context.getString(R.string.about_licence)
 
+    /** Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it. */
+    fun aboutLegal(context: Context): String =
+        context.getString(R.string.about_legal)
+
+    /** Row opening the legal and contact page on the website. */
+    fun aboutLegalLink(context: Context): String =
+        context.getString(R.string.about_legal_link)
+
     /** Row opening the list of acknowledgements. */
     fun aboutAcknowledgements(context: Context): String =
         context.getString(R.string.about_acknowledgements)
@@ -6628,6 +6636,10 @@ object Strings {
     /** Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it. */
     fun storesNotFromApp(context: Context): String =
         context.getString(R.string.stores_not_from_app)
+
+    /** Line under the join form's confirmation: who answers for the store. Shown before Join. */
+    fun storesJoinOwnerResponsible(context: Context, owner: String): String =
+        context.getString(R.string.stores_join_owner_responsible, owner)
 
     /** Line when the store has no plugins. */
     fun storesNoPlugins(context: Context): String =

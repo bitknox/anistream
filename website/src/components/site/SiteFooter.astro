@@ -2,7 +2,7 @@
 // The foot of the landing page and the apps page: Nagare, the legal line, the licence and links.
 import Nagare from '../Nagare.astro';
 import { useSite } from '../../i18n/site';
-import { APPS, FEATURES, GITHUB, PRIVACY, RELEASES } from '../../data/site';
+import { APPS, FEATURES, GITHUB, LEGAL, PRIVACY, RELEASES } from '../../data/site';
 
 const { t, href } = useSite(Astro);
 ---
@@ -21,6 +21,7 @@ const { t, href } = useSite(Astro);
 		<a href={href(FEATURES)}>{t('site.nav.features')}</a>
 		<a href={href('/docs/')}>{t('site.nav.docs')}</a>
 		<a href={href(PRIVACY)}>{t('site.footer.privacy')}</a>
+		<a href={href(LEGAL)}>{t('site.footer.legal')}</a>
 		<a href={RELEASES}>{t('site.nav.releases')}</a>
 		<a href={GITHUB}>GitHub</a>
 	</nav>

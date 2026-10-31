@@ -16,6 +16,7 @@ export const APPS = '/apps/';
 export const FEATURES = '/features/';
 
 export const PRIVACY = '/docs/privacy/';
+export const LEGAL = '/legal/';
 
 /**
  * The apps and the toolkit each interface is written in, as keys under `apps.toolkit.` in the

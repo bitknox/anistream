@@ -1169,13 +1169,11 @@
     <string name="tooltip_with_key">%1$s (%2$s)</string>
     <string name="onboarding_welcome">Välkommen</string>
     <string name="onboarding_welcome_to">Välkommen till anistream</string>
-    <string name="onboarding_tagline">Håll koll på anime och spela upp den från källor du väljer.</string>
     <string name="onboarding_continue">Fortsätt titta</string>
     <string name="onboarding_skip">Hoppa över</string>
     <string name="onboarding_skip_for_now">Hoppa över för nu</string>
     <string name="onboarding_not_now">Inte nu</string>
     <string name="onboarding_sources_title">Källor</string>
-    <string name="onboarding_sources_detail">Källor är tillägg, som delas via tilläggsbutiker på inbjudan.</string>
     <string name="onboarding_join">Gå med</string>
     <string name="onboarding_invite_hint">Inbjudningslänk</string>
     <string name="party_open">Öppna Watch party…</string>
@@ -1568,7 +1566,6 @@
     <string name="settings_trailers_wifi_only">Endast Wi-Fi</string>
     <string name="sources_title">Källor</string>
     <string name="sources_empty">Inga källor än. Anslut dig till en tilläggsbutik för att lägga till några.</string>
-    <string name="plugin_risk_warning">Tillägg skrivs av andra och körs på din enhet. Installera bara från personer du litar på.</string>
     <string name="source_picker_title">Källa för den här titeln</string>
     <string name="source_picker_automatic">Automatiskt</string>
     <string name="source_picker_automatic_detail">Varje avsnitt från första källan som har det</string>
@@ -1593,7 +1590,6 @@
     <string name="sources_move_down">Flytta ner</string>
     <string name="sources_load_failed">Det gick inte att läsa in källor</string>
     <string name="sources_empty_title">Inga källor än</string>
-    <string name="sources_empty_detail">Källor kommer från tilläggsbutiker. Anslut dig till en med den inbjudningslänk som ägaren skickar dig.</string>
     <string name="sources_torrents">Torrent</string>
     <string name="sources_remote">Fjärrstyrd</string>
     <string name="sources_origin_config">Angiven i konfigurationsfilen</string>

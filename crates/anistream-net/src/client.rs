@@ -141,14 +141,12 @@ impl HttpClient {
         Ok(Self { emulated, plain, profile, refused: Some(refused) })
     }
 
-    /// Client with a browser TLS/HTTP2 fingerprint. Use for provider hosts behind bot
-    /// protection.
+    /// Client with a browser-style TLS/HTTP2 handshake. Used for plugin requests.
     pub fn emulated(&self) -> &wreq::Client {
         &self.emulated
     }
 
-    /// Plain client. Use for hosts with no bot protection — it is faster and its
-    /// behaviour is easier to reason about.
+    /// Plain client. Faster, and its behaviour is easier to reason about.
     pub fn plain(&self) -> &reqwest::Client {
         &self.plain
     }

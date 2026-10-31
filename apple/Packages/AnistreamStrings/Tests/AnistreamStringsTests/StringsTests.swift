@@ -12,7 +12,7 @@ import Testing
     }
 
     @Test func termsAreWrittenIn() {
-        #expect(L.pluginRiskWarning == "Plugins are written by other people and run on your device. Install only from people you trust.")
+        #expect(L.pluginRiskWarning == "Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use.")
         #expect(L.audioSubbed == "Subbed")
     }
 

@@ -306,9 +306,9 @@ mod tests {
 
     #[test]
     fn blocked_and_parse_both_fail_over() {
-        // The two signature source failures: bot protection, and the site changing shape.
+        // The two usual source failures: the host refusing the request, and the response changing shape.
         for error in [
-            GuestError::Blocked("cloudflare".into()),
+            GuestError::Blocked("refused".into()),
             GuestError::Parse("no player element".into()),
         ] {
             assert!(from_guest(error.clone()).should_failover(), "{error:?} should fail over");

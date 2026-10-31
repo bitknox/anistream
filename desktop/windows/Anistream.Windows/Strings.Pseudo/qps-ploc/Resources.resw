@@ -1927,6 +1927,14 @@
     <value>[Ŕéļéàšéð üñðéŕ ţĥé ṀÎŢ ļîçéñçé.~~~~~~~~~~]</value>
     <comment>Line with the licence.</comment>
   </data>
+  <data name="AboutLegal" xml:space="preserve">
+    <value>[àñîšţŕéàɱ šüþþļîéš ñö šöüŕçéš. Þļüĝîñš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš ŕüñ ƀý öţĥéŕ þéöþļé.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.</comment>
+  </data>
+  <data name="AboutLegalLink" xml:space="preserve">
+    <value>[Ļéĝàļ àñð çöñţàçţ~~~~~~]</value>
+    <comment>Row opening the legal and contact page on the website.</comment>
+  </data>
   <data name="AboutAcknowledgements" xml:space="preserve">
     <value>[Åçķñöŵļéðĝéɱéñţš~~~~~]</value>
     <comment>Row opening the list of acknowledgements.</comment>
@@ -4044,7 +4052,7 @@
     <comment>Title of the first page.</comment>
   </data>
   <data name="OnboardingTagline" xml:space="preserve">
-    <value>[Ķééþ ţŕàçķ öƒ àñîɱé àñð þļàý îţ ƒŕöɱ šöüŕçéš ýöü çĥööšé.~~~~~~~~~~~~~~~~~]</value>
+    <value>[Ķééþ ţŕàçķ öƒ àñîɱé àñð þļàý ŵĥàţ ýöü'ŕé éñţîţļéð ţö ŵàţçĥ.~~~~~~~~~~~~~~~~~~]</value>
     <comment>Line under the title.</comment>
   </data>
   <data name="OnboardingContinue" xml:space="preserve">
@@ -4068,7 +4076,7 @@
     <comment>Heading of the page about sources.</comment>
   </data>
   <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>[Šöüŕçéš àŕé þļüĝîñš, šĥàŕéð ţĥŕöüĝĥ þļüĝîñ šţöŕéš ƀý îñṽîţé.~~~~~~~~~~~~~~~~~~]</value>
+    <value>[Ĵöîñ à þļüĝîñ šţöŕé ŵîţĥ àñ îñṽîţé ƒŕöɱ îţš öŵñéŕ. àñîšţŕéàɱ šüþþļîéš ñö šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Line under it.</comment>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
@@ -5648,7 +5656,7 @@
     <comment>Shown on the sources screen when none is installed.</comment>
   </data>
   <data name="PluginRiskWarning" xml:space="preserve">
-    <value>[Þļüĝîñš àŕé ŵŕîţţéñ ƀý öţĥéŕ þéöþļé àñð ŕüñ öñ ýöüŕ ðéṽîçé. Îñšţàļļ öñļý ƒŕöɱ þéöþļé ýöü ţŕüšţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <value>[Þļüĝîñš àŕé ŵŕîţţéñ ƀý öţĥéŕ þéöþļé àñð ŕüñ öñ ýöüŕ ðéṽîçé. Îñšţàļļ öñļý þļüĝîñš ýöü ţŕüšţ, ƒöŕ šöüŕçéš ýöü'ŕé éñţîţļéð ţö üšé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Warning at install and in onboarding, in the same words in both.</comment>
   </data>
   <data name="SourcePickerTitle" xml:space="preserve">
@@ -5740,7 +5748,7 @@
     <comment>Title when no source is installed.</comment>
   </data>
   <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>[Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš. Ĵöîñ öñé ŵîţĥ ţĥé îñṽîţé ļîñķ îţš öŵñéŕ šéñðš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <value>[Ĵöîñ à þļüĝîñ šţöŕé ŵîţĥ ţĥé îñṽîţé ļîñķ îţš öŵñéŕ šéñðš ýöü.~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Line under it.</comment>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
@@ -6030,6 +6038,10 @@
   <data name="StoresNotFromApp" xml:space="preserve">
     <value>[Þļüĝîñš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ, ñöţ ƒŕöɱ àñîšţŕéàɱ. Ýöü çàñ ļéàṽé à þļüĝîñ šţöŕé àţ àñý ţîɱé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.</comment>
+  </data>
+  <data name="StoresJoinOwnerResponsible" xml:space="preserve">
+    <value>[{owner} ŕüñš ţĥîš þļüĝîñ šţöŕé àñð çĥöšé îţš þļüĝîñš. àñîšţŕéàɱ ðîð ñöţ ɱàķé, ŕéṽîéŵ öŕ àþþŕöṽé ţĥéɱ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the join form's confirmation: who answers for the store. Shown before Join.</comment>
   </data>
   <data name="StoresNoPlugins" xml:space="preserve">
     <value>[Ţĥîš þļüĝîñ šţöŕé öƒƒéŕš ñö þļüĝîñš ýéţ.~~~~~~~~~~~~]</value>

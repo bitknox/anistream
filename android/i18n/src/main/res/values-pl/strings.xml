@@ -1251,13 +1251,11 @@
     <string name="tooltip_with_key">%1$s (%2$s)</string>
     <string name="onboarding_welcome">Witaj</string>
     <string name="onboarding_welcome_to">Witaj w anistream</string>
-    <string name="onboarding_tagline">Śledź anime i odtwarzaj je, wybierając źródła.</string>
     <string name="onboarding_continue">Dalej</string>
     <string name="onboarding_skip">Pomiń</string>
     <string name="onboarding_skip_for_now">Pomiń na razie</string>
     <string name="onboarding_not_now">Nie teraz</string>
     <string name="onboarding_sources_title">Źródła</string>
-    <string name="onboarding_sources_detail">Źródła to wtyczki, a sklepy z wtyczkami udostępniają je na zaproszenie.</string>
     <string name="onboarding_join">Dołącz</string>
     <string name="onboarding_invite_hint">Link zaproszenia</string>
     <string name="party_open">Wspólne oglądanie…</string>
@@ -1659,7 +1657,6 @@
     <string name="settings_trailers_wifi_only">Tylko Wi-Fi</string>
     <string name="sources_title">Źródła</string>
     <string name="sources_empty">Nie masz jeszcze źródła. Dodaj sklep z wtyczkami, aby je tu dostać.</string>
-    <string name="plugin_risk_warning">Wtyczki tworzą inne osoby i działają na twoim sprzęcie. Instaluj tylko od osób, którym ufasz.</string>
     <string name="source_picker_title">Źródło dla tego tytułu</string>
     <string name="source_picker_automatic">Automatycznie</string>
     <string name="source_picker_automatic_detail">Każdy odcinek z pierwszej pozycji na liście, która go ma</string>
@@ -1686,7 +1683,6 @@
     <string name="sources_move_down">Przesuń niżej</string>
     <string name="sources_load_failed">Źródła nie wczytały się</string>
     <string name="sources_empty_title">Nie masz jeszcze źródła</string>
-    <string name="sources_empty_detail">Źródła dostarczają wtyczki. Dodaj sklep z wtyczkami, używając linku z zaproszeniem od właściciela.</string>
     <string name="sources_torrents">Torrenty</string>
     <string name="sources_remote">Zdalne</string>
     <string name="sources_origin_config">Ustawione w pliku konfiguracyjnym</string>

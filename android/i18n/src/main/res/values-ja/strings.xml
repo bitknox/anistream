@@ -1128,13 +1128,11 @@
     <string name="tooltip_with_key">%1$s（%2$s）</string>
     <string name="onboarding_welcome">ようこそ</string>
     <string name="onboarding_welcome_to">anistreamへようこそ</string>
-    <string name="onboarding_tagline">アニメの視聴記録を管理し、選んだソースから再生できます。</string>
     <string name="onboarding_continue">続きを見る</string>
     <string name="onboarding_skip">スキップ</string>
     <string name="onboarding_skip_for_now">今はスキップ</string>
     <string name="onboarding_not_now">今はしない</string>
     <string name="onboarding_sources_title">ソース</string>
-    <string name="onboarding_sources_detail">ソースはプラグインで、招待制のプラグインストアを通じて共有されます。</string>
     <string name="onboarding_join">参加</string>
     <string name="onboarding_invite_hint">招待リンク</string>
     <string name="party_open">同時視聴…</string>
@@ -1523,7 +1521,6 @@
     <string name="settings_trailers_wifi_only">Wi-Fiのみ</string>
     <string name="sources_title">ソース</string>
     <string name="sources_empty">ソースはまだありません。プラグインストアに参加すると追加できます。</string>
-    <string name="plugin_risk_warning">プラグインは他の人が作成したもので、デバイス上で実行されます。信頼できる相手からのみインストールしてください。</string>
     <string name="source_picker_title">この作品のソース</string>
     <string name="source_picker_automatic">自動</string>
     <string name="source_picker_automatic_detail">各エピソードを、配信している最初のソースから取得</string>
@@ -1547,7 +1544,6 @@
     <string name="sources_move_down">下に移動</string>
     <string name="sources_load_failed">ソースを読み込めませんでした</string>
     <string name="sources_empty_title">ソースはまだありません</string>
-    <string name="sources_empty_detail">ソースはプラグインストアから提供されます。所有者から届く招待リンクで参加してください。</string>
     <string name="sources_torrents">トレント</string>
     <string name="sources_remote">リモート</string>
     <string name="sources_origin_config">設定ファイルで指定</string>

@@ -14,7 +14,7 @@ export default defineConfig({
 		starlight({
 			title: 'anistream',
 			description:
-				'An open-source anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and a terminal app, for browsing, watching, tracking and syncing, with sources as plugins. anistream hosts no content.',
+				'An open-source anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and a terminal app, for browsing, watching, tracking and syncing, with sources as plugins. anistream hosts no content and supplies no sources.',
 			logo: { src: './src/assets/icon-32.svg', alt: '', replacesTitle: false },
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/bitknox/anistream' }],
 			defaultLocale: 'root',
@@ -73,6 +73,7 @@ export default defineConfig({
 				group('Reference', 'reference', [
 					entry('Architecture', 'architecture', 'docs/reference/architecture'),
 					entry('Privacy', 'privacy', 'docs/privacy'),
+					entry('Legal and contact', 'legal', 'legal'),
 				]),
 			],
 		}),

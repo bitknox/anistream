@@ -1202,13 +1202,11 @@
     <string name="tooltip_with_key">%1$s (%2$s)</string>
     <string name="onboarding_welcome">Bienvenue</string>
     <string name="onboarding_welcome_to">Bienvenue dans anistream</string>
-    <string name="onboarding_tagline">Suivez vos animes et lisez-les depuis les sources de votre choix.</string>
     <string name="onboarding_continue">Continuer</string>
     <string name="onboarding_skip">Passer</string>
     <string name="onboarding_skip_for_now">Passer pour l’instant</string>
     <string name="onboarding_not_now">Pas maintenant</string>
     <string name="onboarding_sources_title">Sources</string>
-    <string name="onboarding_sources_detail">Les sources sont des plugins, partagés par invitation via des boutiques de plugins.</string>
     <string name="onboarding_join">Rejoindre</string>
     <string name="onboarding_invite_hint">Lien d’invitation</string>
     <string name="party_open">Visionnage en groupe…</string>
@@ -1606,7 +1604,6 @@
     <string name="settings_trailers_wifi_only">Wi-Fi uniquement</string>
     <string name="sources_title">Sources</string>
     <string name="sources_empty">Aucune sources pour l\'instant. Rejoignez une boutique de plugins pour en ajouter.</string>
-    <string name="plugin_risk_warning">Plugins sont écrits par d\'autres personnes et s\'exécutent sur votre appareil. N\'installez que des plugins de personnes de confiance.</string>
     <string name="source_picker_title">Source pour ce titre</string>
     <string name="source_picker_automatic">Automatique</string>
     <string name="source_picker_automatic_detail">Chaque épisode de la première source qui le propose</string>
@@ -1632,7 +1629,6 @@
     <string name="sources_move_down">Descendre</string>
     <string name="sources_load_failed">Impossible de charger les sources</string>
     <string name="sources_empty_title">Aucune sources pour l\'instant</string>
-    <string name="sources_empty_detail">Sources viennent de boutiques de plugins. Rejoignez-en une avec le lien d\'invitation que son propriétaire vous envoie.</string>
     <string name="sources_torrents">Torrents</string>
     <string name="sources_remote">À distance</string>
     <string name="sources_origin_config">Défini dans le fichier de configuration</string>

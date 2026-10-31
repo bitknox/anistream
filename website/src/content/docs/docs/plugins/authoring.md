@@ -10,6 +10,15 @@ anistream loads `*.wasm` from the plugin directory (see
 and failover. Any WASI 0.2 language works; reference implementations in Rust and JavaScript live in
 `plugins/`.
 
+## Before you write a plugin
+
+A plugin connects anistream to a source: your own server, an API whose terms allow a third-party
+client, or a catalogue licensed for it. You are responsible for your plugin, for the sources it
+reaches and for the rights it relies on. Write plugins only for sources you, and the people who
+install them, are entitled to use. A plugin must not get round DRM, paywalls, sign-ins or other
+access controls. anistream does not review, sign or distribute plugins; stores are run by the
+people who own them.
+
 :::note
 The sandbox has no sockets. The host makes requests for the plugin through `fetch`, so a plugin
 only parses. [The plugin sandbox](/docs/plugins/sandbox/) covers what is enforced.
@@ -23,7 +32,6 @@ only parses. [The plugin sandbox](/docs/plugins/sandbox/) covers what is enforce
 interface host {                          // what you may call
     fetch:          func(req: http-request) -> result<http-response, host-error>;
     log:            func(level: string, msg: string);
-    aes-decrypt:    func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
     regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
     fetch-many:     func(reqs: list<http-request>) -> list<result<http-response, host-error>>;
     config-get:     func(key: string) -> option<string>;
@@ -48,7 +56,6 @@ interface provider {                      // what you must export
 - `sources`: the selectable releases for the Sources overlay, best-first. An empty list means there is
   nothing to choose between, and it is not an error.
 - `resolve-source`: one candidate's id back into streams. Never fall back to the automatic pick.
-- `aes-decrypt`: AES-CBC. The key length selects 128, 192 or 256.
 - `config-get`: reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
   Every key is optional, so work with all of them unset.
 
@@ -61,7 +68,7 @@ Errors map one-for-one onto the registry's failover rules:
 | Return | Meaning | Fails over |
 |---|---|---|
 | `not-found` | Works, no such title or episode | Yes, not counted as a fault |
-| `blocked(msg)` | The site refused the request: a rate limit, a region block, an access check or a ban | Yes |
+| `blocked(msg)` | The host refused the request or asked the client to slow down | Yes |
 | `parse(msg)` | Response arrived, did not look like expected | Yes |
 | `other(msg)` | Anything else | Yes |
 

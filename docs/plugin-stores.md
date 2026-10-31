@@ -4,7 +4,9 @@ A plugin store is a small server that shares plugins with a group of people. Som
 one, invites the people they want, and everyone who joins can install and update the store's
 plugins from the Sources screen. anistream ships no store and lists none. Every store is run by
 someone, for the people they invite or, if they choose, for anyone they give its link. There is no
-directory of stores: a store is reached only through a link its owner gave out.
+directory of stores: a store is reached only through a link its owner gave out. The owner chooses
+its plugins and is responsible for them and for the sources they reach. anistream makes the
+store's software and does not run, list or review stores.
 
 This page covers using a store, running one, and the protocol a store speaks, so another server
 can be written against it.

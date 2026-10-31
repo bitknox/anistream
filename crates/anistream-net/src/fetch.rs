@@ -52,8 +52,8 @@ impl Conditional {
 
     /// Perform the fetch.
     ///
-    /// Uses the plain client: these are GitHub-hosted static files with no bot
-    /// protection, so paying for fingerprint emulation would buy nothing.
+    /// Uses the plain client: these are GitHub-hosted static files, so the
+    /// browser-style client would buy nothing.
     pub async fn get(&self, client: &reqwest::Client) -> Result<ConditionalResponse> {
         let mut req = client.get(&self.url).header("accept-encoding", "gzip");
         if let Some(etag) = &self.etag {

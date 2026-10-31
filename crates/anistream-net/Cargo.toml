@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "HTTP layer: browser-fingerprint emulation, rate limiting and conditional fetches"
+description = "HTTP layer: rate limiting and conditional fetches"
 
 [lib]
 # No doc example is written as a test, and rustdoc spends seconds per crate finding none.

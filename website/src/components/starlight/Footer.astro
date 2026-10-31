@@ -5,7 +5,7 @@ import EditLink from '@astrojs/starlight/components/EditLink.astro';
 import LastUpdated from '@astrojs/starlight/components/LastUpdated.astro';
 import Pagination from '@astrojs/starlight/components/Pagination.astro';
 import { useSite } from '../../i18n/site';
-import { PRIVACY } from '../../data/site';
+import { LEGAL, PRIVACY } from '../../data/site';
 
 const { t, href } = useSite(Astro);
 ---
@@ -19,6 +19,7 @@ const { t, href } = useSite(Astro);
 	<div class="legal">
 		<p>{t('site.legal')}</p>
 		<p set:html={t('site.footer.docsLicence', { privacy: href(PRIVACY) })} />
+		<p set:html={t('site.footer.docsLegal', { legal: href(LEGAL) })} />
 	</div>
 </footer>
 

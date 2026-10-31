@@ -16,6 +16,10 @@ stores-intro = { -plugin-cap-pl } add { -source-pl }. Each one lists the hosts i
 # Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
 stores-not-from-app = { -plugin-cap-pl } come from the { -plugin-store }'s owner, not from { -app-name }. You can leave a { -plugin-store } at any time.
 
+# Line under the join form's confirmation: who answers for the store. Shown before Join.
+# @arg owner: text
+stores-join-owner-responsible = { $owner } runs this { -plugin-store } and chose its { -plugin-pl }. { -app-name } did not make, review or approve them.
+
 # Line when the store has no plugins.
 stores-no-plugins = This { -plugin-store } offers no { -plugin-pl } yet.
 

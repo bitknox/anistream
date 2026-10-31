@@ -1,10 +1,10 @@
 //! Playback.
 //!
 //! mpv over JSON IPC is the reference player, but the [`anistream_core::traits::Player`] trait
-//! is what makes the licensed path work at all: a Crunchyroll episode resolves to an external
-//! deep link and is opened by [`external::ExternalPlayer`], needing no new machinery anywhere
-//! else. Their streams are Widevine + PlayReady protected, so mpv cannot play them, and the
-//! honest answer is to hand off rather than pretend.
+//! is what makes the licensed path work at all: an episode of a licensed service resolves to an
+//! external deep link and is opened by [`external::ExternalPlayer`], needing no new machinery
+//! anywhere else. Their streams are DRM protected, so mpv cannot play them, and the answer is to
+//! hand off rather than pretend.
 
 pub mod bundle;
 pub mod companion;

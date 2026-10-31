@@ -5,13 +5,12 @@
 //! and is indistinguishable from a native source at the registry boundary.
 //!
 //! The design decision that makes this work is in [`host`]: **the sandbox has no sockets, and the
-//! host lends `fetch`.** Provider CDNs often sit behind Cloudflare, and passing its checks needs a
-//! browser-shaped TLS/HTTP2 fingerprint — solved once, in `anistream-net`. If guests opened their
-//! own connections each would have to solve it again, badly, and carry a TLS stack to do it. So a
-//! plugin is a pure parser: it says what to request, the host requests it, the guest reads bytes.
+//! host lends `fetch`.** The host makes each request, enforces the allowlist, rate-limits and
+//! keeps the cookie jar. A plugin is a pure parser: it says what to request, the host requests
+//! it, the guest reads bytes.
 //!
-//! Everything follows from that. Plugins are kilobytes rather than megabytes. They inherit the
-//! fingerprint and the rate limiter for free. And they cannot exfiltrate
+//! Everything follows from that. Plugins are kilobytes rather than megabytes, with no TLS stack
+//! of their own and the rate limiter for free. And they cannot exfiltrate
 //! anything, because [`sandbox::is_allowed`] is enforced host-side on every call.
 //!
 //! | Module | Job |

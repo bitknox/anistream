@@ -51,7 +51,7 @@ const MIGRATIONS: &[(&str, &str)] = &[
     CREATE INDEX idx_mapping_mal   ON mapping(mal_id);
     CREATE INDEX idx_mapping_title ON mapping(title_normal);
 
-    -- Episode redirection rules from anime-relations, for fansub continuous numbering.
+    -- Episode redirection rules from the episode numbering dataset, for continuous numbering.
     CREATE TABLE episode_relation (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         anilist_id    INTEGER NOT NULL,

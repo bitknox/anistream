@@ -33,7 +33,7 @@ commit **outside** it (the temporary HOME hides `~/.gitconfig`, so commits come 
 - **Rust:** `cargo check --workspace --all-targets --locked`; tests for touched crates
   (`cargo test -p <crate>`); `cargo clippy --workspace --all-targets -- -D warnings`, plus
   `-p anistream-engine --no-default-features` and `-p anistream-model --features ffi`;
-  `cargo fmt --check`; `tools/check-boundaries.sh`. Store crates: `deploy/sync.sh --check`.
+  `cargo fmt --check`; `tools/check-boundaries.sh`; `tools/check-plugins.sh`. Store crates: `deploy/sync.sh --check`.
   Dependencies: `cargo audit`. Goldens: look at the diff before re-blessing.
 - **FFI:** `cargo test -p anistream-ffi --features testing,cli`.
 - **Android:** `android/scripts/engine.sh testing`, then from `android/`:

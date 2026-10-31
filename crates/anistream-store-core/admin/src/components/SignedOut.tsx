@@ -141,6 +141,11 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 			<Hero title="Claim this store">
 				{reason && <p className="hero-reason">{reason}</p>}
 				<p className="hero-sub">
+					You run this store. You choose which plugins it lists and who can join, and you are
+					responsible for them and for the sources they reach. anistream does not see, review or
+					approve what a store lists.
+				</p>
+				<p className="hero-sub">
 					Nobody owns <b>{store.name}</b> yet. Enter the setup code it was deployed with, its{' '}
 					<code>ANISTREAM_STORE_SETUP_CODE</code>, to get the owner invite link.
 				</p>

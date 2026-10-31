@@ -5,7 +5,7 @@ sources-title = { -source-cap-pl }
 sources-empty = No { -source-pl } yet. Join a { -plugin-store } to add some.
 
 # Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = { -plugin-cap-pl } are written by other people and run on your { -device }. Install only from people you trust.
+plugin-risk-warning = { -plugin-cap-pl } are written by other people and run on your { -device }. Install only { -plugin-pl } you trust, for { -source-pl } you're entitled to use.
 
 ## The source picker for one title: the command palette on Mac, Windows and Linux, the title's
 ## "..." menu on iPhone, iPad, Android and the TV.
@@ -94,7 +94,7 @@ sources-load-failed = Couldn't load { -source-pl }
 sources-empty-title = No { -source-pl } yet
 
 # Line under it.
-sources-empty-detail = { -source-cap-pl } come from { -plugin-store-pl }. Join one with the invite link its owner sends you.
+sources-empty-detail = Join a { -plugin-store } with the invite link its owner sends you.
 
 # Row for the built-in torrent source.
 sources-torrents = Torrents

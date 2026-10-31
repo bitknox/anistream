@@ -125,8 +125,8 @@ uniffi = { version = "=0.32.2", default-features = false }
 directories = "6"
 clap = { version = "4", features = ["derive", "env"] }
 jiff = { version = "0.2", features = ["serde"] }
-# Opens a URL in the system handler — the licensed-source handoff, since Crunchyroll's
-# Widevine streams cannot be decoded locally.
+# Opens a URL in the system handler — the licensed-source handoff, since a licensed
+# service's DRM streams cannot be decoded locally.
 open = "5"
 
 # Line tables are enough for a backtrace through a dependency; full debug info for ~650 crates

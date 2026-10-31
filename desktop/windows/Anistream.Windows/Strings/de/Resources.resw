@@ -2720,9 +2720,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Willkommen bei anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Behalte Anime im Blick und spiele sie über Quellen deiner Wahl ab.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Weiter</value>
   </data>
@@ -2737,9 +2734,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Quellen</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Quellen sind Plugins, die per Einladung über Plugin-Stores geteilt werden.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Beitreten</value>
@@ -3896,9 +3890,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Noch keine Quellen. Tritt einem Plugin-Store bei, um welche hinzuzufügen.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Plugins stammen von anderen Leuten und laufen auf deinem Gerät. Installiere nur von Leuten, denen du vertraust.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Quelle für diesen Titel</value>
   </data>
@@ -3964,9 +3955,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Noch keine Quellen</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Quellen kommen von Plugin-Stores. Tritt einem über den Einladungslink bei, den dir die betreibende Person schickt.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrents</value>

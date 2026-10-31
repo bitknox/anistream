@@ -3890,6 +3890,12 @@ about-version = [Ṽéŕšîöñ { $version }~~~~]
 # Line with the licence.
 about-licence = [Ŕéļéàšéð üñðéŕ ţĥé ṀÎŢ ļîçéñçé.~~~~~~~~~~]
 
+# Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.
+about-legal = [àñîšţŕéàɱ šüþþļîéš ñö šöüŕçéš. Þļüĝîñš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš ŕüñ ƀý öţĥéŕ þéöþļé.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Row opening the legal and contact page on the website.
+about-legal-link = [Ļéĝàļ àñð çöñţàçţ~~~~~~]
+
 # Row opening the list of acknowledgements.
 about-acknowledgements = [Åçķñöŵļéðĝéɱéñţš~~~~~]
 
@@ -5491,7 +5497,7 @@ onboarding-welcome = [Ŵéļçöɱé~~~]
 onboarding-welcome-to = [Ŵéļçöɱé ţö àñîšţŕéàɱ~~~~~~]
 
 # Line under the title.
-onboarding-tagline = [Ķééþ ţŕàçķ öƒ àñîɱé àñð þļàý îţ ƒŕöɱ šöüŕçéš ýöü çĥööšé.~~~~~~~~~~~~~~~~~]
+onboarding-tagline = [Ķééþ ţŕàçķ öƒ àñîɱé àñð þļàý ŵĥàţ ýöü'ŕé éñţîţļéð ţö ŵàţçĥ.~~~~~~~~~~~~~~~~~~]
 
 # Button that goes to the next page.
 onboarding-continue = [Çöñţîñüé~~~]
@@ -5509,7 +5515,7 @@ onboarding-not-now = [Ñöţ ñöŵ~~~]
 onboarding-sources-title = [Šöüŕçéš~~~]
 
 # Line under it.
-onboarding-sources-detail = [Šöüŕçéš àŕé þļüĝîñš, šĥàŕéð ţĥŕöüĝĥ þļüĝîñ šţöŕéš ƀý îñṽîţé.~~~~~~~~~~~~~~~~~~]
+onboarding-sources-detail = [Ĵöîñ à þļüĝîñ šţöŕé ŵîţĥ àñ îñṽîţé ƒŕöɱ îţš öŵñéŕ. àñîšţŕéàɱ šüþþļîéš ñö šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Button that joins a store from the welcome page.
 onboarding-join = [Ĵöîñ~~]
@@ -6698,7 +6704,7 @@ sources-title = [Šöüŕçéš~~~]
 sources-empty = [Ñö šöüŕçéš ýéţ. Ĵöîñ à þļüĝîñ šţöŕé ţö àðð šöɱé.~~~~~~~~~~~~~~~]
 
 # Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = [Þļüĝîñš àŕé ŵŕîţţéñ ƀý öţĥéŕ þéöþļé àñð ŕüñ öñ ýöüŕ ðéṽîçé. Îñšţàļļ öñļý ƒŕöɱ þéöþļé ýöü ţŕüšţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+plugin-risk-warning = [Þļüĝîñš àŕé ŵŕîţţéñ ƀý öţĥéŕ þéöþļé àñð ŕüñ öñ ýöüŕ ðéṽîçé. Îñšţàļļ öñļý þļüĝîñš ýöü ţŕüšţ, ƒöŕ šöüŕçéš ýöü'ŕé éñţîţļéð ţö üšé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Menu and palette entry that opens the picker, and the picker's title.
 source-picker-title = [Šöüŕçé ƒöŕ ţĥîš ţîţļé~~~~~~~]
@@ -6768,7 +6774,7 @@ sources-load-failed = [Çöüļðñ'ţ ļöàð šöüŕçéš~~~~~~~]
 sources-empty-title = [Ñö šöüŕçéš ýéţ~~~~~]
 
 # Line under it.
-sources-empty-detail = [Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš. Ĵöîñ öñé ŵîţĥ ţĥé îñṽîţé ļîñķ îţš öŵñéŕ šéñðš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~]
+sources-empty-detail = [Ĵöîñ à þļüĝîñ šţöŕé ŵîţĥ ţĥé îñṽîţé ļîñķ îţš öŵñéŕ šéñðš ýöü.~~~~~~~~~~~~~~~~~~~]
 
 # Row for the built-in torrent source.
 sources-torrents = [Ţöŕŕéñţš~~~]
@@ -6988,6 +6994,9 @@ stores-intro = [Þļüĝîñš àðð šöüŕçéš. Éàçĥ öñé ļîšţš
 
 # Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
 stores-not-from-app = [Þļüĝîñš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ, ñöţ ƒŕöɱ àñîšţŕéàɱ. Ýöü çàñ ļéàṽé à þļüĝîñ šţöŕé àţ àñý ţîɱé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the join form's confirmation: who answers for the store. Shown before Join.
+stores-join-owner-responsible = [{ $owner } ŕüñš ţĥîš þļüĝîñ šţöŕé àñð çĥöšé îţš þļüĝîñš. àñîšţŕéàɱ ðîð ñöţ ɱàķé, ŕéṽîéŵ öŕ àþþŕöṽé ţĥéɱ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line when the store has no plugins.
 stores-no-plugins = [Ţĥîš þļüĝîñ šţöŕé öƒƒéŕš ñö þļüĝîñš ýéţ.~~~~~~~~~~~~]
