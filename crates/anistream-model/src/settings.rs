@@ -67,6 +67,8 @@ pub enum SettingKey {
     SyncplayServer,
     SyncplayRoom,
     UpdateCheck,
+    /// Whether the update check follows the beta channel. Off by default.
+    UpdateBeta,
     /// The order failover walks the sources in. No row on Settings: `K` and `J` on Providers
     /// move a source up and down it.
     SourceOrder,
@@ -134,7 +136,7 @@ impl SettingKey {
     /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
     /// renderer draws a heading each time the category changes, so rows of one category must
     /// be contiguous here.
-    pub const ROWS: [Self; 34] = [
+    pub const ROWS: [Self; 35] = [
         Self::Theme,
         Self::Motion,
         Self::Titles,
@@ -169,6 +171,7 @@ impl SettingKey {
         Self::SyncplayServer,
         Self::SyncplayRoom,
         Self::UpdateCheck,
+        Self::UpdateBeta,
     ];
 
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
@@ -242,6 +245,7 @@ impl SettingKey {
             Self::SyncplayServer => (&["syncplay"], "server"),
             Self::SyncplayRoom => (&["syncplay"], "room"),
             Self::UpdateCheck => (&["updates"], "check"),
+            Self::UpdateBeta => (&["updates"], "beta"),
             Self::SourceOrder => (&["providers"], "order"),
             Self::UpNextCountdown => (&["playback"], "up_next_countdown"),
             Self::SpoilerProtection => (&["playback"], "spoiler_protection"),
@@ -334,6 +338,7 @@ impl SettingKey {
             Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
             Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
             Self::UpdateCheck => to.updates.check = from.updates.check,
+            Self::UpdateBeta => to.updates.beta = from.updates.beta,
             Self::AdultTitles => to.meta.adult = from.meta.adult,
             Self::EpisodeDiscussions => to.meta.discussions = from.meta.discussions,
             Self::CommentImages => to.meta.discussion_images = from.meta.discussion_images,
@@ -419,6 +424,7 @@ impl SettingKey {
             | Self::SyncplayServer
             | Self::SyncplayRoom
             | Self::UpdateCheck
+            | Self::UpdateBeta
             | Self::EpisodeDiscussions
             | Self::CommentImages
             | Self::CastTvs => "integrations",
@@ -456,6 +462,7 @@ impl SettingKey {
             Self::SyncplayServer => "syncplay server",
             Self::SyncplayRoom => "syncplay room",
             Self::UpdateCheck => "check for updates",
+            Self::UpdateBeta => "beta updates",
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
             Self::PresenceRich => "rich presence",
@@ -754,6 +761,7 @@ pub fn step(
         SettingKey::KeepSeeding => V::Bool(!effective.downloads.keep_seeding),
         SettingKey::Syncplay => V::Bool(!effective.syncplay.enabled),
         SettingKey::UpdateCheck => V::Bool(!effective.updates.check),
+        SettingKey::UpdateBeta => V::Bool(!effective.updates.beta),
         SettingKey::SkipOpening => V::Bool(!playback.skip_opening),
         SettingKey::SkipFiller => V::Bool(!playback.skip_filler),
         SettingKey::MarkChapters => V::Bool(!playback.mark_chapters),
@@ -925,6 +933,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         }
         (SettingKey::SyncplayRoom, V::Str(room)) => config.syncplay.room = Some(room.clone()),
         (SettingKey::UpdateCheck, V::Bool(on)) => config.updates.check = *on,
+        (SettingKey::UpdateBeta, V::Bool(on)) => config.updates.beta = *on,
         (SettingKey::SourceOrder, V::Strings(order)) => {
             config.providers.order.clone_from(order);
         }
@@ -1059,6 +1068,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
             .clone()
             .unwrap_or_else(|| "unset — needed for parties".into()),
         SettingKey::UpdateCheck => on_off(effective.updates.check),
+        SettingKey::UpdateBeta => on_off(effective.updates.beta),
         SettingKey::Presence => on_off(effective.presence.enabled),
         SettingKey::PresenceTitle => on_off(effective.presence.show_title),
         SettingKey::PresenceRich => on_off(effective.presence.rich),
@@ -1167,6 +1177,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::Torrents => c.providers.torrent.enabled,
         S::Syncplay => c.syncplay.enabled,
         S::UpdateCheck => c.updates.check,
+        S::UpdateBeta => c.updates.beta,
         S::SpoilerProtection => c.playback.spoiler_protection,
         S::DownloadQuality => {
             c.downloads.quality == anistream_core::config::DownloadQuality::Higher

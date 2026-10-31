@@ -465,9 +465,23 @@ class UpdateModelTest {
         store.apply(Event.Update(UpdateStatus.Available(release, notify = true)))
         assertEquals(offered, store.updates.notice.value)
         // Up to date, nothing is offered any more.
-        store.apply(Event.Update(UpdateStatus.UpToDate))
+        store.apply(Event.Update(UpdateStatus.UpToDate()))
         assertEquals(UpdateState.None, store.updates.state.value)
         assertNull(store.updates.notice.value)
+    }
+
+    @Test
+    fun a_beta_ahead_of_the_stable_says_updates_resume_and_labels_the_build() = runTest {
+        val store = AppStore(this)
+        assertEquals(false, store.updates.runningBeta.value)
+        store.apply(Event.Update(UpdateStatus.UpToDate(stableBehind = "2.3.4", runningBeta = true)))
+        assertEquals(UpdateCheck.StableBehind("2.3.4"), store.updates.check.value)
+        assertEquals(true, store.updates.runningBeta.value)
+        assertEquals(UpdateState.None, store.updates.state.value)
+        // Once a stable catches up, the line is the plain one again and the label goes.
+        store.apply(Event.Update(UpdateStatus.UpToDate()))
+        assertEquals(UpdateCheck.UpToDate, store.updates.check.value)
+        assertEquals(false, store.updates.runningBeta.value)
     }
 
     @Test
@@ -532,7 +546,7 @@ class UpdateModelTest {
         assertEquals(UpdateCheck.Checking, store.updates.check.value)
         store.apply(Event.Update(UpdateStatus.Failed("GitHub could not be reached")))
         assertEquals(UpdateCheck.Failed("GitHub could not be reached"), store.updates.check.value)
-        store.apply(Event.Update(UpdateStatus.UpToDate))
+        store.apply(Event.Update(UpdateStatus.UpToDate()))
         assertEquals(UpdateCheck.UpToDate, store.updates.check.value)
         // Check now goes to the engine whatever the switch says.
         store.checkForUpdates()

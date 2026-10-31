@@ -889,18 +889,21 @@ internal fun AboutPane() {
     val store = LocalAppStore.current
     val context = LocalContext.current
     val update by store.updates.state.collectAsStateWithLifecycle()
+    val runningBeta by store.updates.runningBeta.collectAsStateWithLifecycle()
     Pane {
         Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Nagare(cell = 6)
             Text("anistream", // i18n-skip
                 style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
-            Text(stringResource(R.string.about_version, appVersion()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val version = if (runningBeta) stringResource(R.string.updates_version_beta, appVersion()) else appVersion()
+            Text(stringResource(R.string.about_version, version), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SettingsGroup(
             title = stringResource(R.string.updates_title),
             rows = listOfNotNull(
                 if (update.offer != null) @Composable { place: Place -> UpdateRow(place) } else null,
                 { place -> CheckNowRow(place) },
+                { place -> SettingSwitch(place, SettingKey.UPDATE_BETA, stringResource(R.string.updates_beta), note = stringResource(R.string.updates_beta_detail)) },
                 { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, stringResource(R.string.settings_check_updates), note = stringResource(R.string.updates_schedule)) },
             ),
         )

@@ -34,7 +34,7 @@ static class Showcase
             var asset = new ReleaseAsset(Name: Path.GetFileName(new Uri(url).AbsolutePath), Url: url, Sha256: sha, Size: ulong.Parse(bytes, System.Globalization.CultureInfo.InvariantCulture));
             return new Release(
                 Version: version, PublishedAt: 1_792_900_000, PageUrl: "https://releases.example/v" + version, Notes: "",
-                Macos: null, Ios: null, Android: null, WindowsX64: asset, WindowsArm64: asset, LinuxX8664: null, LinuxAarch64: null);
+                Macos: null, Ios: null, Android: null, WindowsX64: asset, WindowsArm64: asset, LinuxX8664: null, LinuxAarch64: null, Beta: false);
         }
         static ReleaseAsset File(string arch, ulong size) => new(
             Name: $"anistream-2.1.0-windows-{arch}-setup.exe",
@@ -46,7 +46,7 @@ static class Showcase
             Notes: "Episodes open sooner after a pick, and the calendar marks the ones already watched.",
             Macos: null, Ios: null, Android: null,
             WindowsX64: File("x64", 71_400_000), WindowsArm64: File("arm64", 68_900_000),
-            LinuxX8664: null, LinuxAarch64: null);
+            LinuxX8664: null, LinuxAarch64: null, Beta: false);
     }
 
     /// <summary>What a pasted invite leads to, in place of asking a store that does not exist.</summary>

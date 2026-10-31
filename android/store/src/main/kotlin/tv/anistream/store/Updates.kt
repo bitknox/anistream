@@ -77,6 +77,12 @@ sealed interface UpdateCheck {
 
     data object UpToDate : UpdateCheck
 
+    /**
+     * Up to date on the stable channel with a beta that is ahead of the newest stable release:
+     * [version] is this build's, and updates resume with the next stable.
+     */
+    data class StableBehind(val version: String) : UpdateCheck
+
     /** A newer release: the update's state says which. */
     data object Found : UpdateCheck
 
@@ -267,6 +273,11 @@ class UpdateModel(
     /** What the last check said. */
     val check: StateFlow<UpdateCheck> = _check.asStateFlow()
 
+    private val _runningBeta = MutableStateFlow(false)
+
+    /** Whether this build is a beta, a release not yet made the stable one, as the last check found. */
+    val runningBeta: StateFlow<Boolean> = _runningBeta.asStateFlow()
+
     private var host: UpdateHost? = null
     private var files: UpdateFiles? = null
 
@@ -312,7 +323,11 @@ class UpdateModel(
     fun apply(status: UpdateStatus) {
         when (status) {
             is UpdateStatus.Checking -> checking()
-            is UpdateStatus.UpToDate -> offer(null)
+            is UpdateStatus.UpToDate -> {
+                offer(null)
+                _runningBeta.value = status.runningBeta
+                status.stableBehind?.let { _check.value = UpdateCheck.StableBehind(it) }
+            }
             is UpdateStatus.Available -> offer(UpdateOffer.of(status.release, asset(status.release)), tell = status.notify)
             is UpdateStatus.Failed -> checkFailed(status.reason)
         }

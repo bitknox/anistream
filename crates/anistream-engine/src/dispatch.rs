@@ -7,7 +7,8 @@
 
 use anistream_meta::Meta;
 use anistream_model::{
-    Msg, Span, command::Command, event::Event, notice::Notice, show::ShowSettingKey,
+    Msg, Span, command::Command, event::Event, notice::Notice, settings::SettingKey,
+    show::ShowSettingKey,
 };
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -548,11 +549,28 @@ pub(crate) fn dispatch(
             if ahead::follows(key) {
                 ahead::top_up(engine, services, tx);
             }
+            if key == SettingKey::UpdateBeta {
+                crate::updates::check_now(
+                    &services.paths.cache_dir,
+                    engine.config.effective().updates.beta,
+                    &services.http,
+                    tx,
+                );
+            }
         }
         Command::SetSetting { key, value } => {
             set_setting(key, value, engine, services, tx);
             if ahead::follows(key) {
                 ahead::top_up(engine, services, tx);
+            }
+            // Turning beta updates on or off asks GitHub at once for the other channel's newest.
+            if key == SettingKey::UpdateBeta {
+                crate::updates::check_now(
+                    &services.paths.cache_dir,
+                    engine.config.effective().updates.beta,
+                    &services.http,
+                    tx,
+                );
             }
         }
         Command::SetTranslation { translation } => set_translation(translation, engine, tx),
@@ -593,9 +611,12 @@ pub(crate) fn dispatch(
         Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
         Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
         // Settings' Check Now, off the loop, with no job: the check says where it stands.
-        Command::CheckForUpdates => {
-            crate::updates::check_now(&services.paths.cache_dir, &services.http, tx)
-        }
+        Command::CheckForUpdates => crate::updates::check_now(
+            &services.paths.cache_dir,
+            engine.config.effective().updates.beta,
+            &services.http,
+            tx,
+        ),
 
         // The plugin stores.
         Command::LoadStores => {

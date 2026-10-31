@@ -140825,6 +140825,30 @@
         }
       }
     },
+    "updates-beta" : {
+      "comment" : "Switch in the Updates section of Settings. Off by default.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beta updates"
+          }
+        }
+      }
+    },
+    "updates-beta-detail" : {
+      "comment" : "Line under the switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get each new version as soon as it's built. Without this, updates come once a week."
+          }
+        }
+      }
+    },
     "updates-check-failed" : {
       "comment" : "Line when the check failed. The reason starts with a capital. Argument 1: reason (Cause).",
       "extractionState" : "manual",
@@ -143465,6 +143489,18 @@
         }
       }
     },
+    "updates-stable-behind" : {
+      "comment" : "Status line on a beta build when beta updates are off: no stable version is newer yet. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have %1$@, a beta. Updates resume when a newer stable version is out."
+          }
+        }
+      }
+    },
     "updates-starting-download" : {
       "comment" : "Line while the download is about to start.",
       "extractionState" : "manual",
@@ -144055,6 +144091,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uppdaterad till %1$@. Den öppnas när du startar anistream igen."
+          }
+        }
+      }
+    },
+    "updates-version-beta" : {
+      "comment" : "The version in About when the running build is a beta. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ beta"
           }
         }
       }

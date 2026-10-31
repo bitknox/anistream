@@ -264,7 +264,7 @@ class AppUpdateTest {
         compose.runOnIdle { assertEquals(listOf(Command.CheckForUpdates), store.waiting) }
         compose.runOnIdle { store.apply(Event.Update(UpdateStatus.Checking)) }
         compose.onNodeWithText("Checking for a newer version…").assertIsDisplayed()
-        compose.runOnIdle { store.apply(Event.Update(UpdateStatus.UpToDate)) }
+        compose.runOnIdle { store.apply(Event.Update(UpdateStatus.UpToDate())) }
         compose.onNodeWithText("Up to date").assertIsDisplayed()
     }
 }
