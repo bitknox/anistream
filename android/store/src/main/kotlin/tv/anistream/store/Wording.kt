@@ -160,6 +160,13 @@ object Wording {
     fun ago(context: Context, seconds: Long): String =
         if (seconds < 60) Strings.timeJustNowInline(context) else Strings.timeAgo(context, countdown(context, seconds))
 
+    /** "Hidden 3d ago" under a hidden title; null when the engine did not keep the time. */
+    fun hiddenLine(context: Context, hidden: tv.anistream.engine.model.HiddenTitle): String? {
+        if (hidden.hiddenAt <= 0) return null
+        val seconds = (System.currentTimeMillis() / 1000 - hidden.hiddenAt).coerceAtLeast(0)
+        return Strings.settingsHiddenOn(context, ago(context, seconds))
+    }
+
     /** Names in a sentence: "Kumo", "Kumo and Natsukaze", "Kumo, Hoshi and Natsukaze". */
     fun list(names: List<String>): String = when (names.size) {
         0 -> ""

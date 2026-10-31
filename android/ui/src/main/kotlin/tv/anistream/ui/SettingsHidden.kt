@@ -71,18 +71,11 @@ private fun HiddenRow(place: Place, hidden: HiddenTitle) {
             Text(entry.showTitle, style = ShowTitle.row, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val line = if (hidden.untilAirs) Strings.settingsHiddenUntilAirs(context) else entry.genreLine
             line?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1) }
-            hiddenLine(context, hidden)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1) }
+            Wording.hiddenLine(context, hidden)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1) }
         }
         TextButton(
             onClick = { store.restoreTitle(entry.id); store.loadHiddenTitles() },
             colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
         ) { Text(Strings.settingsRestore(context)) }
     }
-}
-
-/** "Hidden 3d ago", from the time the engine kept; nothing when it was not kept. */
-private fun hiddenLine(context: android.content.Context, hidden: HiddenTitle): String? {
-    if (hidden.hiddenAt <= 0) return null
-    val seconds = (System.currentTimeMillis() / 1000 - hidden.hiddenAt).coerceAtLeast(0)
-    return Strings.settingsHiddenOn(context, Wording.ago(context, seconds))
 }

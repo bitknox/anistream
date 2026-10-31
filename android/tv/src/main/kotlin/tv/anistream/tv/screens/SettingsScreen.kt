@@ -227,7 +227,7 @@ private fun HiddenTitlesRow(store: AppStore, memory: FocusMemory) {
                     ActionSheet(
                         Strings.settingsHiddenTitles(context),
                         titles.map { each ->
-                            CardAction(each.entry.title, supporting = Strings.settingsRestore(context)) {
+                            CardAction(each.entry.title, supporting = listOfNotNull(tv.anistream.store.Wording.hiddenLine(context, each), Strings.settingsRestore(context)).joinToString(" · ")) { // i18n-skip
                                 store.restoreTitle(each.entry.id)
                                 store.loadHiddenTitles()
                             }
