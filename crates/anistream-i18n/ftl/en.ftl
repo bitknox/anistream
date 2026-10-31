@@ -8449,3 +8449,15 @@ updates-allow-waiting = Waiting for the switch. If Android's page didn't open, f
 # Line the first time. The path is the Android settings path.
 updates-allow-once = Android asks this once. If its page doesn't open, the switch is under { $path }.
 
+# Switch in the Updates section of Settings. Off by default.
+updates-beta = Beta updates
+
+# Line under the switch.
+updates-beta-detail = Get each new version as soon as it's built. Without this, updates come once a week.
+
+# Status line on a beta build when beta updates are off: no stable version is newer yet.
+updates-stable-behind = You have { $version }, a beta. Updates resume when a newer stable version is out.
+
+# The version in About when the running build is a beta.
+updates-version-beta = { $version } beta
+

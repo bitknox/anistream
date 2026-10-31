@@ -170,6 +170,7 @@ impl App {
             S::SyncplayServer => t::settings_note_syncplay_server(),
             S::SyncplayRoom => t::settings_note_syncplay_room(),
             S::UpdateCheck => t::settings_note_update_check(),
+            S::UpdateBeta => t::updates_beta_detail(),
             // Enabling it without a client id is a no-op, and a toggle that appears to work
             // while doing nothing is worse than one that says why.
             S::Presence if self.settings.presence_client => t::settings_note_presence(),
@@ -298,6 +299,7 @@ fn label_text(key: SettingKey) -> String {
         S::SyncplayServer => t::settings_label_syncplay_server(),
         S::SyncplayRoom => t::settings_label_syncplay_room(),
         S::UpdateCheck => t::settings_label_update_check(),
+        S::UpdateBeta => t::updates_beta(),
         S::Presence => t::settings_label_presence(),
         S::PresenceTitle => t::settings_label_presence_title(),
         S::PresenceRich => t::settings_label_presence_rich(),

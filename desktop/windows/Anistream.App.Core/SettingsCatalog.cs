@@ -27,7 +27,7 @@ public static class SettingsCatalog
         SettingKey.MarkChapters, SettingKey.SkipButton, SettingKey.Fullscreen, SettingKey.NightMode,
         SettingKey.MergeSubtitles, SettingKey.KeepSeeding, SettingKey.Presence, SettingKey.PresenceTitle,
         SettingKey.PresenceRich,
-        SettingKey.Torrents, SettingKey.Syncplay, SettingKey.UpdateCheck, SettingKey.SpoilerProtection,
+        SettingKey.Torrents, SettingKey.Syncplay, SettingKey.UpdateCheck, SettingKey.UpdateBeta, SettingKey.SpoilerProtection,
         SettingKey.DownloadsOnCellular, SettingKey.TorrentsOnCellular, SettingKey.EpisodeNotifications,
         SettingKey.EpisodeDiscussions, SettingKey.CommentImages, SettingKey.CastTvs, SettingKey.TorrentsWhileCasting,
     ];

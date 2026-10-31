@@ -13640,3 +13640,23 @@ pub fn updates_allow_once(path: &str) -> String {
     text("updates-allow-once", &[("path", Arg::Text(path))])
 }
 
+/// Switch in the Updates section of Settings. Off by default.
+pub fn updates_beta() -> String {
+    text("updates-beta", &[])
+}
+
+/// Line under the switch.
+pub fn updates_beta_detail() -> String {
+    text("updates-beta-detail", &[])
+}
+
+/// Status line on a beta build when beta updates are off: no stable version is newer yet.
+pub fn updates_stable_behind(version: &str) -> String {
+    text("updates-stable-behind", &[("version", Arg::Text(version))])
+}
+
+/// The version in About when the running build is a beta.
+pub fn updates_version_beta(version: &str) -> String {
+    text("updates-version-beta", &[("version", Arg::Text(version))])
+}
+

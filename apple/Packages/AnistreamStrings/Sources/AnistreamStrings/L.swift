@@ -8128,6 +8128,22 @@ public enum L {
         Self.format("updates-allow-once", fallback: "Android asks this once. If its page doesn't open, the switch is under %1$@.", path)
     }
 
+    /// Switch in the Updates section of Settings. Off by default.
+    public static var updatesBeta: String { string("updates-beta", fallback: "Beta updates") }
+
+    /// Line under the switch.
+    public static var updatesBetaDetail: String { string("updates-beta-detail", fallback: "Get each new version as soon as it's built. Without this, updates come once a week.") }
+
+    /// Status line on a beta build when beta updates are off: no stable version is newer yet.
+    public static func updatesStableBehind(version: String) -> String {
+        Self.format("updates-stable-behind", fallback: "You have %1$@, a beta. Updates resume when a newer stable version is out.", version)
+    }
+
+    /// The version in About when the running build is a beta.
+    public static func updatesVersionBeta(version: String) -> String {
+        Self.format("updates-version-beta", fallback: "%1$@ beta", version)
+    }
+
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [
         Language(tag: "en", name: "English", flag: "gb", draft: false),

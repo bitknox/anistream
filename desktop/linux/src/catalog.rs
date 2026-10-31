@@ -58,6 +58,7 @@ pub fn label(key: SettingKey) -> String {
         K::SyncplayServer => t::settings_label_syncplay_server(),
         K::SyncplayRoom => t::settings_label_syncplay_room(),
         K::UpdateCheck => t::settings_label_update_check(),
+        K::UpdateBeta => t::updates_beta(),
         K::Presence => t::settings_label_presence(),
         K::PresenceTitle => t::settings_label_presence_title(),
         K::PresenceRich => t::settings_label_presence_rich(),
@@ -144,6 +145,7 @@ pub fn is_switch(key: SettingKey) -> bool {
             | K::Torrents
             | K::Syncplay
             | K::UpdateCheck
+            | K::UpdateBeta
             | K::SpoilerProtection
             | K::DownloadsOnCellular
             | K::TorrentsOnCellular

@@ -19,6 +19,9 @@ use anistream_i18n::t;
 use anistream_model::updates::{Release, ReleaseAsset, UpdateStatus};
 use sha2::{Digest, Sha256};
 
+/// Whether the last check found this build to be a beta, a release not yet made the stable one.
+pub static RUNNING_BETA: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Whether this copy runs inside Flatpak, which then owns its updates.
 pub fn flatpak() -> bool {
     std::path::Path::new("/.flatpak-info").exists()
@@ -28,7 +31,10 @@ pub fn flatpak() -> bool {
 pub fn words(status: Option<&UpdateStatus>, offline: bool, flatpak: bool) -> String {
     match status {
         Some(UpdateStatus::Checking) => t::updates_checking(),
-        Some(UpdateStatus::UpToDate) => t::updates_up_to_date(),
+        Some(UpdateStatus::UpToDate { stable_behind: Some(version), .. }) => {
+            t::updates_stable_behind(version)
+        }
+        Some(UpdateStatus::UpToDate { .. }) => t::updates_up_to_date(),
         Some(UpdateStatus::Available { release, .. }) if flatpak => {
             t::updates_version_out_software(&release.version)
         }
@@ -396,6 +402,7 @@ mod tests {
                 windows_arm64: None,
                 linux_x86_64: None,
                 linux_aarch64: None,
+                beta: false,
             }),
             notify: true,
         }
@@ -410,7 +417,19 @@ mod tests {
             "Version 1.4.0 is out. Software installs it."
         );
         assert_eq!(page(Some(&status)), Some("https://example.test/releases/v1.4.0"));
-        assert_eq!(page(Some(&UpdateStatus::UpToDate)), None);
+        assert_eq!(
+            page(Some(&UpdateStatus::UpToDate { stable_behind: None, running_beta: false })),
+            None
+        );
+    }
+
+    #[test]
+    fn a_beta_ahead_of_the_stable_says_updates_resume_with_the_next_one() {
+        let status = UpdateStatus::UpToDate { stable_behind: Some("2.3.4".into()), running_beta: true };
+        assert_eq!(
+            words(Some(&status), false, false),
+            "You have 2.3.4, a beta. Updates resume when a newer stable version is out."
+        );
     }
 
     #[test]

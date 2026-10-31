@@ -47,7 +47,7 @@ struct UpdatesTests {
         #expect(store.updates.notice == nil)
         #expect(store.updates.latest?.version == "2.0.4", "still on offer once the notice is gone")
 
-        store.apply(.update(.upToDate))
+        store.apply(.update(.upToDate(stableBehind: nil, runningBeta: false)))
         #expect(store.updates.latest == nil)
         #expect(store.updates.outcome == .upToDate)
     }

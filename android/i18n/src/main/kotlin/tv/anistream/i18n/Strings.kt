@@ -8549,6 +8549,22 @@ object Strings {
     fun updatesAllowOnce(context: Context, path: String): String =
         context.getString(R.string.updates_allow_once, path)
 
+    /** Switch in the Updates section of Settings. Off by default. */
+    fun updatesBeta(context: Context): String =
+        context.getString(R.string.updates_beta)
+
+    /** Line under the switch. */
+    fun updatesBetaDetail(context: Context): String =
+        context.getString(R.string.updates_beta_detail)
+
+    /** Status line on a beta build when beta updates are off: no stable version is newer yet. */
+    fun updatesStableBehind(context: Context, version: String): String =
+        context.getString(R.string.updates_stable_behind, version)
+
+    /** The version in About when the running build is a beta. */
+    fun updatesVersionBeta(context: Context, version: String): String =
+        context.getString(R.string.updates_version_beta, version)
+
     /** The languages this build has text for, source first. Draft ones carry the draft label. */
     val languages: List<Language> = listOf(
         Language("en", "English", "gb", false),

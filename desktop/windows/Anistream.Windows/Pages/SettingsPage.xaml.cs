@@ -131,6 +131,7 @@ public sealed partial class SettingsPage : Page
         K.SyncplayServer => T.PartyServer,
         K.SyncplayRoom => T.PartyRoom,
         K.UpdateCheck => T.SettingsCheckUpdates,
+        K.UpdateBeta => T.UpdatesBeta,
         K.SourceOrder => T.SettingsSourceOrder,
         K.UpNextCountdown => T.SettingsUpNextCountdown,
         K.SpoilerProtection => T.SettingsSpoiler,
@@ -812,6 +813,8 @@ public sealed partial class SettingsPage : Page
             description = T.SettingsNoteTrailersWindows;
         if (row.Key == K.PresenceRich)
             description = T.SettingsPresenceRichDetail(AnistreamFfiMethods.TrackerName("anilist"));
+        if (row.Key == K.UpdateBeta)
+            description = T.UpdatesBetaDetail;
         if (row.Key == K.CastTvs)
             description = T.SettingsNoteCastTvsPc;
         if (row.Key == K.TorrentsWhileCasting)
@@ -933,12 +936,15 @@ public sealed partial class SettingsPage : Page
         top.Children.Add(new Nagare(6));
         var text = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(new TextBlock { Text = T.AppName, Style = Res<Style>("SubtitleTextBlockStyle") });
-        text.Children.Add(new TextBlock { Text = T.AboutVersion(Updater.Current), Style = Res<Style>("HazeBodyStyle") });
+        text.Children.Add(new TextBlock { Text = T.AboutVersion(ctx.Updater.RunningBeta ? T.UpdatesVersionBeta(Updater.Current) : Updater.Current), Style = Res<Style>("HazeBodyStyle") });
         text.Children.Add(new TextBlock { Text = T.LegalHostsNoContent, Style = Res<Style>("HazeBodyStyle") });
         text.Children.Add(new UpdatePanel(ctx, ctx.Updater) { Margin = new Thickness(0, 6, 0, 0) });
         Grid.SetColumn(text, 1);
         top.Children.Add(text);
         Cards.Children.Add(top);
+        // Beta updates, under the update panel: one switch in a settings card.
+        if (ctx.Known.Setting(K.UpdateBeta) is { } beta)
+            Cards.Children.Add(Card(beta));
         Cards.Children.Add(Heading(T.SettingsNotices));
         // The typeface's and the library's names are their own, and stay as they are.
         foreach (var (name, line) in new[]

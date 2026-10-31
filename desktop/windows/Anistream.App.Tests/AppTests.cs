@@ -1087,7 +1087,7 @@ public class UpdateTests
 
     static Release Release(ReleaseAsset? x64, ReleaseAsset? arm64) => new(
         Version: "2.1.0", PublishedAt: 0, PageUrl: "https://releases.example/v2.1.0", Notes: "",
-        Macos: null, Ios: null, Android: null, WindowsX64: x64, WindowsArm64: arm64, LinuxX8664: null, LinuxAarch64: null);
+        Macos: null, Ios: null, Android: null, WindowsX64: x64, WindowsArm64: arm64, LinuxX8664: null, LinuxAarch64: null, Beta: false);
 
     sealed class Serve(byte[] body, System.Net.HttpStatusCode code = System.Net.HttpStatusCode.OK) : HttpMessageHandler
     {
@@ -1239,7 +1239,9 @@ public class UpdateTests
         var available = new UpdateStatus.Available(Release(Asset("x64", 1), null), false);
         Assert.Equal("Not checked yet", Updates.Line(null, UpdateState.Idle, false, false));
         Assert.Equal("Checks once you're back online", Updates.Line(null, UpdateState.Idle, true, false));
-        Assert.Equal("Up to date", Updates.Line(new UpdateStatus.UpToDate(), UpdateState.Idle, false, false));
+        Assert.Equal("Up to date", Updates.Line(new UpdateStatus.UpToDate(null, false), UpdateState.Idle, false, false));
+        Assert.Equal("You have 2.3.4, a beta. Updates resume when a newer stable version is out.",
+            Updates.Line(new UpdateStatus.UpToDate("2.3.4", true), UpdateState.Idle, false, false));
         Assert.Equal("Not checked. Check your connection and try again.", Updates.Line(new UpdateStatus.Failed("gitHub could not be reached"), UpdateState.Idle, false, false));
         Assert.Equal("Version 2.1.0 is out", Updates.Line(available, UpdateState.Idle, false, true));
         Assert.Equal("Version 2.1.0 is out. Its page has the installer.", Updates.Line(available, UpdateState.Idle, false, false));
