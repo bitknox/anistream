@@ -57,7 +57,7 @@ object SettingsCatalog {
         SettingKey.MOTION, SettingKey.AUTO_NEXT, SettingKey.SKIP_OPENING, SettingKey.SKIP_FILLER,
         SettingKey.MARK_CHAPTERS, SettingKey.SKIP_BUTTON, SettingKey.FULLSCREEN, SettingKey.NIGHT_MODE, SettingKey.MERGE_SUBTITLES,
         SettingKey.KEEP_SEEDING, SettingKey.PRESENCE, SettingKey.PRESENCE_TITLE, SettingKey.PRESENCE_RICH, SettingKey.TORRENTS,
-        SettingKey.SYNCPLAY, SettingKey.UPDATE_CHECK, SettingKey.SPOILER_PROTECTION,
+        SettingKey.SYNCPLAY, SettingKey.UPDATE_CHECK, SettingKey.UPDATE_BETA, SettingKey.SPOILER_PROTECTION,
         SettingKey.DOWNLOADS_ON_CELLULAR, SettingKey.TORRENTS_ON_CELLULAR, SettingKey.EPISODE_NOTIFICATIONS,
         SettingKey.ADULT_TITLES, SettingKey.EPISODE_DISCUSSIONS, SettingKey.COMMENT_IMAGES,
     )

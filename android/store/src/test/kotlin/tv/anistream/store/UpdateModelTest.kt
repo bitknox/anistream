@@ -471,6 +471,20 @@ class UpdateModelTest {
     }
 
     @Test
+    fun a_beta_ahead_of_the_stable_says_updates_resume_and_labels_the_build() = runTest {
+        val store = AppStore(this)
+        assertEquals(false, store.updates.runningBeta.value)
+        store.apply(Event.Update(UpdateStatus.UpToDate(stableBehind = "2.3.4", runningBeta = true)))
+        assertEquals(UpdateCheck.StableBehind("2.3.4"), store.updates.check.value)
+        assertEquals(true, store.updates.runningBeta.value)
+        assertEquals(UpdateState.None, store.updates.state.value)
+        // Once a stable catches up, the line is the plain one again and the label goes.
+        store.apply(Event.Update(UpdateStatus.UpToDate()))
+        assertEquals(UpdateCheck.UpToDate, store.updates.check.value)
+        assertEquals(false, store.updates.runningBeta.value)
+    }
+
+    @Test
     fun the_tv_is_offered_the_tv_s_apk_and_no_other() = runTest {
         val tv = ReleaseAsset(
             name = "anistream-2.0.3-android-tv.apk",

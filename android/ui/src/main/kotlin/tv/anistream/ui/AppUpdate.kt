@@ -93,6 +93,7 @@ internal object UpdateWords {
         UpdateCheck.Unknown -> null
         UpdateCheck.Checking -> Strings.updatesChecking(context)
         UpdateCheck.UpToDate -> Strings.updatesUpToDate(context)
+        is UpdateCheck.StableBehind -> Strings.updatesStableBehind(context, check.version)
         UpdateCheck.Found -> null
         is UpdateCheck.Failed -> Strings.updatesNotCheckedBecause(context, plainReason(context, check.reason))
     }

@@ -857,7 +857,8 @@ private fun LazyListScope.about(nav: TvNavigator, memory: FocusMemory, first: Mo
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text("anistream", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk) // i18n-skip
-                    Text(stringResource(R.string.about_version, version), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                    val runningBeta by LocalAppStore.current.updates.runningBeta.collectAsStateWithLifecycle()
+                    Text(stringResource(R.string.about_version, if (runningBeta) stringResource(R.string.updates_version_beta, version) else version), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
                 }
             }
             val updating = UpdateRows(nav, memory, first)
@@ -901,11 +902,20 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
                 UpdateCheck.Unknown, UpdateCheck.Found -> null
                 UpdateCheck.Checking -> stringResource(R.string.updates_checking)
                 UpdateCheck.UpToDate -> stringResource(R.string.updates_up_to_date)
+                is UpdateCheck.StableBehind -> stringResource(R.string.updates_stable_behind, now.version)
                 is UpdateCheck.Failed -> stringResource(R.string.updates_check_failed, plainReason(context, now.reason))
             },
             modifier = first.remembered(memory, "about/check"),
         )
     }
+    TvListRow(
+        stringResource(R.string.updates_beta),
+        onClick = { store.setSwitch(SettingKey.UPDATE_BETA, !store.settings.isOn(SettingKey.UPDATE_BETA, view)) },
+        supporting = stringResource(R.string.updates_beta_detail),
+        switch = store.settings.isOn(SettingKey.UPDATE_BETA, view),
+        enabled = store.settings.row(SettingKey.UPDATE_BETA, view) != null,
+        modifier = Modifier.remembered(memory, "about/beta"),
+    )
     if (store.updates.updatesItself) {
         TvListRow(
             stringResource(R.string.tv_update_auto_check),
