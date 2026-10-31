@@ -1,0 +1,45 @@
+tv-picker-episode-of = { $title }, avsnitt { $episode }
+episode-label = Avsnitt { $episode }
+episode-label-of = Avsnitt { $episode } av { $title }
+tv-connecting-to-tv = Ansluter till TV:n
+tv-device-code = En TV visar den här { -device }en med koden { $code }. Om du glömmer en TV här glöms även den här { -device }en bort.
+tv-unnamed = TV
+tv-another-short = Annan TV…
+tv-volume-label = TV:ns volym
+tv-waiting = Väntar på TV:n
+tv-waiting-for = Väntar på { $name }
+tv-row-name = { $name }, { $detail }
+tv-row-name-connected = { $name }, { $detail }, ansluten
+tv-row-pair-help = Parkopplas med den här TV:n
+tv-none-found-name = { $title }. { $detail }
+tv-setting-value = { $setting }, { $value }
+party-choose-source-for = Välj en { -source } för avsnitt { $episode }
+party-nosource-unaired-title = Avsnitt { $episode } är inte ute än
+party-nosource-unaired-when = { $when } Dina { -source-pl } har det inte förrän då. Det spelas med rummet när en av dem har det.
+sources-check = Kontrollera { -source-pl }
+sources-origin-version = { $origin } · version { $version }
+sources-standing = Status
+sources-status-working = Redo
+sources-torrent-indexes = Söker i de { -torrent-index } du har slagit på under Inställningar.
+sources-version-ready = Version { $version } är redo
+sources-use-this = Använd den här { -source }n
+sources-use-name = { $name } på
+sources-remove-detail = Det slutar användas för avsnitt. Du kan installera det igen från sin { -plugin-store }.
+stores-updates-count = { $count ->
+    [one] En att uppdatera
+   *[other] { $count } att uppdatera
+ }
+stores-offline-keep-working = Den svarade inte när den här { -device }en senast frågade. De { -plugin-pl } du har installerat fortsätter fungera.
+stores-standing-version = { $standing } · { $version }
+stores-unreachable = Det gick inte att nå { -plugin-store }en. Kontrollera länken och din anslutning och försök sedan igen.
+stores-already-joined-title = { $name } är redan ansluten
+stores-owner-sees-as = Ägaren ser den här { -device }en som
+downloads-free-used = { $free } ledigt · { $used } i nedladdningar
+downloads-group-line = { $episodes } · { $size }
+downloads-line-rate = { $line } · { $rate }
+downloads-line-left = { $line } · { $left } kvar
+downloads-failed-row = Det gick inte att slutföra nedladdningen. Försök igen eller ta bort den från kön.
+downloads-play-label = Spela upp avsnitt { $episode }
+downloads-progress-name = Förlopp för { $name }
+torrents-proxy-host-example = proxy.example
+tv-problem-no-code = Den koden har gått ut. Be TV:n om en ny.

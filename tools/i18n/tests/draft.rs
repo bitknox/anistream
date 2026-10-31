@@ -295,3 +295,29 @@ fn terms_go_through_the_same_door() {
         "terms have no review state of their own"
     );
 }
+
+#[test]
+fn a_second_agents_notes_are_stored_with_the_draft_and_reset_by_a_redraft() {
+    let dir = fixture();
+    let root = dir.path();
+    run(root, "sv", None, json!({"settings-language": "Språk"}));
+    let cat = Catalogue::load(root).unwrap();
+    let rows = i18n_tool::draft::drafts(&cat, "sv", None).unwrap();
+    assert_eq!(rows["batches"][0]["messages"][0]["translation"], "Språk");
+    let (stored, bad) = i18n_tool::draft::annotate(
+        root,
+        "sv",
+        &json!({"settings-language": {"back": "Language", "flags": ["tone: fine"]}, "nope": {"back": "x"}}),
+    )
+    .unwrap();
+    assert_eq!((stored, bad.len()), (1, 1));
+    let status = load_status(&Catalogue::load(root).unwrap(), "sv").unwrap();
+    assert_eq!(status["settings-language"].back, "Language");
+    assert_eq!(status["settings-language"].flags, ["tone: fine"]);
+    run(root, "sv", None, json!({"settings-language": "Appspråk"}));
+    let status = load_status(&Catalogue::load(root).unwrap(), "sv").unwrap();
+    assert!(
+        status["settings-language"].flags.is_empty()
+            && status["settings-language"].back.is_empty()
+    );
+}

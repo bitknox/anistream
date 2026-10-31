@@ -183,7 +183,7 @@ impl<'a> LangLint<'a> {
         if text.contains('!') {
             out.push("has an exclamation mark".to_owned());
         }
-        for word in text.split(|c: char| !c.is_alphabetic() && c != '\'') {
+        for word in text.split(|c: char| (!c.is_alphabetic() && c != '\'') || is_cjk(c)) {
             let letters = word.chars().filter(|c| c.is_alphabetic()).count();
             if letters >= 3
                 && word.chars().all(|c| !c.is_lowercase())

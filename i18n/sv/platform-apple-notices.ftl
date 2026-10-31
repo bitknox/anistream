@@ -1,0 +1,10 @@
+notice-out = Avsnitt { $episode } är ute.
+notice-out-dubbed = Avsnitt { $episode } är ute, { -dubbed }.
+notice-out-behind = Avsnitt { $episode } är ute. { -up-next-cap } för dig: avsnitt { $next }.
+notice-out-dubbed-behind = Avsnitt { $episode } är ute, { -dubbed }. { -up-next-cap } för dig: avsnitt { $next }.
+notice-hidden-preview = Nytt avsnitt
+notice-summary = %u fler nya avsnitt
+notice-dismiss = Avfärda
+accounts-code-expired-detail = Koden har gått ut. Hämta en ny för att logga in på { $tracker }.
+list-refresh-failed = Det gick inte att uppdatera. Det som redan visas finns kvar.
+sign-in-failed = Det gick inte att logga in på { $tracker }. Försök igen.

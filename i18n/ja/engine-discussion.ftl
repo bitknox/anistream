@@ -1,0 +1,9 @@
+discussion-age-now = たった今
+discussion-age-minutes = { $minutes }分
+discussion-age-hours = { $hours }時間
+discussion-age-days = { $days }日
+discussion-age-weeks = { $weeks }週
+discussion-age-years = { $years }年
+notice-comment-like-failed = コメントにいいねできませんでした。もう一度お試しください。
+notice-comment-delete-failed = コメントを削除できませんでした。もう一度お試しください。
+notice-discussion-sign-in = いいねや返信をするには、AniListにサインインしてください。

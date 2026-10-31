@@ -108,6 +108,8 @@ fn entry(source: &str, state: &str) -> Entry {
         state: state.to_owned(),
         by: "agent".into(),
         at: "2026-11-03".into(),
+        flags: Vec::new(),
+        back: String::new(),
     }
 }
 

@@ -1,0 +1,72 @@
+sources-title = { -source-cap-pl }
+sources-empty = { -source-pl }はまだありません。{ -plugin-store }に参加すると追加できます。
+plugin-risk-warning = { -plugin-cap-pl }は他の人が作成したもので、{ -device }上で実行されます。信頼できる相手からのみインストールしてください。
+source-picker-title = この作品の{ -source-cap }
+source-picker-automatic = 自動
+source-picker-automatic-detail = 各エピソードを、配信している最初の{ -source }から取得
+source-picker-coverage = { $of ->
+   *[other] { $covered } / { $of }エピソード
+ }
+source-note-off = オフになっています
+source-note-resting = 応答がなく、まもなく再試行します
+source-note-gone = 未インストール
+source-note-ambiguous = この作品と一致させられませんでした
+source-note-held-back = VPN の確認で保留中
+source-picker-releases = { -release-cap-pl }
+source-picker-chosen = 選択中
+source-pin-unavailable = { $name }は現在利用できないため、この作品のエピソードは他の{ -source-pl }から取得します。
+episode-unsourced = このエピソードを配信する{ -source }はありません
+sources-order = { -source-cap }の順番
+sources-order-detail = { -source-cap-pl }は上から順に試されます。ハンドルをドラッグすると順番を変えられます。
+sources-order-detail-show = { -source-cap-pl }は上から順に試されます。作品ごとに、作品のページで選んだ独自の{ -source }を使うこともできます。
+sources-drag-hint = ドラッグして順番を変更
+sources-move-up = 上に移動
+sources-move-down = 下に移動
+sources-load-failed = { -source-pl }を読み込めませんでした
+sources-empty-title = { -source-pl }はまだありません
+sources-empty-detail = { -source-cap-pl }は{ -plugin-store-pl }から提供されます。所有者から届く招待リンクで参加してください。
+sources-torrents = トレント
+sources-remote = リモート
+sources-origin-config = 設定ファイルで指定
+sources-origin-built-in = アプリに同梱
+sources-origin-left-store = 脱退した{ -plugin-store }から
+sources-origin-by-hand = 手動で追加
+sources-origin-no-store = { -plugin-store }以外から
+sources-origin-from = { $name }から
+sources-origin-in = { $place }にあります
+sources-status-not-answering = 応答なし
+sources-status-held-back = 保留中
+sources-status-slow = 遅い
+sources-status-update = アップデートあり
+sources-detail-not-answering = 応答がありません。{ $why }
+sources-detail-not-answering-plain = 応答がありません。
+sources-detail-held-back = 接続の確認が通るまで保留されます。
+sources-detail-disabled = オフです。順番は保持されますが、試されません。
+sources-detail-gone = この{ -source }はもうありません。
+sources-detail-site = { -source }が応答しませんでした。
+sources-version = バージョン
+sources-response-time = 応答時間
+sources-no-answer = 応答なし
+sources-not-checked = まだ確認していません
+sources-contacts-label = 接続先
+sources-listed-by-store = { -plugin-store }に掲載
+sources-contacts-one = { $first }に接続します
+sources-contacts-line = { $more ->
+   *[other] { $first }ほか{ $more }件に接続します
+ }
+sources-contacts-none = 接続先はありません
+sources-no-hosts = なし
+sources-update-contacts-one = このアップデートは{ $first }にも接続します。
+sources-update-contacts = { $more ->
+   *[other] このアップデートは{ $first }ほか{ $more }件にも接続します。
+ }
+sources-update-title = { $name }をアップデートしますか？
+sources-replace-title = { $name }を置き換えますか？
+sources-update-detail = { $store }のバージョン{ $version }が{ $from }を置き換えます。
+sources-replace-detail = { $store }のバージョン{ $version }が、手動で追加されたコピーを置き換えます。{ $detail }。
+sources-open-settings = { -source }の設定を開く
+sources-torrent-source = トレントの{ -source }
+sources-source-order-row = { -source-cap }の順番
+sources-torrents-note = トレントは{ -plugin }ではなく、{ -app-name }に含まれています。通信の保護、接続確認、シーディングは、設定の{ -source-cap-pl }で設定します。
+sources-rebuilding = { -source-cap-pl }を設定し直しています
+sources-response-ms = { $ms } ms

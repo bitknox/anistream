@@ -1,0 +1,11 @@
+onboarding-welcome = ようこそ
+onboarding-welcome-to = { -app-name }へようこそ
+onboarding-tagline = アニメの視聴記録を管理し、選んだ{ -source-pl }から再生できます。
+onboarding-continue = { -continue-cap }
+onboarding-skip = スキップ
+onboarding-skip-for-now = 今はスキップ
+onboarding-not-now = 今はしない
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl }は{ -plugin-pl }で、招待制の{ -plugin-store-pl }を通じて共有されます。
+onboarding-join = 参加
+onboarding-invite-hint = 招待リンク

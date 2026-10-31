@@ -28,16 +28,16 @@
 -library-cap = Bibliotek
 
 # AniList, Kitsu and similar accounts anistream updates.
--tracker = spårningstjänst
--tracker-cap = Spårningstjänst
--tracker-pl = spårningstjänster
--tracker-cap-pl = Spårningstjänster
+-tracker = tracker
+-tracker-cap = Tracker
+-tracker-pl = trackers
+-tracker-cap-pl = Trackers
 
 # Watching in sync with other people. Never "watch together".
--watch-party = gemensam tittning
--watch-party-cap = Gemensam tittning
--watch-party-pl = gemensamma tittningar
--watch-party-cap-pl = Gemensamma tittningar
+-watch-party = watch party
+-watch-party-cap = Watch party
+-watch-party-pl = watch partyn
+-watch-party-cap-pl = Watch partyn
 
 # Where releases are looked up.
 -torrent-index = torrentindex

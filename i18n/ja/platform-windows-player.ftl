@@ -1,0 +1,12 @@
+player-episode-line-titled = { $line } · { $title }
+player-episode-fraction = エピソード{ $number }
+player-starting-fraction = エピソード{ $number }を開いています
+player-failed-fraction = エピソード{ $number }を再生できませんでした
+player-speed-value = { $speed }×
+player-timeline-playing = 再生中、{ $position } / { $duration }
+player-timeline-paused = 一時停止中、{ $position } / { $duration }
+player-track-added = { $name } · 追加済み
+player-load-subtitles-commit = 字幕を読み込む
+player-load-audio-commit = 音声を読み込む
+player-mini-tip = 常に前面に表示されます。{ $key }を押すと戻ります。
+player-stats-row = { $label }：{ $value }

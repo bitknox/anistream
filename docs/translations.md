@@ -79,6 +79,12 @@ banned list. The rest are written to `i18n/<lang>/<file>.ftl` and recorded in
 was refused. `legal-hosts-no-content` is never offered to an agent. Terms have no review state;
 the language's terms file is approved as a whole before its messages are drafted.
 
+`--drafts` prints every stored draft next to its English for a review pass (`--group` narrows it).
+`--notes FILE` takes `{ "<id>": { "back": "...", "flags": ["..."] } }` and stores a back-translation
+and review flags with the entry; an absent key leaves the stored value alone and `"flags": null`
+clears them. Parallel runs on one language are safe: each write takes a lock and replaces the file
+atomically.
+
 Tags are BCP 47 as written in `languages.toml` (`zh-Hans`, `es-419`, `pt-BR`). Android writes
 them as `values-b+zh+Hans`, Windows as `Strings/zh-Hans`, Apple and Fluent keep them as they are.
 Some languages need a `many` form that only counts millions (es, pt, fr, it); `--list` names the

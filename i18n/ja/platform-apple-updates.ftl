@@ -1,0 +1,13 @@
+updates-preparing = アップデートを準備しています
+updates-downloading-bytes = { $done }をダウンロード中
+updates-downloading-bytes-of = { $done } / { $total }をダウンロード中
+updates-restarting = アップデートを完了するために再起動しています
+updates-did-not-finish = アップデートを完了できませんでした。もう一度お試しください。
+updates-could-not-check = アップデートを確認できませんでした。しばらくしてからお試しください。
+updates-in-sidestore = SideStoreでアップデート
+updates-release-page = バージョンのページ
+updates-release-notes = 新機能
+updates-whats-new-in = { $version }の新機能
+updates-installer-not-ready = アップデーターの準備ができていません。少し待ってからお試しください。
+updates-feed-missing = アップデートの配信情報に、このバージョンはまだありません。
+updates-fixtures-no-install = Fixturesアプリではアップデートをインストールできません。

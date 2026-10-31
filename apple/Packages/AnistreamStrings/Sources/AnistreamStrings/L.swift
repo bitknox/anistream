@@ -7594,6 +7594,8 @@ public enum L {
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [
         Language(tag: "en", name: "English", draft: false),
+        Language(tag: "ja", name: "日本語", draft: true),
+        Language(tag: "sv", name: "Svenska", draft: true),
     ]
 
     public struct Language: Sendable, Equatable {

@@ -387,6 +387,45 @@ pub fn today() -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
+/// One `accept` at a time per language, so agents drafting different files cannot lose each
+/// other's status entries. Released when dropped.
+struct Lock(PathBuf);
+
+impl Lock {
+    fn take(root: &Path, tag: &str) -> Result<Lock> {
+        let dir = root.join("i18n/status");
+        fs::create_dir_all(&dir)?;
+        let path = dir.join(format!(".{tag}.lock"));
+        for _ in 0..600 {
+            match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(_) => return Ok(Lock(path)),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                    std::thread::sleep(std::time::Duration::from_millis(100))
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+        bail!(
+            "{} has been held for a minute; delete it if no accept is running",
+            path.display()
+        )
+    }
+}
+
+impl Drop for Lock {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+
+/// Writes a file so a reader never sees half of it.
+fn write_atomic(path: &Path, text: &str) -> Result<()> {
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, text)?;
+    fs::rename(&tmp, path)?;
+    Ok(())
+}
+
 /// Checks `proposals` (an object of id to translation, or `{"translations": {...}}`), writes the
 /// good ones and records them as drafts. Nothing is written when none passes.
 pub fn accept(
@@ -397,6 +436,7 @@ pub fn accept(
     by: &str,
     at: &str,
 ) -> Result<Report> {
+    let _lock = Lock::take(root, tag)?;
     let cat = Catalogue::load(root)?;
     let lang = target(&cat, tag)?;
     let status = ship::load_status(&cat, tag)?;
@@ -483,6 +523,8 @@ pub fn accept(
                         state: "draft".into(),
                         by: by.to_owned(),
                         at: at.to_owned(),
+                        flags: Vec::new(),
+                        back: String::new(),
                     },
                 ));
                 report.accepted.push(id.clone());
@@ -508,7 +550,7 @@ pub fn accept(
                     .map(|m| m.id.clone())
                     .collect()
             };
-            fs::write(&path, merge(old.as_deref().unwrap_or(""), new, &order))?;
+            write_atomic(&path, &merge(old.as_deref().unwrap_or(""), new, &order))?;
             before.push((path, old));
         }
         if let Err(e) = Catalogue::load(root) {
@@ -527,7 +569,7 @@ pub fn accept(
             status.extend(entries_to_add);
             let path = root.join("i18n/status").join(format!("{tag}.json"));
             fs::create_dir_all(path.parent().expect("has a parent"))?;
-            fs::write(&path, serde_json::to_string_pretty(&status)? + "\n")?;
+            write_atomic(&path, &(serde_json::to_string_pretty(&status)? + "\n"))?;
         }
     }
 
@@ -542,4 +584,89 @@ pub fn accept(
             en_terms.iter().filter(|(t, _)| !after.langs[tag].terms.0.contains_key(t)).count();
     }
     Ok(report)
+}
+
+/// The drafts of `tag` (optionally one screen file), for a second agent to translate back.
+pub fn drafts(cat: &Catalogue, tag: &str, group: Option<&str>) -> Result<Value> {
+    let lang = target(cat, tag)?;
+    let status = ship::load_status(cat, tag)?;
+    let mut order: Vec<&str> = Vec::new();
+    let mut rows: BTreeMap<&str, Vec<Value>> = BTreeMap::new();
+    for m in &cat.source().messages {
+        if group.is_some_and(|g| g != m.group) {
+            continue;
+        }
+        let (Some(e), Some(t)) = (status.get(&m.id), lang.message(&m.id)) else { continue };
+        if ship::verdict(&status, m) != Verdict::Draft {
+            continue;
+        }
+        if !order.contains(&m.group.as_str()) {
+            order.push(&m.group);
+        }
+        rows.entry(&m.group).or_default().push(json!({
+            "id": m.id,
+            "english": render(&m.body),
+            "translation": render(&t.body),
+            "comment": m.comment,
+            "max": m.max,
+            "only": m.only.map(|p| p.name()),
+            "reviewed_by_second_agent": !e.back.is_empty(),
+            "flags": e.flags,
+        }));
+    }
+    let batches: Vec<Value> = order
+        .into_iter()
+        .map(|g| json!({"group": g, "count": rows[g].len(), "messages": rows[g]}))
+        .collect();
+    Ok(json!({"lang": tag, "batches": batches}))
+}
+
+/// Stores a second agent's notes on drafts: `{ "<id>": { "back": "...", "flags": ["..."] } }`.
+/// A key that is absent leaves what is stored alone, so the back-translation and the flags can come separately.
+/// Returns the ids it could not attach to a draft, with the reason.
+pub fn annotate(
+    root: &Path,
+    tag: &str,
+    notes: &Value,
+) -> Result<(usize, Vec<(String, String)>)> {
+    let _lock = Lock::take(root, tag)?;
+    let cat = Catalogue::load(root)?;
+    target(&cat, tag)?;
+    let mut status = ship::load_status(&cat, tag)?;
+    let map = notes
+        .as_object()
+        .ok_or_else(|| anyhow!("the file must be a JSON object of id to notes"))?;
+    let (mut done, mut bad) = (0, Vec::new());
+    for (id, note) in map {
+        let Some(entry) = status.get_mut(id) else {
+            bad.push((id.clone(), "has no draft to attach notes to".to_owned()));
+            continue;
+        };
+        if let Some(back) = note.get("back").and_then(Value::as_str) {
+            entry.back = back.trim().to_owned();
+        }
+        match note.get("flags") {
+            None => {}
+            Some(Value::Null) => entry.flags.clear(),
+            Some(Value::Array(a)) => {
+                entry.flags = a
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(|s| s.trim().to_owned())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            }
+            Some(Value::String(s)) => entry.flags = vec![s.trim().to_owned()],
+            _ => {
+                bad.push((id.clone(), "flags must be a list of strings".to_owned()));
+                continue;
+            }
+        }
+        done += 1;
+    }
+    if done > 0 {
+        let path = root.join("i18n/status").join(format!("{tag}.json"));
+        write_atomic(&path, &(serde_json::to_string_pretty(&status)? + "\n"))?;
+    }
+    Ok((done, bad))
 }

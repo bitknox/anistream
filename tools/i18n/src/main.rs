@@ -50,8 +50,14 @@ enum Command {
         /// The language tag, such as sv or ja.
         lang: String,
         /// Print the missing and stale messages as JSON, one batch per screen file.
-        #[arg(long, conflicts_with = "accept")]
+        #[arg(long, conflicts_with_all = ["accept", "drafts", "notes"])]
         list: bool,
+        /// Print the drafts (with their back-translation and flags, if any) for a second agent to check.
+        #[arg(long, conflicts_with_all = ["accept", "notes"])]
+        drafts: bool,
+        /// A JSON file of `{ "<id>": { "back": "...", "flags": ["..."] } }` to store with the drafts.
+        #[arg(long, value_name = "FILE", conflicts_with = "accept")]
+        notes: Option<std::path::PathBuf>,
         /// A JSON file of `{ "<id>": "<translation>" }`. A plural may be `{ "one": "..", "other": ".." }`. Terms have ids such as `-source`.
         #[arg(long, value_name = "FILE")]
         accept: Option<std::path::PathBuf>,
@@ -89,9 +95,31 @@ fn run() -> Result<ExitCode> {
             println!("{}", pseudo::text(&text));
             Ok(ExitCode::SUCCESS)
         }
-        Command::Draft { lang, list, accept, group, by } => {
-            if list == accept.is_some() {
-                bail!("give exactly one of --list and --accept FILE");
+        Command::Draft { lang, list, drafts, notes, accept, group, by } => {
+            if [list, drafts, notes.is_some(), accept.is_some()].iter().filter(|b| **b).count()
+                != 1
+            {
+                bail!("give exactly one of --list, --drafts, --notes FILE and --accept FILE");
+            }
+            if let Some(file) = notes {
+                let text = std::fs::read_to_string(&file)
+                    .with_context(|| format!("reading {}", file.display()))?;
+                let notes: serde_json::Value = serde_json::from_str(&text)
+                    .with_context(|| format!("{} is not JSON", file.display()))?;
+                let (stored, bad) = draft::annotate(&root, &lang, &notes)?;
+                println!(
+                    "{}",
+                    serde_json::json!({"stored": stored, "rejected": bad.iter().map(|(i, r)| serde_json::json!({"id": i, "reason": r})).collect::<Vec<_>>()})
+                );
+                return Ok(if bad.is_empty() { ExitCode::SUCCESS } else { ExitCode::FAILURE });
+            }
+            if drafts {
+                let cat = Catalogue::load(&root)?;
+                println!(
+                    "{}",
+                    serde_json::to_string(&draft::drafts(&cat, &lang, group.as_deref())?)?
+                );
+                return Ok(ExitCode::SUCCESS);
             }
             if let Some(file) = accept {
                 let text = std::fs::read_to_string(&file)

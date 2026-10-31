@@ -1,0 +1,13 @@
+updates-preparing = Förbereder uppdateringen
+updates-downloading-bytes = Hämtar { $done }
+updates-downloading-bytes-of = Hämtar { $done } av { $total }
+updates-restarting = Startar om för att slutföra uppdateringen
+updates-did-not-finish = Uppdateringen slutfördes inte. Försök igen.
+updates-could-not-check = Det gick inte att leta efter uppdateringar. Försök igen senare.
+updates-in-sidestore = Uppdatera i SideStore
+updates-release-page = Versionssida
+updates-release-notes = Nyheter
+updates-whats-new-in = Nyheter i { $version }
+updates-installer-not-ready = Uppdateraren är inte klar. Försök igen om en stund.
+updates-feed-missing = Uppdateringsflödet har inte den här versionen än.
+updates-fixtures-no-install = Fixtures-appen installerar inte uppdateringar.

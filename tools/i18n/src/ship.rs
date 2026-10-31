@@ -30,6 +30,12 @@ pub struct Entry {
     pub by: String,
     #[serde(default)]
     pub at: String,
+    /// What the back-translation pass noticed (meaning drift, tone, register, length risk).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub flags: Vec<String>,
+    /// The draft translated back into the source language by a second agent.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub back: String,
 }
 
 pub type Status = BTreeMap<String, Entry>;
