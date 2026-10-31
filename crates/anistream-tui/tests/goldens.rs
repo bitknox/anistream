@@ -230,6 +230,7 @@ impl Screen {
 fn key(spec: &str) -> KeyEvent {
     let code = match spec {
         "esc" => KeyCode::Esc,
+        "tab" => KeyCode::Tab,
         "enter" => KeyCode::Enter,
         "down" => KeyCode::Down,
         "up" => KeyCode::Up,
@@ -456,6 +457,9 @@ scenarios! {
     home_long,
     home_first_run,
     home_offline,
+    home_next_section,
+    home_not_found,
+    home_undo,
     continue_loading,
     calendar,
     seasonal,
@@ -1056,6 +1060,30 @@ fn home_offline(s: &mut Screen) {
     view.offline = true;
     view.offline_since = Some(NOW - 23 * MINUTE);
     s.apply(Event::Home(Box::new(view)));
+}
+
+/// Tab on Home jumps to the first row of the next group.
+fn home_next_section(s: &mut Screen) {
+    settled_on(s, 1);
+    s.apply(Event::Home(Box::new(watching_view())));
+    s.press(&["tab"]);
+}
+
+/// The sources check found nothing for the highlighted suggestion: the row says so.
+fn home_not_found(s: &mut Screen) {
+    settled_on(s, 1);
+    let view = watching_view();
+    let id = view.section(SectionKind::UpNext).expect("up next").items[0].entry.id;
+    s.apply(Event::Home(Box::new(view)));
+    s.press(&["tab", "tab", "tab"]);
+    s.apply(Event::TitlePlayable { id, playable: Playable::NotFound });
+}
+
+/// After Not interested the first suggestion is gone and the status line offers Undo.
+fn home_undo(s: &mut Screen) {
+    settled_on(s, 1);
+    s.apply(Event::Home(Box::new(watching_view())));
+    s.press(&["tab", "tab", "tab", "x"]);
 }
 
 /// The first frame after launch: Continue asked for, nothing back yet, the skeleton's shimmer a

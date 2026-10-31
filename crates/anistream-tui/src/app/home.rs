@@ -5,12 +5,14 @@
 //! [`HomeView`], and mirrors its titles into [`App::content`] in the order they are drawn, so the
 //! cursor, the preview and every key that acts on "the highlighted title" work as on any list.
 
+use anistream_core::ids::AnilistId;
 use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentList, Entry},
     command::Command,
     home::{
-        HomeAction, HomeItem, HomeSection, HomeView, SectionKind, Spotlight, SpotlightCase,
+        HomeAction, HomeItem, HomeSection, HomeView, Playable, SectionKind, Spotlight,
+        SpotlightCase,
     },
 };
 
@@ -75,7 +77,9 @@ impl App {
             self.push_toast(alert(t::home_failed()));
         }
         self.home = Some(view);
+        self.stamp_playable();
         self.sync_home();
+        self.probe_home_selection();
     }
 
     /// Mirror the titles of Home into the list on screen, when Home is the section on screen.
@@ -143,6 +147,7 @@ impl App {
         } else {
             (Command::DismissUpNext { id }, t::up_next_hidden(&title))
         };
+        self.last_dismissed = matches!(command, Command::DismissUpNext { .. }).then_some(id);
         if let Some(view) = &mut self.home {
             // A discovery title leaves every shelf it is on; a Continue row leaves Continue.
             let only_continue = matches!(command, Command::HideFromContinue { .. });
@@ -162,5 +167,76 @@ impl App {
         self.sync_home();
         self.push_toast(info(said));
         Some(command)
+    }
+
+    /// Ask whether a source has the highlighted Home title, once as the cursor rests on it. The
+    /// engine keeps the answer for a day and asks no more than once a minute.
+    pub(super) fn probe_home_selection(&mut self) {
+        let Some(id) = self.home_row().map(|row| row.entry().id) else { return };
+        if self.last_probed != Some(id) {
+            self.last_probed = Some(id);
+            self.commands.push(Command::ProbeTitle { id });
+        }
+    }
+
+    /// Tab on Home: the first row of the next group (the spotlight, then each section), round to
+    /// the first. `false` when Home has only one group, so Tab keeps its other job.
+    pub(super) fn jump_home_section(&mut self) -> bool {
+        let Some(view) = &self.home else { return false };
+        let mut starts: Vec<usize> = Vec::new();
+        let mut at = 0;
+        if view.spotlight.is_some() {
+            starts.push(0);
+            at = 1;
+        }
+        for section in &view.sections {
+            if !section.items.is_empty() {
+                starts.push(at);
+                at += section.items.len();
+            }
+        }
+        if starts.len() < 2 || self.home_row().is_none() {
+            return false;
+        }
+        let selected = self.cursors.home.selected;
+        let next = starts.iter().copied().find(|start| *start > selected).unwrap_or(starts[0]);
+        let cursor = self.cursors.section_mut(Section::Home);
+        cursor.selected = next;
+        cursor.offset = next;
+        self.probe_home_selection();
+        true
+    }
+
+    /// `u` on Home: bring back the title last hidden with Not interested.
+    pub(super) fn undo_home_dismissal(&mut self) -> Option<Command> {
+        let id = self.last_dismissed.take()?;
+        Some(Command::RestoreUpNext { id })
+    }
+
+    /// Whether Home's list is on screen with the stage focused: where Tab and `u` mean Home's.
+    pub(super) fn on_home_stage(&self) -> bool {
+        self.home_row().is_some() && self.nav.focus() == crate::nav::Focus::Stage
+    }
+
+    /// Keep the sources check's answer for `id` and show it on Home.
+    pub(super) fn apply_playable(&mut self, id: AnilistId, playable: Playable) {
+        self.playable.insert(id, playable);
+        self.stamp_playable();
+    }
+
+    fn stamp_playable(&mut self) {
+        let Some(view) = &mut self.home else { return };
+        let known = &self.playable;
+        let get = |id: AnilistId| known.get(&id).copied();
+        if let Some(spotlight) = &mut view.spotlight
+            && let Some(p) = get(spotlight.entry.id)
+        {
+            spotlight.playable = p;
+        }
+        for item in view.sections.iter_mut().flat_map(|s| s.items.iter_mut()) {
+            if let Some(p) = get(item.entry.id) {
+                item.playable = p;
+            }
+        }
     }
 }

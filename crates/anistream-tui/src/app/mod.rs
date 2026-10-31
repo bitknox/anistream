@@ -91,6 +91,15 @@ pub struct App {
     pub caption: Option<(ContentFor, String)>,
     /// Home as the engine last sent it. See [`Event::Home`].
     pub home: Option<anistream_model::home::HomeView>,
+    /// The title last hidden with Not interested on Home, which `u` brings back.
+    pub(crate) last_dismissed: Option<anistream_core::ids::AnilistId>,
+    /// The Home title the sources were last asked about, so a held key asks once.
+    last_probed: Option<anistream_core::ids::AnilistId>,
+    /// What the sources check answered, kept to put back on each new Home.
+    playable: std::collections::HashMap<
+        anistream_core::ids::AnilistId,
+        anistream_model::home::Playable,
+    >,
     /// Where each view's highlight is, and the window of each list that keeps one.
     pub cursors: Cursors,
     /// Every text field's line: Search's query and each prompt's. See [`Field`].
@@ -344,6 +353,9 @@ impl App {
             content: ContentList::Loading,
             caption: None,
             home: None,
+            last_dismissed: None,
+            last_probed: None,
+            playable: std::collections::HashMap::new(),
             cursors: Cursors::default(),
             texts: Default::default(),
             searched_query: Default::default(),
@@ -486,7 +498,8 @@ impl App {
             Event::Home(view) => self.apply_home(*view),
             // The terminal has no Settings, Hidden titles, and Home is sent again when a sources
             // check answers.
-            Event::TitlePlayable { .. } | Event::HiddenTitles(_) => {}
+            Event::TitlePlayable { id, playable } => self.apply_playable(id, playable),
+            Event::HiddenTitles(_) => {}
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
             Event::Detail(entry) => self.apply_detail(entry),

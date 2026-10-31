@@ -1369,7 +1369,11 @@ pub async fn hidden_titles(meta: &Meta, store: &Store, tx: &Outbox) {
         .filter_map(|d| {
             let media = known.get(&AnilistId::new(d.id))?;
             let entry = data::entry_from(media, Some(store));
-            viewer.hidden(&entry).then_some(HiddenTitle { until_airs: d.waiting, entry })
+            viewer.hidden(&entry).then_some(HiddenTitle {
+                until_airs: d.waiting,
+                hidden_at: d.at,
+                entry,
+            })
         })
         .collect();
     let _ = tx.send(Event::HiddenTitles(rows));
