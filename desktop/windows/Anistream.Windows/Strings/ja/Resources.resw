@@ -2636,9 +2636,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>anistreamへようこそ</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>アニメの視聴記録を管理し、選んだソースから再生できます。</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>続きを見る</value>
   </data>
@@ -2653,9 +2650,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>ソース</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>ソースはプラグインで、招待制のプラグインストアを通じて共有されます。</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>参加</value>
@@ -3797,9 +3791,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>ソースはまだありません。プラグインストアに参加すると追加できます。</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>プラグインは他の人が作成したもので、デバイス上で実行されます。信頼できる相手からのみインストールしてください。</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>この作品のソース</value>
   </data>
@@ -3862,9 +3853,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>ソースはまだありません</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>ソースはプラグインストアから提供されます。所有者から届く招待リンクで参加してください。</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>トレント</value>

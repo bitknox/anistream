@@ -406,11 +406,11 @@ On Mac the toolbar status opens a popover listing every running job with its ela
 
 ## First launch
 
-First launch is three short pages and then the app. It says plainly that anistream hosts nothing and that sources belong to other people. It never mentions torrents. On iPhone it is a full-screen cover; on Mac and iPad it is a sheet, 560 × 480 pt on Mac. Every page can be skipped, and each step is in Settings afterwards.
+First launch is three short pages and then the app. It says plainly that anistream hosts nothing and supplies no sources. It never mentions torrents. On iPhone it is a full-screen cover; on Mac and iPad it is a sheet, 560 × 480 pt on Mac. Every page can be skipped, and each step is in Settings afterwards.
 
-1. Welcome. Nagare, the name, and two lines: “Keep track of anime and play it from sources you choose.” and “anistream hosts no content. Every source is run by someone else.” Button: Continue.
+1. Welcome. Nagare, the name, and two lines: “Keep track of anime and play what you're entitled to watch.” and “anistream hosts no content and supplies no sources.” Button: Continue.
 2. AniList. “Sign in to AniList to sync your list and where you stopped.” Buttons: Sign in to AniList, Not now. A smaller line says other trackers are in Accounts. Sign-in uses the system web authentication sheet, or the device code sheet when the tracker needs one.
-3. Sources. “anistream ships no sources of its own. Sources are plugins, shared through plugin stores by invite.” A field takes a pasted invite link, with Join. Below it: “Each plugin is someone else's code connecting to someone else's service. Use them at your own risk.” Button: Skip for now. An invite link opened from Messages or Mail (`anistream://` URL scheme) jumps straight to this step, filled in.
+3. Sources. “Join a plugin store with an invite from its owner. anistream supplies no sources.” A field takes a pasted invite link, with Join. Below it: “Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use.” Button: Skip for now. An invite link opened from Messages or Mail (`anistream://` URL scheme) jumps straight to this step, filled in.
 
 The app then opens on Home.
 

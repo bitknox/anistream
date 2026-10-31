@@ -1210,13 +1210,11 @@
     <string name="tooltip_with_key">%1$s (%2$s)</string>
     <string name="onboarding_welcome">Benvenuto</string>
     <string name="onboarding_welcome_to">Benvenuto in anistream</string>
-    <string name="onboarding_tagline">Tieni traccia degli anime e riproducili dalle fonti che scegli.</string>
     <string name="onboarding_continue">Continua a guardare</string>
     <string name="onboarding_skip">Salta</string>
     <string name="onboarding_skip_for_now">Salta per ora</string>
     <string name="onboarding_not_now">Non ora</string>
     <string name="onboarding_sources_title">Fonti</string>
-    <string name="onboarding_sources_detail">Le fonti sono plugin, condivisi tramite i negozi di plugin su invito.</string>
     <string name="onboarding_join">Unisciti</string>
     <string name="onboarding_invite_hint">Link di invito</string>
     <string name="party_open">Watch party…</string>
@@ -1614,7 +1612,6 @@
     <string name="settings_trailers_wifi_only">Solo Wi-Fi</string>
     <string name="sources_title">Fonti</string>
     <string name="sources_empty">Ancora nessuna fonte. Unisciti a un negozio di plugin per aggiungerne.</string>
-    <string name="plugin_risk_warning">I Plugin sono scritti da altre persone e girano sul tuo dispositivo. Installa solo da persone di cui ti fidi.</string>
     <string name="source_picker_title">Fonte per questo titolo</string>
     <string name="source_picker_automatic">Automatica</string>
     <string name="source_picker_automatic_detail">Ogni episodio dalla prima fonte che lo ha</string>
@@ -1640,7 +1637,6 @@
     <string name="sources_move_down">Sposta giù</string>
     <string name="sources_load_failed">Impossibile caricare le fonti</string>
     <string name="sources_empty_title">Ancora nessuna fonte</string>
-    <string name="sources_empty_detail">Le fonti arrivano dai negozi di plugin. Unisciti a uno con il link di invito che ti manda il proprietario.</string>
     <string name="sources_torrents">Torrent</string>
     <string name="sources_remote">Remota</string>
     <string name="sources_origin_config">Impostata nel file di configurazione</string>

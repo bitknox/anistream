@@ -258,7 +258,7 @@ mod tests {
         assert_eq!(en.text("legal-hosts-no-content", &[]), "anistream hosts no content.");
         assert_eq!(
             en.text("plugin-risk-warning", &[]),
-            "Plugins are written by other people and run on your device. Install only from people you trust."
+            "Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use."
         );
     }
 

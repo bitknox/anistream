@@ -4,8 +4,7 @@
 //! is real rather than declared. Three rules shape it:
 //!
 //! - **The guest never sees a socket.** [`Capabilities::fetch`] takes a request and returns
-//!   bytes; the connection, the TLS fingerprint and the rate limiter all
-//!   belong to the host.
+//!   bytes; the connection and the rate limiter both belong to the host.
 //! - **Redirects are not followed.** A plugin allowed `example.com` must not be able to reach
 //!   `evil.test` because `example.com` chose to `302` there. The redirect is handed back as a
 //!   response, so the guest can decide — and the next hop is allowlisted again.
@@ -183,8 +182,7 @@ impl Capabilities {
     ) -> Result<Response, HostError> {
         tracing::debug!(plugin = %self.plugin_id, url = %request.url, "plugin fetch");
 
-        // The emulating client: a plugin inherits the same TLS/HTTP2 fingerprint as the native
-        // providers, which is the whole reason `fetch` is lent rather than granted.
+        // The same client the native sources use, so one place owns the connection settings.
         let mut builder = match request.method.to_ascii_uppercase().as_str() {
             "POST" => http.emulated().post(&request.url),
             _ => http.emulated().get(&request.url),

@@ -825,7 +825,7 @@ pub struct ProvidersConfig {
     pub disabled: Vec<String>,
     pub torrent: TorrentConfig,
     pub plugins: PluginsConfig,
-    /// Base URL of a self-hosted Consumet-shaped API, if you run one.
+    /// Base URL of a JSON API you host, such as an index of your own media.
     pub remote_url: Option<String>,
 }
 

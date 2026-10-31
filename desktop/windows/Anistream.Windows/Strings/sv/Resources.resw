@@ -2720,9 +2720,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Välkommen till anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Håll koll på anime och spela upp den från källor du väljer.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Fortsätt titta</value>
   </data>
@@ -2737,9 +2734,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Källor</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Källor är tillägg, som delas via tilläggsbutiker på inbjudan.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Gå med</value>
@@ -3893,9 +3887,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Inga källor än. Anslut dig till en tilläggsbutik för att lägga till några.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Tillägg skrivs av andra och körs på din enhet. Installera bara från personer du litar på.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Källa för den här titeln</value>
   </data>
@@ -3961,9 +3952,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Inga källor än</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Källor kommer från tilläggsbutiker. Anslut dig till en med den inbjudningslänk som ägaren skickar dig.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrent</value>

@@ -5,7 +5,8 @@ description: Share plugins with people you know, through a store one of you runs
 
 A plugin store is a small server that one person runs for the people they invite. Everyone who
 joins can install the store's plugins from inside anistream and hears about new versions when
-anistream starts. anistream ships no store and lists none. You join one through an invite link.
+anistream starts. anistream ships no store and lists none. You join one through an invite link. The store's owner
+chooses its plugins and is responsible for them: anistream did not make, review or approve them.
 
 ## Joining a store
 

@@ -1927,6 +1927,14 @@
     <value>Released under the MIT licence.</value>
     <comment>Line with the licence.</comment>
   </data>
+  <data name="AboutLegal" xml:space="preserve">
+    <value>anistream supplies no sources. Plugins come from plugin stores run by other people.</value>
+    <comment>Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.</comment>
+  </data>
+  <data name="AboutLegalLink" xml:space="preserve">
+    <value>Legal and contact</value>
+    <comment>Row opening the legal and contact page on the website.</comment>
+  </data>
   <data name="AboutAcknowledgements" xml:space="preserve">
     <value>Acknowledgements</value>
     <comment>Row opening the list of acknowledgements.</comment>
@@ -4044,7 +4052,7 @@
     <comment>Title of the first page.</comment>
   </data>
   <data name="OnboardingTagline" xml:space="preserve">
-    <value>Keep track of anime and play it from sources you choose.</value>
+    <value>Keep track of anime and play what you're entitled to watch.</value>
     <comment>Line under the title.</comment>
   </data>
   <data name="OnboardingContinue" xml:space="preserve">
@@ -4068,7 +4076,7 @@
     <comment>Heading of the page about sources.</comment>
   </data>
   <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Sources are plugins, shared through plugin stores by invite.</value>
+    <value>Join a plugin store with an invite from its owner. anistream supplies no sources.</value>
     <comment>Line under it.</comment>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
@@ -5648,7 +5656,7 @@
     <comment>Shown on the sources screen when none is installed.</comment>
   </data>
   <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Plugins are written by other people and run on your device. Install only from people you trust.</value>
+    <value>Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use.</value>
     <comment>Warning at install and in onboarding, in the same words in both.</comment>
   </data>
   <data name="SourcePickerTitle" xml:space="preserve">
@@ -5740,7 +5748,7 @@
     <comment>Title when no source is installed.</comment>
   </data>
   <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Sources come from plugin stores. Join one with the invite link its owner sends you.</value>
+    <value>Join a plugin store with the invite link its owner sends you.</value>
     <comment>Line under it.</comment>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
@@ -6030,6 +6038,10 @@
   <data name="StoresNotFromApp" xml:space="preserve">
     <value>Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.</value>
     <comment>Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.</comment>
+  </data>
+  <data name="StoresJoinOwnerResponsible" xml:space="preserve">
+    <value>{owner} runs this plugin store and chose its plugins. anistream did not make, review or approve them.</value>
+    <comment>Line under the join form's confirmation: who answers for the store. Shown before Join.</comment>
   </data>
   <data name="StoresNoPlugins" xml:space="preserve">
     <value>This plugin store offers no plugins yet.</value>

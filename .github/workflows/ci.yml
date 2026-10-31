@@ -481,6 +481,16 @@ jobs:
       - run: rustup toolchain install
       - run: tools/check-boundaries.sh
 
+  # The repository carries only the two reference plugins and the sandbox fixture. Anything else
+  # under plugins/ is a local build, and this fails if one is tracked or named by a packaging,
+  # workflow or deploy file. It has no path filter, so a forced add cannot slip past it.
+  plugins-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: tools/check-plugins.sh
+
   # The translations: the generated files are the catalogue's output, so a stale one, or a message
   # that breaks the writing rules, fails here. The hardcoded-string scan only reports until a
   # platform is listed under `[code] enforce` in i18n/lint.toml.

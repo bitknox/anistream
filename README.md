@@ -13,7 +13,7 @@
 <p>
 Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the terminal.
 <br>
-anistream hosts no content.
+anistream hosts no content and supplies no sources.
 </p>
 
 <p>
@@ -45,7 +45,8 @@ anistream hosts no content.
 
 anistream browses AniList with no account, plays episodes in mpv, keeps your history on your
 device and syncs it to AniList, MyAnimeList, Kitsu, Simkl and Trakt. It is free, open source and
-non-commercial.
+non-commercial. anistream hosts no content and supplies no sources: you add the ones you are
+entitled to use.
 
 <table>
   <tr>
@@ -200,17 +201,18 @@ source. The terminal app updates with `anistream --update`.
 
 </details>
 
-## Sources and plugin stores
+## Where episodes come from
 
-anistream finds episodes through sources. A source is a sandboxed WebAssembly plugin, a JSON API
-you host yourself, or the torrent transport, which has nothing to search until you supply an
-endpoint. A plugin can only reach the hosts it declares. anistream never works around DRM: a
-licensed stream opens in its own service.
+anistream hosts no content and supplies, recommends and curates no sources. You add sources you
+are entitled to use: a JSON API you host yourself, a stream you have the right to play, a licensed
+service, or a sandboxed WebAssembly plugin from a plugin store you joined. A plugin can only reach
+the hosts it declares. anistream never gets round DRM: a licensed stream opens in its own service.
 
-A plugin store is a small server that one person runs for the people they invite. Everyone who
-joins can install the store's plugins from inside anistream and hears about new versions. Each
-device gets its own token, and every plugin list is signed with the store's key. anistream ships
-no store and lists none. You join one through an invite link.
+A plugin store is a small server that one person runs for the people they invite. Its owner
+chooses its plugins and is responsible for them. Everyone who joins can install the store's
+plugins from inside anistream and hears about new versions. Each device gets its own token, and
+every plugin list is signed with the store's key. anistream ships no store and lists none. You
+join one through an invite link. See [Legal and contact](https://anistream.tv/legal/).
 
 <p align="center">
 <img src="docs/assets/readme/windows-stores.webp" width="724" alt="The Windows app's plugin stores: three stores you have joined, and one store's plugins with the hosts each one contacts">
@@ -278,5 +280,5 @@ through [SECURITY.md](SECURITY.md).
 <p align="center">
 <a href="https://anistream.tv"><img src="website/public/favicon.svg" width="48" alt="anistream"></a>
 <br>
-<sub>anistream hosts no content.</sub>
+<sub>anistream hosts no content and supplies no sources. <a href="https://anistream.tv/legal/">Legal and contact</a></sub>
 </p>

@@ -64,7 +64,7 @@ export function Joining({
 			title="Who can join"
 			lede={
 				open
-					? 'Anyone with this link can join, as often as they like, without a name. Members see that the store is open. Going back to invites only stops the link; opening again makes a new one.'
+					? 'Anyone with this link can join, and the link can be passed on. Keep it to people you know. You are responsible for who you let in. They join as often as they like, without a name, and members see that the store is open. Going back to invites only stops the link; opening again makes a new one.'
 					: "Only people you invite can join. You can let anyone with the store's link join instead: they join without a name, and the store keeps nothing about who they are."
 			}
 		>

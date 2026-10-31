@@ -16,9 +16,9 @@ pub enum StreamKind {
     TorrentHttp,
     /// Not playable by us at all — a link to open in a licensed player.
     ///
-    /// Crunchyroll streams are Widevine + PlayReady protected, so mpv cannot play them.
+    /// A licensed service's streams are DRM protected, so mpv cannot play them.
     /// Rather than pretend otherwise, those episodes resolve to this and open in
-    /// Crunchyroll. The UI labels it distinctly so it never looks like a silent failure.
+    /// the service. The UI labels it distinctly so it never looks like a silent failure.
     ExternalDeepLink,
 }
 

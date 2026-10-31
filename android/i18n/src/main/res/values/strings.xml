@@ -1388,6 +1388,10 @@
     <string name="about_version">Version %1$s</string>
     <!-- Line with the licence. -->
     <string name="about_licence">Released under the MIT licence.</string>
+    <!-- Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it. -->
+    <string name="about_legal">anistream supplies no sources. Plugins come from plugin stores run by other people.</string>
+    <!-- Row opening the legal and contact page on the website. -->
+    <string name="about_legal_link">Legal and contact</string>
     <!-- Row opening the list of acknowledgements. -->
     <string name="about_acknowledgements">Acknowledgements</string>
     <!-- Row opening the licences of the parts used. -->
@@ -2459,7 +2463,7 @@
     <!-- Title of the first page. -->
     <string name="onboarding_welcome_to">Welcome to anistream</string>
     <!-- Line under the title. -->
-    <string name="onboarding_tagline">Keep track of anime and play it from sources you choose.</string>
+    <string name="onboarding_tagline">Keep track of anime and play what you\'re entitled to watch.</string>
     <!-- Button that goes to the next page. -->
     <string name="onboarding_continue">Continue</string>
     <!-- Button that skips a page. -->
@@ -2471,7 +2475,7 @@
     <!-- Heading of the page about sources. -->
     <string name="onboarding_sources_title">Sources</string>
     <!-- Line under it. -->
-    <string name="onboarding_sources_detail">Sources are plugins, shared through plugin stores by invite.</string>
+    <string name="onboarding_sources_detail">Join a plugin store with an invite from its owner. anistream supplies no sources.</string>
     <!-- Button that joins a store from the welcome page. -->
     <string name="onboarding_join">Join</string>
     <!-- Hint inside the invite field on the welcome page. -->
@@ -3265,7 +3269,7 @@
     <!-- Shown on the sources screen when none is installed. -->
     <string name="sources_empty">No sources yet. Join a plugin store to add some.</string>
     <!-- Warning at install and in onboarding, in the same words in both. -->
-    <string name="plugin_risk_warning">Plugins are written by other people and run on your device. Install only from people you trust.</string>
+    <string name="plugin_risk_warning">Plugins are written by other people and run on your device. Install only plugins you trust, for sources you\'re entitled to use.</string>
     <!-- Menu and palette entry that opens the picker, and the picker's title. -->
     <string name="source_picker_title">Source for this title</string>
     <!-- The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail. -->
@@ -3312,7 +3316,7 @@
     <!-- Title when no source is installed. -->
     <string name="sources_empty_title">No sources yet</string>
     <!-- Line under it. -->
-    <string name="sources_empty_detail">Sources come from plugin stores. Join one with the invite link its owner sends you.</string>
+    <string name="sources_empty_detail">Join a plugin store with the invite link its owner sends you.</string>
     <!-- Row for the built-in torrent source. -->
     <string name="sources_torrents">Torrents</string>
     <!-- Label of a source that is not a plugin and controls this device. -->
@@ -3462,6 +3466,8 @@
     <string name="stores_intro">Plugins add sources. Each one lists the hosts it contacts before you install it.</string>
     <!-- Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it. -->
     <string name="stores_not_from_app">Plugins come from the plugin store\'s owner, not from anistream. You can leave a plugin store at any time.</string>
+    <!-- Line under the join form's confirmation: who answers for the store. Shown before Join. -->
+    <string name="stores_join_owner_responsible">%1$s runs this plugin store and chose its plugins. anistream did not make, review or approve them.</string>
     <!-- Line when the store has no plugins. -->
     <string name="stores_no_plugins">This plugin store offers no plugins yet.</string>
     <!-- Heading of the plugin list of a store. -->

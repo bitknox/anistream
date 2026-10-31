@@ -8,6 +8,9 @@ To report a vulnerability, follow [SECURITY.md](SECURITY.md) instead of opening 
 
 - anistream hosts no content. It is an engine and apps that run plugins; it ships no media and no
   list of sources.
+- anistream supplies, lists and recommends no sources, stores or plugins. Don't add code, docs or
+  examples shaped around sites that carry episodes without a licence, and don't add any list, link
+  or count of stores.
 - Don't use real show, site, fansub or release-group names in code, fixtures, tests, commits,
   issues or screenshots. Use made-up titles and `.example` hosts.
 - Don't link to sources in issues or pull requests, and don't name sites that carry content.

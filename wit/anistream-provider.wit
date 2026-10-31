@@ -2,22 +2,16 @@
 //
 // The load-bearing decision here: **the sandbox has no sockets, and the host lends `fetch`.**
 //
-// That is not a limitation being worked around, it is the point. Provider CDNs are behind
-// Cloudflare, and passing its checks needs a browser-shaped TLS/HTTP2 fingerprint — a hard problem
-// that anistream solves once, in `anistream-net`. If guests opened their own connections they
-// would each have to solve it again, badly, and every plugin would need its own TLS stack. So
-// the guest becomes a pure parser: it says what to request, the host makes the request, the
-// guest reads the bytes.
+// The host makes each request, enforces `allowed-hosts`, rate-limits and keeps the cookie jar,
+// so a plugin is only a parser and cannot reach a host it did not declare. The guest says what
+// to request, the host makes the request, and the guest reads the bytes.
 //
 // The consequences are all good ones. A plugin is a few hundred bytes of parsing logic rather
-// than a megabyte of networking. It cannot exfiltrate anything, because the host enforces
-// `allowed-hosts` on its own side. And a plugin authored in Go, TypeScript or Python inherits
-// the same fingerprint as the native providers.
+// than a megabyte of networking, and it needs no TLS stack of its own. It cannot exfiltrate
+// anything, because the host enforces `allowed-hosts` on its own side.
 //
-// `aes-decrypt` and `regex-captures` exist for the same reason: a TinyGo or JS guest that had to
-// bundle a crypto and regex implementation would be enormous, and real-world sources genuinely need
-// both — AES for the obfuscated stream payloads several of them use, regex for extracting from
-// HTML that no parser should be asked to take seriously.
+// `regex-captures` exists for the same reason: a TinyGo or JS guest that had to bundle a regex
+// implementation would be enormous.
 //
 // **Versioning.** Major 1, deliberately, because the component model's semver rules treat every
 // `0.x` minor as a different world — at major ≥ 1 the host can grow the `host` interface without
@@ -54,11 +48,11 @@ interface host {
 
     /// Make an HTTP request through the host's client.
     ///
-    /// The host owns the browser-emulated TLS/HTTP2 fingerprint, the rate limiting, the cookie
-    /// jar and the challenge solver. Guests get no sockets at all.
+    /// The host makes the request, enforces `allowed-hosts`, rate-limits and keeps the cookie
+    /// jar. Guests get no sockets at all.
     fetch: func(req: http-request) -> result<http-response, host-error>;
 
-    /// Several requests, concurrently. Results return in request order.
+    /// Several requests in one call, made concurrently. Results return in request order.
     ///
     /// The concurrency a synchronous guest cannot express itself: a provider that must ask
     /// several mirrors for the same episode pays one round trip instead of one per mirror.
@@ -165,8 +159,7 @@ interface provider {
         /// that knows about a container this host does not still works.
         kind: string,
         quality: option<u32>,
-        /// Headers the player must send. Referer-locked CDNs turn a working stream into a 403
-        /// without these, so they are part of the result rather than an afterthought.
+        /// Headers the player must send, such as an authorisation header for your own server.
         headers: list<tuple<string, string>>,
         subtitles: list<subtitle>,
         /// A durable reference a download queue can persist and resume from — a direct file
@@ -204,7 +197,7 @@ interface provider {
     variant provider-error {
         /// Works, but has no such title or episode. **Not** a failover trigger.
         not-found,
-        /// Bot protection, rate limiting, geo-blocking or a ban. The signature web-source failure.
+        /// The host refused the request or asked the client to slow down.
         blocked(string),
         /// The response arrived but did not look like what we expected — the site changed.
         parse(string),

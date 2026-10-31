@@ -23,4 +23,4 @@ Check a download against its `.sha256` before running it.
 Every package carries the licences of what it is built from in a `third-party` folder, the Rust
 crates' among them, and `anistream-@VERSION@-rust-licences.txt` has those for all four builds.
 
-anistream hosts no content. What you point any source at is your own decision, at your own risk.
+anistream hosts no content and supplies no sources. See https://anistream.tv/legal/.

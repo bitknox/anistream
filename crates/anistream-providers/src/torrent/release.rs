@@ -10,7 +10,7 @@
 //!   one. Mistaking a batch for a single episode means playing the wrong file.
 //! - **Absolute numbering.** A release labelled `S2E01` and one labelled `29` can be the
 //!   same episode. The parser records what it saw; reconciling the two is the mapping
-//!   layer's job, using `episode_offset` and `anime-relations`.
+//!   layer's job, using `episode_offset` and the episode numbering dataset.
 
 /// What a release title told us.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -61,7 +61,7 @@ impl Release {
     /// So a release that states a season only matches a request that states the same one.
     /// When the caller asks in absolute terms (`season: None`) a season-relative release is
     /// refused rather than guessed at — translating between the two is the mapping layer's
-    /// job, using `episode_offset` and `anime-relations`, and guessing here would produce
+    /// job, using `episode_offset` and the episode numbering dataset, and guessing here would produce
     /// exactly the silent mismatch the whole resolution ladder exists to prevent.
     pub fn covers(&self, wanted: u32, season: Option<u32>) -> bool {
         match (self.season, season) {
@@ -444,7 +444,7 @@ mod tests {
     #[test]
     fn season_and_episode_markers_are_read_separately() {
         // Recorded, not reconciled: turning S2E01 into an absolute number is the mapping
-        // layer's job, using episode_offset and anime-relations.
+        // layer's job, using episode_offset and the episode numbering dataset.
         let r = parse("[Hotaru-Raws] Tsukiakari S02E05 [1080p][Multiple Subtitle]");
         assert_eq!(r.season, Some(2));
         assert_eq!(r.episode, Some(5));

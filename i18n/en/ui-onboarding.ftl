@@ -8,7 +8,7 @@ onboarding-welcome = Welcome
 onboarding-welcome-to = Welcome to { -app-name }
 
 # Line under the title.
-onboarding-tagline = Keep track of anime and play it from { -source-pl } you choose.
+onboarding-tagline = Keep track of anime and play what you're entitled to watch.
 
 # Button that goes to the next page.
 # @max 24
@@ -30,7 +30,7 @@ onboarding-not-now = Not now
 onboarding-sources-title = { -source-cap-pl }
 
 # Line under it.
-onboarding-sources-detail = { -source-cap-pl } are { -plugin-pl }, shared through { -plugin-store-pl } by invite.
+onboarding-sources-detail = Join a { -plugin-store } with an invite from its owner. { -app-name } supplies no { -source-pl }.
 
 # Button that joins a store from the welcome page.
 # @max 24

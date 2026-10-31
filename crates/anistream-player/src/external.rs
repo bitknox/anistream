@@ -1,9 +1,8 @@
 //! Handing a stream to whatever is licensed to play it.
 //!
-//! This exists because of a hard limit, not a design preference: every Crunchyroll stream is
-//! Widevine *and* PlayReady protected over DASH, so mpv cannot decrypt them and neither can
-//! we. Extracting a CDM would be DRM circumvention, so the honest option is to open the
-//! episode where it is licensed to play.
+//! This exists because of a hard limit, not a design preference: a licensed service's streams
+//! are DRM protected, so mpv cannot decrypt them and neither can we. anistream never gets round
+//! DRM, so the option is to open the episode where it is licensed to play.
 //!
 //! The pluggable [`Player`] trait is what makes this cost nothing: the licensed path needed no
 //! new machinery anywhere else, just another implementation.

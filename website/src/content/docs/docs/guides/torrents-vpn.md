@@ -5,8 +5,8 @@ description: The torrent source is off by default, has no indexer of its own, an
 
 :::caution[No indexer included]
 anistream hosts no content. It ships no indexer and has no default endpoint. The torrent source is a
-transport with nothing to search until you configure one. What you point it at is your decision
-and your responsibility, under the laws that apply to you. The source is off by default, gated
+transport with nothing to search until you configure one. You are responsible for what you point
+it at and for having the right to use it. The source is off by default, gated
 behind the VPN guard, and a config edit away from being removed.
 :::
 
@@ -33,7 +33,7 @@ curation_url = "https://your-curation.example/api/records?filter=(alID={anilist_
 [providers.torrent.vpn]
 mode = "socks5"                            # "socks5" | "external" | "none"
                                            # "none" also needs i_understand_my_ip_is_exposed = true
-socks_url = "socks5://10.64.0.1:1080"      # Mullvad's in-tunnel endpoint
+socks_url = "socks5://10.64.0.1:1080"      # your VPN's in-tunnel endpoint
 mullvad_exit = true                        # or require_asn_org = ["31173"]
 verify_interval_secs = 60
 on_leak = "pause"                          # "pause" | "stop" | "warn"
@@ -102,7 +102,7 @@ kill switch as well:
 mullvad lockdown-mode set on
 ```
 
-`anistream --doctor` reports whether it is on. Mullvad's in-tunnel `10.64.0.1` is worth preferring
+`anistream --doctor` reports whether it is on. A VPN's in-tunnel proxy address is worth preferring
 for a second reason: it is only reachable *through* the tunnel, so a dropped tunnel makes the proxy
 unreachable instead of quietly leaking.
 

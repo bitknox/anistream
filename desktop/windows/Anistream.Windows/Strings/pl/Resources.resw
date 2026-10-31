@@ -2888,9 +2888,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Witaj w anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Śledź anime i odtwarzaj je, wybierając źródła.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Dalej</value>
   </data>
@@ -2905,9 +2902,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Źródła</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Źródła to wtyczki, a sklepy z wtyczkami udostępniają je na zaproszenie.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Dołącz</value>
@@ -4088,9 +4082,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Nie masz jeszcze źródła. Dodaj sklep z wtyczkami, aby je tu dostać.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Wtyczki tworzą inne osoby i działają na twoim sprzęcie. Instaluj tylko od osób, którym ufasz.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Źródło dla tego tytułu</value>
   </data>
@@ -4162,9 +4153,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Nie masz jeszcze źródła</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Źródła dostarczają wtyczki. Dodaj sklep z wtyczkami, używając linku z zaproszeniem od właściciela.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrenty</value>

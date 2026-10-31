@@ -3890,6 +3890,12 @@ about-version = Version { $version }
 # Line with the licence.
 about-licence = Released under the MIT licence.
 
+# Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.
+about-legal = anistream supplies no sources. Plugins come from plugin stores run by other people.
+
+# Row opening the legal and contact page on the website.
+about-legal-link = Legal and contact
+
 # Row opening the list of acknowledgements.
 about-acknowledgements = Acknowledgements
 
@@ -5491,7 +5497,7 @@ onboarding-welcome = Welcome
 onboarding-welcome-to = Welcome to anistream
 
 # Line under the title.
-onboarding-tagline = Keep track of anime and play it from sources you choose.
+onboarding-tagline = Keep track of anime and play what you're entitled to watch.
 
 # Button that goes to the next page.
 onboarding-continue = Continue
@@ -5509,7 +5515,7 @@ onboarding-not-now = Not now
 onboarding-sources-title = Sources
 
 # Line under it.
-onboarding-sources-detail = Sources are plugins, shared through plugin stores by invite.
+onboarding-sources-detail = Join a plugin store with an invite from its owner. anistream supplies no sources.
 
 # Button that joins a store from the welcome page.
 onboarding-join = Join
@@ -6698,7 +6704,7 @@ sources-title = Sources
 sources-empty = No sources yet. Join a plugin store to add some.
 
 # Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = Plugins are written by other people and run on your device. Install only from people you trust.
+plugin-risk-warning = Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use.
 
 # Menu and palette entry that opens the picker, and the picker's title.
 source-picker-title = Source for this title
@@ -6768,7 +6774,7 @@ sources-load-failed = Couldn't load sources
 sources-empty-title = No sources yet
 
 # Line under it.
-sources-empty-detail = Sources come from plugin stores. Join one with the invite link its owner sends you.
+sources-empty-detail = Join a plugin store with the invite link its owner sends you.
 
 # Row for the built-in torrent source.
 sources-torrents = Torrents
@@ -6988,6 +6994,9 @@ stores-intro = Plugins add sources. Each one lists the hosts it contacts before 
 
 # Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
 stores-not-from-app = Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.
+
+# Line under the join form's confirmation: who answers for the store. Shown before Join.
+stores-join-owner-responsible = { $owner } runs this plugin store and chose its plugins. anistream did not make, review or approve them.
 
 # Line when the store has no plugins.
 stores-no-plugins = This plugin store offers no plugins yet.

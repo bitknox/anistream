@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 default = ["fetch"]
-# Lend plugins the browser-emulating HTTP client. Off, a host can only ask plugins to describe
+# Lend plugins the host's HTTP client. Off, a host can only ask plugins to describe
 # themselves — enough for a plugin store's server, without the network stack in its build.
 fetch = ["dep:anistream-net", "dep:wreq"]
 # Run plugins in wasmtime's interpreter, Pulley, rather than as native code, on any platform, as

@@ -21,17 +21,17 @@ use crate::{
 /// resolved stream is playable locally or has to be handed off.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProviderKind {
-    /// Native in-process web source.
+    /// An in-process source, such as the test mock.
     Native,
     /// WASM component plugin.
     Plugin,
-    /// A self-hosted HTTP API (Consumet-shaped). The escape hatch when a source goes away.
+    /// A JSON API you host.
     Remote,
     /// A configured indexer + embedded torrent session. Fails for entirely different reasons than
     /// web sources do, which is why it exists.
     Torrent,
     /// A licensed service we can browse and track but not decrypt — resolves to an
-    /// external deep link. Crunchyroll is the case in point.
+    /// external deep link.
     Licensed,
 }
 
@@ -174,7 +174,7 @@ pub trait Provider: Send + Sync {
 /// Something that can play a [`Stream`].
 ///
 /// mpv over JSON IPC is the reference implementation, but the trait is what lets the
-/// licensed path work at all: Crunchyroll episodes resolve to an external deep link and
+/// licensed path work at all: episodes of a licensed service resolve to an external deep link and
 /// are opened by a handoff player, needing no new machinery anywhere else.
 #[async_trait]
 pub trait Player: Send + Sync {

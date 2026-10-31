@@ -2950,6 +2950,12 @@ public enum L {
     /// Line with the licence.
     public static var aboutLicence: String { string("about-licence", fallback: "Released under the MIT licence.") }
 
+    /// Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.
+    public static var aboutLegal: String { string("about-legal", fallback: "anistream supplies no sources. Plugins come from plugin stores run by other people.") }
+
+    /// Row opening the legal and contact page on the website.
+    public static var aboutLegalLink: String { string("about-legal-link", fallback: "Legal and contact") }
+
     /// Row opening the list of acknowledgements.
     public static var aboutAcknowledgements: String { string("about-acknowledgements", fallback: "Acknowledgements") }
 
@@ -4740,7 +4746,7 @@ public enum L {
     public static var onboardingWelcomeTo: String { string("onboarding-welcome-to", fallback: "Welcome to anistream") }
 
     /// Line under the title.
-    public static var onboardingTagline: String { string("onboarding-tagline", fallback: "Keep track of anime and play it from sources you choose.") }
+    public static var onboardingTagline: String { string("onboarding-tagline", fallback: "Keep track of anime and play what you're entitled to watch.") }
 
     /// Button that goes to the next page.
     public static var onboardingContinue: String { string("onboarding-continue", fallback: "Continue") }
@@ -4758,7 +4764,7 @@ public enum L {
     public static var onboardingSourcesTitle: String { string("onboarding-sources-title", fallback: "Sources") }
 
     /// Line under it.
-    public static var onboardingSourcesDetail: String { string("onboarding-sources-detail", fallback: "Sources are plugins, shared through plugin stores by invite.") }
+    public static var onboardingSourcesDetail: String { string("onboarding-sources-detail", fallback: "Join a plugin store with an invite from its owner. anistream supplies no sources.") }
 
     /// Button that joins a store from the welcome page.
     public static var onboardingJoin: String { string("onboarding-join", fallback: "Join") }
@@ -6055,7 +6061,7 @@ public enum L {
     public static var sourcesEmpty: String { string("sources-empty", fallback: "No sources yet. Join a plugin store to add some.") }
 
     /// Warning at install and in onboarding, in the same words in both.
-    public static var pluginRiskWarning: String { string("plugin-risk-warning", fallback: "Plugins are written by other people and run on your device. Install only from people you trust.") }
+    public static var pluginRiskWarning: String { string("plugin-risk-warning", fallback: "Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use.") }
 
     /// Menu and palette entry that opens the picker, and the picker's title.
     public static var sourcePickerTitle: String { string("source-picker-title", fallback: "Source for this title") }
@@ -6125,7 +6131,7 @@ public enum L {
     public static var sourcesEmptyTitle: String { string("sources-empty-title", fallback: "No sources yet") }
 
     /// Line under it.
-    public static var sourcesEmptyDetail: String { string("sources-empty-detail", fallback: "Sources come from plugin stores. Join one with the invite link its owner sends you.") }
+    public static var sourcesEmptyDetail: String { string("sources-empty-detail", fallback: "Join a plugin store with the invite link its owner sends you.") }
 
     /// Row for the built-in torrent source.
     public static var sourcesTorrents: String { string("sources-torrents", fallback: "Torrents") }
@@ -6379,6 +6385,11 @@ public enum L {
 
     /// Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
     public static var storesNotFromApp: String { string("stores-not-from-app", fallback: "Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.") }
+
+    /// Line under the join form's confirmation: who answers for the store. Shown before Join.
+    public static func storesJoinOwnerResponsible(owner: String) -> String {
+        Self.format("stores-join-owner-responsible", fallback: "%1$@ runs this plugin store and chose its plugins. anistream did not make, review or approve them.", owner)
+    }
 
     /// Line when the store has no plugins.
     public static var storesNoPlugins: String { string("stores-no-plugins", fallback: "This plugin store offers no plugins yet.") }

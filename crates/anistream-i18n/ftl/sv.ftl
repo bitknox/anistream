@@ -5174,9 +5174,6 @@ onboarding-welcome = Välkommen
 # Title of the first page.
 onboarding-welcome-to = Välkommen till anistream
 
-# Line under the title.
-onboarding-tagline = Håll koll på anime och spela upp den från källor du väljer.
-
 # Button that goes to the next page.
 onboarding-continue = Fortsätt titta
 
@@ -5191,9 +5188,6 @@ onboarding-not-now = Inte nu
 
 # Heading of the page about sources.
 onboarding-sources-title = Källor
-
-# Line under it.
-onboarding-sources-detail = Källor är tillägg, som delas via tilläggsbutiker på inbjudan.
 
 # Button that joins a store from the welcome page.
 onboarding-join = Gå med
@@ -6351,9 +6345,6 @@ sources-title = Källor
 # Shown on the sources screen when none is installed.
 sources-empty = Inga källor än. Anslut dig till en tilläggsbutik för att lägga till några.
 
-# Warning at install and in onboarding, in the same words in both.
-plugin-risk-warning = Tillägg skrivs av andra och körs på din enhet. Installera bara från personer du litar på.
-
 # Menu and palette entry that opens the picker, and the picker's title.
 source-picker-title = Källa för den här titeln
 
@@ -6420,9 +6411,6 @@ sources-load-failed = Det gick inte att läsa in källor
 
 # Title when no source is installed.
 sources-empty-title = Inga källor än
-
-# Line under it.
-sources-empty-detail = Källor kommer från tilläggsbutiker. Anslut dig till en med den inbjudningslänk som ägaren skickar dig.
 
 # Row for the built-in torrent source.
 sources-torrents = Torrent

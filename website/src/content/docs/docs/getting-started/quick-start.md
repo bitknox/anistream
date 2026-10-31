@@ -17,9 +17,8 @@ You get browsing straight away, with no account and no config. Search, seasonal 
 airing calendar come from AniList's public API. Your watch history is saved on your device, so
 none of it needs an account.
 
-To play anything you need a source. [Torrent streaming](/docs/guides/torrents-vpn/) is off until
-you choose a VPN mode and the guard passes. A self-hosted API or a plugin are the other routes.
-anistream hosts no content. Which sources you use is your own decision.
+To play anything you need a source: a server you host, or a plugin store you join with an invite
+link from its owner. anistream hosts no content and supplies no sources.
 
 Sync to AniList, MyAnimeList, Kitsu, Simkl or Trakt is opt-in. In the terminal app, Kitsu is on by
 default and needs one sign-in on the Accounts screen, and the others need an app you register. The

@@ -10,7 +10,7 @@
 //!
 //! **The thing to notice:** there is no HTTP client here, no TLS, no async runtime. The whole
 //! plugin is a parser. `host::fetch` does the networking, which is why this compiles to a few
-//! kilobytes and inherits anistream's browser fingerprint for free.
+//! kilobytes and leaves the allowlist and rate limiting to the host.
 
 #[allow(warnings)]
 mod bindings {

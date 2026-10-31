@@ -199,6 +199,30 @@
         }
       }
     },
+    "about-legal" : {
+      "comment" : "Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream supplies no sources. Plugins come from plugin stores run by other people."
+          }
+        }
+      }
+    },
+    "about-legal-link" : {
+      "comment" : "Row opening the legal and contact page on the website.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legal and contact"
+          }
+        }
+      }
+    },
     "about-licence" : {
       "comment" : "Line with the licence.",
       "extractionState" : "manual",
@@ -57341,64 +57365,10 @@
       "comment" : "Line under it.",
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quellen sind Plugins, die per Einladung über Plugin-Stores geteilt werden."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sources are plugins, shared through plugin stores by invite."
-          }
-        },
-        "es-419" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las fuentes son complementos que se comparten por invitación desde tiendas de complementos."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les sources sont des plugins, partagés par invitation via des boutiques de plugins."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fonti sono plugin, condivisi tramite i negozi di plugin su invito."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソースはプラグインで、招待制のプラグインストアを通じて共有されます。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Źródła to wtyczki, a sklepy z wtyczkami udostępniają je na zaproszenie."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fontes são plugins, compartilhados por convite nas lojas de plugins."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Источники: это плагины, которыми делятся через магазины плагинов по приглашению."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Källor är tillägg, som delas via tilläggsbutiker på inbjudan."
+            "value" : "Join a plugin store with an invite from its owner. anistream supplies no sources."
           }
         }
       }
@@ -57473,64 +57443,10 @@
       "comment" : "Line under the title.",
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Behalte Anime im Blick und spiele sie über Quellen deiner Wahl ab."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep track of anime and play it from sources you choose."
-          }
-        },
-        "es-419" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lleva el registro de tus animes y reprodúcelos desde las fuentes que elijas."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suivez vos animes et lisez-les depuis les sources de votre choix."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tieni traccia degli anime e riproducili dalle fonti che scegli."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アニメの視聴記録を管理し、選んだソースから再生できます。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Śledź anime i odtwarzaj je, wybierając źródła."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acompanhe seus animes e assista a partir das fontes que você escolher."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ведите список аниме и смотрите его через источники, которые вы выбираете."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Håll koll på anime och spela upp den från källor du väljer."
+            "value" : "Keep track of anime and play what you're entitled to watch."
           }
         }
       }
@@ -75615,64 +75531,10 @@
       "comment" : "Warning at install and in onboarding, in the same words in both.",
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plugins stammen von anderen Leuten und laufen auf deinem Gerät. Installiere nur von Leuten, denen du vertraust."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plugins are written by other people and run on your device. Install only from people you trust."
-          }
-        },
-        "es-419" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los complementos los escriben otras personas y se ejecutan en tu dispositivo. Instala solo los que vengan de personas en las que confíes."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plugins sont écrits par d'autres personnes et s'exécutent sur votre appareil. N'installez que des plugins de personnes de confiance."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I Plugin sono scritti da altre persone e girano sul tuo dispositivo. Installa solo da persone di cui ti fidi."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "プラグインは他の人が作成したもので、デバイス上で実行されます。信頼できる相手からのみインストールしてください。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wtyczki tworzą inne osoby i działają na twoim sprzęcie. Instaluj tylko od osób, którym ufasz."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plugins são escritos por outras pessoas e rodam no seu dispositivo. Instale somente de pessoas em quem você confia."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Плагины пишут другие люди, и они запускаются в ваше устройство. Устанавливайте только у тех, кому доверяете."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillägg skrivs av andra och körs på din enhet. Installera bara från personer du litar på."
+            "value" : "Plugins are written by other people and run on your device. Install only plugins you trust, for sources you're entitled to use."
           }
         }
       }
@@ -104301,64 +104163,10 @@
       "comment" : "Line under it.",
       "extractionState" : "manual",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quellen kommen von Plugin-Stores. Tritt einem über den Einladungslink bei, den dir die betreibende Person schickt."
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sources come from plugin stores. Join one with the invite link its owner sends you."
-          }
-        },
-        "es-419" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fuentes vienen de tiendas de complementos. Únete a una con el enlace de invitación que te envíe su propietario."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sources viennent de boutiques de plugins. Rejoignez-en une avec le lien d'invitation que son propriétaire vous envoie."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fonti arrivano dai negozi di plugin. Unisciti a uno con il link di invito che ti manda il proprietario."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソースはプラグインストアから提供されます。所有者から届く招待リンクで参加してください。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Źródła dostarczają wtyczki. Dodaj sklep z wtyczkami, używając linku z zaproszeniem od właściciela."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fontes vêm de lojas de plugins. Entre em uma com o link de convite que o dono enviar para você."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Подключите магазин плагинов, чтобы добавить источники. Нужна пригласительная ссылка, которую присылает владелец магазина."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Källor kommer från tilläggsbutiker. Anslut dig till en med den inbjudningslänk som ägaren skickar dig."
+            "value" : "Join a plugin store with the invite link its owner sends you."
           }
         }
       }
@@ -115109,6 +114917,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gå med i en tilläggsbutik…"
+          }
+        }
+      }
+    },
+    "stores-join-owner-responsible" : {
+      "comment" : "Line under the join form's confirmation: who answers for the store. Shown before Join. Argument 1: owner (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ runs this plugin store and chose its plugins. anistream did not make, review or approve them."
           }
         }
       }

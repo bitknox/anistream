@@ -13,6 +13,12 @@ about-version = Version { $version }
 # Line with the licence.
 about-licence = Released under the MIT licence.
 
+# Line under the legal line: who supplies sources. The app shows legal-hosts-no-content before it.
+about-legal = { -app-name } supplies no { -source-pl }. { -plugin-cap-pl } come from { -plugin-store-pl } run by other people.
+
+# Row opening the legal and contact page on the website.
+about-legal-link = Legal and contact
+
 # Row opening the list of acknowledgements.
 about-acknowledgements = Acknowledgements
 

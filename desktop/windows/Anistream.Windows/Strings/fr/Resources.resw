@@ -2798,9 +2798,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Bienvenue dans anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Suivez vos animes et lisez-les depuis les sources de votre choix.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Continuer</value>
   </data>
@@ -2815,9 +2812,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Sources</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Les sources sont des plugins, partagés par invitation via des boutiques de plugins.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Rejoindre</value>
@@ -3986,9 +3980,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Aucune sources pour l'instant. Rejoignez une boutique de plugins pour en ajouter.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Plugins sont écrits par d'autres personnes et s'exécutent sur votre appareil. N'installez que des plugins de personnes de confiance.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Source pour ce titre</value>
   </data>
@@ -4057,9 +4048,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Aucune sources pour l'instant</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Sources viennent de boutiques de plugins. Rejoignez-en une avec le lien d'invitation que son propriétaire vous envoie.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrents</value>

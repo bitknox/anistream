@@ -1,8 +1,7 @@
 ## Apps
 
 anistream for Android phones and TVs, the Mac, iPhone, iPad, Windows and Linux, on the same engine as the terminal app. Like
-it, the apps host no content. Plugins and sources are yours to add, and what you point them at is
-your own decision, at your own risk.
+it, the apps host no content and supply no sources. You add the sources you are entitled to use.
 
 ### Android
 

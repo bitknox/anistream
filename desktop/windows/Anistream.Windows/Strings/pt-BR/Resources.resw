@@ -2804,9 +2804,6 @@
   <data name="OnboardingWelcomeTo" xml:space="preserve">
     <value>Bem-vindo ao anistream</value>
   </data>
-  <data name="OnboardingTagline" xml:space="preserve">
-    <value>Acompanhe seus animes e assista a partir das fontes que você escolher.</value>
-  </data>
   <data name="OnboardingContinue" xml:space="preserve">
     <value>Continuar assistindo</value>
   </data>
@@ -2821,9 +2818,6 @@
   </data>
   <data name="OnboardingSourcesTitle" xml:space="preserve">
     <value>Fontes</value>
-  </data>
-  <data name="OnboardingSourcesDetail" xml:space="preserve">
-    <value>Fontes são plugins, compartilhados por convite nas lojas de plugins.</value>
   </data>
   <data name="OnboardingJoin" xml:space="preserve">
     <value>Entrar</value>
@@ -3992,9 +3986,6 @@
   <data name="SourcesEmpty" xml:space="preserve">
     <value>Ainda não há fontes. Entre em uma loja de plugins para adicionar algumas.</value>
   </data>
-  <data name="PluginRiskWarning" xml:space="preserve">
-    <value>Plugins são escritos por outras pessoas e rodam no seu dispositivo. Instale somente de pessoas em quem você confia.</value>
-  </data>
   <data name="SourcePickerTitle" xml:space="preserve">
     <value>Fonte para este título</value>
   </data>
@@ -4063,9 +4054,6 @@
   </data>
   <data name="SourcesEmptyTitle" xml:space="preserve">
     <value>Ainda não há fontes</value>
-  </data>
-  <data name="SourcesEmptyDetail" xml:space="preserve">
-    <value>Fontes vêm de lojas de plugins. Entre em uma com o link de convite que o dono enviar para você.</value>
   </data>
   <data name="SourcesTorrents" xml:space="preserve">
     <value>Torrents</value>

@@ -296,8 +296,8 @@ pub struct NextAiring {
 
 /// A link to a service that streams this title.
 ///
-/// Carries the licensed-source story: AniList publishes per-episode Crunchyroll deep links
-/// and per-series links for Netflix, Hulu and others, with no authentication at all. That
+/// Carries the licensed-source story: AniList publishes per-episode deep links
+/// and per-series links for licensed services, with no authentication at all. That
 /// is how anistream can offer a legitimate route to a title before reaching for anything
 /// else.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
