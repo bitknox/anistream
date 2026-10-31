@@ -832,11 +832,13 @@ pub struct ProvidersConfig {
 impl Default for ProvidersConfig {
     fn default() -> Self {
         Self {
-            // Torrent first, plugins second — the order failover walks.
-            //
-            // `plugins` after it: a dropped-in `.wasm` is a source you chose to install, so it
-            // should be tried, but not ahead of one that is known to work.
-            order: vec!["torrent".into(), "plugins".into()],
+            // What anistream provides first (your media, servers you run, catalogues you added),
+            // then the torrent source, then plugins, with the demo last. The user reorders the
+            // lot; each entry is a source's id, or a kind that stands for its sources the order
+            // does not name.
+            order: ["library", "servers", "catalogues", "torrent", "plugins", "demo"]
+                .map(String::from)
+                .to_vec(),
             disabled: Vec::new(),
             torrent: TorrentConfig::default(),
             plugins: PluginsConfig::default(),

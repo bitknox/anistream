@@ -443,6 +443,15 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ALTER TABLE mapping_resolution ADD COLUMN title TEXT;
     "#,
     ),
+    (
+        "0016_mapping_external_ids",
+        r#"
+    -- Media servers and the library know a title by its AniDB or TMDB id, so those are looked up
+    -- the way MAL and TVDB ids are.
+    CREATE INDEX IF NOT EXISTS idx_mapping_anidb ON mapping(anidb_id);
+    CREATE INDEX IF NOT EXISTS idx_mapping_tmdb  ON mapping(tmdb_id);
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
