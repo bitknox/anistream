@@ -51,7 +51,7 @@ struct TrailerSoundButton: View {
         .accessibilityAddTraits(visit.muted ? [] : .isSelected)
         .opacity(visit.shown ? 1 : 0)
         .allowsHitTesting(visit.shown)
-        .animation(visit.shown ? .fadeIn : .fadeOut, value: visit.shown)
+        .animation(visit.shown ? .reveal : .fadeOut, value: visit.shown)
     }
 }
 #endif

@@ -159,6 +159,7 @@ Motion is fixed in the design brief and drawn on the canvas boards MotionSystem,
 | quick | `.spring(duration: 0.2, bounce: 0)` | Selection tint, segmented control, toggles, row dim after marking watched |
 | standard | `.spring(duration: 0.3, bounce: 0)` | Content changes inside a screen: progress bars, cards appearing (Skip opening, Up next), list insert and remove, Mac banner morph |
 | fade-in | `.easeOut(duration: 0.2)` | Player controls appearing, artwork arriving, first video frame over the poster |
+| reveal | `.easeOut(duration: 0.3)` | A trailer coming out from under the art |
 | fade-out | `.easeIn(duration: 0.3)` | Player controls hiding |
 | linear | `.linear(duration: n)` | Countdowns only (Up next 8 s) |
 | system | The platform's own | Navigation push and zoom, sheets, menus, tab bar, window open, full screen |

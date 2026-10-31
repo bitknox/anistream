@@ -104,7 +104,7 @@ final class TrailerSession {
             phase = [2, 5, 100, 101, 150].contains(code) ? .refused : .failed
         case .captions(let on):
             captions = on
-        case .started, .quiet, .ending, .ended:
+        case .quiet, .ending, .ended:
             break
         }
     }
@@ -155,7 +155,7 @@ public struct TrailerWindowView: View {
             // The title's art fills the stage until the first frame, then fades out.
             HeroArtView(art: store.heroArt(entry), entry: entry)
                 .opacity(session.phase == .playing ? 0 : 1)
-                .animation(session.phase == .playing ? .fadeIn : .fadeOut, value: session.phase)
+                .animation(session.phase == .playing ? .reveal : .fadeOut, value: session.phase)
             if let player = session.surface as? TrailerPlayer, let view = player.webView {
                 TrailerWebView(view: view)
             }

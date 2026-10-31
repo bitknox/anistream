@@ -148,7 +148,7 @@ struct TrailerPreview: View {
                     }
                 }
                 .opacity(visit.shown ? 0 : 1)
-                .animation(visit.shown ? .fadeIn : .fadeOut, value: visit.shown)
+                .animation(visit.shown ? .reveal : .fadeOut, value: visit.shown)
             }
             .frame(width: PreviewCenter.size.width, height: PreviewCenter.size.height)
             .clipped()
