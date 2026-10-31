@@ -96,6 +96,15 @@ mod tests {
         assert_eq!(categories("ja").unwrap(), ["other"]);
         assert_eq!(categories("pl").unwrap(), ["one", "few", "many", "other"]);
         assert_eq!(categories("da").unwrap(), ["one", "other"]);
+        for tag in ["zh-Hans", "zh-Hant", "ko", "th", "vi", "id", "ja"] {
+            assert_eq!(categories(tag).unwrap(), ["other"], "{tag}");
+        }
+        for tag in ["pl", "ru"] {
+            assert_eq!(categories(tag).unwrap(), ["one", "few", "many", "other"], "{tag}");
+        }
+        for tag in ["fr", "es-419", "pt-BR", "it"] {
+            assert!(categories(tag).unwrap().contains(&"one".to_owned()), "{tag}");
+        }
         assert_eq!(categories("ar").unwrap(), ["zero", "one", "two", "few", "many", "other"]);
     }
 
@@ -112,7 +121,7 @@ mod tests {
     fn the_table_matches_cldr_for_the_languages_we_may_ship() {
         for tag in [
             "en", "da", "de", "fr", "es", "pt", "pl", "ru", "ja", "ar", "fi", "sv", "nl", "it",
-            "cs",
+            "cs", "es-419", "pt-BR", "zh-Hans", "zh-Hant", "ko", "th", "vi", "id", "tr",
         ] {
             let table = Table::of(tag).unwrap_or_else(|e| panic!("{tag}: {e}"));
             assert_eq!(table.pick(1), category(tag, 1).unwrap());

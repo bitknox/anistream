@@ -55,6 +55,35 @@ message shows it in English, per string.
 ships only when `i18n/status/<lang>.json` marks it `reviewed` against the current English text. A
 language set to `drafts = "ship"` also ships drafts, and the apps label it "Draft translation".
 
+## Draft a language
+
+`i18n-tool -- draft <lang>` is how machine drafts get in. The language must be in `languages.toml`
+with a folder `i18n/<lang>/`.
+
+```
+cargo run -q -p i18n-tool -- draft sv --list --group ui-library > batch.json
+cargo run -q -p i18n-tool -- draft sv --accept proposals.json --group ui-library
+```
+
+`--list` prints the missing and stale messages as JSON, one batch per screen file: the English
+as Fluent source, the translator comment, `@arg` list, `@max`, `@only`, the plural categories the
+language needs, the terms the message uses, and the old draft when the English changed. `terms`
+is a batch of its own (ids such as `-source`) and comes first for a new language.
+
+`--accept` takes `{ "<id>": "<translation>" }`. A plural is a map of its forms
+(`{ "one": "...", "other": "..." }`). It refuses, with a reason per id, a translation that does
+not parse, changes the placeables, lacks a plural category of the language, types a glossary
+word that has a term, has an em dash, is longer than `@max`, or names something on the lint's
+banned list. The rest are written to `i18n/<lang>/<file>.ftl` and recorded in
+`i18n/status/<lang>.json` as `draft` with the hash of the English. The exit code is 1 when anything
+was refused. `legal-hosts-no-content` is never offered to an agent. Terms have no review state;
+the language's terms file is approved as a whole before its messages are drafted.
+
+Tags are BCP 47 as written in `languages.toml` (`zh-Hans`, `es-419`, `pt-BR`). Android writes
+them as `values-b+zh+Hans`, Windows as `Strings/zh-Hans`, Apple and Fluent keep them as they are.
+Some languages need a `many` form that only counts millions (es, pt, fr, it); `--list` names the
+categories.
+
 ## Language in the terminal
 
 `--lang <tag>` wins over the `language` key in `config.toml`, and both win over the system's

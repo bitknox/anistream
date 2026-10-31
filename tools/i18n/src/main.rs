@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use i18n_tool::catalogue::{Catalogue, Platform};
 use i18n_tool::lint::{self, Severity};
 use i18n_tool::ship::Mode;
-use i18n_tool::{codelint, find_root, generate_all, pseudo, stale, write};
+use i18n_tool::{codelint, draft, find_root, generate_all, pseudo, stale, write};
 
 /// anistream's translations: one Fluent catalogue in i18n/, every platform's strings generated.
 #[derive(Parser)]
@@ -44,6 +44,24 @@ enum Command {
         #[arg(long)]
         update_baseline: bool,
     },
+    /// Machine-drafts a language: `--list` prints what is missing or stale for an agent to translate,
+    /// `--accept FILE` checks the agent's proposals and records the good ones as drafts.
+    Draft {
+        /// The language tag, such as sv or ja.
+        lang: String,
+        /// Print the missing and stale messages as JSON, one batch per screen file.
+        #[arg(long, conflicts_with = "accept")]
+        list: bool,
+        /// A JSON file of `{ "<id>": "<translation>" }`. A plural may be `{ "one": "..", "other": ".." }`. Terms have ids such as `-source`.
+        #[arg(long, value_name = "FILE")]
+        accept: Option<std::path::PathBuf>,
+        /// Only this screen file (`ui-library`, or `terms`).
+        #[arg(long)]
+        group: Option<String>,
+        /// Who drafted it, recorded in the status file.
+        #[arg(long, default_value = "agent")]
+        by: String,
+    },
     /// Print TEXT as the pseudo-locale writes it (accented, 30% longer, bracketed).
     Pseudo { text: String },
 }
@@ -69,6 +87,37 @@ fn run() -> Result<ExitCode> {
     match cli.command {
         Command::Pseudo { text } => {
             println!("{}", pseudo::text(&text));
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Draft { lang, list, accept, group, by } => {
+            if list == accept.is_some() {
+                bail!("give exactly one of --list and --accept FILE");
+            }
+            if let Some(file) = accept {
+                let text = std::fs::read_to_string(&file)
+                    .with_context(|| format!("reading {}", file.display()))?;
+                let proposals: serde_json::Value = serde_json::from_str(&text)
+                    .with_context(|| format!("{} is not JSON", file.display()))?;
+                let report = draft::accept(
+                    &root,
+                    &lang,
+                    &proposals,
+                    group.as_deref(),
+                    &by,
+                    &draft::today(),
+                )?;
+                println!("{}", serde_json::to_string_pretty(&report.to_json())?);
+                return Ok(if report.rejected.is_empty() {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::FAILURE
+                });
+            }
+            let cat = Catalogue::load(&root)?;
+            println!(
+                "{}",
+                serde_json::to_string(&draft::list(&cat, &lang, group.as_deref())?)?
+            );
             Ok(ExitCode::SUCCESS)
         }
         Command::Generate { mode } => {

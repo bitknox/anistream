@@ -349,3 +349,89 @@ fn every_xml_output_parses_strictly_and_a_resw_is_a_resw() {
     }
     assert!(xml >= 4, "expected strings.xml, locales_config.xml and .resw files, saw {xml}");
 }
+
+#[test]
+fn script_and_region_tags_land_where_each_platform_wants_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let put = |path: &str, text: &str| {
+        let full = root.join("i18n").join(path);
+        fs::create_dir_all(full.parent().unwrap()).unwrap();
+        fs::write(full, text).unwrap();
+    };
+    let tags = [
+        ("zh-Hans", "简体中文", "语言"),
+        ("zh-Hant", "繁體中文", "語言"),
+        ("es-419", "Español (Latinoamérica)", "Idioma"),
+        ("pt-BR", "Português (Brasil)", "Idioma"),
+        ("ru", "Русский", "Язык"),
+    ];
+    let mut langs = String::from(
+        "source = \"en\"\n[language.en]\nname = \"English\"\nstage = \"released\"\n",
+    );
+    for (tag, name, _) in tags {
+        langs.push_str(&format!(
+            "[language.{tag}]\nname = \"{name}\"\nstage = \"draft\"\ndrafts = \"ship\"\n"
+        ));
+    }
+    put("languages.toml", &langs);
+    put("en/terms.ftl", "-app-name = anistream\n");
+    put(
+        "en/ui.ftl",
+        "# @arg count: int\nleft = { $count ->\n    [one] One left\n   *[other] { $count } left\n }\nlanguage = Language\n",
+    );
+    for (tag, _, word) in tags {
+        put(&format!("{tag}/terms.ftl"), "-app-name = anistream\n");
+        let left = if tag == "ru" {
+            "left = { $count ->\n    [one] { $count } остался\n    [few] { $count } осталось\n    [many] { $count } осталось\n   *[other] { $count } осталось\n }\n"
+        } else if tag.starts_with("zh") {
+            "left = { $count ->\n   *[other] 还剩 { $count }\n }\n"
+        } else {
+            "left = { $count ->\n    [one] Queda { $count }\n    [many] Quedan { $count }\n   *[other] Quedan { $count }\n }\n"
+        };
+        put(&format!("{tag}/ui.ftl"), &format!("{left}language = {word}\n"));
+    }
+    let cat = Catalogue::load(root).unwrap();
+    let mut status = Status::new();
+    for m in &cat.source().messages {
+        status.insert(m.id.clone(), entry(&hash(m), "draft"));
+    }
+    for (tag, _, _) in tags {
+        let path = root.join("i18n/status").join(format!("{tag}.json"));
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, serde_json::to_string(&status).unwrap()).unwrap();
+    }
+    let files = generate_all(&cat, Mode::Release).unwrap();
+    let paths: Vec<&String> = files.keys().collect();
+    for want in [
+        "values-b+zh+Hans/strings.xml",
+        "values-b+zh+Hant/strings.xml",
+        "values-b+es+419/strings.xml",
+        "values-b+pt+BR/strings.xml",
+        "values-ru/strings.xml",
+        "Strings/zh-Hans/Resources.resw",
+        "Strings/es-419/Resources.resw",
+        "ftl/zh-Hans.ftl",
+        "ftl/pt-BR.ftl",
+    ] {
+        assert!(paths.iter().any(|p| p.ends_with(want)), "no {want} in {paths:#?}");
+    }
+    // Android's locale list and Apple's catalogue keep the BCP 47 tags as they are.
+    let config = file(&files, "locales_config.xml");
+    for tag in ["zh-Hans", "zh-Hant", "es-419", "pt-BR"] {
+        assert!(config.contains(&format!("android:name=\"{tag}\"")), "{tag}");
+    }
+    let apple = file(&files, "Localizable.xcstrings");
+    for (tag, _, word) in tags {
+        assert!(apple.contains(&format!("\"{tag}\"")), "{tag} key in the xcstrings");
+        assert!(apple.contains(word), "{word}");
+    }
+    // Plural categories follow the language, not the region or script.
+    let strings = file(&files, "values-ru/strings.xml");
+    assert!(strings.contains("quantity=\"few\"") && strings.contains("quantity=\"many\""));
+    assert!(!file(&files, "values-b+zh+Hans/strings.xml").contains("quantity=\"one\""));
+    // Windows picks the plural table by the language part only, once for the two Chinese scripts.
+    let windows = file(&files, "Strings.g.cs");
+    assert_eq!(windows.matches("case \"zh\":").count(), 1);
+    assert!(windows.contains("case \"es\":") && windows.contains("case \"pt\":"));
+}

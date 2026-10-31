@@ -5,6 +5,7 @@ pub mod android;
 pub mod apple;
 pub mod catalogue;
 pub mod codelint;
+pub mod draft;
 pub mod lint;
 pub mod msg;
 pub mod plural;

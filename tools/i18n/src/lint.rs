@@ -76,9 +76,28 @@ impl std::fmt::Display for Finding {
     }
 }
 
+/// Hiragana, katakana (with the long-vowel mark) and Han: scripts that put no spaces between words.
+pub(crate) fn is_cjk(c: char) -> bool {
+    matches!(c, '\u{3040}'..='\u{30FF}' | '\u{31F0}'..='\u{31FF}' | '\u{3400}'..='\u{9FFF}' | '\u{FF66}'..='\u{FF9F}')
+}
+
+/// What may not touch a word on one side. Latin and similar words need a non-letter. A katakana
+/// word may touch kana of other kinds (loanwords run into particles) but not more katakana, and
+/// a word in kanji or hiragana can sit anywhere in a sentence, so it has no boundary at all.
+fn boundary(c: char) -> Option<&'static str> {
+    match c {
+        '\u{30A0}'..='\u{30FF}' | '\u{FF66}'..='\u{FF9F}' => Some(r"[^\p{Katakana}\u{30FC}]"),
+        c if is_cjk(c) => None,
+        _ => Some(r"[^\p{L}]"),
+    }
+}
+
 fn word_regex(word: &str) -> Regex {
-    Regex::new(&format!(r"(?i)(?:^|[^\p{{L}}]){}(?:$|[^\p{{L}}])", regex::escape(word)))
-        .expect("escaped")
+    let lead =
+        word.chars().next().and_then(boundary).map_or(String::new(), |b| format!("(?:^|{b})"));
+    let trail =
+        word.chars().last().and_then(boundary).map_or(String::new(), |b| format!("(?:$|{b})"));
+    Regex::new(&format!(r"(?i){lead}{}{trail}", regex::escape(word))).expect("escaped")
 }
 
 /// The literal text of a message, term references left out.
@@ -115,135 +134,175 @@ fn longest(m: &Message, terms: &crate::catalogue::Terms) -> usize {
     m.body.patterns().into_iter().map(|p| visible(p, terms).chars().count()).max().unwrap_or(0)
 }
 
-pub fn run(cat: &Catalogue) -> Result<Vec<Finding>> {
-    let config = load_config(cat)?;
-    let mut out = Vec::new();
-    let acronyms: BTreeSet<&str> = config.all.acronyms.iter().map(String::as_str).collect();
-    let name_res: Vec<(&String, Regex)> =
-        config.all.names.iter().map(|n| (n, word_regex(n))).collect();
-    let source = cat.source();
+/// The copy rules for one language, ready to hold a message or a bit of text against them.
+pub struct LangLint<'a> {
+    cat: &'a Catalogue,
+    tag: String,
+    acronyms: BTreeSet<String>,
+    names: Vec<(String, Regex)>,
+    banned: Vec<(String, Regex)>,
+    /// Every spelling of every glossary term in this language, to catch it typed out.
+    term_forms: Vec<(String, String, Regex)>,
+}
 
-    for tag in cat.tags() {
+impl<'a> LangLint<'a> {
+    pub fn new(cat: &'a Catalogue, config: &LintConfig, tag: &str) -> Result<Self> {
         let lang = &cat.langs[tag];
         let base = tag.split('-').next().unwrap_or(tag);
-        let banned = config.language.get(base);
-        let banned_res: Vec<(String, Regex)> = banned
+        let banned = config
+            .language
+            .get(base)
             .map(|b| {
                 b.words.iter().chain(&b.phrases).map(|w| (w.clone(), word_regex(w))).collect()
             })
             .unwrap_or_default();
-        // Every spelling of every glossary term in this language, to catch it typed out.
-        let mut term_forms: Vec<(String, String, Regex)> = Vec::new();
+        let mut term_forms = Vec::new();
         for name in lang.terms.0.keys() {
             let form = lang.terms.text(name)?;
-            if form.chars().count() >= 3 {
+            let min = if form.chars().any(is_cjk) { 2 } else { 3 };
+            if form.chars().count() >= min {
                 term_forms.push((name.clone(), form.to_lowercase(), word_regex(&form)));
             }
         }
+        Ok(LangLint {
+            cat,
+            tag: tag.to_owned(),
+            acronyms: config.all.acronyms.iter().cloned().collect(),
+            names: config.all.names.iter().map(|n| (n.clone(), word_regex(n))).collect(),
+            banned,
+            term_forms,
+        })
+    }
 
+    /// The rules that hold for any text: dashes, shouting, banned words and real names.
+    pub fn text_findings(&self, text: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        if text.contains('\u{2014}') || text.contains(" -- ") {
+            out.push("has an em dash; use a full stop, a colon or parentheses".to_owned());
+        }
+        if text.contains('!') {
+            out.push("has an exclamation mark".to_owned());
+        }
+        for word in text.split(|c: char| !c.is_alphabetic() && c != '\'') {
+            let letters = word.chars().filter(|c| c.is_alphabetic()).count();
+            if letters >= 3
+                && word.chars().all(|c| !c.is_lowercase())
+                && word.chars().any(char::is_uppercase)
+                && !self.acronyms.contains(word)
+            {
+                out.push(format!(
+                    "has ALL CAPS ({word}); write it in sentence case, or list it under [all] acronyms"
+                ));
+            }
+        }
+        for (word, re) in &self.banned {
+            if re.is_match(text) {
+                out.push(format!("says \"{word}\", which the glossary bans"));
+            }
+        }
+        for (name, re) in &self.names {
+            if re.is_match(text) {
+                out.push(format!("names \"{name}\", a real title or site"));
+            }
+        }
+        out
+    }
+
+    /// Glossary words typed out where a term exists, except those `allow` lets through.
+    pub fn raw_terms(&self, text: &str, allow: &[String]) -> Vec<String> {
+        let mut out = Vec::new();
+        for (term, form, re) in &self.term_forms {
+            // `@allow source` covers -source and its forms (-source-cap, -source-pl).
+            if allow.iter().any(|a| term == a || term.starts_with(&format!("{a}-"))) {
+                continue;
+            }
+            if re.is_match(text) {
+                out.push(format!(
+                    "types \"{form}\" instead of referencing the term {{ -{term} }}"
+                ));
+            }
+        }
+        out
+    }
+
+    /// Everything the lint says about one message of this language. `src` is the English message
+    /// it translates (the message itself, for English): the limits, platform and `@allow` list
+    /// belong to the source, a translation does not repeat them.
+    pub fn message(&self, m: &Message, src: &Message) -> Vec<(Severity, String)> {
+        let lang = &self.cat.langs[&self.tag];
+        let is_source = self.tag == self.cat.config.source;
+        let mut out = Vec::new();
+        for text in literal_texts(m) {
+            let text = text.replace('\u{0}', " ");
+            for what in self.text_findings(&text) {
+                out.push((Severity::Error, what));
+            }
+            if is_source
+                && m.id != "legal-hosts-no-content"
+                && text.to_lowercase().contains("hosts no content")
+            {
+                out.push((
+                    Severity::Error,
+                    "says the legal line; use the message legal-hosts-no-content".into(),
+                ));
+            }
+            for what in self.raw_terms(&text, &src.allow) {
+                out.push((Severity::Error, what));
+            }
+        }
+        // Title Case where sentence case is required (three or more capitalised words),
+        // except the Mac menu bar's own items.
+        if let Body::Plain(parts) = &m.body {
+            let text = visible(parts, &lang.terms);
+            let words: Vec<&str> = text
+                .split_whitespace()
+                .filter(|w| w.chars().next().is_some_and(char::is_alphabetic))
+                .collect();
+            let mac_menu = m.id.starts_with("menu-") && src.only == Some(Platform::Apple);
+            if words.len() >= 3
+                && words.iter().all(|w| w.chars().next().is_some_and(char::is_uppercase))
+                && !mac_menu
+            {
+                out.push((Severity::Error, "is in Title Case; use sentence case (only Mac menu bar items, `menu-*` with `@only apple`, are Title Case)".into()));
+            }
+        }
+        // Length budgets.
+        if let Some(max) = src.max {
+            let len = longest(m, &lang.terms);
+            if is_source {
+                let grown = (len as f64 * crate::pseudo::GROWTH).ceil() as usize + len;
+                if grown > max {
+                    out.push((
+                        Severity::Error,
+                        format!(
+                            "is {len} characters, {grown} with 30% growth, over its @max {max}"
+                        ),
+                    ));
+                }
+            } else if len > max {
+                out.push((
+                    Severity::Error,
+                    format!("is {len} characters, over its @max {max}"),
+                ));
+            }
+        }
+        out
+    }
+}
+
+pub fn run(cat: &Catalogue) -> Result<Vec<Finding>> {
+    let config = load_config(cat)?;
+    let mut out = Vec::new();
+    let source = cat.source();
+
+    for tag in cat.tags() {
+        let lang = &cat.langs[tag];
+        let rules = LangLint::new(cat, &config, tag)?;
         for m in &lang.messages {
-            let mut emit = |severity: Severity, what: String| {
-                out.push(Finding { severity, lang: tag.to_owned(), id: m.id.clone(), what })
-            };
-            let texts = literal_texts(m);
-            for text in &texts {
-                let text = text.replace('\u{0}', " ");
-                if text.contains('\u{2014}') || text.contains(" -- ") {
-                    emit(
-                        Severity::Error,
-                        "has an em dash; use a full stop, a colon or parentheses".into(),
-                    );
-                }
-                if text.contains('!') {
-                    emit(Severity::Error, "has an exclamation mark".into());
-                }
-                for word in text.split(|c: char| !c.is_alphabetic() && c != '\'') {
-                    let letters = word.chars().filter(|c| c.is_alphabetic()).count();
-                    if letters >= 3
-                        && word.chars().all(|c| !c.is_lowercase())
-                        && word.chars().any(char::is_uppercase)
-                        && !acronyms.contains(word)
-                    {
-                        emit(
-                            Severity::Error,
-                            format!(
-                                "has ALL CAPS ({word}); write it in sentence case, or list it under [all] acronyms"
-                            ),
-                        );
-                    }
-                }
-                for (word, re) in &banned_res {
-                    if re.is_match(&text) {
-                        emit(
-                            Severity::Error,
-                            format!("says \"{word}\", which the glossary bans"),
-                        );
-                    }
-                }
-                for (name, re) in &name_res {
-                    if re.is_match(&text) {
-                        emit(
-                            Severity::Error,
-                            format!("names \"{name}\", a real title or site"),
-                        );
-                    }
-                }
-                if tag == cat.config.source.as_str()
-                    && m.id != "legal-hosts-no-content"
-                    && text.to_lowercase().contains("hosts no content")
-                {
-                    emit(
-                        Severity::Error,
-                        "says the legal line; use the message legal-hosts-no-content".into(),
-                    );
-                }
-                for (term, form, re) in &term_forms {
-                    // `@allow source` covers -source and its forms (-source-cap, -source-pl).
-                    if m.allow.iter().any(|a| term == a || term.starts_with(&format!("{a}-"))) {
-                        continue;
-                    }
-                    if re.is_match(&text) {
-                        emit(
-                            Severity::Error,
-                            format!(
-                                "types \"{form}\" instead of referencing the term {{ -{term} }}"
-                            ),
-                        );
-                    }
-                }
-            }
-            // Title Case where sentence case is required (three or more capitalised words),
-            // except the Mac menu bar's own items.
-            if let Body::Plain(parts) = &m.body {
-                let text = visible(parts, &lang.terms);
-                let words: Vec<&str> = text
-                    .split_whitespace()
-                    .filter(|w| w.chars().next().is_some_and(char::is_alphabetic))
-                    .collect();
-                let mac_menu = m.id.starts_with("menu-") && m.only == Some(Platform::Apple);
-                if words.len() >= 3
-                    && words.iter().all(|w| w.chars().next().is_some_and(char::is_uppercase))
-                    && !mac_menu
-                {
-                    emit(Severity::Error, "is in Title Case; use sentence case (only Mac menu bar items, `menu-*` with `@only apple`, are Title Case)".into());
-                }
-            }
-            // Length budgets.
-            if let Some(max) = m.max {
-                let len = longest(m, &lang.terms);
-                if tag == cat.config.source.as_str() {
-                    let grown = (len as f64 * crate::pseudo::GROWTH).ceil() as usize + len;
-                    if grown > max {
-                        emit(
-                            Severity::Error,
-                            format!(
-                                "is {len} characters, {grown} with 30% growth, over its @max {max}"
-                            ),
-                        );
-                    }
-                } else if len > max {
-                    emit(Severity::Error, format!("is {len} characters, over its @max {max}"));
-                }
+            // A message with no English twin is reported by the catalogue's own validation.
+            let Some(src) = source.message(&m.id) else { continue };
+            for (severity, what) in rules.message(m, src) {
+                out.push(Finding { severity, lang: tag.to_owned(), id: m.id.clone(), what });
             }
         }
         // Messages the source has that this language does not: reported once, as a warning.

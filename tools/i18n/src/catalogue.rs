@@ -433,7 +433,7 @@ impl Catalogue {
         }
     }
 
-    fn check_translation(
+    pub fn check_translation(
         &self,
         tag: &str,
         src: &Message,
@@ -458,6 +458,9 @@ impl Catalogue {
                 if a != b {
                     problems
                         .push(format!("{tag}: {} selects on ${b}, the English on ${a}", m.id));
+                }
+                if let Some(missing) = source_vars.difference(&vars).next() {
+                    problems.push(format!("{tag}: {} leaves out ${missing}", m.id));
                 }
                 match plural::categories(tag) {
                     Ok(want) => {

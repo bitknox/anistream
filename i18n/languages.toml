@@ -10,3 +10,14 @@ source = "en"
 [language.en]
 name = "English"
 stage = "released"
+
+# Draft translations (Johan's decision of 2026-10-26): machine drafts ship, labelled. Terms first.
+[language.sv]
+name = "Svenska"
+stage = "draft"
+drafts = "ship"
+
+[language.ja]
+name = "日本語"
+stage = "draft"
+drafts = "ship"
