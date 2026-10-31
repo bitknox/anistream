@@ -103,12 +103,24 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
             // Split the stage: list on the left, a preview of the focused title on the
             // right. The key visual is the hero, so it gets the larger share.
             let (list_col, preview_col) = if area.width >= 76 {
-                let (l, p) = layout::split_stage(list_area, 0.42);
+                // Home's lines carry a reason or a time each, so its list gets the larger share.
+                let share =
+                    if section == Section::Home && app.home.is_some() { 0.56 } else { 0.42 };
+                let (l, p) = layout::split_stage(list_area, share);
                 (l, Some(p))
             } else {
                 (list_area, None)
             };
 
+            if section == Section::Home
+                && let Some(view) = &app.home
+            {
+                super::home::render_home(buf, app, view, list_col);
+                if let (Some(preview), Some(entry)) = (preview_col, app.selected_entry()) {
+                    render_preview(buf, app, layout::inset(preview, 2, 0), entry);
+                }
+                return;
+            }
             let visible = list_col.height as usize;
             let mut rows: Vec<ObiRow> = Vec::with_capacity(visible + 4);
             // What the list is, as a ruled heading held at the top: the season, for Seasonal,
@@ -119,19 +131,8 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 rows.push(ObiRow::heading(caption).ruled());
             }
             let cursor = app.cursors.section(section);
-            // Continue with Up next under it is drawn whole and windowed afterwards, by display
-            // rows: the rail's blank and heading are rows the cursor's window does not count,
-            // and with Continue a screenful long a selected suggestion was never drawn while
-            // Enter and `x` still acted on it.
-            let rail = app.up_next_here();
-            let home_rail = section == Section::Home && !rail.is_empty();
-            if home_rail {
-                rows.push(ObiRow::heading(t::continue_heading()).ruled());
-            }
             let start = if section == Section::Calendar {
                 calendar_window(&app.clock, entries, cursor.offset, cursor.selected, visible)
-            } else if home_rail {
-                0
             } else {
                 cursor.offset
             };
@@ -166,8 +167,7 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
             };
             rows.extend((0..slack).map(|_| ObiRow::new(String::new())));
             // The caption's row comes out of the window, not off the end of the list.
-            let fits =
-                if home_rail { entries.len() } else { visible.saturating_sub(rows.len()) };
+            let fits = visible.saturating_sub(rows.len());
             for (i, entry) in entries.iter().enumerate().skip(start).take(fits) {
                 if section == Section::Calendar
                     && let Some(secs) = entry.airing_in
@@ -258,22 +258,6 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 rows.push(row);
             }
 
-            // "Up next for you", a short rail under Continue, then the window over both.
-            if home_rail {
-                rows.push(ObiRow::new(String::new()));
-                rows.push(ObiRow::heading(t::up_next_heading()).ruled());
-                let room = (list_col.width as usize).saturating_sub(3);
-                for (n, item) in rail.iter().enumerate() {
-                    let selected = entries.len() + n == cursor.selected;
-                    let row = ObiRow::new(item.entry.title.clone()).selected(selected);
-                    rows.push(row.trailing(up_next_reason(item, reason_room(room))));
-                }
-                let at = home_row(entries.len(), cursor.selected);
-                let first = home_row(entries.len(), cursor.offset.min(entries.len()));
-                rows =
-                    rows.split_off(home_window(first, at, visible, rows.len(), entries.len()));
-            }
-
             ObiList::new(&rows, &app.palette)
                 .focused(app.nav.focus() == Focus::Stage)
                 .render(list_col, buf);
@@ -285,56 +269,26 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
     }
 }
 
-/// Where item `item` of Continue and the rail under it sits among the rows drawn: Continue's
-/// heading first, then its rows, then a blank and the rail's heading before the suggestions.
-fn home_row(continuing: usize, item: usize) -> usize {
-    if item < continuing { 1 + item } else { 1 + continuing + 2 + (item - continuing) }
-}
-
-/// The first row drawn of Continue and its rail, `total` rows long, `visible` at a time: where
-/// the cursor's window starts, moved as little as keeps row `at` in view. The first suggestion
-/// brings the rail's heading with it, and the top of the list its own.
-fn home_window(
-    first: usize,
-    at: usize,
-    visible: usize,
-    total: usize,
-    continuing: usize,
-) -> usize {
-    let visible = visible.max(1);
-    let mut start = if first <= 1 { 0 } else { first };
-    let heading = 1 + continuing + 1;
-    let wanted = if at == heading + 1 {
-        heading
-    } else if at == 1 {
-        0
-    } else {
-        at
-    };
-    if wanted < start {
-        start = wanted;
-    }
-    if at >= start + visible {
-        start = at + 1 - visible;
-    }
-    start.min(total.saturating_sub(visible))
-}
-
 /// The cells a suggestion's reason may take beside its title in a row `room` wide: the title
 /// keeps at least [`TITLE_ROOM`].
-fn reason_room(room: usize) -> usize {
+pub(super) fn reason_room(room: usize) -> usize {
     room.saturating_sub(TITLE_ROOM.min(room / 2) + 1)
 }
 
 /// The fewest cells a suggestion's title keeps beside its reason.
 const TITLE_ROOM: usize = 12;
 
-/// What a suggestion under Continue says beside its title: when it starts, if it has not, and
-/// otherwise why it is there, in `room` cells. "Because you finished" always shows; the title
-/// it names is cut to what is left.
-fn up_next_reason(item: &anistream_model::up_next::UpNextItem, room: usize) -> String {
+/// What a suggestion says beside its title: when it starts, if it has not, and otherwise why it
+/// is there, in `room` cells. "Because you finished" always shows; the title it names is cut to
+/// what is left.
+pub(super) fn reason_text(
+    reason: anistream_model::up_next::UpNextReason,
+    because: Option<&str>,
+    starts: Option<anistream_model::catalog::FuzzyDate>,
+    room: usize,
+) -> String {
     use anistream_model::up_next::UpNextReason;
-    if let Some(date) = item.starts {
+    if let Some(date) = starts {
         let day = (date.month, date.day);
         let text = match day {
             (Some(month), Some(day)) => {
@@ -349,7 +303,7 @@ fn up_next_reason(item: &anistream_model::up_next::UpNextItem, room: usize) -> S
         };
         return t::up_next_starts(&text.unwrap_or_else(|| date.year.to_string()));
     }
-    match (item.reason, &item.because) {
+    match (reason, because) {
         (UpNextReason::NewSeason, _) => t::up_next_reason_new_season(),
         (UpNextReason::Planning, _) => t::up_next_reason_planning(),
         (UpNextReason::Recommended, Some(title)) => {
@@ -368,7 +322,6 @@ fn up_next_reason(item: &anistream_model::up_next::UpNextItem, room: usize) -> S
             }
         }
         (UpNextReason::Recommended, None) => t::up_next_reason_recommended_plain(),
-        (UpNextReason::AiringToday, _) => t::up_next_reason_airing_today(),
     }
 }
 

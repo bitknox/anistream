@@ -27,7 +27,7 @@ namespace Anistream.Windows;
 /// <param name="UpdateFrom">Testing build: an installer to offer as a newer release, <c>&lt;url&gt;,&lt;sha256&gt;,&lt;size&gt;,&lt;version&gt;</c>, fetched and installed for real.</param>
 /// <param name="Language">Testing build: the language to show this run, such as <c>qps-ploc</c> for the pseudo-locale; never saved.</param>
 /// <param name="Hide">Testing build: titles to hide from Continue at start, <c>id,id</c>, so a short queue leaves room for Up next.</param>
-/// <param name="UpNext">Testing build: show made-up suggestions under Continue, <c>signed-in</c>, <c>signed-out</c> or <c>fallback</c>, because the fixture catalogue has too few titles for the engine to suggest any.</param>
+/// <param name="UpNext">Testing build: show made-up suggestions under Continue, <c>signed-in</c> or <c>signed-out</c>, because the fixture catalogue has too few titles for the engine to suggest any.</param>
 /// <param name="Opens">The <c>anistream://</c> link the app was opened with, as the installer's <c>anistream.exe "%1"</c> hands it over.</param>
 public sealed record Options(
     string? Scene, string? Media, string? Page, uint? Title, string? Query, bool Play,

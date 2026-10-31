@@ -52,7 +52,7 @@ impl Section {
     pub fn label(self) -> &'static str {
         use anistream_i18n::t;
         crate::keymap::said(match self {
-            Self::Home => t::nav_section_continue(),
+            Self::Home => t::home_title(),
             Self::Calendar => t::nav_section_calendar(),
             Self::Seasonal => t::nav_section_seasonal(),
             Self::Search => t::nav_section_search(),

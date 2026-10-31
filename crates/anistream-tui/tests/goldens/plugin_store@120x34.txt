@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Hearth plugins                                                                   Owner
+  ▸  Home                   │  Hearth plugins                                                                   Owner
   ▤  Calendar               │  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦  Seasonal               │
   /  Search                 │    Plugin                      Version       State
@@ -43,7 +43,7 @@ r00 c107-108 fg=text-dim
 r00 c109-119 fg=state
 r01 c00-119 fg=rule
 r02 c02-02 fg=text-dim
-r02 c05-12 fg=text-dim
+r02 c05-08 fg=text-dim
 r02 c28-28 fg=rule
 r02 c31-44 fg=text mod=BOLD
 r02 c112-116 fg=text-dim

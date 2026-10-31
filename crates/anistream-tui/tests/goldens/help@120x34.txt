@@ -29,7 +29,7 @@ anistream                                                                       
     Page down                 ctrl+d    Filter                         f
 
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
+                            │                                                     ████░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                                                                       esc close
 === styles ===
@@ -38,14 +38,14 @@ r00 c00-08 fg=rule mod=BOLD
 r00 c09-119 fg=rule
 r01 c00-119 fg=rule
 r02 c00-04 fg=rule bg=ground
-r02 c05-12 fg=rule bg=ground mod=BOLD
-r02 c13-32 fg=rule bg=ground
-r02 c33-53 fg=rule bg=ground mod=BOLD
-r02 c54-119 fg=rule bg=ground
+r02 c05-08 fg=rule bg=ground mod=BOLD
+r02 c09-119 fg=rule bg=ground
 r03 c00-00 fg=obi bg=ground
 r03 c01-01 fg=rule bg=ground
 r03 c02-05 fg=text bg=ground mod=BOLD
-r03 c06-119 fg=rule bg=ground
+r03 c06-32 fg=rule bg=ground
+r03 c33-53 fg=rule bg=ground mod=BOLD
+r03 c54-119 fg=rule bg=ground
 r04 c00-119 fg=rule bg=ground
 r05 c00-01 fg=rule bg=ground
 r05 c02-07 fg=text bg=ground
@@ -184,13 +184,13 @@ r16 c19-34 fg=rule bg=ground
 r16 c35-35 fg=text bg=ground
 r16 c36-37 fg=rule bg=ground
 r16 c38-60 fg=text-dim bg=ground
-r16 c61-69 fg=rule bg=ground
-r16 c70-70 fg=rule bg=ground mod=BOLD
-r16 c71-71 fg=text bg=ground mod=BOLD
-r16 c72-73 fg=rule bg=ground mod=BOLD
-r16 c74-90 fg=text-dim bg=ground mod=BOLD
-r16 c91-93 fg=text-dim bg=ground
-r16 c94-106 fg=rule bg=ground
+r16 c61-70 fg=rule bg=ground
+r16 c71-71 fg=text bg=ground
+r16 c72-73 fg=rule bg=ground
+r16 c74-81 fg=text-dim bg=ground
+r16 c82-93 fg=text-dim bg=ground mod=BOLD
+r16 c94-102 fg=rule bg=ground mod=BOLD
+r16 c103-106 fg=rule bg=ground
 r16 c107-107 fg=text bg=ground
 r16 c108-119 fg=rule bg=ground
 r17 c00-01 fg=rule bg=ground
@@ -262,15 +262,15 @@ r22 c15-34 fg=rule bg=ground
 r22 c35-35 fg=text bg=ground
 r22 c36-37 fg=rule bg=ground
 r22 c38-54 fg=text-dim bg=ground
-r22 c55-69 fg=rule bg=ground
-r22 c70-70 fg=rule bg=ground mod=BOLD
-r22 c71-71 fg=text bg=ground mod=BOLD
-r22 c72-73 fg=rule bg=ground mod=BOLD
-r22 c74-86 fg=text-dim bg=ground mod=BOLD
-r22 c87-97 fg=rule bg=ground mod=BOLD
-r22 c98-106 fg=rule bg=ground
-r22 c107-107 fg=text bg=ground
-r22 c108-119 fg=rule bg=ground
+r22 c55-70 fg=rule bg=ground
+r22 c71-71 fg=text bg=ground
+r22 c72-73 fg=rule bg=ground
+r22 c74-81 fg=text-dim bg=ground
+r22 c82-86 fg=text-dim bg=ground mod=BOLD
+r22 c87-106 fg=rule bg=ground mod=BOLD
+r22 c107-107 fg=text bg=ground mod=BOLD
+r22 c108-109 fg=rule bg=ground mod=BOLD
+r22 c110-119 fg=rule bg=ground
 r23 c00-01 fg=rule bg=ground
 r23 c02-17 fg=text-dim bg=ground
 r23 c18-34 fg=rule bg=ground

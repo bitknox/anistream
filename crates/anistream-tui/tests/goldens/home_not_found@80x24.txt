@@ -1,0 +1,102 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌▸ │    Yoru no Toshokan                               Episode 8 · 3 min left
+ ▤ │
+ ▦ │    This week  ──────────────────────────────────────────────────────────
+ / │    Today   Hanabi Shoutengai                                  E8 · 02:37
+ ▥ │    Wed 21  Hoshikuzu no Tabibito                              E9 · 06:37
+ ↓ │    Thu 22  Umibe no Kissaten                                 E11 · 23:37
+ ◇ │
+ ◎ │    Up next for you  ────────────────────────────────────────────────────
+ ≡ │  ▌ Komorebi Ryokan                             Not found in your sources
+   │    Tsuki to Kujira no Uta                          On your Planning list
+   │    Tetsu no Hanazono         Because you finished Kumo no Ue no Toshokan
+   │
+   │    This season · Autumn 2026  ──────────────────────────────────────────
+   │    Ame Furu Machi no Robotto                               Episode 5 out
+   │    Kumo no Ue no Gakkou                                    Episode 4 out
+   │
+   │    Because you finished Kumo no Ue no Toshokan  ────────────────────────
+   │    Shiosai Radio Kyoku       Because you finished Kumo no Ue no Toshokan
+   │
+   │    That's everything for now. Seasonal and Calendar have the full lists.
+────────────────────────────────────────────────────────────────────────────────
+plugins · Subbed · 1080p                      x not interested   ↵ open   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c44-54 fg=text-dim
+r00 c55-63 fg=state
+r00 c64-65 fg=text-dim
+r00 c66-66 fg=rule
+r00 c67-68 fg=text-dim
+r00 c69-79 fg=state
+r01 c00-79 fg=rule
+r02 c00-00 fg=text-dim
+r02 c01-01 fg=text mod=BOLD
+r02 c03-03 fg=rule
+r02 c08-23 fg=text-dim
+r02 c55-76 fg=text-dim
+r03 c01-01 fg=text-dim
+r03 c03-03 fg=rule
+r04 c01-01 fg=text-dim
+r04 c03-03 fg=rule
+r04 c08-16 fg=text-dim
+r04 c19-76 fg=rule
+r05 c01-01 fg=text-dim
+r05 c03-03 fg=rule
+r05 c08-32 fg=text-dim
+r05 c67-76 fg=text-dim
+r06 c01-01 fg=text-dim
+r06 c03-03 fg=rule
+r06 c08-36 fg=text-dim
+r06 c67-76 fg=text-dim
+r07 c01-01 fg=text-dim
+r07 c03-03 fg=rule
+r07 c08-32 fg=text-dim
+r07 c66-76 fg=text-dim
+r08 c01-01 fg=text-dim
+r08 c03-03 fg=rule
+r09 c01-01 fg=text-dim
+r09 c03-03 fg=rule
+r09 c08-22 fg=text-dim
+r09 c25-76 fg=rule
+r10 c01-01 fg=text-dim
+r10 c03-03 fg=rule
+r10 c06-06 fg=obi
+r10 c08-22 fg=text mod=BOLD
+r10 c52-76 fg=text-dim
+r11 c03-03 fg=rule
+r11 c08-29 fg=text-dim
+r11 c56-76 fg=text-dim
+r12 c03-03 fg=rule
+r12 c08-24 fg=text-dim
+r12 c34-76 fg=text-dim
+r13 c03-03 fg=rule
+r14 c03-03 fg=rule
+r14 c08-32 fg=text-dim
+r14 c35-76 fg=rule
+r15 c03-03 fg=rule
+r15 c08-32 fg=text-dim
+r15 c64-76 fg=text-dim
+r16 c03-03 fg=rule
+r16 c08-27 fg=text-dim
+r16 c64-76 fg=text-dim
+r17 c03-03 fg=rule
+r18 c03-03 fg=rule
+r18 c08-50 fg=text-dim
+r18 c53-76 fg=rule
+r19 c03-03 fg=rule
+r19 c08-26 fg=text-dim
+r19 c34-76 fg=text-dim
+r20 c03-03 fg=rule
+r21 c03-03 fg=rule
+r21 c08-76 fg=text-dim
+r22 c00-79 fg=rule
+r23 c00-23 fg=text-dim
+r23 c46-46 fg=text
+r23 c47-64 fg=text-dim
+r23 c65-65 fg=text
+r23 c66-73 fg=text-dim
+r23 c74-74 fg=text
+r23 c75-79 fg=text-dim

@@ -130,6 +130,7 @@ impl App {
         self.backfill_calendar_if_near_top();
         self.more_calendar_if_near_end();
         self.more_search_if_near_end();
+        self.probe_home_selection();
     }
 
     /// Fit the list's window to `visible_rows` again, after the terminal changed size.

@@ -268,6 +268,21 @@ pub struct HiddenTitle {
     /// It had not started airing when it was hidden, and comes back by itself when it does.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub until_airs: bool,
+    /// When it was hidden, in Unix seconds. Zero when not known.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub hidden_at: i64,
+}
+
+impl HiddenTitle {
+    /// The line under the title, such as "Hidden 3d ago", from the clock's Unix seconds `now`.
+    /// `None` when the time was not kept.
+    pub fn hidden_line(&self, now: i64) -> Option<String> {
+        (self.hidden_at > 0).then(|| {
+            anistream_i18n::t::settings_hidden_on(&crate::wording::ago(
+                (now - self.hidden_at).max(0),
+            ))
+        })
+    }
 }
 
 impl HomeView {
@@ -296,6 +311,20 @@ impl HomeView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_hidden_title_says_how_long_ago() {
+        let title = |hidden_at| HiddenTitle {
+            entry: Entry::new(AnilistId::new(1), String::from("Made-up one")),
+            until_airs: false,
+            hidden_at,
+        };
+        assert_eq!(
+            title(1_000).hidden_line(1_000 + 3 * 86_400).as_deref(),
+            Some("Hidden 3d ago")
+        );
+        assert_eq!(title(0).hidden_line(5_000), None, "kept before the time was written");
+    }
 
     fn spotlight(id: u32, case: SpotlightCase) -> Spotlight {
         Spotlight {
