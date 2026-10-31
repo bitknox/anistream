@@ -84,6 +84,10 @@ sealed class Ctx
             leave();
     }
 
+#if ANISTREAM_TESTING
+    bool hiddenShown;
+#endif
+
     public ulong? Send(Command command)
     {
 #if ANISTREAM_TESTING
@@ -97,6 +101,24 @@ sealed class Ctx
                     Session.Known.Take(events[0]);
                     Heard(events);
                 });
+            return null;
+        }
+        // --show=settings-hidden: Hidden titles with two entries the fixtures hid, one three days ago.
+        if (Options.Show == "settings-hidden" && command is Command.LoadHiddenTitles)
+        {
+            if (hiddenShown)
+                return null;
+            hiddenShown = true;
+            Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                var rows = new[] { (900001u, false, now - 3 * 86400), (900002u, true, now - 2 * 3600) }
+                    .Select(h => new HiddenTitle(new Entry(Id: h.Item1, Title: h.Item1 == 900001u ? "Lantern Street" : "Moon Laundry"), h.Item2, h.Item3))
+                    .ToArray();
+                var events = new Event[] { new Event.HiddenTitles(rows) };
+                Session.Known.Take(events[0]);
+                Heard(events);
+            });
             return null;
         }
         // A discussion's shots: the fixture engine has no AniList forum, so the pane is answered with the invented thread.
