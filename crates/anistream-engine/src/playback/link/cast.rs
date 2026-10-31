@@ -150,7 +150,7 @@ pub fn notice(failure: &CastFailure, name: &str) -> Msg {
 pub fn source_of(stream: &Stream) -> CastSource {
     let kind = match stream.kind {
         StreamKind::Hls => SourceKind::Hls,
-        StreamKind::TorrentHttp => SourceKind::Torrent,
+        StreamKind::Torrent | StreamKind::TorrentHttp => SourceKind::Torrent,
         StreamKind::ExternalDeepLink => SourceKind::DeepLink,
         StreamKind::Mp4 if !stream.url.contains("://") => SourceKind::File,
         StreamKind::Mp4 => SourceKind::Progressive,
@@ -428,6 +428,7 @@ mod tests {
         let kind = |url: &str, kind| source_of(&Stream::new(url, kind)).kind;
         assert_eq!(kind("https://cdn.example/a.m3u8", StreamKind::Hls), SourceKind::Hls);
         assert_eq!(kind("http://127.0.0.1:9/a", StreamKind::TorrentHttp), SourceKind::Torrent);
+        assert_eq!(kind("magnet:?xt=urn:btih:ab", StreamKind::Torrent), SourceKind::Torrent);
         assert_eq!(kind("app://open", StreamKind::ExternalDeepLink), SourceKind::DeepLink);
         assert_eq!(kind("/downloads/1.mkv", StreamKind::Mp4), SourceKind::File);
         assert_eq!(kind("https://cdn.example/1.mp4", StreamKind::Mp4), SourceKind::Progressive);
