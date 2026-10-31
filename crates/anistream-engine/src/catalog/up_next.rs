@@ -144,7 +144,10 @@ pub async fn dismiss(lent: Lent, id: AnilistId) {
     });
     let mut all = dismissed(&store);
     all.retain(|d| d.id != id.get());
-    all.push(Dismissed { id: id.get(), waiting });
+    let at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(0));
+    all.push(Dismissed { id: id.get(), waiting, at });
     match serde_json::to_string(&all) {
         Ok(json) => {
             if let Err(e) = store.set_meta_text(DISMISSED_KEY, &json) {

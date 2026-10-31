@@ -935,7 +935,11 @@ mod tests {
             id: AnilistId::new(900_002),
             playable: Playable::NotFound,
         });
-        crosses_intact(Event::HiddenTitles(vec![HiddenTitle { entry, until_airs: true }]));
+        crosses_intact(Event::HiddenTitles(vec![HiddenTitle {
+            entry,
+            until_airs: true,
+            hidden_at: 1_700_000_000,
+        }]));
     }
 
     #[test]

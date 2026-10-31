@@ -21,6 +21,9 @@ pub(crate) const DISMISSED_KEY: &str = "up-next:dismissed";
 pub(crate) struct Dismissed {
     pub id: u32,
     pub waiting: bool,
+    /// When it was hidden, in Unix seconds. Zero for one kept before the time was written.
+    #[serde(default)]
+    pub at: i64,
 }
 
 /// The dismissals, oldest first.
