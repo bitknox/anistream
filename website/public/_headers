@@ -5,3 +5,11 @@
 /auth/*
   Cache-Control: no-store
   Referrer-Policy: no-referrer
+
+/party
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+
+/party/*
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer

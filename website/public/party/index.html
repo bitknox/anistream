@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>anistream watch party</title>
+<meta name="description" content="Open the invite in anistream">
+<meta property="og:title" content="anistream watch party">
+<meta property="og:description" content="Open the invite in anistream">
+<meta property="og:image" content="https://anistream.tv/og.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161a2e">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0ede4">
+<style>
+  :root { color-scheme: dark light; --ground: #161a2e; --text: #e4e0d6; --dim: #9298b5; --amber: #f2a64b;
+          --amber-hover: #f5b467; --on-amber: #161a2e; --raised: #222638; --well: #10131f; --rule: #434653; }
+  @media (prefers-color-scheme: light) {
+    :root { --ground: #f0ede4; --text: #1e2033; --dim: #4f546e; --amber: #f2a64b; --amber-hover: #f5b467;
+            --on-amber: #1e2033; --raised: #e3e1d9; --well: #e9e6de; --rule: #c2c0bd; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--ground); color: var(--text);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { width: 100%; max-width: 34rem; padding: 2rem 1rem; }
+  .brand { display: flex; align-items: center; gap: .625rem; margin: 0 0 2rem; color: var(--text); text-decoration: none; font-weight: 600; }
+  .brand img { width: 32px; height: 32px; }
+  h1 { font-size: 1.75rem; line-height: 1.2; font-weight: 600; margin: 0 0 .5rem; text-wrap: balance; }
+  .what { margin: 0 0 1.5rem; font-size: 1.125rem; }
+  p { margin: 0 0 1rem; color: var(--dim); }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin: 0 0 1.75rem; }
+  .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.25rem; border-radius: 8px; font-weight: 600;
+         text-decoration: none; color: var(--text); border: 1px solid var(--rule); background: transparent; }
+  .btn-primary { background: var(--amber); border-color: var(--amber); color: var(--on-amber); }
+  .btn-primary:hover { background: var(--amber-hover); }
+  .btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .code { display: block; margin: 0 0 1rem; padding: .75rem 1rem; border-radius: 8px; background: var(--well); color: var(--text);
+          font: 1.25rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .label { display: block; margin: 0 0 .25rem; font-size: .875rem; color: var(--dim); }
+  a { color: var(--text); }
+  small { color: var(--dim); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="32" height="32"><span>anistream</span></a>
+
+  <section id="invite" hidden>
+    <h1 id="title"></h1>
+    <p class="what" id="what"></p>
+    <p>Each of you plays the episode from your own sources in anistream and stays in step through a Syncplay server. anistream hosts no content.</p>
+    <div class="actions">
+      <a class="btn btn-primary" id="open" href="#">Open in anistream</a>
+      <a class="btn" href="/apps/">Get anistream</a>
+    </div>
+    <span class="label">Code</span>
+    <code class="code" id="code"></code>
+    <p id="syncplay"></p>
+    <p><small>If nothing opens, anistream is not installed on this device yet. Get it first, then open this link again.</small></p>
+  </section>
+
+  <section id="broken" hidden>
+    <h1>This invite is missing its room.</h1>
+    <p>Ask for the link again.</p>
+    <div class="actions"><a class="btn" href="/apps/">Get anistream</a></div>
+  </section>
+
+  <noscript>
+    <h1>This page needs JavaScript</h1>
+    <p>The invite is in the part of the link after the # sign, which only your browser can read. Turn JavaScript on to see it, or paste the whole link into anistream's Join watch party field.</p>
+    <div class="actions"><a class="btn" href="/apps/">Get anistream</a></div>
+  </noscript>
+
+  <p><small>This page reads the invite in your browser and sends it nowhere. See the <a href="/docs/privacy/#watch-parties">privacy page</a>.</small></p>
+</main>
+<script>
+  // The invite is in the fragment, which browsers never send to a server. It is read here and
+  // handed to the app on this device, and nothing on this page makes a request that carries it.
+  (function () {
+    var q = new URLSearchParams(location.hash.slice(1));
+    var server = (q.get("s") || "").trim();
+    var room = (q.get("r") || "").trim();
+    var ok = /^[A-Za-z0-9.\-]{1,253}(:\d{1,5})?$/.test(server) && /^[A-Za-z0-9._~\-]{1,80}$/.test(room);
+    var $ = function (id) { return document.getElementById(id); };
+    if (!ok) { $("broken").hidden = false; return; }
+
+    var by = (q.get("by") || "").trim().slice(0, 40);
+    var name = (q.get("n") || "").trim().slice(0, 120);
+    var ep = (q.get("e") || "").trim();
+    var hasEp = /^\d{1,4}$/.test(ep);
+
+    $("title").textContent = by ? by + " invited you to a watch party" : "You are invited to a watch party";
+    var what = [];
+    if (name) what.push(name);
+    if (hasEp) what.push("Episode " + ep);
+    if (what.length) $("what").textContent = what.join(" · "); else $("what").hidden = true;
+    $("code").textContent = room;
+    $("syncplay").textContent = "Using Syncplay’s own app? Server " + server + ", room " + room + ".";
+    $("open").href = "anistream://party#" + location.hash.slice(1);
+    $("invite").hidden = false;
+    document.title = "anistream watch party";
+  })();
+</script>
+</body>
+</html>

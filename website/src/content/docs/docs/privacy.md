@@ -258,8 +258,15 @@ party shares none: everyone plays the episode from their own sources.
 
 The connection is encrypted when the server supports it. The party panel says whether it is.
 
-An invite link carries the server, the room, the show's AniList id and the episode number, and
-nothing else. Anyone with the link can join the room, so share it with the people you want there.
+An invite link carries the server, the room, the name of the person who sent it, the show's
+title and the episode number, and nothing else. Anyone with the link can join the room, so share it with the people you want there.
+
+The invite link is an address on this website, `https://anistream.tv/party`, with the invite after
+the `#`. When you open it, the page reads that part in your browser, shows who invited you and
+which episode, and offers to open the app. Browsers never send the part after `#` to a server, so
+this website never receives the invite. The page makes no other request, runs no analytics, and
+passes the invite only to the anistream app on your device. Cloudflare sees that the page was
+opened, as it does for any page here, but not whose room it was.
 
 Messages others send in the room show up on your player. anistream doesn't send any.
 
@@ -298,8 +305,8 @@ position, to your own devices signed in to the same Apple Account, and Apple car
 them. Handoff is turned off in the system's settings, under AirPlay and Handoff.
 
 On Android, installing or updating the app makes Android fetch
-`https://anistream.tv/.well-known/assetlinks.json`, to confirm that the sign-in address belongs to
-the app. Android does this itself.
+`https://anistream.tv/.well-known/assetlinks.json`, to confirm that the sign-in and watch party
+addresses belong to the app. Android does this itself.
 
 To remove everything, uninstall the app on iPhone, iPad, Android or Android TV. On a Mac, Windows or
 Linux, or with the terminal app, delete the folders above. Also delete the items kept under the
