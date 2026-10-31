@@ -63,6 +63,7 @@ extension PhoneSettingsPage {
         case .about: PhoneAboutPage()
         case .acknowledgements: PhoneAcknowledgementsPage()
         case .tvs: PhoneTVsPage()
+        case .hiddenTitles: PhoneHiddenTitlesPage()
         case .store(let id): PhoneStorePage(id: id)
         case .plugin(let id): PhonePluginPage(id: id)
         }
@@ -307,6 +308,9 @@ struct PhoneGeneralPage: View {
                 PhoneTitleLanguageRow()
                 PhoneSettingPicker(key: .trailers, note: L.settingsTrailersNoteApple)
                 PhoneSettingSwitch(key: .adultTitles, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist")))
+                NavigationLink(value: PhoneSettingsPage.hiddenTitles) {
+                    PhoneRowTitle(title: L.settingsHiddenTitles)
+                }
             } header: {
                 PhoneSectionHeader(L.settingsGroupTitles)
             }

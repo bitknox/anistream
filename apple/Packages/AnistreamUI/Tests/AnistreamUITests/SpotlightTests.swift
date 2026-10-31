@@ -87,7 +87,7 @@ struct SpotlightTests {
         #if os(macOS)
         #expect(navigator.titleOnMac == 900_002)
         #endif
-        #expect(navigator.paths[.continue] == [900_002])
+        #expect(navigator.paths[.home] == [900_002])
     }
 
     // MARK: The shelf

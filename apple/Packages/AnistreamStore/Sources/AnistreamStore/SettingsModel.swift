@@ -246,4 +246,10 @@ public struct SyncSummary: Equatable, Sendable {
     public let text: String
     public let state: State
     public let tracker: String?
+
+    public init(text: String, state: State, tracker: String?) {
+        self.text = text
+        self.state = state
+        self.tracker = tracker
+    }
 }

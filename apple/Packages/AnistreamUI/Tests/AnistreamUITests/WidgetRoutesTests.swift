@@ -14,7 +14,7 @@ struct WidgetRoutesTests {
         navigator.openWidgetLink(.title(900_001), store: store)
         navigator.openWidgetLink(.title(900_001), store: store)
         #expect(navigator.titleOnMac == 900_001)
-        #expect(navigator.paths[.continue] == [900_001], "not pushed twice")
+        #expect(navigator.paths[.home] == [900_001], "not pushed twice")
         #expect(store.sentLog.isEmpty)
     }
 

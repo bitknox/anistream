@@ -62,7 +62,7 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         command(L.menuShowSettings, "slider.horizontal.3",
                 detail: L.paletteShowSettingsDetail, shortcut: "⌘I") { navigator.showSettings = id }
     }
-    for (index, section) in [AppSection.continue, .calendar, .seasonal, .library, .downloads].enumerated() {
+    for (index, section) in [AppSection.home, .calendar, .seasonal, .library, .downloads].enumerated() {
         command(section.title, section.symbol, shortcut: "⌘\(index + 1)") { navigator.open(section) }
     }
     command(L.navSearch, "magnifyingglass", shortcut: "⌘F") { navigator.open(.search) }

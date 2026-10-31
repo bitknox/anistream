@@ -110,7 +110,7 @@ struct IntentsTests {
         let mark = store.sentLog.count
         continuing.play(900_005, episode: 2)
         #expect(Array(store.sentLog.dropFirst(mark)) == ["play"], "from where it was left, as the engine resumes it")
-        #expect(continuing.navigator?.section == .continue)
+        #expect(continuing.navigator?.section == .home)
     }
 
     @Test func caughtUpItSaysWhenTheNextEpisodeAirs() async throws {

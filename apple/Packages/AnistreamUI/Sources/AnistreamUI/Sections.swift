@@ -3,10 +3,10 @@
 import AnistreamStrings
 import Foundation
 
-/// Where the app can be. The Mac sidebar lists them all; the iPhone's tabs are Continue,
+/// Where the app can be. The Mac sidebar lists them all; the iPhone's tabs are Home,
 /// Calendar, Seasonal and Library, with Search on its own.
 public enum AppSection: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case `continue`, calendar, seasonal, search, library, downloads
+    case home, calendar, seasonal, search, library, downloads
     case providers, pluginStores
     case settings
 
@@ -15,7 +15,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Hashable, Sendable {
     /// The name, as the Mac sidebar, the toolbar and the iPhone's tabs say it.
     public var title: String {
         switch self {
-        case .continue: L.navContinue
+        case .home: L.homeTitle
         case .calendar: L.navCalendar
         case .seasonal: L.navSeasonal
         case .search: L.navSearch
@@ -30,7 +30,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Hashable, Sendable {
     /// Its SF Symbol.
     public var symbol: String {
         switch self {
-        case .continue: "play.circle"
+        case .home: "house"
         case .calendar: "calendar"
         case .seasonal: "leaf"
         case .search: "magnifyingglass"
@@ -43,7 +43,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Hashable, Sendable {
     }
 
     /// The sidebar's first group.
-    static let browse: [AppSection] = [.continue, .calendar, .seasonal, .search, .library, .downloads]
+    static let browse: [AppSection] = [.home, .calendar, .seasonal, .search, .library, .downloads]
     /// The sidebar's Sources group.
     static let sources: [AppSection] = [.providers, .pluginStores]
 }

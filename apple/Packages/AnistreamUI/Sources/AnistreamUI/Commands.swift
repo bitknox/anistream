@@ -64,7 +64,7 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
         }
 
         CommandMenu(L.navLibrary) {
-            sectionButton(.continue, "1")
+            sectionButton(.home, "1")
             sectionButton(.calendar, "2")
             sectionButton(.seasonal, "3")
             sectionButton(.library, "4")

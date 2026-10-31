@@ -115,13 +115,13 @@ struct ReducerTests {
         #expect(!store.loadStills(900_006), "the episodes are here already")
     }
 
-    @Test func continueKeepsToFiveRows() {
+    @Test func continueKeepsToItsRows() {
         let store = AppStore()
-        let many = (0..<8).map { n in
+        let many = (0..<20).map { n in
             entry(AnilistId(900_100 + n), "Title \(n)") { $0.progress = TitleProgress(done: 1, next: 2) }
         }
         store.apply(.content(view: .continue, content: .entries(many)))
-        #expect(store.continuing.queue(store.titles).all.count == 5)
+        #expect(store.continuing.queue(store.titles).all.count == ContinueQueue.rows)
     }
 
     @Test func aTitleHiddenFromContinueGoesAtOnceAndComesBackWithTheNextList() {

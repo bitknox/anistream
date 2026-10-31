@@ -100,8 +100,9 @@ struct MacShell: View {
     private var subtitle: String {
         guard navigator.titleOnMac == nil else { return "" }
         switch navigator.section {
-        case .continue:
-            return store.continuing.list.state == .empty ? L.continueEmptyTitle : ""
+        case .home:
+            // Offline is said once, in the sync capsule (`AppStore.homeOfflineLine`).
+            return ""
         case .calendar:
             return CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         case .seasonal:
@@ -323,7 +324,7 @@ struct SectionView: View {
 
     var body: some View {
         switch section {
-        case .continue: ContinueScreen()
+        case .home: HomeScreen()
         case .calendar: CalendarScreen()
         case .seasonal: SeasonalScreen()
         case .search: SearchScreen()

@@ -499,38 +499,20 @@ struct PhoneLibrary: View {
                     }
                     .padding(.horizontal, 16)
                 }
+            } else if navigator.librarySegment == .watching {
+                // Watching is the queue, as Home's View all promises: the selected title beside
+                // it where it fits, and on a phone the list alone, a row opening its title.
+                VStack(alignment: .leading, spacing: 12) {
+                    DownloadsRow().padding(.top, 8).padding(.horizontal, 16)
+                    chips
+                    ContinueScreen()
+                }
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         DownloadsRow().padding(.top, 8)
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 8) {
-                                ForEach(LibraryModel.order, id: \.self) { segment in
-                                    let count = store.library.segment(segment).state.ids.count
-                                    let selected = navigator.librarySegment == segment
-                                    Button {
-                                        withAnimation(.quick) { navigator.librarySegment = segment }
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            Text(segment.title)
-                                            Text("\(count)").foregroundStyle(selected ? .amber : .haze)
-                                        }
-                                        .font(.ui(17))
-                                        .foregroundStyle(selected ? .amber : .silk)
-                                        .padding(.horizontal, 16)
-                                        .frame(height: 40)
-                                        .background(selected ? Palette.selection : .clear, in: .capsule)
-                                        .overlay(Capsule().strokeBorder(selected ? .clear : Palette.faintRule))
-                                        .contentShape(.capsule)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .pointerHover()
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                        }
-                        .scrollIndicators(.never)
-                        .padding(.horizontal, -16)
+                        chips
+                            .padding(.horizontal, -16)
                         LibraryScreen(embedded: true)
                     }
                     .padding(.horizontal, 16)
@@ -546,6 +528,37 @@ struct PhoneLibrary: View {
                 store.loadLibrary(segment)
             }
         }
+    }
+
+    /// The lists as chips with their counts.
+    private var chips: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(LibraryModel.order, id: \.self) { segment in
+                    let count = store.library.segment(segment).state.ids.count
+                    let selected = navigator.librarySegment == segment
+                    Button {
+                        withAnimation(.quick) { navigator.librarySegment = segment }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(segment.title)
+                            Text("\(count)").foregroundStyle(selected ? .amber : .haze)
+                        }
+                        .font(.ui(17))
+                        .foregroundStyle(selected ? .amber : .silk)
+                        .padding(.horizontal, 16)
+                        .frame(height: 40)
+                        .background(selected ? Palette.selection : .clear, in: .capsule)
+                        .overlay(Capsule().strokeBorder(selected ? .clear : Palette.faintRule))
+                        .contentShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .pointerHover()
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .scrollIndicators(.never)
     }
 }
 

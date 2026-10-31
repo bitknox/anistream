@@ -147,6 +147,8 @@ struct Meter: View {
     var height: CGFloat = 3
     /// What VoiceOver says for it where the time left is known: "14 min left", not a percentage.
     var spoken: String?
+    /// Silk, where the view's one amber is its main action (Home's cards).
+    var silk = false
 
     var body: some View {
         Capsule()
@@ -154,7 +156,7 @@ struct Meter: View {
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
                     Capsule()
-                        .fill(.amber)
+                        .fill(silk ? Palette.silk : Palette.amber)
                         .frame(width: proxy.size.width * min(max(fraction, 0), 1))
                 }
             }
@@ -354,12 +356,13 @@ struct StateDot: View {
 /// running job with its elapsed time and note, the TUI's activity row whole (native-ux, Mac).
 struct SyncCapsule: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     /// Accounts in Settings, from the popover's foot.
     let open: () -> Void
     @State private var showing = false
 
     var body: some View {
-        let summary = store.accounts.summary
+        let summary = shown
         Button { showing.toggle() } label: {
             HStack(spacing: 6) {
                 StateDot(state: summary.state)
@@ -377,6 +380,15 @@ struct SyncCapsule: View {
                 open()
             }
         }
+    }
+
+    /// Where sync stands, or on Home offline, Home's own line: offline is said once there.
+    private var shown: SyncSummary {
+        let summary = store.accounts.summary
+        guard navigator.section == .home, navigator.titleOnMac == nil, let line = store.homeOfflineLine else {
+            return summary
+        }
+        return SyncSummary(text: line, state: .waiting, tracker: summary.tracker)
     }
 
     private func accessibilityLabel(_ summary: SyncSummary) -> String {

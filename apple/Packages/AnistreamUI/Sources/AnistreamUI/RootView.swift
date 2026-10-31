@@ -38,11 +38,15 @@ public struct RootView: View {
                     Task { await store.restart() }
                 }
             default:
-                #if os(macOS)
-                MacShell()
-                #else
-                TabShell()
-                #endif
+                Group {
+                    #if os(macOS)
+                    MacShell()
+                    #else
+                    TabShell()
+                    #endif
+                }
+                // Home is asked for as the app opens, whichever screen is first drawn.
+                .task { store.loadHome() }
             }
         }
         // The widgets' taps: a title, an episode, the Calendar, Accounts.

@@ -42,6 +42,8 @@ public enum PhoneSettingsPage: Hashable, Sendable {
     case root, general, playback, downloads, notifications, sources, accounts, providers, stores, about, acknowledgements
     /// The TVs paired for Play on TV.
     case tvs
+    /// The titles marked Not interested, with Restore.
+    case hiddenTitles
     case store(String)
     case plugin(String)
     /// A show's own new-episode switch, from a row of the Notifications page's week.
@@ -59,6 +61,7 @@ public enum PhoneSettingsPage: Hashable, Sendable {
         case "providers": .providers
         case "about": .about
         case "tvs": .tvs
+        case "hidden": .hiddenTitles
         case "stores", "pluginStores": .stores
         // The showcase's own, for screenshots.
         case "store": .store("hotaru")
@@ -369,6 +372,9 @@ struct GeneralPane: View {
         }
         SettingsGroup(title: L.settingsLanguage) {
             AppLanguageRow()
+        }
+        SettingsGroup(title: L.settingsHiddenTitles, footnote: L.settingsHiddenTitlesBody) {
+            HiddenTitlesRows()
         }
     }
 }

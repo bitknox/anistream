@@ -10,6 +10,18 @@ extension EngineLaunch {
     /// cannot choose 900001's match) or `playing`.
     public static let sceneArgument = "-AnistreamScene"
 
+    /// The launch argument that turns on the Home world, `-AnistreamHomeWorld 1`: about ten
+    /// invented titles this season with drawn art, which Home's shelves need to look like the
+    /// board. The engine reads it as `ANISTREAM_FIXTURES_HOME_WORLD=1`, set here before it starts.
+    public static let homeWorldArgument = "-AnistreamHomeWorld"
+
+    /// Set the Home world in the environment when the arguments ask for it.
+    public static func applyHomeWorld(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        guard let index = arguments.firstIndex(of: homeWorldArgument), arguments.indices.contains(index + 1),
+              arguments[index + 1] == "1" else { return }
+        setenv("ANISTREAM_FIXTURES_HOME_WORLD", "1", 1)
+    }
+
     /// The launch argument that names what the Playing scene streams: `-AnistreamMedia <path>`.
     /// With the Watching scene, every episode streams it, so a resume plays it at once.
     public static let mediaArgument = "-AnistreamMedia"
@@ -31,6 +43,13 @@ extension EngineLaunch {
             else { return .watching }
             return .watchingMedia(media: arguments[index + 1])
         case "fresh": return .fresh
+        case "suggested": return .suggested
+        case "oneleft": return .oneLeft
+        case "continuefull": return .continueFull
+        case "notfound": return .notFound
+        case "slow": return .slow
+        case "failed": return .failed
+        case "offline": return .offline
         case "sourceless": return .sourceless
         case "unsure": return .unsure
         case "playing": return .playing(media: media(arguments: arguments))
@@ -57,6 +76,7 @@ extension EngineLaunch {
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> (launch: EngineLaunch, temporary: URL?) {
         let scene = scene(arguments: arguments) ?? .watching
+        applyHomeWorld(arguments: arguments)
         let root = EngineHome.overrideRoot(environment: environment, arguments: arguments)
         let temporary = root == nil
             ? FileManager.default.temporaryDirectory
@@ -89,6 +109,20 @@ extension AppStore {
         continuing.list.asked()
         send(.loadContinue)
         send(.loadDetail(id))
+    }
+
+    /// The launch argument that takes the fake AniList away once the first Home has loaded,
+    /// `-AnistreamGoOffline 1`: Home's offline line over what it kept, for a shot of it.
+    public static let goOfflineArgument = "-AnistreamGoOffline"
+
+    /// Go offline when `arguments` ask, once settled, and ask Home again. Whether it did.
+    public func applyGoOfflineArgument(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        guard let index = arguments.firstIndex(of: Self.goOfflineArgument), arguments.indices.contains(index + 1),
+              arguments[index + 1] == "1"
+        else { return false }
+        setFakeOffline(true)
+        loadHome(force: true)
+        return true
     }
 }
 #endif

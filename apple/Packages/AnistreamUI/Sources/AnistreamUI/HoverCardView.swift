@@ -273,9 +273,19 @@ private struct HoverCardContent: View {
 
     private var details: some View {
         let action = TitleAction(entry, handedOff: navigator.handedOff, episodes: store.titles.episodes[entry.id])
+        let home = navigator.section == .home ? HomeHover(store, entry.id) : nil
         let synopsis = entry.shownSynopsis
         let reserves = !(store.titles.detailed.contains(entry.id) && synopsis.isEmpty)
         return VStack(alignment: .leading, spacing: HoverCardSize.gap) {
+            if let line = home?.line {
+                HStack(spacing: 6) {
+                    if home?.notFound == true { Image(systemName: "exclamationmark.circle").font(.mac(11)) }
+                    Text(line).lineLimit(1)
+                }
+                .font(.mac(12, weight: .medium))
+                .foregroundStyle(.haze)
+                .frame(height: HoverCardSize.reason, alignment: .leading)
+            }
             if reserves {
                 Text(synopsis.isEmpty ? " " : synopsis)
                     .font(.mac(13))
@@ -284,20 +294,59 @@ private struct HoverCardContent: View {
                     .lineLimit(2, reservesSpace: true)
                     .frame(height: HoverCardSize.synopsis, alignment: .topLeading)
             }
-            if action.playable {
-                Button {
-                    action.play(entry.id, store: store, navigator: navigator)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "play.fill").font(.mac(10))
-                        Text(action.cardTitle)
+            if let home, home.action == .addToPlanning || action.playable {
+                HStack(spacing: 8) {
+                    if home.action == .addToPlanning {
+                        Button {
+                            store.send(.setStatus(id: entry.id, status: .planning))
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus").font(.mac(10))
+                                Text(L.libraryAddPlanning)
+                            }
+                        }
+                        .buttonStyle(PrimaryCapsuleStyle(height: HoverCardSize.action, fontSize: 13))
+                        .focusable(false)
+                    } else {
+                        playButton(action)
+                    }
+                    if home.suggestion {
+                        Menu {
+                            Button(L.upNextNotInterested) {
+                                store.notInterested(entry, title: entry.showTitle, unaired: home.unaired)
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.mac(12, weight: .semibold))
+                                .foregroundStyle(.silk)
+                                .frame(width: HoverCardSize.action, height: HoverCardSize.action)
+                                .background(Palette.raisedSelected, in: .circle)
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.plain)
+                        .menuIndicator(.hidden)
+                        .fixedSize()
+                        .accessibilityLabel(L.homeMore)
                     }
                 }
-                .buttonStyle(PrimaryCapsuleStyle(height: HoverCardSize.action, fontSize: 13))
-                .focusable(false)
+            } else if action.playable {
+                playButton(action)
             }
         }
         .padding(EdgeInsets(top: HoverCardSize.gap, leading: 16, bottom: HoverCardSize.foot, trailing: 16))
+    }
+
+    private func playButton(_ action: TitleAction) -> some View {
+        Button {
+            action.play(entry.id, store: store, navigator: navigator)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "play.fill").font(.mac(10))
+                Text(action.cardTitle)
+            }
+        }
+        .buttonStyle(PrimaryCapsuleStyle(height: HoverCardSize.action, fontSize: 13))
+        .focusable(false)
     }
 }
 

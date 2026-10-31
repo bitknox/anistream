@@ -4,12 +4,29 @@ import AnistreamKit
 import Foundation
 import Observation
 
+/// A button the app puts on a notice of its own, beside the engine's hints: Undo, Try again.
+public struct NoticeButton: Sendable {
+    public let label: String
+    public let run: @MainActor @Sendable () -> Void
+
+    public init(label: String, run: @escaping @MainActor @Sendable () -> Void) {
+        self.label = label
+        self.run = run
+    }
+}
+
 /// One notice as the app keeps it: when it came, and a number to tell it from one with the same
 /// words.
 public struct NoticeItem: Identifiable, Equatable, Sendable {
     public let id: Int
     public let notice: Notice
     public let at: Date
+    /// The app's own button on it, when it has one.
+    public let action: NoticeButton?
+
+    public static func == (a: NoticeItem, b: NoticeItem) -> Bool {
+        a.id == b.id && a.notice == b.notice && a.at == b.at
+    }
 
     public var isAlert: Bool { notice.kind == .alert }
 }
@@ -40,9 +57,9 @@ public final class NoticesModel {
         self.clock = clock
     }
 
-    func post(_ notice: Notice) {
+    func post(_ notice: Notice, action: NoticeButton? = nil) {
         count += 1
-        let item = NoticeItem(id: count, notice: notice, at: clock())
+        let item = NoticeItem(id: count, notice: notice, at: clock(), action: action)
         current = item
         log.insert(item, at: 0)
         if log.count > Self.kept { log.removeLast(log.count - Self.kept) }
@@ -52,7 +69,7 @@ public final class NoticesModel {
     /// which the screen says in a few plain words.
     func record(_ notice: Notice) {
         count += 1
-        log.insert(NoticeItem(id: count, notice: notice, at: clock()), at: 0)
+        log.insert(NoticeItem(id: count, notice: notice, at: clock(), action: nil), at: 0)
         if log.count > Self.kept { log.removeLast(log.count - Self.kept) }
     }
 

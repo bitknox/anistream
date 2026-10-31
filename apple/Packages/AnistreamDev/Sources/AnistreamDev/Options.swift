@@ -177,6 +177,7 @@ struct Options {
         let home: EngineHome = shared ? .resolve(environment: [:], arguments: []) : .override(root: (self.home ?? temporary)!)
         switch engine {
         case .fixtures(let scene):
+            EngineLaunch.applyHomeWorld()
             return (EngineLaunch(engine: .fixtures(scene), home: home, platform: .macOs, secrets: .host), temporary)
         case .real:
             return (EngineLaunch.app(home: home, platform: .macOs), temporary)

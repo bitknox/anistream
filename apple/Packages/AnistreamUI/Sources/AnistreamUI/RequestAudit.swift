@@ -53,7 +53,7 @@ public enum RequestAudit {
             report("back")
         }
 
-        for section in [AppSection.library, .continue, .seasonal, .continue, .calendar, .continue] {
+        for section in [AppSection.library, .home, .seasonal, .home, .calendar, .home] {
             navigator.open(section)
             try? await Task.sleep(for: .seconds(1))
         }
