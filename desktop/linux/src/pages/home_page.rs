@@ -100,6 +100,8 @@ struct Page {
     /// Everything failed and nothing is kept: the failure screen shows until something loads.
     failed_empty: Cell<bool>,
     probed: Cell<Option<AnilistId>>,
+    /// The app's offline banner, as Home words it.
+    banner: adw::Banner,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -195,6 +197,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         failed_told: Cell::new(false),
         failed_empty: Cell::new(false),
         probed: Cell::new(None),
+        banner: widgets::offline_banner(),
     });
 
     let reload = gio::SimpleAction::new("home-reload", None);
@@ -268,7 +271,12 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             }
         }
     });
-    let nav = widgets::content_page(&t::home_title(), &header, &page.stack);
+    // The page as `widgets::content_page` makes it, with Home's own hold on the banner.
+    let view = adw::ToolbarView::new();
+    view.add_top_bar(&header);
+    view.add_top_bar(&page.banner);
+    view.set_content(Some(&page.stack));
+    let nav = adw::NavigationPage::builder().title(t::home_title()).child(&view).build();
     widgets::keep(&nav, (Rc::clone(&page), ForgetOnDrop(Rc::clone(&ctx.hub), listener)));
     ctx.hub.send(Command::LoadHome { refresh: false });
     nav
@@ -388,17 +396,21 @@ impl Page {
         }
     }
 
-    /// The capsule in the header: offline since a time, or loading suggestions. Synced is the
-    /// sidebar's to say.
+    /// The capsule in the header says only that suggestions are still loading: synced is the
+    /// sidebar's to say, and offline the banner's. On Home the banner says since when Home
+    /// is from.
     fn capsule_state(&self, view: &HomeView) {
         self.capsule_spin.set_visible(false);
         self.capsule_spin.set_spinning(false);
-        let text = if view.offline {
-            view.offline_since
-                .and_then(|s| glib::DateTime::from_unix_local(s).ok())
-                .and_then(|d| d.format("%H:%M").ok())
-                .map(|at| t::home_offline(at.as_str()))
-        } else if self.activity.get() && !view.pending.is_empty() {
+        let kept = view.spotlight.is_some() || !view.sections.is_empty();
+        let since = view
+            .offline_since
+            .filter(|_| view.offline && kept)
+            .and_then(|s| glib::DateTime::from_unix_local(s).ok())
+            .and_then(|d| d.format("%H:%M").ok())
+            .map(|at| t::home_offline(at.as_str()));
+        self.banner.set_title(&since.unwrap_or_else(t::state_offline_line));
+        let text = if !view.offline && self.activity.get() && !view.pending.is_empty() {
             self.capsule_spin.set_visible(true);
             self.capsule_spin.set_spinning(true);
             Some(t::home_loading())
