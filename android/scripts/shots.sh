@@ -29,6 +29,8 @@
 # ANISTREAM_SHOTS_LOCALE=en-XA takes the shots in that app language, to look for clipped or
 # unaccented text.
 #
+# ANISTREAM_SHOTS_FONT_SCALE=2.0 sets the system's font size for the run (back to 1.0 after).
+#
 # The status bar is in demo mode at 19:30, and the system dark. The app says ANISTREAM_READY in the
 # log once its screens have what they asked for, and the shot is taken then.
 set -euo pipefail
@@ -185,6 +187,7 @@ for shot in "${shots[@]}"; do
   shell pm clear "$package" >/dev/null
   # A pseudo-locale (en-XA, ar-XB) or any language tag for the app alone; clearing forgets it.
   [[ -z "${ANISTREAM_SHOTS_LOCALE:-}" ]] || shell cmd locale set-app-locales "$package" --locales "$ANISTREAM_SHOTS_LOCALE" >/dev/null
+  [[ -z "${ANISTREAM_SHOTS_FONT_SCALE:-}" ]] || shell settings put system font_scale "$ANISTREAM_SHOTS_FONT_SCALE"
   "$adb" -s "$serial" logcat -c
   shell am start -W -n "$package/tv.anistream.app.MainActivity" "${args[@]}" >/dev/null
   # This launch's marker, by its process, never one an earlier shot left in the log.
@@ -204,4 +207,5 @@ for shot in "${shots[@]}"; do
   echo "shots.sh: wrote $file"
   shell am force-stop "$package"
 done
+[[ -z "${ANISTREAM_SHOTS_FONT_SCALE:-}" ]] || shell settings put system font_scale 1.0
 demo exit
