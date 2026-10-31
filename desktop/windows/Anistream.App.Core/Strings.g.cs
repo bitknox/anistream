@@ -81,6 +81,78 @@ public static partial class T
     /// <summary>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</summary>
     public static string NoticeDiscussionSignIn => Get("NoticeDiscussionSignIn");
 
+    /// <summary>Line over the spotlight's title when it is a show the person is part way through.</summary>
+    public static string HomeSpotlightContinuing => Get("HomeSpotlightContinuing");
+
+    /// <summary>Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.</summary>
+    public static string HomeSpotlightNewSeason(string title) => Fill(Get("HomeSpotlightNewSeason"), ("title", title));
+
+    /// <summary>Line over the spotlight's title when it is on the person's Planning list.</summary>
+    public static string HomeSpotlightPlanning => Get("HomeSpotlightPlanning");
+
+    /// <summary>Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.</summary>
+    public static string HomeSpotlightRecommended(string title) => Fill(Get("HomeSpotlightRecommended"), ("title", title));
+
+    /// <summary>Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.</summary>
+    public static string HomeSpotlightRecommendedPlain => Get("HomeSpotlightRecommendedPlain");
+
+    /// <summary>Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.</summary>
+    public static string HomeSpotlightPopular => Get("HomeSpotlightPopular");
+
+    /// <summary>Heading over the shows the person is part way through.</summary>
+    public static string HomeContinue => Get("HomeContinue");
+
+    /// <summary>Heading over next season's shows, in the two weeks before it starts.</summary>
+    public static string HomeStartingWinter => Get("HomeStartingWinter");
+
+    /// <summary>Heading over next season's shows, in the two weeks before it starts.</summary>
+    public static string HomeStartingSpring => Get("HomeStartingSpring");
+
+    /// <summary>Heading over next season's shows, in the two weeks before it starts.</summary>
+    public static string HomeStartingSummer => Get("HomeStartingSummer");
+
+    /// <summary>Heading over next season's shows, in the two weeks before it starts.</summary>
+    public static string HomeStartingAutumn => Get("HomeStartingAutumn");
+
+    /// <summary>Heading over the week's broadcasts of the shows the person follows, from today.</summary>
+    public static string HomeThisWeek => Get("HomeThisWeek");
+
+    /// <summary>Heading over today's broadcasts, shown to someone who has not watched anything yet.</summary>
+    public static string HomeAiringToday => Get("HomeAiringToday");
+
+    /// <summary>Heading over the suggestions from the person's own history and lists.</summary>
+    public static string HomeUpNext => Get("HomeUpNext");
+
+    /// <summary>Heading over this season's most popular shows.</summary>
+    public static string HomeThisSeason => Get("HomeThisSeason");
+
+    /// <summary>Heading over the shows recommended from the one the person finished most recently. The title is that show.</summary>
+    public static string HomeBecause(string title) => Fill(Get("HomeBecause"), ("title", title));
+
+    /// <summary>Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.</summary>
+    public static string HomeMoreGenre(string genre) => Fill(Get("HomeMoreGenre"), ("genre", genre));
+
+    /// <summary>Line under a card of a show part way through an episode: the episode and the minutes left in it.</summary>
+    public static string HomeLineLeft(long episode, long minutes) => Fill(GetPlural("HomeLineLeft", minutes), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under a card of a show part way through an episode when its length is not known.</summary>
+    public static string HomeLineResume(long episode) => Fill(Get("HomeLineResume"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under a card of a show whose next episode is out.</summary>
+    public static string HomeLineNext(long episode) => Fill(Get("HomeLineNext"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.</summary>
+    public static string HomeLineOut(long episode, string ago) => Fill(Get("HomeLineOut"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ago", ago));
+
+    /// <summary>Line under a suggestion that is a new season of a show the person finished.</summary>
+    public static string HomeLineNewSeason => Get("HomeLineNewSeason");
+
+    /// <summary>Line under a suggestion on the person's Planning list.</summary>
+    public static string HomeLinePlanning => Get("HomeLinePlanning");
+
+    /// <summary>Line under a suggestion that people who liked a finished show rated highly. The title is that show.</summary>
+    public static string HomeLineLike(string title) => Fill(Get("HomeLineLike"), ("title", title));
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -2129,6 +2201,54 @@ public static partial class T
 
     /// <summary>Line under that button after a failure.</summary>
     public static string EpisodeDownloadFailed(long episode) => Fill(Get("EpisodeDownloadFailed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Name of the Home section in the sidebar, the tab bar and the window title.</summary>
+    public static string HomeTitle => Get("HomeTitle");
+
+    /// <summary>Count beside the { -continue-cap } heading on Home.</summary>
+    public static string HomeContinueCount(long count) => Fill(GetPlural("HomeContinueCount", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Link at the end of a shelf that opens the full list.</summary>
+    public static string HomeViewAll => Get("HomeViewAll");
+
+    /// <summary>Link at the end of This week that opens the calendar.</summary>
+    public static string HomeFullCalendar => Get("HomeFullCalendar");
+
+    /// <summary>Line under a This week card for an episode still to air. The time is worded already, such as 22:30.</summary>
+    public static string HomeWeekAirs(long episode, string time) => Fill(Get("HomeWeekAirs"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
+
+    /// <summary>The closing line at the end of Home.</summary>
+    public static string HomeEnd => Get("HomeEnd");
+
+    /// <summary>The closing line at the end of Home when no { -tracker } is signed in.</summary>
+    public static string HomeEndSignedOut => Get("HomeEndSignedOut");
+
+    /// <summary>Line on a title that no installed { -source } has. The main action becomes Add to Planning.</summary>
+    public static string HomeNotFound => Get("HomeNotFound");
+
+    /// <summary>Notice after Not interested on Home. It has an Undo button.</summary>
+    public static string HomeHidden(string title) => Fill(Get("HomeHidden"), ("title", title));
+
+    /// <summary>Notice when part of Home could not be loaded. It has a Try again button.</summary>
+    public static string HomeFailed => Get("HomeFailed");
+
+    /// <summary>Activity line while Home's suggestions take longer than a few seconds.</summary>
+    public static string HomeLoading => Get("HomeLoading");
+
+    /// <summary>Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.</summary>
+    public static string HomeOffline(string time) => Fill(Get("HomeOffline"), ("time", time));
+
+    /// <summary>Settings row that lists the titles hidden with Not interested.</summary>
+    public static string SettingsHiddenTitles => Get("SettingsHiddenTitles");
+
+    /// <summary>Settings, Hidden titles, when nothing is hidden.</summary>
+    public static string SettingsHiddenTitlesEmpty => Get("SettingsHiddenTitlesEmpty");
+
+    /// <summary>Line under a hidden title that comes back by itself once it starts airing.</summary>
+    public static string SettingsHiddenUntilAirs => Get("SettingsHiddenUntilAirs");
+
+    /// <summary>Button beside a hidden title that brings it back to Home.</summary>
+    public static string SettingsHiddenRestore => Get("SettingsHiddenRestore");
 
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
@@ -5448,6 +5568,31 @@ public static partial class T
         ["NoticeCommentLikeFailed"] = "Couldn't like the comment. Try again.",
         ["NoticeCommentDeleteFailed"] = "Couldn't delete the comment. Try again.",
         ["NoticeDiscussionSignIn"] = "Sign in with AniList to like and reply.",
+        ["HomeSpotlightContinuing"] = "Continue watching",
+        ["HomeSpotlightNewSeason"] = "New season · You finished {title}",
+        ["HomeSpotlightPlanning"] = "On your Planning",
+        ["HomeSpotlightRecommended"] = "Like {title}",
+        ["HomeSpotlightRecommendedPlain"] = "Recommended for you",
+        ["HomeSpotlightPopular"] = "Popular this season",
+        ["HomeContinue"] = "Continue",
+        ["HomeStartingWinter"] = "Starting in Winter",
+        ["HomeStartingSpring"] = "Starting in Spring",
+        ["HomeStartingSummer"] = "Starting in Summer",
+        ["HomeStartingAutumn"] = "Starting in Autumn",
+        ["HomeThisWeek"] = "This week",
+        ["HomeAiringToday"] = "Airing today",
+        ["HomeUpNext"] = "Up next for you",
+        ["HomeThisSeason"] = "This season",
+        ["HomeBecause"] = "Because you finished {title}",
+        ["HomeMoreGenre"] = "More {genre}",
+        ["HomeLineLeft_one"] = "Episode {episode} · 1 min left",
+        ["HomeLineLeft_other"] = "Episode {episode} · {minutes} min left",
+        ["HomeLineResume"] = "Resume episode {episode}",
+        ["HomeLineNext"] = "Episode {episode}",
+        ["HomeLineOut"] = "Episode {episode} · out {ago} ago",
+        ["HomeLineNewSeason"] = "New season",
+        ["HomeLinePlanning"] = "On your Planning",
+        ["HomeLineLike"] = "Like {title}",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",
@@ -6156,6 +6301,23 @@ public static partial class T
         ["EpisodeDownloadPaused"] = "Download paused at {percent}",
         ["EpisodeDownloadDone"] = "Downloaded",
         ["EpisodeDownloadFailed"] = "Couldn't download episode {episode}. Try again.",
+        ["HomeTitle"] = "Home",
+        ["HomeContinueCount_one"] = "1 show",
+        ["HomeContinueCount_other"] = "{count} shows",
+        ["HomeViewAll"] = "View all",
+        ["HomeFullCalendar"] = "Full calendar",
+        ["HomeWeekAirs"] = "Episode {episode} · {time}",
+        ["HomeEnd"] = "That's everything for now. Seasonal and Calendar have the full lists.",
+        ["HomeEndSignedOut"] = "Sign in to AniList to bring in your list and Planning.",
+        ["HomeNotFound"] = "Not found in your sources",
+        ["HomeHidden"] = "{title} is hidden from Up next for you",
+        ["HomeFailed"] = "Couldn't load suggestions",
+        ["HomeLoading"] = "Loading suggestions",
+        ["HomeOffline"] = "Offline. Showing Home from {time}.",
+        ["SettingsHiddenTitles"] = "Hidden titles",
+        ["SettingsHiddenTitlesEmpty"] = "Nothing is hidden. Titles you mark Not interested on Home show here.",
+        ["SettingsHiddenUntilAirs"] = "Hidden until it airs",
+        ["SettingsHiddenRestore"] = "Restore",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",

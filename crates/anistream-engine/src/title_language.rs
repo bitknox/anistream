@@ -36,6 +36,18 @@ pub fn retitle(event: &mut Event, language: TitleLanguage) {
         Event::UpNext(items) => {
             items.iter_mut().for_each(|item| retitle_entry(&mut item.entry, language))
         }
+        Event::Home(home) => {
+            if let Some(spotlight) = &mut home.spotlight {
+                retitle_entry(&mut spotlight.entry, language);
+            }
+            home.sections
+                .iter_mut()
+                .flat_map(|section| &mut section.items)
+                .for_each(|item| retitle_entry(&mut item.entry, language));
+        }
+        Event::HiddenTitles(rows) => {
+            rows.iter_mut().for_each(|row| retitle_entry(&mut row.entry, language))
+        }
         Event::Detail(entry) => retitle_entry(entry, language),
         _ => {}
     }

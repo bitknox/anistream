@@ -21,6 +21,8 @@ use crate::{
         detail::{load_detail, open_external, play_trailer},
         lists::{hide_from_continue, load_continue, load_seasonal},
         recents, search,
+        home::{self, HomeAsk, HomeMemory},
+        probe,
         up_next::{self, Ask},
     },
     data,
@@ -167,6 +169,27 @@ fn up_next_ask(engine: &EngineState, services: &Services) -> Ask {
     }
 }
 
+/// What a load of Home is told of the viewer and the moment.
+fn home_ask(engine: &EngineState, services: &Services, refresh: bool) -> HomeAsk {
+    HomeAsk {
+        listed: downloads::ahead::listed(services),
+        adult: engine.config.effective().meta.adult,
+        now: services.clock.now(),
+        zone: services.clock.zone(),
+        offline: engine.network.offline,
+        refresh,
+    }
+}
+
+/// After a dismissal or its Undo: Home again from what is kept, and the hidden titles when
+/// Settings has them open.
+async fn after_dismissal(meta: Meta, store: Store, tx: Outbox, ask: HomeAsk, memory: HomeMemory) {
+    home::changed(&meta, &store, &tx, &ask, &memory);
+    if memory.hidden_asked() {
+        home::hidden_titles(&meta, &store, &tx).await;
+    }
+}
+
 pub(crate) fn dispatch(
     task: Command,
     job: Option<JobGuard>,
@@ -187,12 +210,53 @@ pub(crate) fn dispatch(
             let ask = up_next_ask(engine, services);
             spawn(job, services, tx, move |lent| up_next::load_up_next(lent, ask))
         }
+        // Not interested, and its Undo, on Up next for you, Home and Settings, Hidden titles.
         Command::RestoreUpNext { id } => {
             let ask = up_next_ask(engine, services);
-            spawn(job, services, tx, move |lent| up_next::restore(lent, id, ask))
+            let (home, memory) = (home_ask(engine, services, false), engine.home.clone());
+            spawn(job, services, tx, move |lent| async move {
+                let (meta, store, tx) = (lent.meta.clone(), lent.store.clone(), lent.tx.clone());
+                up_next::restore(lent, id, ask).await;
+                after_dismissal(meta, store, tx, home, memory).await;
+            })
         }
         Command::DismissUpNext { id } => {
-            spawn(job, services, tx, move |lent| up_next::dismiss(lent, id))
+            let (home, memory) = (home_ask(engine, services, false), engine.home.clone());
+            spawn(job, services, tx, move |lent| async move {
+                let (meta, store, tx) = (lent.meta.clone(), lent.store.clone(), lent.tx.clone());
+                up_next::dismiss(lent, id).await;
+                after_dismissal(meta, store, tx, home, memory).await;
+            })
+        }
+        Command::LoadHome { refresh } => {
+            engine.home_mark = Some(home::queue_mark(&services.store));
+            let (ask, memory) = (home_ask(engine, services, refresh), engine.home.clone());
+            spawn(job, services, tx, move |lent| home::load(lent, memory, ask))
+        }
+        Command::LoadHiddenTitles => {
+            engine.home.ask_hidden();
+            spawn(job, services, tx, |lent| async move {
+                home::hidden_titles(&lent.meta, &lent.store, &lent.tx).await;
+            })
+        }
+        Command::ProbeTitle { id } => {
+            let now = services.clock.now();
+            // Asked once a minute at most, the answer kept a day: interest shown twice in a row
+            // is one check.
+            if engine.probed.get(&id).is_some_and(|at| now - at < 60 && now >= *at) {
+                drop(job);
+                return;
+            }
+            engine.probed.insert(id, now);
+            let translation = engine.config.effective().playback.translation;
+            let (ask, memory) = (home_ask(engine, services, false), engine.home.clone());
+            spawn(job, services, tx, move |lent| async move {
+                let Lent { meta, store, registry, tx, .. } = lent;
+                probe::probe(&meta, &store, &registry, &tx, id, translation, now).await;
+                if memory.shows(id) {
+                    home::changed(&meta, &store, &tx, &ask, &memory);
+                }
+            })
         }
         // Each row marked with its dub where a title page found it: see `Entry::airing_dubbed`.
         Command::LoadCalendar | Command::RefreshCalendar => {

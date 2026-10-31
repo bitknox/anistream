@@ -115,6 +115,126 @@ pub fn notice_discussion_sign_in() -> String {
     text("notice-discussion-sign-in", &[])
 }
 
+/// Line over the spotlight's title when it is a show the person is part way through.
+pub fn home_spotlight_continuing() -> String {
+    text("home-spotlight-continuing", &[])
+}
+
+/// Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.
+pub fn home_spotlight_new_season(title: &str) -> String {
+    text("home-spotlight-new-season", &[("title", Arg::Text(title))])
+}
+
+/// Line over the spotlight's title when it is on the person's Planning list.
+pub fn home_spotlight_planning() -> String {
+    text("home-spotlight-planning", &[])
+}
+
+/// Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.
+pub fn home_spotlight_recommended(title: &str) -> String {
+    text("home-spotlight-recommended", &[("title", Arg::Text(title))])
+}
+
+/// Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
+pub fn home_spotlight_recommended_plain() -> String {
+    text("home-spotlight-recommended-plain", &[])
+}
+
+/// Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
+pub fn home_spotlight_popular() -> String {
+    text("home-spotlight-popular", &[])
+}
+
+/// Heading over the shows the person is part way through.
+pub fn home_continue() -> String {
+    text("home-continue", &[])
+}
+
+/// Heading over next season's shows, in the two weeks before it starts.
+pub fn home_starting_winter() -> String {
+    text("home-starting-winter", &[])
+}
+
+/// Heading over next season's shows, in the two weeks before it starts.
+pub fn home_starting_spring() -> String {
+    text("home-starting-spring", &[])
+}
+
+/// Heading over next season's shows, in the two weeks before it starts.
+pub fn home_starting_summer() -> String {
+    text("home-starting-summer", &[])
+}
+
+/// Heading over next season's shows, in the two weeks before it starts.
+pub fn home_starting_autumn() -> String {
+    text("home-starting-autumn", &[])
+}
+
+/// Heading over the week's broadcasts of the shows the person follows, from today.
+pub fn home_this_week() -> String {
+    text("home-this-week", &[])
+}
+
+/// Heading over today's broadcasts, shown to someone who has not watched anything yet.
+pub fn home_airing_today() -> String {
+    text("home-airing-today", &[])
+}
+
+/// Heading over the suggestions from the person's own history and lists.
+pub fn home_up_next() -> String {
+    text("home-up-next", &[])
+}
+
+/// Heading over this season's most popular shows.
+pub fn home_this_season() -> String {
+    text("home-this-season", &[])
+}
+
+/// Heading over the shows recommended from the one the person finished most recently. The title is that show.
+pub fn home_because(title: &str) -> String {
+    text("home-because", &[("title", Arg::Text(title))])
+}
+
+/// Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.
+pub fn home_more_genre(genre: &str) -> String {
+    text("home-more-genre", &[("genre", Arg::Text(genre))])
+}
+
+/// Line under a card of a show part way through an episode: the episode and the minutes left in it.
+pub fn home_line_left(episode: i64, minutes: i64) -> String {
+    text("home-line-left", &[("episode", Arg::Int(episode)), ("minutes", Arg::Int(minutes))])
+}
+
+/// Line under a card of a show part way through an episode when its length is not known.
+pub fn home_line_resume(episode: i64) -> String {
+    text("home-line-resume", &[("episode", Arg::Int(episode))])
+}
+
+/// Line under a card of a show whose next episode is out.
+pub fn home_line_next(episode: i64) -> String {
+    text("home-line-next", &[("episode", Arg::Int(episode))])
+}
+
+/// Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.
+pub fn home_line_out(episode: i64, ago: &str) -> String {
+    text("home-line-out", &[("episode", Arg::Int(episode)), ("ago", Arg::Text(ago))])
+}
+
+/// Line under a suggestion that is a new season of a show the person finished.
+pub fn home_line_new_season() -> String {
+    text("home-line-new-season", &[])
+}
+
+/// Line under a suggestion on the person's Planning list.
+pub fn home_line_planning() -> String {
+    text("home-line-planning", &[])
+}
+
+/// Line under a suggestion that people who liked a finished show rated highly. The title is that show.
+pub fn home_line_like(title: &str) -> String {
+    text("home-line-like", &[("title", Arg::Text(title))])
+}
+
 /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 pub fn notice_reason(reason: &str) -> String {
     text("notice-reason", &[("reason", Arg::Text(reason))])
@@ -7468,6 +7588,86 @@ pub fn episode_download_done() -> String {
 /// Line under that button after a failure.
 pub fn episode_download_failed(episode: i64) -> String {
     text("episode-download-failed", &[("episode", Arg::Int(episode))])
+}
+
+/// Name of the Home section in the sidebar, the tab bar and the window title.
+pub fn home_title() -> String {
+    text("home-title", &[])
+}
+
+/// Count beside the { -continue-cap } heading on Home.
+pub fn home_continue_count(count: i64) -> String {
+    text("home-continue-count", &[("count", Arg::Int(count))])
+}
+
+/// Link at the end of a shelf that opens the full list.
+pub fn home_view_all() -> String {
+    text("home-view-all", &[])
+}
+
+/// Link at the end of This week that opens the calendar.
+pub fn home_full_calendar() -> String {
+    text("home-full-calendar", &[])
+}
+
+/// Line under a This week card for an episode still to air. The time is worded already, such as 22:30.
+pub fn home_week_airs(episode: i64, time: &str) -> String {
+    text("home-week-airs", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
+}
+
+/// The closing line at the end of Home.
+pub fn home_end() -> String {
+    text("home-end", &[])
+}
+
+/// The closing line at the end of Home when no { -tracker } is signed in.
+pub fn home_end_signed_out() -> String {
+    text("home-end-signed-out", &[])
+}
+
+/// Line on a title that no installed { -source } has. The main action becomes Add to Planning.
+pub fn home_not_found() -> String {
+    text("home-not-found", &[])
+}
+
+/// Notice after Not interested on Home. It has an Undo button.
+pub fn home_hidden(title: &str) -> String {
+    text("home-hidden", &[("title", Arg::Text(title))])
+}
+
+/// Notice when part of Home could not be loaded. It has a Try again button.
+pub fn home_failed() -> String {
+    text("home-failed", &[])
+}
+
+/// Activity line while Home's suggestions take longer than a few seconds.
+pub fn home_loading() -> String {
+    text("home-loading", &[])
+}
+
+/// Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.
+pub fn home_offline(time: &str) -> String {
+    text("home-offline", &[("time", Arg::Text(time))])
+}
+
+/// Settings row that lists the titles hidden with Not interested.
+pub fn settings_hidden_titles() -> String {
+    text("settings-hidden-titles", &[])
+}
+
+/// Settings, Hidden titles, when nothing is hidden.
+pub fn settings_hidden_titles_empty() -> String {
+    text("settings-hidden-titles-empty", &[])
+}
+
+/// Line under a hidden title that comes back by itself once it starts airing.
+pub fn settings_hidden_until_airs() -> String {
+    text("settings-hidden-until-airs", &[])
+}
+
+/// Button beside a hidden title that brings it back to Home.
+pub fn settings_hidden_restore() -> String {
+    text("settings-hidden-restore", &[])
 }
 
 /// Continue row subtitle. The show's title is cut first when the row is short.

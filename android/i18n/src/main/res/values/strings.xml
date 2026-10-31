@@ -46,6 +46,57 @@
     <string name="notice_comment_delete_failed">Couldn\'t delete the comment. Try again.</string>
     <!-- Toast when the viewer tried to like or post in a discussion without signing in to AniList. -->
     <string name="notice_discussion_sign_in">Sign in with AniList to like and reply.</string>
+    <!-- Line over the spotlight's title when it is a show the person is part way through. -->
+    <string name="home_spotlight_continuing">Continue watching</string>
+    <!-- Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished. -->
+    <string name="home_spotlight_new_season">New season · You finished %1$s</string>
+    <!-- Line over the spotlight's title when it is on the person's Planning list. -->
+    <string name="home_spotlight_planning">On your Planning</string>
+    <!-- Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show. -->
+    <string name="home_spotlight_recommended">Like %1$s</string>
+    <!-- Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known. -->
+    <string name="home_spotlight_recommended_plain">Recommended for you</string>
+    <!-- Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started. -->
+    <string name="home_spotlight_popular">Popular this season</string>
+    <!-- Heading over the shows the person is part way through. -->
+    <string name="home_continue">Continue</string>
+    <!-- Heading over next season's shows, in the two weeks before it starts. -->
+    <string name="home_starting_winter">Starting in Winter</string>
+    <!-- Heading over next season's shows, in the two weeks before it starts. -->
+    <string name="home_starting_spring">Starting in Spring</string>
+    <!-- Heading over next season's shows, in the two weeks before it starts. -->
+    <string name="home_starting_summer">Starting in Summer</string>
+    <!-- Heading over next season's shows, in the two weeks before it starts. -->
+    <string name="home_starting_autumn">Starting in Autumn</string>
+    <!-- Heading over the week's broadcasts of the shows the person follows, from today. -->
+    <string name="home_this_week">This week</string>
+    <!-- Heading over today's broadcasts, shown to someone who has not watched anything yet. -->
+    <string name="home_airing_today">Airing today</string>
+    <!-- Heading over the suggestions from the person's own history and lists. -->
+    <string name="home_up_next">Up next for you</string>
+    <!-- Heading over this season's most popular shows. -->
+    <string name="home_this_season">This season</string>
+    <!-- Heading over the shows recommended from the one the person finished most recently. The title is that show. -->
+    <string name="home_because">Because you finished %1$s</string>
+    <!-- Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery. -->
+    <string name="home_more_genre">More %1$s</string>
+    <!-- Line under a card of a show part way through an episode: the episode and the minutes left in it. -->
+    <plurals name="home_line_left">
+        <item quantity="one">Episode %1$d · 1 min left</item>
+        <item quantity="other">Episode %1$d · %2$d min left</item>
+    </plurals>
+    <!-- Line under a card of a show part way through an episode when its length is not known. -->
+    <string name="home_line_resume">Resume episode %1$d</string>
+    <!-- Line under a card of a show whose next episode is out. -->
+    <string name="home_line_next">Episode %1$d</string>
+    <!-- Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h. -->
+    <string name="home_line_out">Episode %1$d · out %2$s ago</string>
+    <!-- Line under a suggestion that is a new season of a show the person finished. -->
+    <string name="home_line_new_season">New season</string>
+    <!-- Line under a suggestion on the person's Planning list. -->
+    <string name="home_line_planning">On your Planning</string>
+    <!-- Line under a suggestion that people who liked a finished show rated highly. The title is that show. -->
+    <string name="home_line_like">Like %1$s</string>
     <!-- A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. -->
     <string name="notice_reason">%1$s</string>
     <!-- Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. -->
@@ -1884,6 +1935,41 @@
     <string name="episode_download_done">Downloaded</string>
     <!-- Line under that button after a failure. -->
     <string name="episode_download_failed">Couldn\'t download episode %1$d. Try again.</string>
+    <!-- Name of the Home section in the sidebar, the tab bar and the window title. -->
+    <string name="home_title">Home</string>
+    <!-- Count beside the { -continue-cap } heading on Home. -->
+    <plurals name="home_continue_count">
+        <item quantity="one">1 show</item>
+        <item quantity="other">%1$d shows</item>
+    </plurals>
+    <!-- Link at the end of a shelf that opens the full list. -->
+    <string name="home_view_all">View all</string>
+    <!-- Link at the end of This week that opens the calendar. -->
+    <string name="home_full_calendar">Full calendar</string>
+    <!-- Line under a This week card for an episode still to air. The time is worded already, such as 22:30. -->
+    <string name="home_week_airs">Episode %1$d · %2$s</string>
+    <!-- The closing line at the end of Home. -->
+    <string name="home_end">That\'s everything for now. Seasonal and Calendar have the full lists.</string>
+    <!-- The closing line at the end of Home when no { -tracker } is signed in. -->
+    <string name="home_end_signed_out">Sign in to AniList to bring in your list and Planning.</string>
+    <!-- Line on a title that no installed { -source } has. The main action becomes Add to Planning. -->
+    <string name="home_not_found">Not found in your sources</string>
+    <!-- Notice after Not interested on Home. It has an Undo button. -->
+    <string name="home_hidden">%1$s is hidden from Up next for you</string>
+    <!-- Notice when part of Home could not be loaded. It has a Try again button. -->
+    <string name="home_failed">Couldn\'t load suggestions</string>
+    <!-- Activity line while Home's suggestions take longer than a few seconds. -->
+    <string name="home_loading">Loading suggestions</string>
+    <!-- Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20. -->
+    <string name="home_offline">Offline. Showing Home from %1$s.</string>
+    <!-- Settings row that lists the titles hidden with Not interested. -->
+    <string name="settings_hidden_titles">Hidden titles</string>
+    <!-- Settings, Hidden titles, when nothing is hidden. -->
+    <string name="settings_hidden_titles_empty">Nothing is hidden. Titles you mark Not interested on Home show here.</string>
+    <!-- Line under a hidden title that comes back by itself once it starts airing. -->
+    <string name="settings_hidden_until_airs">Hidden until it airs</string>
+    <!-- Button beside a hidden title that brings it back to Home. -->
+    <string name="settings_hidden_restore">Restore</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>

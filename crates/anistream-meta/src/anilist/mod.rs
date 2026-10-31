@@ -645,6 +645,23 @@ impl AniList {
         Ok(found)
     }
 
+    /// What people who liked `id` rated highest, best rated first, at most `each`, each a whole
+    /// title. See [`query::recommended_titles`].
+    pub async fn recommended_titles(&self, id: AnilistId, each: u32) -> Result<Vec<Media>> {
+        let data: serde_json::Value = self
+            .execute(
+                &query::recommended_titles(),
+                serde_json::json!({ "ids": [id.get()], "perPage": 1, "each": each }),
+            )
+            .await?;
+        let nodes = data["Page"]["media"][0]["recommendations"]["nodes"].clone();
+        let nodes: Vec<serde_json::Value> = serde_json::from_value(nodes).unwrap_or_default();
+        Ok(nodes
+            .into_iter()
+            .filter_map(|n| serde_json::from_value(n["mediaRecommendation"].clone()).ok())
+            .collect())
+    }
+
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
         // The people the viewer follows are asked for in the same request, and only when someone
         // is signed in: the filter needs an authenticated viewer.

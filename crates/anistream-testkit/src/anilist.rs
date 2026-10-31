@@ -1009,10 +1009,24 @@ fn respond(
                 .take(per_page)
                 .filter_map(|id| catalogue.wire(id))
                 .map(|m| {
+                    // Asked with `$each`, the titles come whole, as many as asked for: Home's
+                    // "Because you finished". Otherwise each is its id, under its card.
+                    let nodes = match vars["each"].as_u64() {
+                        Some(each) => m["recommendations"]["nodes"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter_map(|n| n["mediaRecommendation"]["id"].as_u64())
+                            .filter_map(|id| catalogue.listed(AnilistId::new(id as u32)))
+                            .take(each as usize)
+                            .map(|title| json!({ "mediaRecommendation": clock.media(title) }))
+                            .collect(),
+                        None => m["recommendations"]["nodes"].clone(),
+                    };
                     json!({
                         "id": m["id"],
                         "title": m["title"],
-                        "recommendations": { "nodes": m["recommendations"]["nodes"] },
+                        "recommendations": { "nodes": nodes },
                     })
                 })
                 .collect();

@@ -123,6 +123,106 @@
     <value>Sign in with AniList to like and reply.</value>
     <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
   </data>
+  <data name="HomeSpotlightContinuing" xml:space="preserve">
+    <value>Continue watching</value>
+    <comment>Line over the spotlight's title when it is a show the person is part way through.</comment>
+  </data>
+  <data name="HomeSpotlightNewSeason" xml:space="preserve">
+    <value>New season · You finished {title}</value>
+    <comment>Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.</comment>
+  </data>
+  <data name="HomeSpotlightPlanning" xml:space="preserve">
+    <value>On your Planning</value>
+    <comment>Line over the spotlight's title when it is on the person's Planning list.</comment>
+  </data>
+  <data name="HomeSpotlightRecommended" xml:space="preserve">
+    <value>Like {title}</value>
+    <comment>Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.</comment>
+  </data>
+  <data name="HomeSpotlightRecommendedPlain" xml:space="preserve">
+    <value>Recommended for you</value>
+    <comment>Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.</comment>
+  </data>
+  <data name="HomeSpotlightPopular" xml:space="preserve">
+    <value>Popular this season</value>
+    <comment>Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.</comment>
+  </data>
+  <data name="HomeContinue" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Heading over the shows the person is part way through.</comment>
+  </data>
+  <data name="HomeStartingWinter" xml:space="preserve">
+    <value>Starting in Winter</value>
+    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingSpring" xml:space="preserve">
+    <value>Starting in Spring</value>
+    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingSummer" xml:space="preserve">
+    <value>Starting in Summer</value>
+    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingAutumn" xml:space="preserve">
+    <value>Starting in Autumn</value>
+    <comment>Heading over next season's shows, in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeThisWeek" xml:space="preserve">
+    <value>This week</value>
+    <comment>Heading over the week's broadcasts of the shows the person follows, from today.</comment>
+  </data>
+  <data name="HomeAiringToday" xml:space="preserve">
+    <value>Airing today</value>
+    <comment>Heading over today's broadcasts, shown to someone who has not watched anything yet.</comment>
+  </data>
+  <data name="HomeUpNext" xml:space="preserve">
+    <value>Up next for you</value>
+    <comment>Heading over the suggestions from the person's own history and lists.</comment>
+  </data>
+  <data name="HomeThisSeason" xml:space="preserve">
+    <value>This season</value>
+    <comment>Heading over this season's most popular shows.</comment>
+  </data>
+  <data name="HomeBecause" xml:space="preserve">
+    <value>Because you finished {title}</value>
+    <comment>Heading over the shows recommended from the one the person finished most recently. The title is that show.</comment>
+  </data>
+  <data name="HomeMoreGenre" xml:space="preserve">
+    <value>More {genre}</value>
+    <comment>Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.</comment>
+  </data>
+  <data name="HomeLineLeft_one" xml:space="preserve">
+    <value>Episode {episode} · 1 min left</value>
+    <comment>Line under a card of a show part way through an episode: the episode and the minutes left in it.</comment>
+  </data>
+  <data name="HomeLineLeft_other" xml:space="preserve">
+    <value>Episode {episode} · {minutes} min left</value>
+    <comment>Line under a card of a show part way through an episode: the episode and the minutes left in it.</comment>
+  </data>
+  <data name="HomeLineResume" xml:space="preserve">
+    <value>Resume episode {episode}</value>
+    <comment>Line under a card of a show part way through an episode when its length is not known.</comment>
+  </data>
+  <data name="HomeLineNext" xml:space="preserve">
+    <value>Episode {episode}</value>
+    <comment>Line under a card of a show whose next episode is out.</comment>
+  </data>
+  <data name="HomeLineOut" xml:space="preserve">
+    <value>Episode {episode} · out {ago} ago</value>
+    <comment>Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.</comment>
+  </data>
+  <data name="HomeLineNewSeason" xml:space="preserve">
+    <value>New season</value>
+    <comment>Line under a suggestion that is a new season of a show the person finished.</comment>
+  </data>
+  <data name="HomeLinePlanning" xml:space="preserve">
+    <value>On your Planning</value>
+    <comment>Line under a suggestion on the person's Planning list.</comment>
+  </data>
+  <data name="HomeLineLike" xml:space="preserve">
+    <value>Like {title}</value>
+    <comment>Line under a suggestion that people who liked a finished show rated highly. The title is that show.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -2954,6 +3054,74 @@
   <data name="EpisodeDownloadFailed" xml:space="preserve">
     <value>Couldn't download episode {episode}. Try again.</value>
     <comment>Line under that button after a failure.</comment>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>Home</value>
+    <comment>Name of the Home section in the sidebar, the tab bar and the window title.</comment>
+  </data>
+  <data name="HomeContinueCount_one" xml:space="preserve">
+    <value>1 show</value>
+    <comment>Count beside the { -continue-cap } heading on Home.</comment>
+  </data>
+  <data name="HomeContinueCount_other" xml:space="preserve">
+    <value>{count} shows</value>
+    <comment>Count beside the { -continue-cap } heading on Home.</comment>
+  </data>
+  <data name="HomeViewAll" xml:space="preserve">
+    <value>View all</value>
+    <comment>Link at the end of a shelf that opens the full list.</comment>
+  </data>
+  <data name="HomeFullCalendar" xml:space="preserve">
+    <value>Full calendar</value>
+    <comment>Link at the end of This week that opens the calendar.</comment>
+  </data>
+  <data name="HomeWeekAirs" xml:space="preserve">
+    <value>Episode {episode} · {time}</value>
+    <comment>Line under a This week card for an episode still to air. The time is worded already, such as 22:30.</comment>
+  </data>
+  <data name="HomeEnd" xml:space="preserve">
+    <value>That's everything for now. Seasonal and Calendar have the full lists.</value>
+    <comment>The closing line at the end of Home.</comment>
+  </data>
+  <data name="HomeEndSignedOut" xml:space="preserve">
+    <value>Sign in to AniList to bring in your list and Planning.</value>
+    <comment>The closing line at the end of Home when no { -tracker } is signed in.</comment>
+  </data>
+  <data name="HomeNotFound" xml:space="preserve">
+    <value>Not found in your sources</value>
+    <comment>Line on a title that no installed { -source } has. The main action becomes Add to Planning.</comment>
+  </data>
+  <data name="HomeHidden" xml:space="preserve">
+    <value>{title} is hidden from Up next for you</value>
+    <comment>Notice after Not interested on Home. It has an Undo button.</comment>
+  </data>
+  <data name="HomeFailed" xml:space="preserve">
+    <value>Couldn't load suggestions</value>
+    <comment>Notice when part of Home could not be loaded. It has a Try again button.</comment>
+  </data>
+  <data name="HomeLoading" xml:space="preserve">
+    <value>Loading suggestions</value>
+    <comment>Activity line while Home's suggestions take longer than a few seconds.</comment>
+  </data>
+  <data name="HomeOffline" xml:space="preserve">
+    <value>Offline. Showing Home from {time}.</value>
+    <comment>Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.</comment>
+  </data>
+  <data name="SettingsHiddenTitles" xml:space="preserve">
+    <value>Hidden titles</value>
+    <comment>Settings row that lists the titles hidden with Not interested.</comment>
+  </data>
+  <data name="SettingsHiddenTitlesEmpty" xml:space="preserve">
+    <value>Nothing is hidden. Titles you mark Not interested on Home show here.</value>
+    <comment>Settings, Hidden titles, when nothing is hidden.</comment>
+  </data>
+  <data name="SettingsHiddenUntilAirs" xml:space="preserve">
+    <value>Hidden until it airs</value>
+    <comment>Line under a hidden title that comes back by itself once it starts airing.</comment>
+  </data>
+  <data name="SettingsHiddenRestore" xml:space="preserve">
+    <value>Restore</value>
+    <comment>Button beside a hidden title that brings it back to Home.</comment>
   </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>

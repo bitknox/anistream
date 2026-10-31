@@ -772,6 +772,9 @@ pub fn name(update: &Event) -> &'static str {
         Event::LiveSearch { .. } => "LiveSearch",
         Event::Browse(_) => "Browse",
         Event::UpNext(_) => "UpNext",
+        Event::Home(_) => "Home",
+        Event::TitlePlayable { .. } => "TitlePlayable",
+        Event::HiddenTitles(_) => "HiddenTitles",
         Event::Facets(_) => "Facets",
         Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
@@ -892,6 +895,11 @@ fn copy(update: &Event) -> Event {
         Event::LiveSearch { paused } => Event::LiveSearch { paused: *paused },
         Event::Browse(rails) => Event::Browse(rails.clone()),
         Event::UpNext(items) => Event::UpNext(items.clone()),
+        Event::Home(home) => Event::Home(home.clone()),
+        Event::TitlePlayable { id, playable } => {
+            Event::TitlePlayable { id: *id, playable: *playable }
+        }
+        Event::HiddenTitles(rows) => Event::HiddenTitles(rows.clone()),
         Event::Facets(facets) => Event::Facets(facets.clone()),
         Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
         Event::CalendarWindow {

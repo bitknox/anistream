@@ -4,6 +4,9 @@
 pub mod browse;
 pub mod calendar;
 pub mod detail;
+pub mod filter;
+pub mod home;
+pub mod probe;
 pub mod lists;
 pub mod recents;
 pub mod search;

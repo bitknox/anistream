@@ -66,6 +66,82 @@ notice-comment-delete-failed = Couldn't delete the comment. Try again.
 # Toast when the viewer tried to like or post in a discussion without signing in to AniList.
 notice-discussion-sign-in = Sign in with AniList to like and reply.
 
+# Line over the spotlight's title when it is a show the person is part way through.
+home-spotlight-continuing = Continue watching
+
+# Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.
+home-spotlight-new-season = New season · You finished { $title }
+
+# Line over the spotlight's title when it is on the person's Planning list.
+home-spotlight-planning = On your Planning
+
+# Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show.
+home-spotlight-recommended = Like { $title }
+
+# Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.
+home-spotlight-recommended-plain = Recommended for you
+
+# Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.
+home-spotlight-popular = Popular this season
+
+# Heading over the shows the person is part way through.
+home-continue = Continue
+
+# Heading over next season's shows, in the two weeks before it starts.
+home-starting-winter = Starting in Winter
+
+# Heading over next season's shows, in the two weeks before it starts.
+home-starting-spring = Starting in Spring
+
+# Heading over next season's shows, in the two weeks before it starts.
+home-starting-summer = Starting in Summer
+
+# Heading over next season's shows, in the two weeks before it starts.
+home-starting-autumn = Starting in Autumn
+
+# Heading over the week's broadcasts of the shows the person follows, from today.
+home-this-week = This week
+
+# Heading over today's broadcasts, shown to someone who has not watched anything yet.
+home-airing-today = Airing today
+
+# Heading over the suggestions from the person's own history and lists.
+home-up-next = Up next for you
+
+# Heading over this season's most popular shows.
+home-this-season = This season
+
+# Heading over the shows recommended from the one the person finished most recently. The title is that show.
+home-because = Because you finished { $title }
+
+# Heading over popular shows in the genre the person finishes most. The genre is AniList's name for it, such as Mystery.
+home-more-genre = More { $genre }
+
+# Line under a card of a show part way through an episode: the episode and the minutes left in it.
+home-line-left =
+    { $minutes ->
+        [one] Episode { $episode } · 1 min left
+       *[other] Episode { $episode } · { $minutes } min left
+    }
+
+# Line under a card of a show part way through an episode when its length is not known.
+home-line-resume = Resume episode { $episode }
+
+# Line under a card of a show whose next episode is out.
+home-line-next = Episode { $episode }
+
+# Line under a card whose episode came out a short while ago. The span is how long ago, such as 2h.
+home-line-out = Episode { $episode } · out { $ago } ago
+
+# Line under a suggestion that is a new season of a show the person finished.
+home-line-new-season = New season
+
+# Line under a suggestion on the person's Planning list.
+home-line-planning = On your Planning
+
+# Line under a suggestion that people who liked a finished show rated highly. The title is that show.
+home-line-like = Like { $title }
+
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = { $reason }
 
@@ -4678,6 +4754,58 @@ episode-download-done = Downloaded
 
 # Line under that button after a failure.
 episode-download-failed = Couldn't download episode { $episode }. Try again.
+
+# Name of the Home section in the sidebar, the tab bar and the window title.
+home-title = Home
+
+# Count beside the { -continue-cap } heading on Home.
+home-continue-count =
+    { $count ->
+        [one] 1 show
+       *[other] { $count } shows
+    }
+
+# Link at the end of a shelf that opens the full list.
+home-view-all = View all
+
+# Link at the end of This week that opens the calendar.
+home-full-calendar = Full calendar
+
+# Line under a This week card for an episode still to air. The time is worded already, such as 22:30.
+home-week-airs = Episode { $episode } · { $time }
+
+# The closing line at the end of Home.
+home-end = That's everything for now. Seasonal and Calendar have the full lists.
+
+# The closing line at the end of Home when no { -tracker } is signed in.
+home-end-signed-out = Sign in to AniList to bring in your list and Planning.
+
+# Line on a title that no installed { -source } has. The main action becomes Add to Planning.
+home-not-found = Not found in your sources
+
+# Notice after Not interested on Home. It has an Undo button.
+home-hidden = { $title } is hidden from Up next for you
+
+# Notice when part of Home could not be loaded. It has a Try again button.
+home-failed = Couldn't load suggestions
+
+# Activity line while Home's suggestions take longer than a few seconds.
+home-loading = Loading suggestions
+
+# Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.
+home-offline = Offline. Showing Home from { $time }.
+
+# Settings row that lists the titles hidden with Not interested.
+settings-hidden-titles = Hidden titles
+
+# Settings, Hidden titles, when nothing is hidden.
+settings-hidden-titles-empty = Nothing is hidden. Titles you mark Not interested on Home show here.
+
+# Line under a hidden title that comes back by itself once it starts airing.
+settings-hidden-until-airs = Hidden until it airs
+
+# Button beside a hidden title that brings it back to Home.
+settings-hidden-restore = Restore
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
