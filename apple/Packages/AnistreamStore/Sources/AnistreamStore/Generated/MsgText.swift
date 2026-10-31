@@ -35,6 +35,31 @@ extension Msg {
         case .noticeCommentLikeFailed: L.noticeCommentLikeFailed
         case .noticeCommentDeleteFailed: L.noticeCommentDeleteFailed
         case .noticeDiscussionSignIn: L.noticeDiscussionSignIn
+        case .homeSpotlightContinuing: L.homeSpotlightContinuing
+        case .homeSpotlightNewSeason(let title): L.homeSpotlightNewSeason(title: title)
+        case .homeSpotlightPlanning: L.homeSpotlightPlanning
+        case .homeSpotlightBecause(let title): L.homeSpotlightBecause(title: title)
+        case .homeSpotlightRecommended: L.homeSpotlightRecommended
+        case .homeSpotlightPopular: L.homeSpotlightPopular
+        case .homeTimeLeft(let episode, let minutes): L.homeTimeLeft(episode: Int(episode), minutes: Int(minutes))
+        case .homeEpisodeOut(let episode): L.homeEpisodeOut(episode: Int(episode))
+        case .homeEpisodeOutToday(let episode): L.homeEpisodeOutToday(episode: Int(episode))
+        case .homeEpisodeOutShort(let episode): L.homeEpisodeOutShort(episode: Int(episode))
+        case .homeOutAgo(let ago): L.homeOutAgo(ago: spanText(ago))
+        case .homeReasonNewSeason: L.homeReasonNewSeason
+        case .homeReasonPlanning: L.homeReasonPlanning
+        case .homeReasonRecommended: L.homeReasonRecommended
+        case .homeContinue: L.homeContinue
+        case .homeStartingWinter: L.homeStartingWinter
+        case .homeStartingSpring: L.homeStartingSpring
+        case .homeStartingSummer: L.homeStartingSummer
+        case .homeStartingAutumn: L.homeStartingAutumn
+        case .homeThisWeek: L.homeThisWeek
+        case .homeAiringToday: L.homeAiringToday
+        case .homeUpNext: L.homeUpNext
+        case .homeThisSeason: L.homeThisSeason
+        case .homeBecause(let title): L.homeBecause(title: title)
+        case .homeMoreGenre(let genre): L.homeMoreGenre(genre: genre)
         case .noticeReason(let reason): L.noticeReason(reason: reason.text)
         case .noticeNotAired(let episode, let when): L.noticeNotAired(episode: Int(episode), when: when.text)
         case .noticeNotAiredYet(let episode, let next, let when): L.noticeNotAiredYet(episode: Int(episode), next: Int(next), when: when.text)

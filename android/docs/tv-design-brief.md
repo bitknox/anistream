@@ -154,8 +154,8 @@ The `:tv` theme wraps `androidx.tv.material3.MaterialTheme` with the values from
 | Loading | static placeholders; a 32 dp circular indicator only on the player's starting screen and while buffering | The same |
 | Text entry | our search keyboard, the system keyboard for everything else | Search bar |
 
-Not used: tv-material `Carousel` (a promotional hero that advances on its own; Continue has
-nothing promotional above the queue), `ImmersiveList`-style backgrounds that change with focus (a
+Not used: tv-material `Carousel` (a hero that advances on its own; Home's spotlight changes only
+when the viewer's next thing changes), `ImmersiveList`-style backgrounds that change with focus (a
 decode per focus move), glow, and any blurred background.
 
 ## Focus
@@ -278,7 +278,9 @@ way forward. Nagare appears only in empty states, the first-run card, pairing an
 
 ### Continue (TVContinue, TVWelcome)
 
-The queue first, nothing promotional above it, at most five rows.
+Home replaces this screen (31 October 2026); `docs/native-ux.md`, Home, has its order and rules.
+Above the queue sits only the viewer's own next thing, or a plainly labelled popular pick when they
+have none. The layout below stays until the TV half of Home lands.
 
 - Hero, y 0 to 320. The next episode's show: its banner (the hero art rule: AniList banner, else a
   spoiler-safe still, else a compact header with the poster beside the title) bleeds full width

@@ -11,7 +11,7 @@ use anistream_model::Msg;
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::Store;
 use anistream_testkit::{
-    FakeAniList,
+    Failure, FakeAniList, Operation,
     fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, ONA},
     seed, sources,
 };
@@ -69,6 +69,68 @@ pub enum FfiScene {
     /// and its specials, ruled out. Every other title it has nothing for, so the fixture source
     /// answers for them as in [`Self::Watching`].
     Unsure,
+    /// Home's second spotlight case: signed in, every episode of Hoshikuzu no Tabibito watched
+    /// and nothing under way, so Continue is empty and the spotlight is its next season, from
+    /// Up next for you.
+    Suggested,
+    /// Signed out, with one show in Continue: Natsukaze Relay's episodes 1 to 7 watched and
+    /// episode 8 out, the spotlight's first case. Once episode 8 is watched or marked so, the
+    /// show is caught up and the spotlight turns to the popular pick: the change from the first
+    /// case to the third, with Continue at one and then at none.
+    OneLeft,
+    /// Signed in, with fifteen shows under way, each stopped part way into episode 1, so
+    /// Continue shows twelve with View all and its count.
+    ContinueFull,
+    /// Signed in with nothing watched, and the one source has none of the titles: every title
+    /// Home asks after is not found in your sources, and its main action is Add to Planning.
+    NotFound,
+    /// [`Self::Watching`] with AniList slow for everything but the queue's own titles: each of
+    /// Home's discovery requests is answered after [`SLOW_ANSWER`], so the local sections show
+    /// at once, the placeholders come in and the activity line after them.
+    Slow,
+    /// [`Self::Watching`] with AniList failing everything but the queue's own titles and their
+    /// broadcasts: Continue shows, the discovery shelves are left out and one notice says so.
+    Failed,
+    /// Nothing watched and offline from the start: the fake AniList hangs up on every request
+    /// and the engine is told the path is offline, whatever the host says, so Home has nothing
+    /// saved to show. [`FfiEngine::testing_set_offline`] does the same to any other scene once
+    /// Home has loaded, for the offline line over what it last loaded.
+    Offline,
+}
+
+/// How long [`FfiScene::Slow`]'s fake AniList holds each of Home's discovery answers: past the
+/// four seconds after which Home's activity line shows, within the five the engine's client
+/// waits for an answer.
+pub const SLOW_ANSWER: std::time::Duration = std::time::Duration::from_millis(4_500);
+
+/// What Home asks AniList for beyond its queue's titles and their broadcasts: the season's
+/// lists, the genre shelf, recommendations and the season walk. [`FfiScene::Slow`] and
+/// [`FfiScene::Failed`] hold these up.
+const DISCOVERY: [Operation; 6] = [
+    Operation::Browse,
+    Operation::Search,
+    Operation::Seasonal,
+    Operation::Recommended,
+    Operation::Relations,
+    Operation::Schedule,
+];
+
+impl FfiScene {
+    /// Whether the scene starts signed in to the fake AniList.
+    fn signed_in(&self) -> bool {
+        matches!(
+            self,
+            Self::Watching
+                | Self::WatchingMedia { .. }
+                | Self::Sourceless
+                | Self::Unsure
+                | Self::Suggested
+                | Self::ContinueFull
+                | Self::NotFound
+                | Self::Slow
+                | Self::Failed
+        )
+    }
 }
 
 #[uniffi::export]
@@ -112,26 +174,16 @@ impl FfiEngine {
         start: &FfiStart,
         clock: Clock,
     ) -> Result<Arc<Self>, FfiError> {
-        match scene {
-            FfiScene::Watching
-            | FfiScene::WatchingMedia { .. }
-            | FfiScene::Sourceless
-            | FfiScene::Unsure => {
-                sign_in_config(&dirs)?;
-            }
-            FfiScene::Playing { .. } => offer_skips(&dirs)?,
-            FfiScene::Fresh => {}
+        if scene.signed_in() {
+            sign_in_config(&dirs)?;
+        }
+        if matches!(scene, FfiScene::Playing { .. }) {
+            offer_skips(&dirs)?;
         }
         let opened = Opened::open(&dirs)?;
         let now = clock.now();
         seed_scene(&opened.store, &scene, now);
-        if matches!(
-            scene,
-            FfiScene::Watching
-                | FfiScene::WatchingMedia { .. }
-                | FfiScene::Sourceless
-                | FfiScene::Unsure
-        ) {
+        if scene.signed_in() {
             // Where the testing engine keeps tokens: files under the data directory.
             TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
                 .set("anilist", "fixture-anilist-token")
@@ -153,17 +205,34 @@ impl FfiEngine {
             if std::env::var("ANISTREAM_FIXTURES_CATALOGUE").is_ok_and(|v| v == "1") {
                 server.add_catalogue(fixtures::catalogue_titles());
             }
+            match scene {
+                FfiScene::Slow => {
+                    for operation in DISCOVERY {
+                        server.answer_slowly(operation, SLOW_ANSWER);
+                    }
+                }
+                FfiScene::Failed => {
+                    for operation in DISCOVERY {
+                        server.fail_operation(operation, Failure::Status(500));
+                    }
+                }
+                _ => {}
+            }
             let sources = Some(scene_sources(&scene, &server.art_base()));
             let testing = testing::Testing::new(server, clock);
             let options = testing::options(opened, &testing, start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
-        match started {
+        let engine = match started {
             Ok((started, testing)) => {
                 Self::hold(runtime, Ok(started), Some(Box::new(testing)), home)
             }
             Err(e) => Self::hold(runtime, Err(e), None, home),
+        }?;
+        if scene == FfiScene::Offline {
+            engine.testing_set_offline(true);
         }
+        Ok(engine)
     }
 }
 
@@ -202,6 +271,12 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
 fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
     if *scene == FfiScene::Sourceless {
         return ProviderRegistry::new(Vec::new());
+    }
+    if *scene == FfiScene::NotFound {
+        // A source that answers every search with nothing: a miss for every title.
+        return ProviderRegistry::new(vec![
+            MockProvider::new(sources::PROVIDER_ID).with_hits(Vec::new()).arc(),
+        ]);
     }
     let franchise = || sources::with_long_franchise(sources::provider_with_art(art));
     let (FfiScene::Playing { media } | FfiScene::WatchingMedia { media }) = scene else {
@@ -324,12 +399,28 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
     const HOUR: i64 = 3_600;
     const DAY: i64 = 24 * HOUR;
     match scene {
-        FfiScene::Fresh => {}
+        FfiScene::Fresh | FfiScene::NotFound | FfiScene::Offline => {}
         FfiScene::Playing { .. } => seed::watched(store, FINISHED, 6, now - HOUR),
+        FfiScene::Suggested => {
+            let all = fixtures::media(FINISHED).episodes.unwrap_or(1);
+            seed::watched(store, FINISHED, all, now - HOUR);
+        }
+        FfiScene::OneLeft => seed::watched(store, AIRING_NO_MAL, 7, now - DAY),
+        FfiScene::ContinueFull => {
+            let long = fixtures::long_franchise_media();
+            let shows = fixtures::ALL.into_iter().chain(long.iter().map(|m| m.id)).take(15);
+            // Oldest first, an hour apart, each stopped five minutes into episode 1.
+            for (n, id) in shows.collect::<Vec<_>>().into_iter().rev().enumerate() {
+                let at = now - (15 - n as i64) * HOUR;
+                seed::stopped_at(store, id, "1", 5.0 * 60.0, at);
+            }
+        }
         FfiScene::Watching
         | FfiScene::WatchingMedia { .. }
         | FfiScene::Sourceless
-        | FfiScene::Unsure => {
+        | FfiScene::Unsure
+        | FfiScene::Slow
+        | FfiScene::Failed => {
             // Oldest first, since each watch moves its title to the top.
             seed::watched(store, AIRING_NO_MAL, 7, now - 3 * DAY);
             seed::watched(store, AIRING, 3, now - 2 * DAY);

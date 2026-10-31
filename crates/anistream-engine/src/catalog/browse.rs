@@ -134,6 +134,40 @@ pub async fn load_browse(lent: Lent, adult: bool, now: i64) {
     }
 }
 
+/// Search's rails for `season`, with `extra` queries asked in the same request, for Home: the
+/// rails are kept under Search's own key, so Search's start shows them at once after.
+pub(crate) async fn fetch_rails(
+    meta: &Meta,
+    store: &Store,
+    adult: bool,
+    now: i64,
+    (season, year): (Season, u16),
+    extra: &[SearchQuery],
+) -> Result<(Vec<Vec<Media>>, Vec<Vec<Media>>), String> {
+    let queries: Vec<SearchQuery> =
+        rails(season, year).into_iter().map(|(_, _, q)| q).collect();
+    let filters: Vec<_> =
+        queries.iter().chain(extra).map(|q| browse_filter(q, adult)).collect();
+    let asked: Vec<(&str, &anistream_meta::BrowseFilter)> =
+        filters.iter().map(|f| ("", f)).collect();
+    let mut media: Vec<Vec<Media>> = meta
+        .browse_many(&asked, RAIL)
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|p| p.items)
+        .collect();
+    let extra = media.split_off(queries.len().min(media.len()));
+    let ids = media.iter().map(|m| m.iter().map(|m| m.id.get()).collect()).collect();
+    let kept = KeptRails { at: now, adult, queries, ids };
+    if let Ok(json) = serde_json::to_string(&kept)
+        && let Err(e) = store.set_meta_text(RAILS_KEY, &json)
+    {
+        tracing::warn!(error = %e, "could not keep Search's rails");
+    }
+    Ok((media, extra))
+}
+
 fn publish(
     rails: &[(String, Option<String>, SearchQuery)],
     media: &[Vec<Media>],

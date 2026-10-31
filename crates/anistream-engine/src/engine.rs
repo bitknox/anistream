@@ -935,6 +935,7 @@ impl Actor {
             dispatch(again, job, &mut self.state, &self.services, &tx);
         }
         self.refresh_up_next();
+        self.refresh_home();
         #[cfg(feature = "testing")]
         {
             self.routed += 1;
@@ -953,6 +954,26 @@ impl Actor {
         }
         let tx = self.inbox.sender();
         dispatch(Command::LoadUpNext, None, &mut self.state, &self.services, &tx);
+    }
+
+    /// Home sent again when Continue is not where it stood when Home was last loaded, once Home
+    /// has been asked for: an episode watched, a show started or finished, a row removed. The
+    /// load sends it whole, with the spotlight and every shelf as they now stand.
+    fn refresh_home(&mut self) {
+        let Some(sent) = self.state.home_mark else {
+            return;
+        };
+        if sent == crate::catalog::home::queue_mark(&self.services.store) {
+            return;
+        }
+        let tx = self.inbox.sender();
+        dispatch(
+            Command::LoadHome { refresh: false },
+            None,
+            &mut self.state,
+            &self.services,
+            &tx,
+        );
     }
 
     /// One item of the inbox, in its place.
@@ -1026,6 +1047,7 @@ impl Actor {
         }
         if queue_moves {
             self.refresh_up_next();
+            self.refresh_home();
         }
         // An episode watched: the episodes after it, kept.
         if moved_on {

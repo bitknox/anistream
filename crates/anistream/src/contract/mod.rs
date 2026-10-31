@@ -17,6 +17,7 @@
 mod discussion;
 mod downloads;
 mod follow;
+mod home;
 mod jobs;
 mod keep_next;
 mod lists;

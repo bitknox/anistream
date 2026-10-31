@@ -469,6 +469,9 @@ pub struct Media {
     pub country_of_origin: Option<String>,
     #[serde(default)]
     pub average_score: Option<u32>,
+    /// How many AniList users have it on a list: what "most popular" orders by.
+    #[serde(default)]
+    pub popularity: Option<u32>,
     #[serde(default)]
     pub genres: Vec<String>,
     #[serde(default)]

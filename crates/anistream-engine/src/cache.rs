@@ -149,6 +149,18 @@ impl TitleCache {
                 items.iter().for_each(|item| self.know(&item.entry));
                 None
             }
+            Event::Home(home) => {
+                home.spotlight.iter().for_each(|spotlight| self.know(&spotlight.entry));
+                home.sections
+                    .iter()
+                    .flat_map(|section| &section.items)
+                    .for_each(|item| self.know(&item.entry));
+                None
+            }
+            Event::HiddenTitles(rows) => {
+                rows.iter().for_each(|row| self.know(&row.entry));
+                None
+            }
             Event::Browse(rails) => {
                 rails.iter().flat_map(|rail| &rail.entries).for_each(|entry| self.know(entry));
                 None

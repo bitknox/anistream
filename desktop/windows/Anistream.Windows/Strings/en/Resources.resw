@@ -139,6 +139,106 @@
     <value>Sign in with AniList to like and reply.</value>
     <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
   </data>
+  <data name="HomeSpotlightContinuing" xml:space="preserve">
+    <value>Continue watching</value>
+    <comment>Line over the spotlight's title when it is a show the person is part way through.</comment>
+  </data>
+  <data name="HomeSpotlightNewSeason" xml:space="preserve">
+    <value>New season · You finished {title}</value>
+    <comment>Line over the spotlight's title when it is a new season of a show the person finished. The title is the season they finished.</comment>
+  </data>
+  <data name="HomeSpotlightPlanning" xml:space="preserve">
+    <value>On your Planning list</value>
+    <comment>Line over the spotlight's title when it is on the person's Planning list.</comment>
+  </data>
+  <data name="HomeSpotlightBecause" xml:space="preserve">
+    <value>Because you finished {title}</value>
+    <comment>Line over the spotlight's title when people who liked a show the person finished rated it highly. The title is that show; only it truncates.</comment>
+  </data>
+  <data name="HomeSpotlightRecommended" xml:space="preserve">
+    <value>Recommended for you</value>
+    <comment>Line over the spotlight's title when it is recommended from what the person watched, and the show it is like is not known.</comment>
+  </data>
+  <data name="HomeSpotlightPopular" xml:space="preserve">
+    <value>Popular this season</value>
+    <comment>Line over the spotlight's title when nothing of the person's own is waiting, so it is this season's most popular show they have not started.</comment>
+  </data>
+  <data name="HomeTimeLeft" xml:space="preserve">
+    <value>Episode {episode} · {minutes} min left</value>
+    <comment>Line under the spotlight's title, and under a { -continue-cap } card, for an episode part way through: the episode and the minutes left in it.</comment>
+  </data>
+  <data name="HomeEpisodeOut" xml:space="preserve">
+    <value>Episode {episode} is out</value>
+    <comment>Line under the spotlight's title for a show part way through with its next episode waiting.</comment>
+  </data>
+  <data name="HomeEpisodeOutToday" xml:space="preserve">
+    <value>Episode {episode} · out today</value>
+    <comment>Line under a { -continue-cap } card whose next episode came out today.</comment>
+  </data>
+  <data name="HomeEpisodeOutShort" xml:space="preserve">
+    <value>Episode {episode} out</value>
+    <comment>Line under a poster on This season: the newest episode out.</comment>
+  </data>
+  <data name="HomeOutAgo" xml:space="preserve">
+    <value>Out {ago} ago</value>
+    <comment>Line under a This week or Airing today card whose episode is already out today. The time is worded as a span, such as 2h 5m.</comment>
+  </data>
+  <data name="HomeReasonNewSeason" xml:space="preserve">
+    <value>New season</value>
+    <comment>Short reason under a poster: a new season of a show the person finished.</comment>
+  </data>
+  <data name="HomeReasonPlanning" xml:space="preserve">
+    <value>On your Planning list</value>
+    <comment>Short reason under a poster: the title is on the person's Planning list.</comment>
+  </data>
+  <data name="HomeReasonRecommended" xml:space="preserve">
+    <value>Recommended for you</value>
+    <comment>Short reason under a poster: recommended from what the person watched. The hover card gives the full reason.</comment>
+  </data>
+  <data name="HomeContinue" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Heading over the shows the person is part way through.</comment>
+  </data>
+  <data name="HomeStartingWinter" xml:space="preserve">
+    <value>Starting in Winter</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingSpring" xml:space="preserve">
+    <value>Starting in Spring</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingSummer" xml:space="preserve">
+    <value>Starting in Summer</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeStartingAutumn" xml:space="preserve">
+    <value>Starting in Autumn</value>
+    <comment>Heading over next season's titles in the two weeks before it starts.</comment>
+  </data>
+  <data name="HomeThisWeek" xml:space="preserve">
+    <value>This week</value>
+    <comment>Heading over this week's episodes of the shows the person follows.</comment>
+  </data>
+  <data name="HomeAiringToday" xml:space="preserve">
+    <value>Airing today</value>
+    <comment>Heading over what airs today, for someone with nothing watched and no { -tracker } signed in.</comment>
+  </data>
+  <data name="HomeUpNext" xml:space="preserve">
+    <value>Up next for you</value>
+    <comment>Heading over the suggestions made from what the person watched and their lists.</comment>
+  </data>
+  <data name="HomeThisSeason" xml:space="preserve">
+    <value>This season</value>
+    <comment>Heading over this season's most popular titles.</comment>
+  </data>
+  <data name="HomeBecause" xml:space="preserve">
+    <value>Because you finished {title}</value>
+    <comment>Heading over recommendations from one show the person finished and rated well. The title is that show.</comment>
+  </data>
+  <data name="HomeMoreGenre" xml:space="preserve">
+    <value>More {genre}</value>
+    <comment>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -3094,6 +3194,158 @@
   <data name="EpisodeDownloadFailed" xml:space="preserve">
     <value>Couldn't download episode {episode}. Try again.</value>
     <comment>Line under that button after a failure.</comment>
+  </data>
+  <data name="HomeTitle" xml:space="preserve">
+    <value>Home</value>
+    <comment>Name of the Home section in the sidebar, the tab bar and the window title.</comment>
+  </data>
+  <data name="HomeResumeEpisode" xml:space="preserve">
+    <value>Resume episode {episode}</value>
+    <comment>Main action for an episode part way through.</comment>
+  </data>
+  <data name="HomePlayEpisode" xml:space="preserve">
+    <value>Play episode {episode}</value>
+    <comment>Main action for an episode not started.</comment>
+  </data>
+  <data name="HomeAdding" xml:space="preserve">
+    <value>Adding</value>
+    <comment>Shown in place of Add to Planning while it saves, after a moment.</comment>
+  </data>
+  <data name="HomeDetails" xml:space="preserve">
+    <value>Details</value>
+    <comment>Second action that opens the title's page.</comment>
+  </data>
+  <data name="HomeMore" xml:space="preserve">
+    <value>More</value>
+    <comment>Accessible name of the button that opens more actions.</comment>
+  </data>
+  <data name="HomeMarkWatched" xml:space="preserve">
+    <value>Mark episode {episode} as watched</value>
+    <comment>Action in the spotlight's More menu for a show part way through.</comment>
+  </data>
+  <data name="HomeMarkedWatched" xml:space="preserve">
+    <value>Episode {episode} marked as watched</value>
+    <comment>Notice after the action above. It has an Undo button.</comment>
+  </data>
+  <data name="HomeRemoveContinue" xml:space="preserve">
+    <value>Remove from Continue</value>
+    <comment>Action on a { -continue-cap } card and in the spotlight's More menu.</comment>
+  </data>
+  <data name="HomeContinueCount_one" xml:space="preserve">
+    <value>1 show</value>
+    <comment>Count beside the { -continue-cap } heading when there are more than twelve shows.</comment>
+  </data>
+  <data name="HomeContinueCount_other" xml:space="preserve">
+    <value>{count} shows</value>
+    <comment>Count beside the { -continue-cap } heading when there are more than twelve shows.</comment>
+  </data>
+  <data name="HomeViewAll" xml:space="preserve">
+    <value>View all</value>
+    <comment>Link beside a heading that opens the full list.</comment>
+  </data>
+  <data name="HomeFullCalendar" xml:space="preserve">
+    <value>Full calendar</value>
+    <comment>Link beside This week and Airing today that opens the calendar.</comment>
+  </data>
+  <data name="HomeToday" xml:space="preserve">
+    <value>Today</value>
+    <comment>The first day of This week.</comment>
+  </data>
+  <data name="HomeNothingAiring" xml:space="preserve">
+    <value>Nothing airing</value>
+    <comment>A day of This week with nothing on it.</comment>
+  </data>
+  <data name="HomeDayMore" xml:space="preserve">
+    <value>{count} more</value>
+    <comment>A day of This week with more titles than fit.</comment>
+  </data>
+  <data name="HomeSeasonal" xml:space="preserve">
+    <value>Seasonal</value>
+    <comment>Link beside This season and Starting in that opens Seasonal.</comment>
+  </data>
+  <data name="HomeSearch" xml:space="preserve">
+    <value>Search</value>
+    <comment>Link beside a genre shelf that opens Search with that genre.</comment>
+  </data>
+  <data name="HomeEnd" xml:space="preserve">
+    <value>That's everything for now. Seasonal and Calendar have the full lists.</value>
+    <comment>The closing line at the end of Home. Seasonal and Calendar are links.</comment>
+  </data>
+  <data name="HomeEndSignedOut" xml:space="preserve">
+    <value>Sign in to AniList to bring in your list and Planning.</value>
+    <comment>The closing line at the end of Home when no { -tracker } is signed in.</comment>
+  </data>
+  <data name="HomeSignIn" xml:space="preserve">
+    <value>Sign in to AniList</value>
+    <comment>Button in the closing line when no { -tracker } is signed in.</comment>
+  </data>
+  <data name="HomeEndNoSources" xml:space="preserve">
+    <value>Add a source to play from Home. Plugin stores has some to choose from.</value>
+    <comment>The closing line at the end of Home when no { -source } is installed. Plugin stores is a link.</comment>
+  </data>
+  <data name="HomeNotFound" xml:space="preserve">
+    <value>Not found in your sources</value>
+    <comment>Line on a title that no installed { -source } has. The main action becomes Add to Planning.</comment>
+  </data>
+  <data name="HomeFailed" xml:space="preserve">
+    <value>Couldn't load suggestions</value>
+    <comment>Notice when part of Home could not be loaded. It has a Try again button.</comment>
+  </data>
+  <data name="HomeTryAgain" xml:space="preserve">
+    <value>Try again</value>
+    <comment>Button in the notice above.</comment>
+  </data>
+  <data name="HomeLoading" xml:space="preserve">
+    <value>Loading suggestions</value>
+    <comment>Activity line while Home's suggestions take longer than a few seconds.</comment>
+  </data>
+  <data name="HomeOffline" xml:space="preserve">
+    <value>Offline. Showing Home from {time}.</value>
+    <comment>Line at the top of Home when it is offline and shows what it last loaded. The time is worded already, such as 14:20.</comment>
+  </data>
+  <data name="HomeOfflineEmptyTitle" xml:space="preserve">
+    <value>You're offline</value>
+    <comment>Heading when Home is offline and has nothing saved.</comment>
+  </data>
+  <data name="HomeOfflineEmptyBody" xml:space="preserve">
+    <value>Home needs a connection the first time it opens. Downloads still play.</value>
+    <comment>Text under the heading above.</comment>
+  </data>
+  <data name="HomeOpenDownloads" xml:space="preserve">
+    <value>Open Downloads</value>
+    <comment>Button under the text above.</comment>
+  </data>
+  <data name="SettingsHiddenTitles" xml:space="preserve">
+    <value>Hidden titles</value>
+    <comment>Settings row and page that lists the titles hidden with Not interested.</comment>
+  </data>
+  <data name="SettingsHiddenTitlesBody" xml:space="preserve">
+    <value>Titles you marked Not interested. They stay out of Home and Up next for you until you restore them.</value>
+    <comment>Text under the list of hidden titles.</comment>
+  </data>
+  <data name="SettingsHiddenOn" xml:space="preserve">
+    <value>Hidden {date}</value>
+    <comment>Line under a hidden title: when it was hidden. The date is worded already, such as "today" or "3 October".</comment>
+  </data>
+  <data name="SettingsHiddenUntilAirs" xml:space="preserve">
+    <value>Comes back when it airs</value>
+    <comment>Line under a hidden title that comes back by itself once it starts airing.</comment>
+  </data>
+  <data name="SettingsRestore" xml:space="preserve">
+    <value>Restore</value>
+    <comment>Button beside a hidden title that brings it back to Home.</comment>
+  </data>
+  <data name="SettingsHiddenEmpty" xml:space="preserve">
+    <value>Nothing hidden. Titles you mark Not interested appear here.</value>
+    <comment>Settings, Hidden titles, when nothing is hidden.</comment>
+  </data>
+  <data name="HomePrevious" xml:space="preserve">
+    <value>Previous</value>
+    <comment>Accessible name of the arrow that pages a shelf back.</comment>
+  </data>
+  <data name="HomeNext" xml:space="preserve">
+    <value>Next</value>
+    <comment>Accessible name of the arrow that pages a shelf on.</comment>
   </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>

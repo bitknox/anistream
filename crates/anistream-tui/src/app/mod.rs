@@ -481,6 +481,9 @@ impl App {
             | Event::RecentSearches(_) => {}
             Event::Content { view, content } => self.apply_content(view, content),
             Event::UpNext(items) => self.apply_up_next(items),
+            // The terminal's Home is its own Continue and Up next for you, and has no Settings,
+            // Hidden titles: what the native Home is sent is not asked for here.
+            Event::Home(_) | Event::TitlePlayable { .. } | Event::HiddenTitles(_) => {}
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
             Event::Detail(entry) => self.apply_detail(entry),
