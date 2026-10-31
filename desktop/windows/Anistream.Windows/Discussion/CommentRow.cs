@@ -556,7 +556,8 @@ sealed partial class CommentRow
                         Background = Ui.Res<Brush>("SpoilerBarBrush"),
                         Opacity = shown ? 0.55 : 1,
                         CornerRadius = new CornerRadius(words.Count == 0 ? 4 : 0, 0, 0, words.Count == 0 ? 4 : 0),
-                        Child = text,
+                        Content = text,
+                        Padding = new Thickness(0),
                         IsTabStop = words.Count == 0,
                         UseSystemFocusVisuals = true,
                     };
@@ -609,7 +610,7 @@ sealed partial class CommentRow
     /// A spoiler word's bar. The first word of a spoiler reports a toggle (hidden or shown) to a
     /// screen reader; the others are out of the tree.
     /// </summary>
-    sealed class SpoilerBar : Border
+    sealed class SpoilerBar : UserControl
     {
         public Action? Toggle { get; set; }
         public bool Toggles { get; set; }
