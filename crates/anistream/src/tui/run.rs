@@ -36,6 +36,7 @@ use crate::{
 /// only bounds a wait on an engine that has stopped answering.
 const ENGINE_WAIT: Duration = Duration::from_millis(250);
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     config: Config,
     paths: Paths,

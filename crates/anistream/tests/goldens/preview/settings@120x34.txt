@@ -9,7 +9,7 @@ anistream                                                                       
   ◇  Sources                │  Playback  ────────────────────────────────────────────────────────────────────────────
   ◎  Accounts               │    Audio                       Subbed
 ▌ ≡  Settings               │    Quality                     1080p
-                            │    Subtitles                   eng
+  ⇄  Together               │    Subtitles                   eng
                             │    Counts as watched at        85%
                             │    Auto-play next              On
                             │    Skip opening automatically  On

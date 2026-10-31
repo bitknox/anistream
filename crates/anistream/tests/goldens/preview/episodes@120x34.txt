@@ -9,7 +9,7 @@ anistream                                                                       
  ◇ │    003   The Ferryman's Ledger                                24:00   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
  ◎ │  ▌ 004   Embers in the Snow                                   24:00   ██▏░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
  ≡ │    005   What the Beacons Remember                            24:00   ░░░░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
-   │    006   The Cartographer's Daughter                          24:00   ░░░░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ⇄ │    006   The Cartographer's Daughter                          24:00   ░░░░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
    │    007   Rain over Kiriya Pass                                24:00   ░░░░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
    │    008   A Letter Never Sent                                  24:00   ░░░░░░░░░░
    │    009   The Last Lamplighter                                 24:00   ░░░░░░░░░░

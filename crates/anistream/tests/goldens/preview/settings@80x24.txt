@@ -9,7 +9,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
  ◇ │  Playback  ─────────────────────────────────────────────────────────────
  ◎ │    Audio                       Subbed
 ▌≡ │    Quality                     1080p
-   │    Subtitles                   eng
+ ⇄ │    Subtitles                   eng
    │    Counts as watched at        85%
    │    Auto-play next              On
    │    Skip opening automatically  On

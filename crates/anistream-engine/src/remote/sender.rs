@@ -760,7 +760,7 @@ impl RemoteCard {
             phase_line,
             screen: state.map(|s| s.screen.clone()).unwrap_or_default(),
             now: state.and_then(|s| s.now_playing.as_ref()).map(NowCard::read),
-            party: state.and_then(|s| s.party.clone()),
+            party: state.and_then(|s| s.party.as_deref().cloned()),
             rev: state.map_or(0, |s| s.rev),
             over: matches!(phase, LinkPhase::Unpaired | LinkPhase::KeyChanged),
             reached: matches!(reach, Reach::Connected | Reach::Lost),

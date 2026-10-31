@@ -519,12 +519,11 @@ async fn pair(meta: &Meta, id: AnilistId, episode: &str) -> Pair {
     let next = episode.trim().parse::<u32>().ok().and_then(|n| {
         let after = n.checked_add(1)?;
         let label = after.to_string();
-        if let Some(media) = &media {
-            if media.episodes.is_some_and(|total| n >= total)
-                || not_aired(media, &label).is_some()
-            {
-                return None;
-            }
+        if let Some(media) = &media
+            && (media.episodes.is_some_and(|total| n >= total)
+                || not_aired(media, &label).is_some())
+        {
+            return None;
         }
         Some(episode_of(id, media.as_ref(), &label, &fallback))
     });

@@ -9,7 +9,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
 ▌◇ │
  ◎ │  Plugin stores
  ≡ │    Plugins shared by people you know. Join with an invite link.   ↵ Open
-   │
+ ⇄ │
    │  Metadata
    │
    │    anilist             Live

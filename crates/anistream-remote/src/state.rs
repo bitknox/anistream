@@ -31,7 +31,7 @@ pub struct RemoteState {
     pub now_playing: Option<NowPlaying>,
     /// The watch party the TV is in, while it is in one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub party: Option<PartyInfo>,
+    pub party: Option<Box<PartyInfo>>,
 }
 
 /// The watch party the TV is in: what a phone shows on the TV's remote page.
@@ -252,7 +252,7 @@ impl StateFolder {
                     ready: view.ready,
                     playing: view.playing,
                 };
-                replace(&mut self.state.party, Some(info))
+                replace(&mut self.state.party, Some(Box::new(info)))
             }
             Event::PartyLeft { .. } => self.state.party.take().is_some(),
             _ => false,
