@@ -153,6 +153,12 @@ home-because = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
 # Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
 home-more-genre = [Ṁöŕé { $genre }~~~]
 
+# Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.
+licensed-return = [Ŵàţçĥéð éþîšöðé { $episode } öñ { $service }?~~~~~~~~~]
+
+# Notice after Mark as watched on the return notice. It holds Undo.
+licensed-marked = [Éþîšöðé { $episode } ɱàŕķéð àš ŵàţçĥéð.~~~~~~~~~]
+
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = [{ $reason }~]
 

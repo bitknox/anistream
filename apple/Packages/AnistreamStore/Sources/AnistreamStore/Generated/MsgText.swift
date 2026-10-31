@@ -60,6 +60,8 @@ extension Msg {
         case .homeThisSeason: L.homeThisSeason
         case .homeBecause(let title): L.homeBecause(title: title)
         case .homeMoreGenre(let genre): L.homeMoreGenre(genre: genre)
+        case .licensedReturn(let episode, let service): L.licensedReturn(episode: Int(episode), service: service)
+        case .licensedMarked(let episode): L.licensedMarked(episode: Int(episode))
         case .noticeReason(let reason): L.noticeReason(reason: reason.text)
         case .noticeNotAired(let episode, let when): L.noticeNotAired(episode: Int(episode), when: when.text)
         case .noticeNotAiredYet(let episode, let next, let when): L.noticeNotAiredYet(episode: Int(episode), next: Int(next), when: when.text)

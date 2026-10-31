@@ -214,6 +214,16 @@ public enum L {
         Self.format("home-more-genre", fallback: "More %1$@", genre)
     }
 
+    /// Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.
+    public static func licensedReturn(episode: Int, service: String) -> String {
+        Self.format("licensed-return", fallback: "Watched episode %1$lld on %2$@?", episode, service)
+    }
+
+    /// Notice after Mark as watched on the return notice. It holds Undo.
+    public static func licensedMarked(episode: Int) -> String {
+        Self.format("licensed-marked", fallback: "Episode %1$lld marked as watched.", episode)
+    }
+
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
         Self.format("notice-reason", fallback: "%1$@", reason)

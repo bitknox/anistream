@@ -14,6 +14,7 @@ use anistream_model::Msg;
 use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
+use anistream_core::traits::ProviderKind;
 use anistream_net::HttpClient;
 use anistream_providers::{
     ProviderRegistry,
@@ -143,19 +144,27 @@ pub fn arrange(registry: &ProviderRegistry, config: &Config) {
 /// order their files were read, which no one chose and a reinstall could change. Naming a plugin
 /// only moves it: whether plugins run at all is still `"plugins"`'s to say, see
 /// [`plugins_enabled`].
+///
+/// Every source is in that one list, first-party kinds included, and the user orders them all. A
+/// kind's group entry (`"library"`, `"servers"`, `"catalogues"`, `"demo"`) places the sources of
+/// that kind the order does not name by id, as `"plugins"` does for plugins. An older order that
+/// knows none of this still tries Your media, servers and catalogues first, in that order, and the
+/// demo last.
 pub fn rank(
     provider: &dyn anistream_core::traits::Provider,
     order: &[String],
-) -> (usize, String) {
+) -> (i64, u8, String) {
     let manifest = provider.manifest();
     let at = |name: &str| order.iter().position(|id| id == name);
     let place = at(&manifest.id)
-        .or_else(|| match manifest.kind {
-            anistream_core::traits::ProviderKind::Plugin => at("plugins"),
-            _ => None,
-        })
-        .unwrap_or(order.len());
-    (place, manifest.id.clone())
+        .or_else(|| anistream_model::sources::group_entry(manifest.kind.as_str()).and_then(at))
+        .map(|place| place as i64)
+        .unwrap_or_else(|| match manifest.kind {
+            ProviderKind::Library | ProviderKind::Server | ProviderKind::Catalogue => -1,
+            _ => order.len() as i64,
+        });
+    // Sources that share a place are told apart by kind, then by id.
+    (place, manifest.kind.tier(), manifest.id.clone())
 }
 
 /// Load plugins in the background and add them to a live registry.
@@ -547,13 +556,13 @@ mod tests {
         let config = order(&["beta", "torrent", "plugins", "remote"]);
         let order = &config.providers.order;
         let ranked = |p: Arc<dyn anistream_core::traits::Provider>| rank(p.as_ref(), order);
-        assert_eq!(ranked(plugin("beta")), (0, "beta".into()));
-        assert_eq!(ranked(source("torrent", ProviderKind::Torrent)), (1, "torrent".into()));
-        assert_eq!(ranked(plugin("gamma")), (2, "gamma".into()));
-        assert_eq!(ranked(plugin("alpha")), (2, "alpha".into()));
-        assert_eq!(ranked(source("remote", ProviderKind::Remote)), (3, "remote".into()));
+        assert_eq!(ranked(plugin("beta")), (0, 3, "beta".into()));
+        assert_eq!(ranked(source("torrent", ProviderKind::Torrent)), (1, 3, "torrent".into()));
+        assert_eq!(ranked(plugin("gamma")), (2, 3, "gamma".into()));
+        assert_eq!(ranked(plugin("alpha")), (2, 3, "alpha".into()));
+        assert_eq!(ranked(source("remote", ProviderKind::Remote)), (3, 3, "remote".into()));
         // Left out of the order: last, as before.
-        assert_eq!(ranked(source("other", ProviderKind::Native)), (4, "other".into()));
+        assert_eq!(ranked(source("other", ProviderKind::Native)), (4, 3, "other".into()));
     }
 
     #[test]
@@ -564,6 +573,52 @@ mod tests {
         let order = &config.providers.order;
         assert_eq!(rank(source("remote", ProviderKind::Remote).as_ref(), order).0, 1);
         assert_eq!(rank(plugin("alpha").as_ref(), order).0, 0);
+    }
+
+    #[test]
+    fn an_order_that_predates_first_party_sources_still_puts_them_first_and_the_demo_last() {
+        let registry = ProviderRegistry::new(vec![
+            source("demo", ProviderKind::Demo),
+            plugin("alpha"),
+            source("catalogue", ProviderKind::Catalogue),
+            source("server", ProviderKind::Server),
+            source("folder", ProviderKind::Library),
+            source("torrent", ProviderKind::Torrent),
+        ]);
+        arrange(&registry, &order(&["torrent", "plugins"]));
+        assert_eq!(
+            registry.ids(),
+            ["folder", "server", "catalogue", "torrent", "alpha", "demo"]
+        );
+    }
+
+    #[test]
+    fn the_user_can_put_any_source_anywhere_first_party_ones_included() {
+        let registry = ProviderRegistry::new(vec![
+            source("folder", ProviderKind::Library),
+            source("server", ProviderKind::Server),
+            plugin("alpha"),
+            plugin("beta"),
+            source("demo", ProviderKind::Demo),
+        ]);
+        arrange(&registry, &order(&["alpha", "servers", "beta", "library", "demo"]));
+        assert_eq!(registry.ids(), ["alpha", "server", "beta", "folder", "demo"]);
+        // Named by id, one sits apart from the rest of its kind.
+        arrange(&registry, &order(&["server", "plugins", "library", "demo"]));
+        assert_eq!(registry.ids(), ["server", "alpha", "beta", "folder", "demo"]);
+    }
+
+    #[test]
+    fn a_new_install_starts_with_first_party_kinds_first() {
+        let default = Config::default().providers.order;
+        assert_eq!(default, anistream_model::sources::default_source_order());
+        let registry = ProviderRegistry::new(vec![
+            plugin("alpha"),
+            source("demo", ProviderKind::Demo),
+            source("server", ProviderKind::Server),
+        ]);
+        arrange(&registry, &Config::default());
+        assert_eq!(registry.ids(), ["server", "alpha", "demo"]);
     }
 
     #[test]

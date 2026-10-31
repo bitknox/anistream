@@ -53,6 +53,77 @@ pub enum ProviderOrigin {
     ByHand,
 }
 
+/// The sections of the Your sources page, in the order the page draws them. A section with no rows
+/// is left out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum SourceSection {
+    /// Folders on this device.
+    YourMedia,
+    /// Media servers.
+    MediaServers,
+    /// Licensed services.
+    LicensedServices,
+    /// Free catalogues.
+    FreeCatalogues,
+    /// The plugins of one store, or the plugins put in by hand.
+    Plugins,
+    /// What anistream ships: the demo, and the remote API.
+    BuiltIn,
+}
+
+/// One section of the Your sources page and the ids of its rows, in the order they are tried.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct SourceGroup {
+    pub section: SourceSection,
+    /// The store a plugins section is from. `None` for any other section, and for plugins put in
+    /// by hand.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub store: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub ids: Vec<String>,
+}
+
+/// The section a row belongs to.
+pub fn section_of(row: &ProviderRow) -> SourceSection {
+    match row.kind.as_str() {
+        "library" => SourceSection::YourMedia,
+        "server" => SourceSection::MediaServers,
+        "licensed" => SourceSection::LicensedServices,
+        "catalogue" => SourceSection::FreeCatalogues,
+        "plugin" => SourceSection::Plugins,
+        _ => SourceSection::BuiltIn,
+    }
+}
+
+/// The Your sources page as sections: first-party kinds first, then each store's plugins, then
+/// plugins put in by hand, then what is built in. Rows keep the order they came in, which is the
+/// order they are tried.
+pub fn source_groups(rows: &[ProviderRow]) -> Vec<SourceGroup> {
+    let mut groups: Vec<SourceGroup> = Vec::new();
+    for row in rows {
+        let section = section_of(row);
+        let store = match (&section, &row.origin) {
+            (SourceSection::Plugins, ProviderOrigin::Store { id, .. }) => Some(id.clone()),
+            _ => None,
+        };
+        match groups.iter_mut().find(|g| g.section == section && g.store == store) {
+            Some(group) => group.ids.push(row.id.clone()),
+            None => groups.push(SourceGroup { section, store, ids: vec![row.id.clone()] }),
+        }
+    }
+    // Stable, so the stores keep the order their first plugin came in.
+    groups.sort_by_key(|g| g.section as u8);
+    groups
+}
+
+/// Whether the page has nothing to list: no first-party source and no plugin. The demo and the
+/// remote API are not sources the viewer added, so they do not count.
+pub fn has_no_sources(rows: &[ProviderRow]) -> bool {
+    rows.iter().all(|row| section_of(row) == SourceSection::BuiltIn)
+}
+
 /// One source, as a title's source picker lists it: what it has of the title's episodes, so the
 /// choice is an informed one.
 #[derive(Debug, Clone, PartialEq)]
@@ -111,17 +182,42 @@ pub struct ProviderUpdate {
     pub new_hosts: Vec<String>,
 }
 
+/// The entry in `providers.order` that stands for every source of a kind that the order does not
+/// name by id: `"plugins"`, and for the first-party kinds `"library"`, `"servers"`,
+/// `"catalogues"` and `"demo"`.
+pub fn group_entry(kind: &str) -> Option<&'static str> {
+    Some(match kind {
+        "plugin" => "plugins",
+        "library" => "library",
+        "server" => "servers",
+        "catalogue" => "catalogues",
+        "demo" => "demo",
+        _ => return None,
+    })
+}
+
+/// The order a new install starts with. Everything is in the one list the user can reorder, and
+/// by default the sources anistream provides come first, as the Your sources page lists them:
+/// Your media, media servers, free catalogues, then the torrent source and the plugins, with the
+/// demo last.
+pub fn default_source_order() -> Vec<String> {
+    ["library", "servers", "catalogues", "torrent", "plugins", "demo"]
+        .map(String::from)
+        .to_vec()
+}
+
 /// `order` with the source `id` moved one place up the chain (`step` below zero) or down it, or
 /// `None` when it is already at that end or has no row.
 ///
-/// One place is past the next row on screen. An entry with no row — `"plugins"`, torrents while
-/// they are off, a plugin named but not installed — is stepped over rather than counted, so
-/// every press moves the row the user is looking at. It is kept all the same: the order is the
-/// user's, and only one entry was asked to move.
+/// One place is past the next row on screen. An entry with no row (a kind's group entry,
+/// torrents while they are off, a plugin named but not installed) is stepped over rather than
+/// counted, so every press moves the row the user is looking at. It is kept all the same: the
+/// order is the user's, and only one entry was asked to move.
 ///
-/// `"plugins"` is first spelled out as the plugins on screen it stands for, in the order they
-/// are shown, so the ones not moved keep their places around the one that is. It stays right
-/// after them, where a plugin installed later still lands.
+/// A group entry such as `"plugins"` is first spelled out as the sources on screen it stands for,
+/// in the order they are shown, so the ones not moved keep their places around the one that is.
+/// The group entry stays right after them, where a source added later still lands. A
+/// first-party source an older order never named is tried first, so that is where it is named.
 pub fn order_with_source_moved(
     order: &[String],
     rows: &[ProviderRow],
@@ -129,17 +225,26 @@ pub fn order_with_source_moved(
     step: isize,
 ) -> Option<Vec<String>> {
     let mut order = order.to_vec();
-    let unnamed: Vec<String> = rows
-        .iter()
-        .filter(|row| row.kind == "plugin" && !order.contains(&row.id))
-        .map(|row| row.id.clone())
-        .collect();
-    // Without `"plugins"` a plugin still on screen ranks last, so that is where it is named.
-    let at = order.iter().position(|entry| entry == "plugins").unwrap_or(order.len());
-    order.splice(at..at, unnamed);
+    let mut firsts = 0;
+    for row in rows {
+        if order.contains(&row.id) {
+            continue;
+        }
+        let group = group_entry(&row.kind);
+        let first_party = !matches!(row.kind.as_str(), "plugin" | "demo")
+            && matches!(row.kind.as_str(), "library" | "server" | "catalogue");
+        match group.and_then(|g| order.iter().position(|entry| entry == g)) {
+            Some(at) => order.insert(at, row.id.clone()),
+            None if first_party => {
+                order.insert(firsts, row.id.clone());
+                firsts += 1;
+            }
+            None => order.push(row.id.clone()),
+        }
+    }
 
     let from = order.iter().position(|entry| entry == id)?;
-    let shown = |entry: &String| entry != "plugins" && rows.iter().any(|row| row.id == *entry);
+    let shown = |entry: &String| rows.iter().any(|row| row.id == *entry);
     let to = if step < 0 {
         order[..from].iter().rposition(shown)?
     } else {
@@ -148,6 +253,50 @@ pub fn order_with_source_moved(
     let entry = order.remove(from);
     order.insert(to, entry);
     Some(order)
+}
+
+/// `order` with the source `id` moved to place `index` among the rows on screen, counting from
+/// zero, or `None` when it has no row. For a drag: the row lands where it was dropped.
+pub fn order_with_source_placed(
+    order: &[String],
+    rows: &[ProviderRow],
+    id: &str,
+    index: usize,
+) -> Option<Vec<String>> {
+    let mut order = order.to_vec();
+    let shown = shown_ids(&order, rows);
+    let at = shown.iter().position(|shown| shown == id)?;
+    let index = index.min(shown.len() - 1);
+    let step = if index < at { -1 } else { 1 };
+    for _ in 0..at.abs_diff(index) {
+        order = order_with_source_moved(&order, rows, id, step)?;
+    }
+    Some(order)
+}
+
+/// The ids of the rows in the order `order` tries them, as the page lists them.
+fn shown_ids(order: &[String], rows: &[ProviderRow]) -> Vec<String> {
+    let mut ranked: Vec<(i64, usize, &str)> = rows
+        .iter()
+        .enumerate()
+        .map(|(i, row)| {
+            let named = order.iter().position(|e| *e == row.id);
+            let place = named
+                .or_else(|| {
+                    group_entry(&row.kind).and_then(|g| order.iter().position(|e| e == g))
+                })
+                .map_or_else(
+                    || match row.kind.as_str() {
+                        "library" | "server" | "catalogue" => -1,
+                        _ => order.len() as i64,
+                    },
+                    |p| p as i64,
+                );
+            (place, i, row.id.as_str())
+        })
+        .collect();
+    ranked.sort();
+    ranked.into_iter().map(|(_, _, id)| id.to_owned()).collect()
 }
 
 /// Whether a new `providers.order` only moves sources, rather than adding or taking one away.
@@ -487,5 +636,74 @@ mod tests {
         // A built-in source added or taken away is a rebuild.
         assert!(!only_reorders(&order(&["torrent", "plugins"]), &order(&["plugins"])));
         assert!(!only_reorders(&order(&["plugins"]), &order(&["plugins", "remote"])));
+    }
+}
+
+#[cfg(test)]
+mod section_tests {
+    use super::*;
+
+    fn row(id: &str, kind: &str, origin: ProviderOrigin) -> ProviderRow {
+        ProviderRow { id: id.into(), kind: kind.into(), origin, ..Default::default() }
+    }
+
+    #[test]
+    fn the_page_groups_first_party_kinds_above_plugins_and_built_in_last() {
+        let store = |id: &str| ProviderOrigin::Store { id: id.into(), name: None };
+        let rows = [
+            row("demo", "demo", ProviderOrigin::BuiltIn),
+            row("alpha", "plugin", store("mika")),
+            row("beta", "plugin", store("noor")),
+            row("home", "server", ProviderOrigin::BuiltIn),
+            row("gamma", "plugin", store("mika")),
+            row("disk", "library", ProviderOrigin::BuiltIn),
+        ];
+        let groups = source_groups(&rows);
+        let shape: Vec<_> = groups
+            .iter()
+            .map(|g| {
+                (
+                    g.section as u8,
+                    g.store.as_deref(),
+                    g.ids.iter().map(String::as_str).collect::<Vec<_>>(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            shape,
+            [
+                (SourceSection::YourMedia as u8, None, vec!["disk"]),
+                (SourceSection::MediaServers as u8, None, vec!["home"]),
+                (SourceSection::Plugins as u8, Some("mika"), vec!["alpha", "gamma"]),
+                (SourceSection::Plugins as u8, Some("noor"), vec!["beta"]),
+                (SourceSection::BuiltIn as u8, None, vec!["demo"]),
+            ]
+        );
+    }
+
+    #[test]
+    fn only_the_built_in_sources_leave_the_page_empty() {
+        let demo = row("demo", "demo", ProviderOrigin::BuiltIn);
+        assert!(has_no_sources(std::slice::from_ref(&demo)));
+        assert!(!has_no_sources(&[demo, row("disk", "library", ProviderOrigin::BuiltIn)]));
+    }
+
+    #[test]
+    fn a_first_party_source_can_be_moved_below_a_plugin() {
+        let rows = [
+            row("disk", "library", ProviderOrigin::BuiltIn),
+            row("alpha", "plugin", ProviderOrigin::ByHand),
+        ];
+        let order: Vec<String> = default_source_order();
+        let moved = order_with_source_moved(&order, &rows, "disk", 1).unwrap();
+        let after = |id: &str| moved.iter().position(|e| e == id).unwrap();
+        assert!(after("alpha") < after("disk"), "{moved:?}");
+        assert!(after("disk") < after("plugins"), "{moved:?}");
+        // And dropped back at the top of the page with a drag.
+        let placed = order_with_source_placed(&moved, &rows, "disk", 0).unwrap();
+        assert!(
+            placed.iter().position(|e| e == "disk") < placed.iter().position(|e| e == "alpha"),
+            "{placed:?}"
+        );
     }
 }
