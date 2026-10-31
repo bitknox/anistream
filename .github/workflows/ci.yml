@@ -51,6 +51,7 @@ jobs:
       desktop-linux: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.desktop-linux == 'true' }}
       admin: ${{ steps.filter.outputs.admin == 'true' }}
       i18n: ${{ steps.filter.outputs.i18n == 'true' }}
+      palette: ${{ steps.filter.outputs.palette == 'true' }}
     steps:
       # Two commits: on a pull request the merge, whose first parent is the base, and on a push
       # main's new head, beside which the previous head is fetched below.
@@ -96,6 +97,16 @@ jobs:
               - 'android/i18n/**'
               - 'desktop/windows/Anistream.App.Core/Strings.g.cs'
               - 'desktop/windows/Anistream.Windows/Strings/**'
+              - '.github/workflows/ci.yml'
+            # The palette files tools/check-contrast.py reads.
+            palette:
+              - 'android/design/**'
+              - 'apple/Packages/AnistreamDesign/**'
+              - 'desktop/linux/src/style.css'
+              - 'desktop/linux/src/style-hc.css'
+              - 'desktop/windows/Anistream.App.Core/Palette.cs'
+              - 'desktop/windows/Anistream.Windows/App.xaml'
+              - 'tools/check-contrast.py'
               - '.github/workflows/ci.yml'
             # The runner game the admin page shares with the website's hero.
             admin:
@@ -481,6 +492,17 @@ jobs:
       - run: rustup toolchain install
       - run: tools/check-boundaries.sh
 
+  # The palette on every platform: the same hex for a shared token, 4.5:1 for the text pairs, 3:1
+  # for the control edge, the high contrast values too. Python's standard library only, so there
+  # is nothing to install and it needs no build.
+  contrast:
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.palette == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 tools/check-contrast.py
+
   # The translations: the generated files are the catalogue's output, so a stale one, or a message
   # that breaks the writing rules, fails here. The hardcoded-string scan only reports until a
   # platform is listed under `[code] enforce` in i18n/lint.toml.
@@ -565,7 +587,7 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/.cache/anistream-engine/apple
-          key: ci-apple-engines-xcode${{ env.XCODE }}-${{ steps.sources.outputs.hash }}
+          key: ci-apple-engines-sim-xcode${{ env.XCODE }}-${{ steps.sources.outputs.hash }}
           lookup-only: ${{ github.event_name == 'push' }}
       # Not read when every engine came from the cache above and the Rust tests below are
       # skipped, since nothing here compiles but engine.sh.
@@ -587,11 +609,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: apple/.mpv/${{ env.MPV_PIN }}
-          key: ci-apple-mpv-macos-ios-xcode${{ env.XCODE }}-${{ hashFiles('apple/scripts/mpv.sh', 'apple/patches/**') }}
+          key: ci-apple-mpv-macos-ios-sim-xcode${{ env.XCODE }}-${{ hashFiles('apple/scripts/mpv.sh', 'apple/patches/**') }}
           lookup-only: ${{ github.event_name == 'push' }}
       - name: libmpv
         if: env.CHECKS == 'true' || steps.mpv.outputs.cache-hit != 'true'
-        run: apple/scripts/mpv.sh macos ios
+        # The Simulator's slice too, for the accessibility audit below.
+        run: apple/scripts/mpv.sh macos ios ios-sim
       - name: Keep libmpv
         if: github.ref == 'refs/heads/main' && steps.mpv.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
@@ -680,6 +703,11 @@ jobs:
       - name: Apple, the engines
         if: ${{ !cancelled() && (env.CHECKS == 'true' || steps.engine.outputs.cache-hit != 'true') }}
         run: apple/scripts/engine.sh release macos ios
+      # The Simulator's testing engine, which the accessibility audit below builds the Fixtures app
+      # on. Here, so a push to main saves it with the others.
+      - name: Apple, the testing engine for the Simulator
+        if: ${{ !cancelled() && (env.CHECKS == 'true' || steps.engine.outputs.cache-hit != 'true') }}
+        run: apple/scripts/engine.sh testing ios-sim
       # Every slice above, testing and release, for the pull requests after this push.
       - name: Keep the engines
         if: github.ref == 'refs/heads/main' && steps.engine.outputs.cache-hit != 'true'
@@ -703,6 +731,51 @@ jobs:
         run: >-
           xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream -configuration Release
           -destination platform=macOS build CODE_SIGNING_ALLOWED=NO ANISTREAM_ENGINE_PROFILE=app-dev
+      # XCUITest's own accessibility audit (apple/AuditTests) over the Fixtures app's main screens
+      # on an iPhone Simulator, at the default text size and the largest. It reports and does not
+      # fail the job: the findings are listed in the job summary, and ANISTREAM_A11Y_STRICT=1 on
+      # this step makes an issue fail it. A build that does not compile always fails it.
+      - name: Apple, the accessibility audit on an iPhone Simulator
+        if: ${{ !cancelled() && env.CHECKS == 'true' }}
+        timeout-minutes: 30
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "26.0"
+        run: |
+          udid="$(xcrun simctl list devices available iPhone | grep -m1 -oE '[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}')"
+          [ -n "$udid" ] || { echo "::error::no iPhone Simulator on this runner"; exit 1; }
+          status=0
+          xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Audit" \
+            -destination "id=$udid" -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 300 \
+            -resultBundlePath "$RUNNER_TEMP/audit.xcresult" test > "$RUNNER_TEMP/audit.log" 2>&1 || status=$?
+          tail -n 5 "$RUNNER_TEMP/audit.log"
+          grep '^AUDIT ' "$RUNNER_TEMP/audit.log" | sort -u > "$RUNNER_TEMP/audit.txt" || true
+          open="$(grep -vc 'set aside' "$RUNNER_TEMP/audit.txt" || true)"
+          {
+            echo "### Apple accessibility audit (iPhone Simulator, warn only)"
+            echo
+            echo "xcodebuild exited $status. Issues not set aside: $open. All lines:"
+            echo '```'
+            head -n 150 "$RUNNER_TEMP/audit.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # No AUDIT line at all means the tests did not run: that is a failure, not a finding.
+          if [ ! -s "$RUNNER_TEMP/audit.txt" ] && [ "$status" != 0 ]; then
+            grep -E 'error:|\*\* TEST FAILED|BUILD FAILED' "$RUNNER_TEMP/audit.log" | head -n 20
+            exit "$status"
+          fi
+          if [ "$status" != 0 ]; then
+            echo "::warning::The accessibility audit found $open issue(s) not set aside; see the job summary."
+            [ "${ANISTREAM_A11Y_STRICT:-}" = 1 ] && exit "$status"
+          fi
+          exit 0
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && env.CHECKS == 'true' }}
+        with:
+          name: apple-accessibility-audit
+          path: ${{ runner.temp }}/audit.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
 
   # The Android app: its engine and Kotlin bindings as android/scripts/engine.sh builds them, with
   # the runner's newest NDK through cargo-ndk, which points every C build at the NDK's clang for
@@ -869,6 +942,11 @@ jobs:
         run: ./gradlew --console=plain assembleFixturesDebug testFixturesDebugUnitTest -Proborazzi.test.record=true
         env:
           ANISTREAM_PLAYER_NATIVE: "off"
+      # What the shot tests' semantics check (testkit's A11yShots) found: reported here, and it
+      # fails a test only once ANISTREAM_A11Y_STRICT=1 is set on the step above.
+      - name: Compose semantics findings
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: android/scripts/a11y-summary.sh
       # Otherwise main builds the same, tests and all, and runs none, for Gradle's cache.
       - name: The fixtures APK and the unit tests' build
         if: github.event_name == 'push' && steps.robolectric.outputs.cache-hit == 'true'

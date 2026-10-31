@@ -31,8 +31,8 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import com.github.takahirom.roborazzi.captureRoboImage
-import com.github.takahirom.roborazzi.captureScreenRoboImage
+import tv.anistream.testkit.captureRoboImage
+import tv.anistream.testkit.captureScreenRoboImage
 import androidx.compose.ui.test.longClick
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
