@@ -1,0 +1,17 @@
+cast-episode = Episode { $episode }
+cast-episode-titled = Episode { $episode } · { $title }
+notice-cast-video-codec = { $name } tidak bisa memutar video ini ({ $codec }). Coba { -source } lain.
+notice-cast-audio-codec = { $name } tidak bisa memutar audio ini ({ $codec }), dan { -device } ini tidak bisa mengonversinya. Coba { -source } lain.
+notice-cast-container = { $name } tidak bisa memutar jenis file ini. Coba { -source } lain.
+notice-cast-deep-link = Episode ini dibuka di aplikasi lain, jadi tidak bisa ditayangkan ke TV.
+notice-cast-never-fetches = { $name } belum mulai membaca aliran ini. VPN atau firewall di { -device } ini mungkin menghalangi.
+notice-cast-refused = { $name } tidak bisa memutar aliran ini. Coba { -source } lain.
+notice-cast-taken-over = Penayangan berhenti karena { -device } lain mulai memutar sesuatu di { $name }.
+notice-cast-not-same-network = Penayangan hanya bisa jika { -device } ini dan { $name } berada di jaringan yang sama, tanpa lewat VPN.
+notice-cast-lost = Koneksi ke { $name } terputus, jadi penayangan berhenti.
+notice-cast-no-device = TV itu sudah tidak ada di jaringan.
+notice-cast-unavailable = Versi { -app-name } ini tidak bisa menayangkan ke TV.
+cast-phase-starting = Memulai di { $name }
+cast-phase-starting-for = Memulai di { $name } · { $seconds } dtk
+cast-phase-waiting = Menunggu { $name } · { $seconds } dtk
+cast-phase-preparing = Menyiapkan aliran · { $seconds } dtk

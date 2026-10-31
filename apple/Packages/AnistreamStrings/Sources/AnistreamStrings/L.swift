@@ -8134,12 +8134,15 @@ public enum L {
         Language(tag: "de", name: "Deutsch", flag: "de", draft: true),
         Language(tag: "es-419", name: "Español (Latinoamérica)", flag: "mx", draft: true),
         Language(tag: "fr", name: "Français", flag: "fr", draft: true),
+        Language(tag: "id", name: "Bahasa Indonesia", flag: "id", draft: true),
         Language(tag: "it", name: "Italiano", flag: "it", draft: true),
         Language(tag: "ja", name: "日本語", flag: "jp", draft: true),
         Language(tag: "pl", name: "Polski", flag: "pl", draft: true),
         Language(tag: "pt-BR", name: "Português (Brasil)", flag: "br", draft: true),
         Language(tag: "ru", name: "Русский", flag: "ru", draft: true),
         Language(tag: "sv", name: "Svenska", flag: "se", draft: true),
+        Language(tag: "tr", name: "Türkçe", flag: "tr", draft: true),
+        Language(tag: "vi", name: "Tiếng Việt", flag: "vn", draft: true),
     ]
 
     public struct Language: Sendable, Equatable {

@@ -1,0 +1,14 @@
+nav-continue = { -continue-cap }
+nav-calendar = Takvim
+nav-seasonal = Sezon
+nav-library = { -library-cap }
+nav-search = Ara
+nav-downloads = İndirilenler
+nav-plugin-stores = { -plugin-store-cap-pl }
+nav-settings = Ayarlar
+nav-accounts = Hesaplar
+nav-accounts-and-settings = Hesaplar ve ayarlar
+nav-sections-label = Gezinme bölümleri
+nav-collapse = Gezinmeyi daralt
+nav-expand = Gezinmeyi genişlet
+tooltip-with-key = { $name } ({ $key })

@@ -1,0 +1,10 @@
+notice-out = Episode { $episode } sudah tayang.
+notice-out-dubbed = Episode { $episode } sudah tayang, { -dubbed }.
+notice-out-behind = Episode { $episode } sudah tayang. { -up-next-cap } untuk Anda: episode { $next }.
+notice-out-dubbed-behind = Episode { $episode } sudah tayang, { -dubbed }. { -up-next-cap } untuk Anda: episode { $next }.
+notice-hidden-preview = Episode baru
+notice-summary = %u episode baru lainnya
+notice-dismiss = Tutup
+accounts-code-expired-detail = Kode ini sudah kedaluwarsa. Dapatkan kode baru untuk masuk ke { $tracker }.
+list-refresh-failed = Tidak bisa menyegarkan. Menampilkan yang sudah dimuat.
+sign-in-failed = Tidak bisa masuk ke { $tracker }. Coba lagi.

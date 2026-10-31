@@ -1,0 +1,11 @@
+onboarding-welcome = Selamat datang
+onboarding-welcome-to = Selamat datang di { -app-name }
+onboarding-tagline = Catat anime yang Anda tonton dan putar dari { -source-pl } pilihan Anda.
+onboarding-continue = { -continue-cap }
+onboarding-skip = Lewati
+onboarding-skip-for-now = Lewati dulu
+onboarding-not-now = Nanti saja
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl } berupa { -plugin-pl } yang dibagikan lewat { -plugin-store-pl } melalui undangan.
+onboarding-join = Gabung
+onboarding-invite-hint = Tautan undangan

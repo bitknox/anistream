@@ -1,0 +1,12 @@
+palette-placeholder = Tiêu đề và lệnh
+palette-titles = Tiêu đề
+palette-commands = Lệnh
+palette-recent = Gần đây
+palette-search-for = Return tìm “{ $query }”
+palette-hint-open = Mở
+palette-resume-episode = { -continue-cap } tập { $episode }
+palette-progress-kept = Tiến độ được giữ lại
+palette-show-settings-detail = Âm thanh, phụ đề, tự động bỏ qua, { -source-pl }
+welcome-airing-today-label = Đang chiếu hôm nay, mở lịch
+welcome-broadcast = { $episode } · { $clock }
+messages-empty = Chưa có tin nhắn

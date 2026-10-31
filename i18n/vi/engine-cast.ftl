@@ -1,0 +1,17 @@
+cast-episode = Tập { $episode }
+cast-episode-titled = Tập { $episode } · { $title }
+notice-cast-video-codec = { $name } không phát được video này ({ $codec }). Hãy thử { -source } khác.
+notice-cast-audio-codec = { $name } không phát được âm thanh này ({ $codec }), và { -device } này không thể chuyển đổi. Hãy thử { -source } khác.
+notice-cast-container = { $name } không đọc được loại tệp này. Hãy thử { -source } khác.
+notice-cast-deep-link = Tập này mở trong một ứng dụng khác, nên không thể chiếu.
+notice-cast-never-fetches = { $name } chưa bắt đầu đọc luồng phát. VPN hoặc tường lửa trên { -device } này có thể đang chặn.
+notice-cast-refused = { $name } không phát được luồng này. Hãy thử { -source } khác.
+notice-cast-taken-over = Một { -device } khác vừa bắt đầu phát trên { $name }, nên việc chiếu đã dừng.
+notice-cast-not-same-network = { -device } này không nằm trong mạng mà { $name } đang dùng, hoặc đi qua VPN. Chiếu cần cả hai cùng một mạng.
+notice-cast-lost = Mất kết nối với { $name }, nên việc chiếu đã dừng.
+notice-cast-no-device = TV đã chọn không còn trong mạng nữa.
+notice-cast-unavailable = Phiên bản { -app-name } này không hỗ trợ chiếu lên TV.
+cast-phase-starting = Đang bắt đầu trên { $name }
+cast-phase-starting-for = Đang bắt đầu trên { $name } · { $seconds } giây
+cast-phase-waiting = Đang chờ { $name } · { $seconds } giây
+cast-phase-preparing = Đang chuẩn bị luồng phát · { $seconds } giây

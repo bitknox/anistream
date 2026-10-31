@@ -1,0 +1,12 @@
+palette-placeholder = Judul dan perintah
+palette-titles = Judul
+palette-commands = Perintah
+palette-recent = Terakhir dicari
+palette-search-for = Return mencari “{ $query }”
+palette-hint-open = Buka
+palette-resume-episode = Lanjut E{ $episode }
+palette-progress-kept = Progres tetap disimpan
+palette-show-settings-detail = Audio, subtitel, lewati otomatis, { -source }
+welcome-airing-today-label = Tayang hari ini, buka di Kalender
+welcome-broadcast = { $episode } · { $clock }
+messages-empty = Belum ada pesan

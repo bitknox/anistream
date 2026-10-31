@@ -1,0 +1,10 @@
+notice-out = Tập { $episode } đã ra.
+notice-out-dubbed = Tập { $episode } đã ra, { -dubbed }.
+notice-out-behind = Tập { $episode } đã ra. { -up-next-cap } cho bạn: tập { $next }.
+notice-out-dubbed-behind = Tập { $episode } đã ra, { -dubbed }. { -up-next-cap } cho bạn: tập { $next }.
+notice-hidden-preview = Tập mới
+notice-summary = %u tập mới khác
+notice-dismiss = Bỏ qua
+accounts-code-expired-detail = Mã này đã hết hạn. Lấy mã mới để đăng nhập vào { $tracker }.
+list-refresh-failed = Không làm mới được. Đang hiện những gì đã tải.
+sign-in-failed = Không đăng nhập được vào { $tracker }. Thử lại.

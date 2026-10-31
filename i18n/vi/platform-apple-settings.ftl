@@ -1,0 +1,112 @@
+settings-download-cellular = Tải xuống bằng dữ liệu di động
+settings-syncplay = Syncplay { -watch-party-pl }
+settings-syncplay-server = Máy chủ Syncplay
+settings-syncplay-room = Phòng Syncplay
+settings-start-full-screen = Bắt đầu ở toàn màn hình
+settings-hook-command = Lệnh
+settings-no-match = Không có cài đặt nào có tên đó.
+settings-results = Kết quả
+settings-upscaling-source-apple = 480p { -source }
+settings-upscaling-compare = { -source-cap } 480p cạnh { $mode }
+settings-upscaling-note-none = { -source-cap }, được co giãn vừa khung mà không xử lý thêm.
+settings-advanced-none = Không có tùy chọn thêm. Trình phát dùng tùy chọn riêng của { -app-name }.
+settings-aside-check-title = Kiểm tra kết nối
+settings-aside-sources-apple = { -source-cap-pl } được thử theo thứ tự từ trên xuống dưới. Một tựa có thể giữ { -source } riêng, chọn từ trang thông tin của tựa đó.
+settings-aside-advanced = Tùy chọn ở đây có thể ghi đè cài đặt trong mục Phát, như nâng tỉ lệ hình hoặc chế độ ban đêm. Hầu hết mọi người không cần đến mục này.
+settings-quality-detail = Cao hơn lấy bản tốt nhất mà { -source } cung cấp, và tốn thêm dung lượng.
+settings-merge-subtitles-detail = Phụ đề luôn đi kèm tập, dù tệp được chuyển đến đâu.
+settings-keep-seeding-detail-mac = Tệp đang chia sẻ vẫn nằm trong bộ nhớ đệm của { -app-name }, không nằm trong thư mục tải xuống.
+settings-keep-seeding-detail = Tệp đang chia sẻ nằm trong bộ nhớ đệm của { -app-name }.
+settings-watched-downloads = Tải xuống đã xem
+settings-watched-one = { $episodes } của { $title } · { $size }
+settings-watched-many = { $episodes } · { $size }
+settings-delete-watched-title = { $count ->
+   *[other] Xóa { $count } bản tải xuống đã xem?
+ }
+settings-delete-watched-detail = Các tệp sẽ bị xóa khỏi { -device } này. Các tập chưa xem vẫn được giữ lại.
+settings-folder-default = Lưu cùng bộ nhớ đệm torrent
+settings-storage-unwatched = Chưa xem
+settings-storage-used = { $size } cho tải xuống.
+settings-storage-used-free = { $size } cho tải xuống. Còn trống { $free } trên { -device } này.
+settings-torrents-warn-note = Chỉ cảnh báo chỉ hỏi xác nhận trước, giống như Không bảo vệ.
+settings-source-count = { $count ->
+   *[other] { $count } { -source }
+ }
+settings-accounts-sync-note = Tiến độ và thay đổi danh sách được đồng bộ với { $tracker }. { -library-cap } và Danh sách của tôi trong Lịch hiển thị danh sách { $tracker } của bạn.
+settings-conflicts = { $count ->
+   *[other] { $count } tựa khác với { $tracker }
+ }
+settings-review = Xem lại
+settings-changes-waiting = { $count ->
+   *[other] { $count } thay đổi đang chờ đồng bộ
+ }
+settings-synced-just-now = Vừa đồng bộ xong
+settings-synced-ago = Đã đồng bộ { $ago }
+settings-privacy-note = Những gì { -app-name } gửi đi và những gì ở lại trên { -device } này
+settings-read-online = Đọc trực tuyến
+settings-presence-note = Hoạt động chi tiết hiển thị ảnh bìa, thanh tiến độ và liên kết tới tựa trên { $tracker }. Discord tự tải ảnh bìa từ { $tracker }. Cần bật hiển thị tên tựa.
+settings-presence-cover = Ảnh bìa
+settings-presence-button = Xem trên { $tracker }
+settings-presence-nothing = Đang xem anime
+settings-presence-episode-of = Tập { $episode } trên { $total }
+settings-presence-episode = Tập { $episode }
+settings-presence-on = Hồ sơ Discord của bạn hiển thị mục này khi một tập đang phát.
+settings-presence-off = Tắt. Khi bật, hồ sơ Discord của bạn hiển thị mục này khi một tập đang phát.
+settings-notify-permission = { -app-name } xin quyền lần đầu bạn bật mục này.
+settings-week-empty = Trong 7 ngày tới không có tập nào của các tựa bạn theo dõi.
+settings-week-loading = Đang tải tuần…
+settings-system-app-mac = Cài đặt Hệ thống
+settings-system-app-ios = Cài đặt
+settings-notify-not-allowed = { -app-name } không được phép trong { $settings }
+settings-week-dub-one = { $show } gửi thông báo khi bản { -dubbed } ra.
+settings-week-dub-many = { $shows } gửi thông báo khi bản { -dubbed } ra.
+settings-week-off-one = { $show } đang tắt trong cài đặt riêng của tựa đó.
+settings-week-off-many = { $shows } đang tắt trong cài đặt riêng của các tựa đó.
+settings-week-row-opens = Chạm vào một dòng sẽ mở cài đặt của tựa đó.
+settings-when-today = Hôm nay { $time }
+settings-when-tomorrow = Ngày mai { $time }
+settings-when-day = { $day } { $time }
+settings-week-row-label = { $title }, tập { $episode }, { $when }
+settings-week-row-hint = Mở cài đặt của tựa này
+settings-notify-explain-on = Một thông báo khi một tập của tựa trong danh sách Đang xem của bạn ra, vào giờ { $tracker } đưa ra. Cài đặt riêng của tựa được ưu tiên trước.
+settings-notify-explain-off = Tắt. Chỉ các tựa được bật trong cài đặt riêng mới gửi thông báo.
+settings-preview-show = Một tựa bạn xem
+settings-preview-words = Tập 9 đã ra.
+settings-preview-label = Một thông báo: { $show }, { $words }
+settings-show-notices-label = Tập mới: { $value }
+settings-this-show = Tựa này
+settings-show-off-not-watching = Tắt · không xem
+settings-option-natural = Tự nhiên · ArtCNN
+settings-option-sharp = Sắc nét · Anime4K
+settings-option-mpv = Cấu hình mpv của bạn
+settings-option-until-ratio = Đến tỉ lệ { $ratio }
+settings-option-unlimited = Không giới hạn
+settings-option-per-second = { $size }/s
+settings-option-standard = Tiêu chuẩn
+settings-option-higher = Cao hơn
+settings-option-adaptive = Thích ứng
+settings-option-immersive = Đắm chìm
+settings-torrents-value-on = Torrent bật
+settings-torrents-value-off = Torrent tắt
+settings-seed-ratio-detail = Chỉ hoạt động tốt nhất trên { -device } này: chỉ khi { -app-name } đang mở
+settings-review-differences = { $count ->
+   *[other] Xem lại { $count } khác biệt
+ }
+settings-swipe-resume = Tiếp tục
+settings-swipe-retry = Thử lại
+settings-stores-value-updates = { $count } · { $updates }
+show-settings-row-label = { $label }:
+show-settings-unnamed-track = Phụ đề không tên
+settings-title-line-signed-out = Tiếng Anh khi chưa đăng nhập vào { $tracker }
+settings-title-line-from-account = { $language }, theo tài khoản { $tracker } của bạn
+settings-title-line-english = Romaji khi tựa không có tiếng Anh
+settings-title-line-romaji = Tựa tiếng Nhật bằng chữ Latin
+settings-title-note-signed-out = Khi bạn chưa đăng nhập vào { $tracker }, tựa hiển thị bằng tiếng Anh.
+settings-title-note-follows = Theo tài khoản { $tracker } của bạn. { $then }
+settings-title-note-follows-set = Theo tài khoản { $tracker } của bạn, đang đặt là { $language }. { $then }
+settings-title-note-kept = { $title } không có tên tiếng Anh trên { $tracker }, nên giữ tên romaji.
+settings-title-note-english = Tên tiếng Anh như { $tracker } ghi, và romaji nếu không có.
+settings-title-note-romaji = Tựa tiếng Nhật viết bằng chữ Latin, như { $tracker } ghi.
+settings-folder-choose = Chọn
+settings-trailers-row = Phát trailer
+settings-trailers-note-apple = Trailer phát không tiếng từ YouTube, nơi sẽ thấy địa chỉ IP của bạn. Trailer không phát trong Chế độ dữ liệu thấp, khi bật Giảm chuyển động hoặc ở Chế độ tiết kiệm pin.

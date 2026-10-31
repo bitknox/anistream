@@ -8555,12 +8555,15 @@ object Strings {
         Language("de", "Deutsch", "de", true),
         Language("es-419", "Español (Latinoamérica)", "mx", true),
         Language("fr", "Français", "fr", true),
+        Language("id", "Bahasa Indonesia", "id", true),
         Language("it", "Italiano", "it", true),
         Language("ja", "日本語", "jp", true),
         Language("pl", "Polski", "pl", true),
         Language("pt-BR", "Português (Brasil)", "br", true),
         Language("ru", "Русский", "ru", true),
         Language("sv", "Svenska", "se", true),
+        Language("tr", "Türkçe", "tr", true),
+        Language("vi", "Tiếng Việt", "vn", true),
     )
 }
 

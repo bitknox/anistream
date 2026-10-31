@@ -1,0 +1,9 @@
+discussion-age-now = şimdi
+discussion-age-minutes = { $minutes } dk
+discussion-age-hours = { $hours } sa
+discussion-age-days = { $days } g
+discussion-age-weeks = { $weeks } h
+discussion-age-years = { $years } y
+notice-comment-like-failed = Yorum beğenilemedi. Yeniden deneyin.
+notice-comment-delete-failed = Yorum silinemedi. Yeniden deneyin.
+notice-discussion-sign-in = Beğenmek ve yanıtlamak için AniList'e giriş yapın.

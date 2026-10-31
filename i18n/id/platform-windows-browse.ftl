@@ -1,0 +1,36 @@
+continue-menu-resume = { -continue-cap }
+continue-loading = Memuat yang sedang Anda tonton
+continue-sync-waiting = { $count ->
+   *[other] { $count } perubahan menunggu disinkronkan
+ }
+calendar-day-empty = Tidak ada yang tayang
+calendar-week-range = { $start } sampai { $end }
+calendar-time-estimate = ~{ $time }
+calendar-time-about = sekitar { $time }
+calendar-episode-dubbed = E{ $episode } { -dubbed }
+calendar-watched-line = { $title } · { $episode }
+calendar-watched-spoken = { $title }, { $episode }, sudah ditonton
+library-list-count = { $list } { $count }
+search-sort-name = Urutkan
+filter-picked-two = { $first }, { $second }
+filter-picked-more = { $first } +{ $more }
+title-season-when = { $season } · { $when }
+episode-download-text = Unduh episode { $episode }
+episode-download-failed-text = Tidak bisa mengunduh episode { $episode }. Coba lagi.
+episode-number-text = Episode { $episode }
+episode-text-with-title = Episode { $episode } · { $title }
+episode-row-spoken = { $heading }, { $line }
+episode-listed-by-anilist = Hanya tercantum di AniList
+title-relation-format = { $relation } · { $format }
+title-episode-out-ago = E{ $episode } tayang { $ago }
+title-next-airs = { -up-next-cap } tayang { $when }
+title-episode-download = Unduh
+title-download-menu = Unduh…
+title-show-settings-menu = Pengaturan judul…
+title-play-on-tv-tooltip = Putar episode ini di TV dengan { -app-name }
+title-list-status = Status daftar
+download-range-title = Unduh episode
+download-range-from = Dari
+download-range-to = Sampai
+download-range-quality-note = Unduhan memakai kualitas di Pengaturan › Unduhan.
+calendar-today-tooltip = Hari ini ({ $keys })

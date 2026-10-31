@@ -1,0 +1,11 @@
+about-title = Giới thiệu
+about-title-app = Giới thiệu về { -app-name }
+about-version = Phiên bản { $version }
+about-licence = Phát hành theo giấy phép MIT.
+about-acknowledgements = Ghi nhận đóng góp
+about-licences = Giấy phép
+about-website = Trang web
+about-report-bug = Báo lỗi
+about-report-bug-detail = Mở một báo cáo lỗi trên GitHub, nơi bạn đăng nhập. Báo cáo gồm phiên bản của bạn và lỗi gần nhất, không có địa chỉ, đường dẫn tệp hay tiêu đề.
+about-artwork = Một số hình minh họa được cấp phép theo Creative Commons BY-NC 4.0.
+about-font-licence = Phông chữ được cấp phép theo SIL Open Font License 1.1.

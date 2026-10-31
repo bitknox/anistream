@@ -1,0 +1,11 @@
+about-title = Tentang
+about-title-app = Tentang { -app-name }
+about-version = Versi { $version }
+about-licence = Dirilis di bawah lisensi MIT.
+about-acknowledgements = Ucapan terima kasih
+about-licences = Lisensi
+about-website = Situs web
+about-report-bug = Laporkan bug
+about-report-bug-detail = Membuka laporan bug di GitHub, tempat Anda masuk. Laporan memuat versi Anda dan galat terakhir, tanpa alamat, lokasi berkas, atau judul.
+about-artwork = Sebagian ilustrasi berlisensi Creative Commons BY-NC 4.0.
+about-font-licence = Berlisensi di bawah SIL Open Font License 1.1.

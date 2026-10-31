@@ -1,0 +1,13 @@
+updates-preparing = Menyiapkan pembaruan
+updates-downloading-bytes = Mengunduh { $done }
+updates-downloading-bytes-of = Mengunduh { $done } dari { $total }
+updates-restarting = Memulai ulang untuk menyelesaikan pembaruan
+updates-did-not-finish = Pembaruan belum selesai. Coba lagi.
+updates-could-not-check = Tidak dapat memeriksa pembaruan. Coba lagi nanti.
+updates-in-sidestore = Perbarui di SideStore
+updates-release-page = Halaman versi
+updates-release-notes = Yang baru
+updates-whats-new-in = Yang baru di { $version }
+updates-installer-not-ready = Pemasang pembaruan belum siap. Coba lagi sebentar lagi.
+updates-feed-missing = Feed pembaruan belum memuat versi ini.
+updates-fixtures-no-install = Aplikasi Fixtures tidak memasang pembaruan.

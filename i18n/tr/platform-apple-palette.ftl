@@ -1,0 +1,12 @@
+palette-placeholder = Başlık ya da komut ara
+palette-titles = Başlıklar
+palette-commands = Komutlar
+palette-recent = Son aramalar
+palette-search-for = Return ile “{ $query }” ara
+palette-hint-open = Aç
+palette-resume-episode = E{ $episode } devam et
+palette-progress-kept = İlerleme korunur
+palette-show-settings-detail = Ses, altyazılar, otomatik atlama, { -source }
+welcome-airing-today-label = Bugün yayınlananlar, takvimde göster
+welcome-broadcast = { $episode } · { $clock }
+messages-empty = Henüz mesaj yok

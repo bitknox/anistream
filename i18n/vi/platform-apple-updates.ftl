@@ -1,0 +1,13 @@
+updates-preparing = Đang chuẩn bị bản cập nhật
+updates-downloading-bytes = Đang tải { $done }
+updates-downloading-bytes-of = Đang tải { $done } trên { $total }
+updates-restarting = Đang khởi động lại để hoàn tất cập nhật
+updates-did-not-finish = Cập nhật chưa hoàn tất. Hãy thử lại.
+updates-could-not-check = Không kiểm tra được cập nhật. Hãy thử lại sau.
+updates-in-sidestore = Cập nhật trong SideStore
+updates-release-page = Trang phiên bản
+updates-release-notes = Có gì mới
+updates-whats-new-in = Có gì mới trong { $version }
+updates-installer-not-ready = Trình cập nhật chưa sẵn sàng. Hãy thử lại sau ít phút.
+updates-feed-missing = Kênh cập nhật chưa có phiên bản này.
+updates-fixtures-no-install = Ứng dụng Fixtures không cài đặt cập nhật.

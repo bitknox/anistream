@@ -1,0 +1,32 @@
+title-episode-short-dubbed = T{ $episode } { -dubbed }
+title-episode-long-dubbed = Tập { $episode } · { -dubbed-cap }
+continue-row-left = Tập { $episode } · { $left }
+continue-row-left-dubbed = Tập { $episode } { -dubbed } · { $left }
+continue-widget-resume = Tiếp tục tập { $episode }
+continue-widget-resume-dubbed = Tiếp tục { $episode } { -dubbed }
+downloads-continued-title = Đang tải các tập
+downloads-continued-left = { $count ->
+   *[other] Còn { $count } tập
+ }
+title-also-on = Cũng có trên { $places }
+calendar-time-approximate = ~{ $time }
+calendar-day-empty-apple = Không có tập
+calendar-loading-week = Đang tải tuần này
+calendar-load-week-failed = Không tải được tuần này
+calendar-empty-mine-ahead-apple = Trong 4 tuần tới, danh sách của bạn không có tập nào.
+calendar-filter-all-title = Tất cả đang chiếu
+calendar-filter-mine-title = Danh sách của tôi
+calendar-last-week = Tuần trước
+calendar-line-out-apple = Tập { $episode } đã chiếu { $ago }
+calendar-line-out-dubbed = Tập { $episode } đã chiếu { $ago } · { -dubbed-cap }
+calendar-line-in-apple = Tập { $episode } chiếu sau { $span }
+calendar-line-in-dubbed = Tập { $episode } chiếu sau { $span } · { -dubbed-cap }
+title-swipe-download = Tải xuống
+title-episode-of = Tập { $episode } trên { $total }
+browse-list-failed = Không tải được danh sách
+downloads-subtitle-free = Còn trống { $free } · Bản tải xuống chiếm { $size }
+downloads-group-summary-apple = { $count } · { $size }
+downloads-of-total = { $done } trên { $total }
+downloads-rate-apple = { $rate }/s
+downloads-time-left-apple = Còn { $left }
+downloads-seeding-uploaded = Chia sẻ { $shared } trên { $goal } · còn { $left } · tải lên { $size }

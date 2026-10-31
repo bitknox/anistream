@@ -1,0 +1,40 @@
+home-title = Ana sayfa
+home-resume-episode = Bölüm { $episode } devam et
+home-play-episode = Bölüm { $episode } oynat
+home-adding = Ekleniyor
+home-details = Ayrıntılar
+home-more = Daha fazla
+home-mark-watched = Bölüm { $episode } izlendi olarak işaretle
+home-marked-watched = Bölüm { $episode } izlendi olarak işaretlendi
+home-remove-continue = Listeden kaldır
+home-continue-count = { $count ->
+    [one] 1 dizi
+   *[other] { $count } dizi
+ }
+home-view-all = Tümünü gör
+home-full-calendar = Tam takvim
+home-today = Bugün
+home-nothing-airing = Yayın yok
+home-day-more = { $count } daha
+home-seasonal = Sezonluk
+home-search = Ara
+home-end = Şimdilik hepsi bu. Tam listeler için Sezonluk ve Takvim'e bakın.
+home-end-signed-out = Listenizi ve Planlama'yı almak için AniList'e giriş yapın.
+home-sign-in = AniList'e giriş yap
+home-end-no-sources = Ana sayfadan oynatmak için bir { -source } ekleyin. { -plugin-store-cap-pl }nda seçebileceğiniz birkaç tane var.
+home-not-found = { -source-cap-pl }ınızda bulunamadı
+home-failed = Bazı öneriler yüklenemedi
+home-try-again = Yeniden dene
+home-loading = Öneriler yükleniyor
+home-offline = Çevrimdışı. Ana sayfa { $time } itibarıyla gösteriliyor.
+home-offline-empty-title = Çevrimdışısınız
+home-offline-empty-body = Ana sayfa ilk açılışta bağlantı gerektirir. İndirmeler yine oynatılır.
+home-open-downloads = İndirmeler'i aç
+settings-hidden-titles = Gizlenen başlıklar
+settings-hidden-titles-body = İlgilenmiyorum olarak işaretlediğiniz başlıklar, geri yükleyene kadar Ana sayfada ve { -up-next-cap } listesinde görünmez.
+settings-hidden-on = Gizlendi: { $date }
+settings-hidden-until-airs = Yayına başlayınca geri gelir
+settings-restore = Geri yükle
+settings-hidden-empty = Gizlenen bir şey yok. İlgilenmiyorum olarak işaretlediğiniz başlıklar burada görünür.
+home-previous = Önceki
+home-next = Sonraki

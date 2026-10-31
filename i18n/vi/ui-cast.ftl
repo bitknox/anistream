@@ -1,0 +1,17 @@
+cast-chromecast = Chromecast
+cast-none-found-extra = TV có Chromecast tích hợp sẵn cũng hiện ở đây.
+cast-local-network = Cho phép { -app-name } tìm { -device-pl } trong mạng nội bộ của bạn
+cast-tvs-label = Hiện TV có Chromecast tích hợp sẵn
+cast-torrents-label = Torrent khi đang chiếu
+cast-tvs-note-mac = Chúng xuất hiện trong mục Chromecast ở Phát trên TV. Mac này sẽ gửi tập phim đến chúng.
+cast-tvs-note-iphone = Chúng xuất hiện trong mục Chromecast ở Phát trên TV. iPhone này sẽ gửi tập phim đến chúng.
+cast-tvs-note-ipad = Chúng xuất hiện trong mục Chromecast ở Phát trên TV. iPad này sẽ gửi tập phim đến chúng.
+cast-torrents-note-mac = Cho phép TV có Chromecast tích hợp sẵn phát torrent. Mac này gửi tập phim trong suốt thời gian phát.
+cast-torrents-note-iphone = Cho phép TV có Chromecast tích hợp sẵn phát torrent. iPhone này gửi tập phim trong suốt thời gian phát.
+cast-torrents-note-ipad = Cho phép TV có Chromecast tích hợp sẵn phát torrent. iPad này gửi tập phim trong suốt thời gian phát.
+cast-up-next-plays-in = { -up-next-cap } · phát sau { $seconds } giây
+cast-couldnt-start = Không bắt đầu được trên { $name }
+cast-stopped = Đã dừng chiếu
+cast-play-here = Phát tại đây
+cast-stop = Dừng chiếu
+cast-volume-fixed = Đặt trên TV

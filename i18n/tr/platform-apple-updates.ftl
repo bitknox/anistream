@@ -1,0 +1,13 @@
+updates-preparing = Güncelleme hazırlanıyor
+updates-downloading-bytes = { $done } indiriliyor
+updates-downloading-bytes-of = { $total } içinden { $done } indiriliyor
+updates-restarting = Güncellemeyi tamamlamak için yeniden başlatılıyor
+updates-did-not-finish = Güncelleme tamamlanmadı. Yeniden deneyin.
+updates-could-not-check = Güncellemeler denetlenemedi. Daha sonra yeniden deneyin.
+updates-in-sidestore = SideStore'da güncelle
+updates-release-page = Versiyon sayfası
+updates-release-notes = Yenilikler
+updates-whats-new-in = { $version } sürümündeki yenilikler
+updates-installer-not-ready = Güncelleyici henüz hazır değil. Birazdan yeniden deneyin.
+updates-feed-missing = Güncelleme akışında bu versiyon henüz yok.
+updates-fixtures-no-install = Fixtures uygulaması güncelleme yüklemez.

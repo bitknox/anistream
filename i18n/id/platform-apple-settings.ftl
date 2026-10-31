@@ -1,0 +1,112 @@
+settings-download-cellular = Unduh lewat data seluler
+settings-syncplay = { -watch-party-cap-pl } Syncplay
+settings-syncplay-server = Server Syncplay
+settings-syncplay-room = Ruang Syncplay
+settings-start-full-screen = Mulai dalam layar penuh
+settings-hook-command = Perintah
+settings-no-match = Tidak ada pengaturan dengan nama itu.
+settings-results = Hasil
+settings-upscaling-source-apple = 480p { -source }
+settings-upscaling-compare = { -source-cap } 480p di samping { $mode }
+settings-upscaling-note-none = { -source-cap } yang diskalakan agar pas tanpa diproses.
+settings-advanced-none = Tidak ada opsi tambahan. Pemutar memakai pengaturan { -app-name } sendiri.
+settings-aside-check-title = Pemeriksaan koneksi
+settings-aside-sources-apple = { -source-cap-pl } dicoba berurutan, dari atas ke bawah. Sebuah tayangan dapat menyimpan { -source } sendiri, yang dipilih dari halaman judulnya.
+settings-aside-advanced = Opsi di sini dapat membatalkan pengaturan Pemutaran, seperti peningkatan skala gambar atau mode malam. Kebanyakan orang tidak pernah memerlukan panel ini.
+settings-quality-detail = Lebih tinggi memilih versi terbaik yang ditawarkan { -source }, dan memakan lebih banyak ruang.
+settings-merge-subtitles-detail = Subtitel tetap bersama episode di mana pun berkasnya disimpan.
+settings-keep-seeding-detail-mac = Unduhan yang tetap dibagikan disimpan di cache { -app-name }, bukan di folder unduhan.
+settings-keep-seeding-detail = Unduhan yang tetap dibagikan disimpan di cache { -app-name }.
+settings-watched-downloads = Unduhan yang sudah ditonton
+settings-watched-one = { $episodes } dari { $title } · { $size }
+settings-watched-many = { $episodes } · { $size }
+settings-delete-watched-title = { $count ->
+   *[other] Hapus { $count } unduhan yang sudah ditonton?
+ }
+settings-delete-watched-detail = Berkas dihapus dari { -device } ini. Episode yang belum ditonton tetap disimpan.
+settings-folder-default = Disimpan bersama cache torrent
+settings-storage-unwatched = Belum ditonton
+settings-storage-used = { $size } untuk unduhan.
+settings-storage-used-free = { $size } untuk unduhan. { $free } tersedia di { -device } ini.
+settings-torrents-warn-note = Memilih Peringatan saja hanya meminta konfirmasi terlebih dahulu, sama seperti Tanpa perlindungan.
+settings-source-count = { $count ->
+   *[other] { $count } { -source }
+ }
+settings-accounts-sync-note = Kemajuan dan perubahan daftar disinkronkan ke { $tracker }. { -library-cap } dan Daftar Saya di Kalender menampilkan daftar { $tracker } Anda.
+settings-conflicts = { $count ->
+   *[other] { $count } judul berbeda dari { $tracker }
+ }
+settings-review = Tinjau
+settings-changes-waiting = { $count ->
+   *[other] { $count } perubahan menunggu disinkronkan
+ }
+settings-synced-just-now = Baru saja disinkronkan
+settings-synced-ago = Disinkronkan { $ago }
+settings-privacy-note = Yang dikirim { -app-name }, dan yang tetap ada di { -device } ini
+settings-read-online = Baca daring
+settings-presence-note = Kehadiran kaya menampilkan sampul, bilah kemajuan, dan tautan ke tayangan di { $tracker }. Discord mengambil sampul dari { $tracker } sendiri. Judul harus ditampilkan.
+settings-presence-cover = Sampul
+settings-presence-button = Lihat di { $tracker }
+settings-presence-nothing = Menonton anime
+settings-presence-episode-of = Episode { $episode } dari { $total }
+settings-presence-episode = Episode { $episode }
+settings-presence-on = Profil Discord Anda menampilkan ini saat episode diputar.
+settings-presence-off = Nonaktif. Saat diaktifkan, profil Discord Anda menampilkan ini saat episode diputar.
+settings-notify-permission = { -app-name } meminta izin saat Anda pertama kali mengaktifkan ini.
+settings-week-empty = Tidak ada yang tayang dalam 7 hari ke depan untuk tayangan yang Anda ikuti.
+settings-week-loading = Memuat minggu ini…
+settings-system-app-mac = Pengaturan Sistem
+settings-system-app-ios = Pengaturan
+settings-notify-not-allowed = Tidak diizinkan untuk { -app-name } di { $settings }
+settings-week-dub-one = { $show } memberi tahu saat versi { -dubbed }-nya tayang.
+settings-week-dub-many = { $shows } memberi tahu saat versi { -dubbed }-nya tayang.
+settings-week-off-one = { $show } dimatikan di pengaturannya sendiri.
+settings-week-off-many = { $shows } dimatikan di pengaturannya sendiri.
+settings-week-row-opens = Baris akan membuka pengaturan tayangan itu.
+settings-when-today = Hari ini { $time }
+settings-when-tomorrow = Besok { $time }
+settings-when-day = { $day } { $time }
+settings-week-row-label = { $title }, episode { $episode }, { $when }
+settings-week-row-hint = Membuka pengaturan tayangan ini
+settings-notify-explain-on = Satu pemberitahuan saat episode dari tayangan dalam daftar Menonton Anda tayang, pada jam yang diberikan { $tracker }. Pengaturan tayangan itu didahulukan.
+settings-notify-explain-off = Nonaktif. Hanya tayangan yang diaktifkan di pengaturannya sendiri yang memberi tahu.
+settings-preview-show = Tayangan yang Anda tonton
+settings-preview-words = Episode 9 sudah tayang.
+settings-preview-label = Pemberitahuan: { $show }, { $words }
+settings-show-notices-label = Episode baru: { $value }
+settings-this-show = Tayangan ini
+settings-show-off-not-watching = Nonaktif · tidak ditonton
+settings-option-natural = Natural · ArtCNN
+settings-option-sharp = Tajam · Anime4K
+settings-option-mpv = Pengaturan mpv Anda
+settings-option-until-ratio = Hingga rasio { $ratio }
+settings-option-unlimited = Tanpa batas
+settings-option-per-second = { $size }/dtk
+settings-option-standard = Standar
+settings-option-higher = Lebih tinggi
+settings-option-adaptive = Adaptif
+settings-option-immersive = Imersif
+settings-torrents-value-on = Torrent aktif
+settings-torrents-value-off = Torrent nonaktif
+settings-seed-ratio-detail = Sebisa mungkin di { -device } ini: hanya saat { -app-name } terbuka
+settings-review-differences = { $count ->
+   *[other] Tinjau { $count } perbedaan
+ }
+settings-swipe-resume = Lanjutkan
+settings-swipe-retry = Coba lagi
+settings-stores-value-updates = { $count } · { $updates }
+show-settings-row-label = { $label }:
+show-settings-unnamed-track = Trek tanpa nama
+settings-title-line-signed-out = Bahasa Inggris selama belum masuk ke { $tracker }
+settings-title-line-from-account = { $language }, dari akun { $tracker } Anda
+settings-title-line-english = Romaji jika tidak ada judul Inggris
+settings-title-line-romaji = Judul Jepang dalam huruf Latin
+settings-title-note-signed-out = Selama belum masuk ke { $tracker }, judul ditampilkan dalam bahasa Inggris.
+settings-title-note-follows = Mengikuti akun { $tracker } Anda. { $then }
+settings-title-note-follows-set = Mengikuti akun { $tracker } Anda, yang diatur ke { $language }. { $then }
+settings-title-note-kept = { $title } tidak punya judul Inggris di { $tracker }, jadi tetap memakai judul romaji.
+settings-title-note-english = Judul Inggris seperti yang didaftarkan { $tracker }, dan romaji jika tidak ada.
+settings-title-note-romaji = Judul Jepang yang ditulis dalam huruf Latin, seperti didaftarkan { $tracker }.
+settings-folder-choose = Pilih
+settings-trailers-row = Putar trailer
+settings-trailers-note-apple = Trailer diputar tanpa suara dari YouTube, yang dapat melihat alamat IP Anda. Trailer tidak diputar dalam Mode Data Rendah, saat Kurangi Gerakan aktif, atau dalam Mode Daya Rendah.

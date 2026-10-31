@@ -1,0 +1,11 @@
+onboarding-welcome = Hoş geldiniz
+onboarding-welcome-to = { -app-name }'a hoş geldiniz
+onboarding-tagline = Animeleri takip edin ve seçtiğiniz { -source-pl }dan izleyin.
+onboarding-continue = İleri
+onboarding-skip = Atla
+onboarding-skip-for-now = Şimdilik atla
+onboarding-not-now = Şimdi değil
+onboarding-sources-title = { -source-cap-pl }
+onboarding-sources-detail = { -source-cap-pl } { -plugin-pl }dir. Davetle { -plugin-store-pl } üzerinden paylaşılır.
+onboarding-join = Katıl
+onboarding-invite-hint = Davet bağlantısı

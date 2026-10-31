@@ -70,3 +70,21 @@ name = "Русский"
 flag = "ru"
 stage = "draft"
 drafts = "ship"
+
+[language.tr]
+name = "Türkçe"
+flag = "tr"
+stage = "draft"
+drafts = "ship"
+
+[language.id]
+name = "Bahasa Indonesia"
+flag = "id"
+stage = "draft"
+drafts = "ship"
+
+[language.vi]
+name = "Tiếng Việt"
+flag = "vn"
+stage = "draft"
+drafts = "ship"

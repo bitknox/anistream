@@ -1,0 +1,17 @@
+cast-episode = Bölüm { $episode }
+cast-episode-titled = Bölüm { $episode } · { $title }
+notice-cast-video-codec = { $name } bu videoyu oynatamıyor ({ $codec }). Başka bir { -source } deneyin.
+notice-cast-audio-codec = { $name } bu sesi oynatamıyor ({ $codec }), bu { -device } ise sesi dönüştüremiyor. Başka bir { -source } deneyin.
+notice-cast-container = { $name } bu tür dosyayı oynatamıyor. Başka bir { -source } deneyin.
+notice-cast-deep-link = Bu bölüm başka bir uygulamada açılır, bu yüzden yayınlanamaz.
+notice-cast-never-fetches = { $name } yayını okumaya başlamadı. Bu { -device }da bir VPN ya da güvenlik duvarı engel oluyor olabilir.
+notice-cast-refused = { $name } bu yayını oynatmanın bütün yollarını denedi ama hiçbirini başaramadı. Başka bir { -source } deneyin.
+notice-cast-taken-over = Başka bir { -device } { $name } üzerinde bir şey başlattı, bu yüzden yayınlama durdu.
+notice-cast-not-same-network = Bu { -device }, { $name } ile aynı ağda değil ya da VPN üzerinden bağlanıyor. Yayınlamak için ikisinin de aynı ağda olması gerekir.
+notice-cast-lost = { $name } ile bağlantı koptu, bu yüzden yayınlama durdu.
+notice-cast-no-device = Seçilen TV artık ağda değil.
+notice-cast-unavailable = Bu { -app-name } sürümü TV'lere yayınlamayı desteklemiyor.
+cast-phase-starting = { $name } üzerinde başlatılıyor
+cast-phase-starting-for = { $name } üzerinde başlatılıyor · { $seconds } sn
+cast-phase-waiting = { $name } bekleniyor · { $seconds } sn
+cast-phase-preparing = Akış hazırlanıyor · { $seconds } sn

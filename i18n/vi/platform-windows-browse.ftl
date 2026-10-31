@@ -1,0 +1,36 @@
+continue-menu-resume = { -continue-cap }
+continue-loading = Đang tải những gì bạn đang xem
+continue-sync-waiting = { $count ->
+   *[other] { $count } thay đổi đang chờ đồng bộ
+ }
+calendar-day-empty = Không có tập nào phát sóng
+calendar-week-range = { $start } đến { $end }
+calendar-time-estimate = ~{ $time }
+calendar-time-about = khoảng { $time }
+calendar-episode-dubbed = T{ $episode } { -dubbed }
+calendar-watched-line = { $title } · { $episode }
+calendar-watched-spoken = { $title }, { $episode }, đã xem
+library-list-count = { $list } { $count }
+search-sort-name = Sắp xếp
+filter-picked-two = { $first }, { $second }
+filter-picked-more = { $first } +{ $more }
+title-season-when = { $season } · { $when }
+episode-download-text = Tải xuống tập { $episode }
+episode-download-failed-text = Không tải được tập { $episode }. Thử lại.
+episode-number-text = Tập { $episode }
+episode-text-with-title = Tập { $episode } · { $title }
+episode-row-spoken = { $heading }, { $line }
+episode-listed-by-anilist = Chỉ có trên AniList, chưa thể phát
+title-relation-format = { $relation } · { $format }
+title-episode-out-ago = T{ $episode } ra { $ago }
+title-next-airs = { -up-next-cap } phát sóng: { $when }
+title-episode-download = Tải xuống
+title-download-menu = Tải xuống…
+title-show-settings-menu = Cài đặt của tựa này…
+title-play-on-tv-tooltip = Phát tập này trên TV bằng { -app-name }
+title-list-status = Trạng thái danh sách
+download-range-title = Tải xuống các tập
+download-range-from = Từ
+download-range-to = Đến
+download-range-quality-note = Tải xuống dùng chất lượng trong Cài đặt › Tải xuống.
+calendar-today-tooltip = Hôm nay ({ $keys })

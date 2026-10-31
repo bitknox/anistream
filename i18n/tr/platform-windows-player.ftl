@@ -1,0 +1,12 @@
+player-episode-line-titled = { $line } · { $title }
+player-episode-fraction = Bölüm { $number }
+player-starting-fraction = Bölüm { $number } başlatılıyor
+player-failed-fraction = Bölüm { $number } oynatılamadı
+player-speed-value = { $speed }×
+player-timeline-playing = Oynatılıyor, { $position } / { $duration }
+player-timeline-paused = Duraklatıldı, { $position } / { $duration }
+player-track-added = { $name } · Eklendi
+player-load-subtitles-commit = Altyazı yükle
+player-load-audio-commit = Ses yükle
+player-mini-tip = Her zaman üstte kalır. Geri dönmek için { $key } tuşuna basın.
+player-stats-row = { $label }: { $value }
