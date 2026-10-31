@@ -19,7 +19,7 @@ public class SourceChoicesTests
     }
 
     static SourceCandidate Release(string id, string title, uint? quality = null, string? label = null, string? size = null) =>
-        new(id, "torrent", title, quality, size, label);
+        new(id, "torrent", title, quality, Label: label, Size: size);
 
     static SourceOption Option(string id, uint covered, SourceNote? note = null, bool pinned = false,
         SourceCandidate[]? releases = null, string? pinnedRelease = null) =>

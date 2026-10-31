@@ -64,7 +64,7 @@ static class Showcase
     public static SourceOption[] PickerOptions(string show)
     {
         SourceCandidate Release(string id, string title, uint quality, uint seeders, string size) =>
-            new(id, "torrent", title, quality, size, $"{seeders} seeders");
+            new(id, "torrent", title, quality, Label: $"{seeders} seeders", Size: size);
         SourceCandidate[] releases =
         [
             Release("batch-1080", "Hoshikuzu no Tabibito (Batch) 1080p", 1080, 84, "14.2 GiB"),
