@@ -584,3 +584,318 @@ pub fn discussion(
         load_images: false,
     }
 }
+
+/// How the showcase's media server answers, for a shot of each state of the add flow.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Flow {
+    #[default]
+    Usual,
+    /// Nobody answers at the address.
+    Unreachable,
+    /// The sign-in is turned down.
+    Credentials,
+}
+
+/// Which of a title's four availability cases the showcase answers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Case {
+    #[default]
+    PlaysAlsoOn,
+    OnService,
+    NotInSources,
+}
+
+#[derive(Default)]
+struct Lawful {
+    on: bool,
+    flow: Flow,
+    case: Case,
+    bare: bool,
+    chosen: bool,
+    servers_added: bool,
+}
+
+thread_local! {
+    static LAWFUL: std::cell::RefCell<Lawful> = std::cell::RefCell::new(Lawful::default());
+}
+
+/// Turn the lawful sources showcase on, answering as `flow` and `case`. With `bare`, nothing is
+/// added yet: no folders, no servers.
+pub fn lawful(flow: Flow, case: Case, bare: bool) {
+    LAWFUL.with(|l| {
+        *l.borrow_mut() = Lawful { on: true, flow, case, bare, ..Lawful::default() };
+    });
+}
+
+fn lawful_on() -> bool {
+    LAWFUL.with(|l| l.borrow().on)
+}
+
+fn local_view() -> anistream_model::local::LocalView {
+    use anistream_core::ids::AnilistId;
+    use anistream_model::local::{
+        FolderRow, GroupState, LocalGroup, LocalView, NotMatchedReason,
+    };
+    let (bare, chosen) = LAWFUL.with(|l| (l.borrow().bare, l.borrow().chosen));
+    if bare {
+        return LocalView { folders: Vec::new(), groups: Vec::new(), scanning: false };
+    }
+    let group = |folder: &str, name: &str, files: u32, state: GroupState| LocalGroup {
+        id: format!("{folder}|{name}"),
+        name: name.into(),
+        files,
+        state,
+        anilist: None,
+        matched_title: None,
+        reason: None,
+    };
+    let media = "/media/shows";
+    let mut harbour = group(media, "harbour light nights", 11, GroupState::NeedsLook);
+    harbour.anilist = Some(AnilistId::new(900_003));
+    harbour.matched_title = Some("Harbour Light Nights".into());
+    if chosen {
+        harbour.state = GroupState::Matched;
+    }
+    let mut lantern = group(media, "lantern road", 12, GroupState::Matched);
+    lantern.anilist = Some(AnilistId::new(900_001));
+    lantern.matched_title = Some("Lantern Road".into());
+    let mut clip = group(media, "clip 0412", 1, GroupState::NotMatched);
+    clip.reason = Some(NotMatchedReason::NoResult);
+    LocalView {
+        folders: vec![
+            FolderRow { path: media.into(), files: 24, available: true },
+            FolderRow {
+                path: "/run/media/mika/travel-drive/anime".into(),
+                files: 36,
+                available: false,
+            },
+            FolderRow { path: "/home/mika/Videos/old-rips".into(), files: 0, available: false },
+        ],
+        groups: vec![
+            lantern,
+            harbour,
+            clip,
+            group(
+                "/run/media/mika/travel-drive/anime",
+                "tidewater diary",
+                36,
+                GroupState::Matched,
+            ),
+            group(media, "birthday 2023", 3, GroupState::Kept),
+        ],
+        scanning: false,
+    }
+}
+
+fn server_rows() -> Vec<anistream_model::servers::ServerRow> {
+    use anistream_model::servers::ServerRow;
+    if LAWFUL.with(|l| l.borrow().bare && !l.borrow().servers_added) {
+        return Vec::new();
+    }
+    vec![ServerRow {
+        id: "mikas-jellyfin".into(),
+        name: "Mika's Jellyfin".into(),
+        address: "https://jelly.example:8920".into(),
+        version: "10.10.3".into(),
+        user: "mika".into(),
+        libraries: libraries(),
+        series: 48,
+        matched: 41,
+        report: true,
+        signed_out: false,
+    }]
+}
+
+fn libraries() -> Vec<anistream_model::servers::LibraryChoice> {
+    use anistream_model::servers::LibraryChoice;
+    let lib = |id: &str, name: &str, kind: &str, ticked| LibraryChoice {
+        id: id.into(),
+        name: name.into(),
+        kind: Some(kind.into()),
+        ticked,
+    };
+    vec![
+        lib("shows", "Shows", "tvshows", true),
+        lib("films", "Films", "movies", false),
+        lib("home", "Home videos", "homevideos", false),
+    ]
+}
+
+fn licensed_view() -> anistream_model::licensed::LicensedView {
+    use anistream_model::licensed::{LicensedSettings, LicensedView, REGIONS};
+    let bare = LAWFUL.with(|l| l.borrow().bare);
+    LicensedView {
+        settings: LicensedSettings {
+            services: if bare { Vec::new() } else { vec!["Lanternflix".into()] },
+            region: Some("DK".into()),
+            show_others: true,
+        },
+        region: Some("DK".into()),
+        available: ["Lanternflix", "Harbourplay", "Mochi Video", "Tidewater TV"]
+            .map(String::from)
+            .to_vec(),
+        regions: REGIONS.iter().map(|r| (*r).to_owned()).collect(),
+    }
+}
+
+fn availability(
+    id: anistream_core::ids::AnilistId,
+) -> anistream_model::licensed::TitleAvailability {
+    use anistream_model::licensed::{
+        AvailabilityCase, EpisodeLink, ServiceLink, TitleAvailability,
+    };
+    let link = |service: &str, notes: Option<&str>| ServiceLink {
+        service: service.into(),
+        url: format!(
+            "https://{}.example/title/{}",
+            service.to_lowercase().replace(' ', "-"),
+            id.get()
+        ),
+        notes: notes.map(Into::into),
+    };
+    let case = LAWFUL.with(|l| l.borrow().case);
+    let empty = TitleAvailability {
+        id,
+        case: AvailabilityCase::NotInSources,
+        main: None,
+        also_on: Vec::new(),
+        yours: Vec::new(),
+        others: Vec::new(),
+        episodes: Vec::new(),
+        choose_services: false,
+    };
+    match case {
+        Case::PlaysAlsoOn => TitleAvailability {
+            case: AvailabilityCase::PlaysAlsoOn,
+            also_on: vec![link("Lanternflix", None)],
+            others: vec!["Harbourplay".into()],
+            ..empty
+        },
+        Case::OnService => TitleAvailability {
+            case: AvailabilityCase::OnService,
+            main: Some(link("Lanternflix", None)),
+            yours: vec![link("Lanternflix", None)],
+            others: vec!["Harbourplay".into(), "Mochi Video".into()],
+            episodes: vec![EpisodeLink {
+                episode: 4,
+                service: "Lanternflix".into(),
+                url: "https://lanternflix.example/watch/4".into(),
+            }],
+            ..empty
+        },
+        Case::NotInSources => TitleAvailability { choose_services: true, ..empty },
+    }
+}
+
+/// The notice for coming back from a service after an episode.
+pub fn licensed_return() -> Event {
+    Event::LicensedReturn(anistream_model::licensed::LicensedReturn {
+        id: anistream_core::ids::AnilistId::new(900_001),
+        episode: 4,
+        service: "Lanternflix".into(),
+        prompt: anistream_model::Msg::verbatim("Did you watch episode 4 on Lanternflix?"),
+        done: anistream_model::Msg::verbatim("Episode 4 marked as watched."),
+    })
+}
+
+/// What the lawful sources showcase answers to the commands of folders, servers and licensed
+/// services. `None` when it is off or the command is another kind.
+pub fn lawful_answer(command: &Command) -> Option<Vec<Event>> {
+    use anistream_model::{
+        command::LicensedCommand as L,
+        local::{LocalCommand as C, LocalEvent},
+        servers::{
+            CheckedServer, FoundServer, ServerCommand as S, ServerEvent, ServerFailure,
+            ServerStep,
+        },
+    };
+    if !lawful_on() {
+        return None;
+    }
+    let flow = LAWFUL.with(|l| l.borrow().flow);
+    let server = |e| Event::Server(e);
+    let servers = || server(ServerEvent::Servers(server_rows()));
+    Some(match command {
+        Command::Local(
+            C::Load | C::Scan | C::AddFolder { .. } | C::RemoveFolder { .. } | C::Keep { .. },
+        ) => {
+            vec![Event::Local(LocalEvent::View(local_view()))]
+        }
+        Command::Local(C::Choose { .. }) => {
+            LAWFUL.with(|l| l.borrow_mut().chosen = true);
+            vec![Event::Local(LocalEvent::View(local_view()))]
+        }
+        Command::Server(S::Discover) => vec![
+            server(ServerEvent::Found(FoundServer {
+                id: "mikas-jellyfin".into(),
+                name: "Mika's Jellyfin".into(),
+                address: "https://jelly.example:8920".into(),
+            })),
+            server(ServerEvent::DiscoveryDone),
+        ],
+        Command::Server(S::Check { address }) => match flow {
+            Flow::Unreachable => vec![server(ServerEvent::Failed {
+                step: ServerStep::Address,
+                failure: ServerFailure::Unreachable { address: address.clone() },
+            })],
+            _ => vec![server(ServerEvent::Checked(CheckedServer {
+                id: "mikas-jellyfin".into(),
+                name: "Mika's Jellyfin".into(),
+                version: "10.10.3".into(),
+                address: address.clone(),
+                quick_connect: true,
+            }))],
+        },
+        Command::Server(S::SignIn { .. }) => match flow {
+            Flow::Credentials => vec![server(ServerEvent::Failed {
+                step: ServerStep::SignIn,
+                failure: ServerFailure::Credentials,
+            })],
+            _ => vec![
+                server(ServerEvent::SignedIn { server: "mikas-jellyfin".into() }),
+                server(ServerEvent::Libraries {
+                    server: "mikas-jellyfin".into(),
+                    libraries: libraries(),
+                }),
+            ],
+        },
+        Command::Server(S::StartQuickConnect { .. }) => {
+            vec![server(ServerEvent::QuickConnectCode { code: "482913".into() })]
+        }
+        Command::Server(S::LoadLibraries { server: id }) => {
+            vec![server(ServerEvent::Libraries { server: id.clone(), libraries: libraries() })]
+        }
+        Command::Server(S::SetLibraries { .. }) => {
+            LAWFUL.with(|l| l.borrow_mut().servers_added = true);
+            vec![servers()]
+        }
+        Command::Server(
+            S::Load | S::Refresh { .. } | S::SetReport { .. } | S::Remove { .. },
+        ) => {
+            vec![servers()]
+        }
+        Command::Licensed(
+            L::Load { .. }
+            | L::SetServices { .. }
+            | L::SetRegion { .. }
+            | L::SetShowOthers { .. },
+        ) => {
+            vec![Event::Licensed(licensed_view())]
+        }
+        Command::Licensed(L::LoadAvailability { id, .. }) => {
+            vec![Event::Availability(availability(*id))]
+        }
+        Command::Licensed(L::Returned) => vec![licensed_return()],
+        _ => return None,
+    })
+}
+
+/// What the lawful sources showcase sets in place of the engine's own.
+pub fn lawful_events() -> Vec<Event> {
+    use anistream_model::{local::LocalEvent, servers::ServerEvent};
+    vec![
+        Event::Local(LocalEvent::View(local_view())),
+        Event::Server(ServerEvent::Servers(server_rows())),
+        Event::Licensed(licensed_view()),
+    ]
+}

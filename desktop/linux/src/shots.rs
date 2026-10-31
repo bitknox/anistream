@@ -173,6 +173,28 @@ pub const SOURCES: [&str; 7] = [
     "source-unsourced-none",
 ];
 
+/// The lawful sources' shots: Sources with folders, servers and services, the add-a-server flow,
+/// a folder and its match dialog, the title page's three cases. `--shot lawful` takes them.
+pub const LAWFUL: [&str; 17] = [
+    "lawful-sources-bare",
+    "lawful-sources",
+    "lawful-server-find",
+    "lawful-server-sign-in",
+    "lawful-server-unreachable",
+    "lawful-server-credentials",
+    "lawful-server-libraries",
+    "lawful-server",
+    "lawful-folder",
+    "lawful-folder-drive",
+    "lawful-folder-fix",
+    "lawful-licensed",
+    "lawful-title-also-on",
+    "lawful-title-on-service",
+    "lawful-title-nowhere",
+    "lawful-return",
+    "lawful-welcome",
+];
+
 /// The game controller's shots: the screens as a controller leaves them, with the focus ring
 /// showing. `--shot pad` takes them.
 pub const PAD: [&str; 7] = [
@@ -511,6 +533,8 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.go(Dest::Providers);
             2.0
         }
+        #[cfg(feature = "fixtures")]
+        lawful if lawful.starts_with("lawful-") => lawful_stage(shell, lawful),
         "provider" => {
             shell.go(Dest::Providers);
             crate::pages::plugin::push_provider(&shell.ctx, "mukashi-archive");
@@ -835,6 +859,13 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
 
 /// Leave the state a shot put the window in.
 fn unstage(shell: &Rc<Shell>, shot: &str) {
+    if shot.starts_with("lawful-") {
+        close_dialogs(&shell.ctx.window);
+        close_dialogs(&shell.ctx.window);
+        shell.ctx.toasts.dismiss_all();
+        let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+        let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+    }
     if shot.starts_with("pad-") {
         if let Some(pad) = shell.pad() {
             pad.shot_leave();
@@ -1333,6 +1364,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
             .flat_map(|s| match s {
                 "party" => PARTY.iter().map(|p| (*p).to_owned()).collect(),
                 "sources" => SOURCES.iter().map(|p| (*p).to_owned()).collect(),
+                "lawful" => LAWFUL.iter().map(|p| (*p).to_owned()).collect(),
                 "pad" => PAD.iter().map(|p| (*p).to_owned()).collect(),
                 "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
                 "tv" => TV.iter().map(|p| (*p).to_owned()).collect(),
@@ -2377,6 +2409,166 @@ fn source_unstage(shell: &Rc<Shell>) {
     shell.ctx.hub.unsourced.set(None);
     shell.ctx.toasts.dismiss_all();
     let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+}
+
+/// Stand the lawful sources showcase up as `flow` and `case` answer, with `bare` for nothing
+/// added yet.
+#[cfg(feature = "fixtures")]
+fn lawful_begin(
+    shell: &Rc<Shell>,
+    flow: crate::showcase::Flow,
+    case: crate::showcase::Case,
+    bare: bool,
+) {
+    crate::showcase::lawful(flow, case, bare);
+    shell.ctx.hub.show_instead(crate::showcase::lawful_events());
+    shell.go(Dest::Providers);
+}
+
+/// Every text row under `widget`, in tree order: the add-a-server dialog's address, user and
+/// password.
+#[cfg(feature = "fixtures")]
+fn entry_rows(widget: &gtk::Widget, out: &mut Vec<adw::EntryRow>) {
+    if let Some(row) = widget.downcast_ref::<adw::EntryRow>() {
+        out.push(row.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(c) = child {
+        entry_rows(&c, out);
+        child = c.next_sibling();
+    }
+}
+
+/// Type the showcase server's address and press Return in it.
+#[cfg(feature = "fixtures")]
+fn type_address(window: &adw::ApplicationWindow) {
+    let Some(dialog) = window.visible_dialog() else { return };
+    let mut rows = Vec::new();
+    entry_rows(dialog.upcast_ref(), &mut rows);
+    if let Some(address) = rows.first() {
+        address.set_text("https://jelly.example:8920");
+        address.emit_by_name::<()>("entry-activated", &[]);
+    }
+}
+
+/// Type the showcase user and a password, and press Return in the password.
+#[cfg(feature = "fixtures")]
+fn type_sign_in(window: &adw::ApplicationWindow, password: &str) {
+    let Some(dialog) = window.visible_dialog() else { return };
+    let mut rows = Vec::new();
+    entry_rows(dialog.upcast_ref(), &mut rows);
+    if let [_, user, pass, ..] = rows.as_slice() {
+        user.set_text("mika");
+        pass.set_text(password);
+        pass.emit_by_name::<()>("entry-activated", &[]);
+    }
+}
+
+/// The lawful sources shots.
+#[cfg(feature = "fixtures")]
+fn lawful_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use crate::{
+        pages::{folders, licensed, servers},
+        showcase::{Case, Flow},
+    };
+    let ctx = &shell.ctx;
+    let (flow, case) = match shot {
+        "lawful-server-unreachable" => (Flow::Unreachable, Case::PlaysAlsoOn),
+        "lawful-server-credentials" => (Flow::Credentials, Case::PlaysAlsoOn),
+        "lawful-title-on-service" => (Flow::Usual, Case::OnService),
+        "lawful-title-nowhere" => (Flow::Usual, Case::NotInSources),
+        _ => (Flow::Usual, Case::PlaysAlsoOn),
+    };
+    let bare = matches!(
+        shot,
+        "lawful-sources-bare"
+            | "lawful-server-find"
+            | "lawful-server-sign-in"
+            | "lawful-server-unreachable"
+            | "lawful-server-credentials"
+            | "lawful-server-libraries"
+    );
+    lawful_begin(shell, flow, case, bare);
+    let later = |ms: u64, f: Box<dyn Fn(&adw::ApplicationWindow)>| {
+        let window = ctx.window.clone();
+        glib::timeout_add_local_once(Duration::from_millis(ms), move || f(&window));
+    };
+    match shot {
+        "lawful-sources-bare" | "lawful-sources" => {}
+        "lawful-server-find" => servers::open_add(ctx, None),
+        "lawful-server-sign-in" | "lawful-server-unreachable" => {
+            servers::open_add(ctx, Some("https://jelly.example:8920"));
+            later(800, Box::new(type_address));
+        }
+        "lawful-server-credentials" | "lawful-server-libraries" => {
+            servers::open_add(ctx, Some("https://jelly.example:8920"));
+            let bad = shot == "lawful-server-credentials";
+            later(800, Box::new(type_address));
+            later(
+                2200,
+                Box::new(move |window| {
+                    type_sign_in(window, if bad { "wrong" } else { "lantern-tea" });
+                }),
+            );
+        }
+        "lawful-server" => servers::push(ctx, "mikas-jellyfin"),
+        "lawful-folder" => folders::push(ctx, "/media/shows"),
+        "lawful-folder-drive" => folders::push(ctx, "/run/media/mika/travel-drive/anime"),
+        "lawful-folder-fix" => {
+            folders::push(ctx, "/media/shows");
+            let ctx = Rc::clone(ctx);
+            later(
+                800,
+                Box::new(move |_| {
+                    let group = ctx.hub.known.borrow().local.as_ref().and_then(|view| {
+                        view.groups.iter().find(|g| g.name.starts_with("harbour")).cloned()
+                    });
+                    if let Some(group) = group {
+                        folders::fix_match(&ctx, &group);
+                    }
+                }),
+            );
+            later(
+                2200,
+                Box::new(|window| {
+                    if let Some(dialog) = window.visible_dialog()
+                        && let Some(field) = first::<gtk::SearchEntry>(dialog.upcast_ref())
+                    {
+                        field.set_text("stardust");
+                    }
+                }),
+            );
+        }
+        "lawful-licensed" => licensed::push(ctx),
+        "lawful-title-also-on" | "lawful-title-on-service" | "lawful-title-nowhere" => {
+            shell.go(Dest::Continue);
+            let _ = WidgetExt::activate_action(
+                &ctx.window,
+                "win.open-title",
+                Some(&TITLE.to_variant()),
+            );
+            return 3.5;
+        }
+        "lawful-return" => {
+            ctx.hub
+                .send(Command::Licensed(anistream_model::command::LicensedCommand::Returned));
+        }
+        "lawful-welcome" => {
+            crate::pages::first_launch::open(ctx);
+            later(
+                600,
+                Box::new(|window| {
+                    if let Some(dialog) = window.visible_dialog()
+                        && let Some(pages) = first::<adw::NavigationView>(dialog.upcast_ref())
+                    {
+                        pages.push_by_tag("sources");
+                    }
+                }),
+            );
+        }
+        _ => {}
+    }
+    3.0
 }
 
 #[cfg(not(feature = "fixtures"))]

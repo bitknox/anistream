@@ -153,6 +153,12 @@ home-because = Because you finished { $title }
 # Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".
 home-more-genre = More { $genre }
 
+# Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.
+licensed-return = Watched episode { $episode } on { $service }?
+
+# Notice after Mark as watched on the return notice. It holds Undo.
+licensed-marked = Episode { $episode } marked as watched.
+
 # A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 notice-reason = { $reason }
 
@@ -1462,6 +1468,15 @@ continue-preview = Preview
 
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = Airs at { $time }
+
+# Line under the title of the last welcome page: what the app plays, without a promise of its own.
+onboarding-where-hosts-linux = anistream plays what you already have: files on this device, your Jellyfin server, and plugins from plugin stores you join.
+
+# Heading over the buttons that add the viewer's own media on the last welcome page.
+onboarding-own-heading = Have your own media?
+
+# Heading over the invite link field on the last welcome page.
+onboarding-invite-heading = Have an invite link?
 
 # Header title on a terminal too narrow for the rail: the product name, then the section on screen.
 chrome-header-section = anistream · { $section }
@@ -5184,6 +5199,178 @@ up-next-broadcast = Episode { $episode } · { $when }
 # The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
 up-next-out = out { $ago }
 
+# Prompt of the folder chooser.
+library-picker-prompt = Add folder
+
+# Heading of the folder chooser.
+library-picker-message = Choose a folder with your episodes.
+
+# A folder's line while its files are counted.
+library-row-scanning =
+    { $files ->
+        [one] Scanning · 1 file found
+       *[other] Scanning · { $files } files found
+    }
+
+# A folder's line once it is read.
+library-row-summary =
+    { $episodes ->
+        [one] 1 episode of { $series } series
+       *[other] { $episodes } episodes of { $series } series
+    }
+
+# Added to a folder's line when some of its series are not matched for sure.
+library-row-needs-look = { $count } need a look
+
+# A folder on a drive that is not connected.
+library-row-drive-offline = Drive not connected
+
+# A folder that was removed or renamed.
+library-row-missing = Folder not found
+
+# A folder the app is no longer allowed to open.
+library-row-no-access = anistream can't open this folder any more
+
+# Button that picks where a missing folder went.
+library-locate = Locate…
+
+# Button that asks for a folder's permission again.
+library-choose-again = Choose again
+
+# A folder page's line when changes are noticed as they happen.
+library-page-watching = Watched for changes
+
+# A folder page's line when changes are found only when the app starts or is asked.
+library-page-no-watch = Looked at again when anistream starts
+
+# Button that reads a folder again.
+library-rescan = Rescan
+
+# Button that shows a folder in the file manager.
+library-open-folder = Open folder
+
+# Button that stops reading a folder.
+library-remove-folder = Remove folder
+
+# Line on a folder page that says what removing does.
+library-remove-detail = Your files stay where they are.
+
+# Heading over the series that are probably matched but need the viewer to confirm.
+library-needs-look = Needs a look
+
+# Heading over the files nothing was matched to.
+library-not-matched = Not matched
+
+# Heading over the matched series.
+library-matched = Matched
+
+# Row line: how many series are matched.
+library-matched-count = { $count } series matched
+
+# Row line for a series in Needs a look: the title found, if any.
+library-best-guess = Best guess: { $title }
+
+# Row line: how many files are in a group.
+library-files =
+    { $count ->
+        [one] 1 file
+       *[other] { $count } files
+    }
+
+# Why a group of files is not matched: AniList knows nothing like the name.
+library-reason-no-title = No AniList title found
+
+# Why a group of files is not matched: AniList could not be asked.
+library-reason-offline = Couldn't ask AniList. It is tried again at the next scan.
+
+# Button that opens the match picker for a group.
+library-choose-match = Choose the match
+
+# Menu item that keeps a group's files as a title of their own.
+library-keep-unmatched = Keep unmatched
+
+# Row line for files kept as a title of their own.
+library-kept-line = Kept as its own title
+
+# Title of the dialog that asks which title a folder is.
+library-fix-title = Which title is this folder?
+
+# Menu item on a matched series that opens the match picker.
+library-fix-match = Fix this match
+
+# Button at the foot of the match picker that keeps the files unmatched.
+library-leave-unmatched = Leave unmatched
+
+# Line in the match picker when AniList has nothing for what was typed.
+library-fix-none = No titles found
+
+# Heading over the library's titles that come from the viewer's own files.
+library-from-files = From your files
+
+# Line on a result in the match picker whose episode count does not fit the folder's files.
+library-fix-count-mismatch =
+    { $episodes ->
+        [one] Has 1 episode, this folder has { $files }
+       *[other] Has { $episodes } episodes, this folder has { $files }
+    }
+
+# Title of the Licensed services page.
+licensed-title = Licensed services
+
+# Line at the top of the page.
+licensed-body = anistream can open titles in streaming services you pay for. It never plays them itself. Links come from AniList.
+
+# Label of the region choice.
+licensed-region = Region
+
+# Line under the region choice.
+licensed-region-line = Hides links AniList marks for other countries. Most links name no country, so choose your services too.
+
+# Heading over the services the viewer pays for.
+licensed-yours = Your services
+
+# Row that shows the rest of the services.
+licensed-show-all = Show all { $count }
+
+# Switch for the line that names services the viewer does not use.
+licensed-show-others = Show other services on title pages
+
+# Line under that switch.
+licensed-show-others-line = A line under the buttons names services you don't use.
+
+# A Sources row's line: the services and the region.
+licensed-row-line = { $services } · { $region }
+
+# A Sources row's line before any service is chosen.
+licensed-row-none = Choose the services you pay for
+
+# Line while AniList's list of services has not arrived.
+licensed-loading = Asking AniList for its list of services
+
+# Main button of a title that plays only in a service.
+title-watch-on = Watch on { $service }
+
+# Menu item that opens a title in one of the viewer's services.
+title-watch-on-item = Watch on { $service }
+
+# Line under the buttons of a title that plays here and is also in a service.
+title-also-on-services = Also on { $services }
+
+# Line under the buttons of a title that is in none of the viewer's services.
+title-listed-on = Not found in your sources. Listed on { $services }.
+
+# Link that opens the Licensed services page.
+title-choose-services = Choose your services
+
+# Button that undoes marking as watched.
+licensed-mark-undo = Undo
+
+# Tooltip on the glyph that says a row opens outside the app.
+licensed-opens-outside = Opens in your browser
+
+# Line under the buttons of a title that is also listed in services the viewer does not use.
+title-others-line = Also listed on { $services }
+
 # Format of a show: broadcast on television.
 format-tv = TV
 
@@ -6248,6 +6435,157 @@ search-sort-title = Title
 # Search: sort by what is popular right now.
 search-sort-trending = Trending
 
+# Title of the dialog that adds a media server.
+servers-add-title = Add a media server
+
+# Heading over the servers found on the network.
+servers-on-network = On your network
+
+# Row while the network is searched for servers.
+servers-looking = Looking for servers…
+
+# Line when no server answered the search.
+servers-none-found = No servers found on this network. Type the address instead.
+
+# Label of the address field.
+servers-address = Server address
+
+# Example inside the address field.
+servers-address-hint = jellyfin.home.example or 192.168.1.20:8096
+
+# Button that checks the address and goes on.
+servers-continue = Continue
+
+# Title of the sign-in step.
+servers-sign-in-title = Sign in to { $server }
+
+# Label of the user name field.
+servers-user = User name
+
+# Label of the password field.
+servers-password = Password
+
+# Link that switches the sign-in to Quick Connect.
+servers-use-quick-connect = Use Quick Connect instead
+
+# Link that switches Quick Connect back to a password.
+servers-use-password = Sign in with a password instead
+
+# Line under the sign-in fields.
+servers-token-note = Your password isn't saved. anistream keeps a sign-in token in { $store }.
+
+# Where the sign-in token is kept on Linux, as a phrase in the line above.
+secure-store-linux = your keyring
+
+# Button that signs in.
+servers-sign-in = Sign in
+
+# Title of the Quick Connect step.
+servers-qc-title = Enter this code in Jellyfin
+
+# Steps for Quick Connect.
+servers-qc-steps = On a device that's signed in, open Jellyfin, go to your profile, choose Quick Connect and enter this code.
+
+# Line under the code while the viewer approves it.
+servers-qc-waiting = Waiting for you to approve it
+
+# Error when the Quick Connect code ran out.
+servers-qc-expired = That code has run out.
+
+# Button that asks for another Quick Connect code.
+servers-qc-new-code = Get a new code
+
+# Title of the step that chooses libraries.
+servers-libraries-title = Choose libraries
+
+# Line under it.
+servers-libraries-body = Shows are matched to AniList so they join Home, your lists and Search.
+
+# A library's line: what it holds, and how many series.
+servers-library-line = { $kind } · { $count } series
+
+# Switch that sends watched marks and resume points to the server.
+servers-report = Report what you watch to Jellyfin
+
+# Line under that switch.
+servers-report-line = Resume points and watched marks follow what you play here.
+
+# Button that saves the server.
+servers-add = Add server
+
+# A server's line while its series are matched.
+servers-row-matching = Matching · { $done } of { $total } series
+
+# A server's line once it is read.
+servers-row-summary =
+    { $libraries ->
+        [one] 1 library · { $series } series
+       *[other] { $libraries } libraries · { $series } series
+    }
+
+# The server page's line under its name.
+servers-page-line = { $address } · Jellyfin { $version } · signed in as { $user }
+
+# Button that signs out of a server.
+servers-sign-out = Sign out
+
+# Button that forgets a server.
+servers-remove = Remove server
+
+# Error under the address field: nothing answered.
+servers-error-unreachable = Can't reach { $address }. Check the address and that the server is on.
+
+# Error under the address field: it is not Jellyfin.
+servers-error-not-jellyfin = That address answers, but it isn't a Jellyfin server.
+
+# Error under the address field: the server is too old.
+servers-error-too-old = This server runs Jellyfin { $version }. anistream needs 10.8 or later.
+
+# Error under the password field.
+servers-error-credentials = Wrong user name or password.
+
+# Error where the Quick Connect link was.
+servers-error-qc-off = Quick Connect is off on this server. Sign in with a password, or turn it on in Jellyfin's dashboard.
+
+# Error under the address field: plain HTTP away from the home network.
+servers-error-plain-http = This address isn't on your network and doesn't use HTTPS, so your password would travel unprotected. Use an https:// address.
+
+# Error under the address field: the text is not an address.
+servers-error-bad-address = That isn't an address. Try something like jellyfin.home.example.
+
+# Error for anything else a server answered.
+servers-error-other = The server answered with something anistream can't use. Try again.
+
+# Title of the step that asks about a certificate.
+servers-cert-title = Check this server
+
+# Body of that step.
+servers-cert-body = { $host } uses a certificate this device doesn't trust. That's normal for a server at home. Allow it only if this fingerprint matches the one your server shows.
+
+# Button that allows a certificate.
+servers-cert-allow = Allow this certificate
+
+# A server's line when it no longer accepts the sign-in.
+servers-row-signed-out = Signed out by the server
+
+# Button that signs in to a server again.
+servers-sign-in-again = Sign in again
+
+# Heading over a server's libraries.
+servers-libraries-heading = Libraries
+
+# Button on a server's page that matches its series to AniList again.
+servers-refresh = Match again
+
+# Line on a server's page: how many of its series are not matched for sure.
+servers-needs-look = { $count } not matched to AniList
+
+# What a Jellyfin library of shows is called in a library's line.
+servers-kind-shows = Shows
+
+# What a Jellyfin library of films is called in a library's line.
+servers-kind-films = Films
+
 # Settings group and row title for choosing a language.
 settings-language = Language
 
@@ -6973,6 +7311,57 @@ match-cleared = Matching automatically again.
 
 # Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 match-row-label = { $title }, { $facts }, { $closeness }
+
+# Heading over the folders the viewer added.
+sources-section-media = Your media
+
+# Heading over the media servers.
+sources-section-servers = Media servers
+
+# Heading over the one row for licensed services.
+sources-section-licensed = Licensed services
+
+# Heading over the plugins of one store.
+sources-section-store = From { $store }
+
+# Heading over the plugins put in by hand.
+sources-section-by-hand = Added by hand
+
+# Heading over what anistream ships.
+sources-section-builtin = Built in
+
+# The secondary button that opens the menu of things to add.
+sources-add = Add
+
+# Menu item that adds a folder of episodes.
+sources-add-folder = Folder…
+
+# Menu item that adds a media server.
+sources-add-server = Media server…
+
+# Menu item that joins a plugin store.
+sources-add-store = Join a plugin store…
+
+# Line under the title of the empty Sources page.
+sources-empty-body = Sources are where episodes come from: folders on this device, your media server, and plugins from plugin stores you join.
+
+# Button on the empty Sources page that picks a folder.
+sources-add-folder-button = Add a folder
+
+# Button on the empty Sources page that starts adding a media server.
+sources-add-server-button = Add a media server
+
+# Link under the buttons on the empty Sources page.
+sources-empty-join-link = Join a plugin store
+
+# Words before the link on the empty Sources page.
+sources-empty-or = Or
+
+# Notice after a first-party source is removed. It holds Undo.
+sources-removed = { $name } removed
+
+# Second line of the notice after a folder is removed.
+sources-removed-files-stay = Your files stay where they are.
 
 # Short label for a joined store, on a row.
 stores-joined = Joined

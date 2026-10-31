@@ -170,3 +170,15 @@ continue-preview = Preview
 # @arg time: text
 # @max 28
 up-next-airs-at = Airs at { $time }
+
+# Line under the title of the last welcome page: what the app plays, without a promise of its own.
+# @only linux
+onboarding-where-hosts-linux = { -app-name } plays what you already have: files on this { -device }, your Jellyfin server, and { -plugin-pl } from { -plugin-store-pl } you join.
+
+# Heading over the buttons that add the viewer's own media on the last welcome page.
+# @only linux
+onboarding-own-heading = Have your own media?
+
+# Heading over the invite link field on the last welcome page.
+# @only linux
+onboarding-invite-heading = Have an invite link?

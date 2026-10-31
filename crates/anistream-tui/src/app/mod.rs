@@ -479,6 +479,13 @@ impl App {
             | Event::Browse(_)
             | Event::Facets(_)
             | Event::RecentSearches(_) => {}
+            // The terminal draws no licensed services yet: what the native apps are sent is not
+            // asked for here.
+            Event::Licensed(_)
+            | Event::Availability(_)
+            | Event::LicensedReturn(_)
+            | Event::Server(_)
+            | Event::Local(_) => {}
             Event::Content { view, content } => self.apply_content(view, content),
             Event::UpNext(items) => self.apply_up_next(items),
             // The terminal's Home is its own Continue and Up next for you, and has no Settings,

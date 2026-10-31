@@ -213,6 +213,14 @@ object Strings {
     fun homeMoreGenre(context: Context, genre: String): String =
         context.getString(R.string.home_more_genre, genre)
 
+    /** Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream. */
+    fun licensedReturn(context: Context, episode: Int, service: String): String =
+        context.getString(R.string.licensed_return, episode, service)
+
+    /** Notice after Mark as watched on the return notice. It holds Undo. */
+    fun licensedMarked(context: Context, episode: Int): String =
+        context.getString(R.string.licensed_marked, episode)
+
     /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
     fun noticeReason(context: Context, reason: String): String =
         context.getString(R.string.notice_reason, reason)
@@ -4261,6 +4269,214 @@ object Strings {
     fun upNextOut(context: Context, ago: String): String =
         context.getString(R.string.up_next_out, ago)
 
+    /** Prompt of the folder chooser. */
+    fun libraryPickerPrompt(context: Context): String =
+        context.getString(R.string.library_picker_prompt)
+
+    /** Heading of the folder chooser. */
+    fun libraryPickerMessage(context: Context): String =
+        context.getString(R.string.library_picker_message)
+
+    /** A folder's line while its files are counted. */
+    fun libraryRowScanning(context: Context, files: Int): String =
+        context.resources.getQuantityString(R.plurals.library_row_scanning, files, files)
+
+    /** A folder's line once it is read. */
+    fun libraryRowSummary(context: Context, episodes: Int, series: Int): String =
+        context.resources.getQuantityString(R.plurals.library_row_summary, episodes, episodes, series)
+
+    /** Added to a folder's line when some of its series are not matched for sure. */
+    fun libraryRowNeedsLook(context: Context, count: Int): String =
+        context.getString(R.string.library_row_needs_look, count)
+
+    /** A folder on a drive that is not connected. */
+    fun libraryRowDriveOffline(context: Context): String =
+        context.getString(R.string.library_row_drive_offline)
+
+    /** A folder that was removed or renamed. */
+    fun libraryRowMissing(context: Context): String =
+        context.getString(R.string.library_row_missing)
+
+    /** A folder the app is no longer allowed to open. */
+    fun libraryRowNoAccess(context: Context): String =
+        context.getString(R.string.library_row_no_access)
+
+    /** Button that picks where a missing folder went. */
+    fun libraryLocate(context: Context): String =
+        context.getString(R.string.library_locate)
+
+    /** Button that asks for a folder's permission again. */
+    fun libraryChooseAgain(context: Context): String =
+        context.getString(R.string.library_choose_again)
+
+    /** A folder page's line when changes are noticed as they happen. */
+    fun libraryPageWatching(context: Context): String =
+        context.getString(R.string.library_page_watching)
+
+    /** A folder page's line when changes are found only when the app starts or is asked. */
+    fun libraryPageNoWatch(context: Context): String =
+        context.getString(R.string.library_page_no_watch)
+
+    /** Button that reads a folder again. */
+    fun libraryRescan(context: Context): String =
+        context.getString(R.string.library_rescan)
+
+    /** Button that shows a folder in the file manager. */
+    fun libraryOpenFolder(context: Context): String =
+        context.getString(R.string.library_open_folder)
+
+    /** Button that stops reading a folder. */
+    fun libraryRemoveFolder(context: Context): String =
+        context.getString(R.string.library_remove_folder)
+
+    /** Line on a folder page that says what removing does. */
+    fun libraryRemoveDetail(context: Context): String =
+        context.getString(R.string.library_remove_detail)
+
+    /** Heading over the series that are probably matched but need the viewer to confirm. */
+    fun libraryNeedsLook(context: Context): String =
+        context.getString(R.string.library_needs_look)
+
+    /** Heading over the files nothing was matched to. */
+    fun libraryNotMatched(context: Context): String =
+        context.getString(R.string.library_not_matched)
+
+    /** Heading over the matched series. */
+    fun libraryMatched(context: Context): String =
+        context.getString(R.string.library_matched)
+
+    /** Row line: how many series are matched. */
+    fun libraryMatchedCount(context: Context, count: Int): String =
+        context.getString(R.string.library_matched_count, count)
+
+    /** Row line for a series in Needs a look: the title found, if any. */
+    fun libraryBestGuess(context: Context, title: String): String =
+        context.getString(R.string.library_best_guess, title)
+
+    /** Row line: how many files are in a group. */
+    fun libraryFiles(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.library_files, count, count)
+
+    /** Why a group of files is not matched: AniList knows nothing like the name. */
+    fun libraryReasonNoTitle(context: Context): String =
+        context.getString(R.string.library_reason_no_title)
+
+    /** Why a group of files is not matched: AniList could not be asked. */
+    fun libraryReasonOffline(context: Context): String =
+        context.getString(R.string.library_reason_offline)
+
+    /** Button that opens the match picker for a group. */
+    fun libraryChooseMatch(context: Context): String =
+        context.getString(R.string.library_choose_match)
+
+    /** Menu item that keeps a group's files as a title of their own. */
+    fun libraryKeepUnmatched(context: Context): String =
+        context.getString(R.string.library_keep_unmatched)
+
+    /** Row line for files kept as a title of their own. */
+    fun libraryKeptLine(context: Context): String =
+        context.getString(R.string.library_kept_line)
+
+    /** Title of the dialog that asks which title a folder is. */
+    fun libraryFixTitle(context: Context): String =
+        context.getString(R.string.library_fix_title)
+
+    /** Menu item on a matched series that opens the match picker. */
+    fun libraryFixMatch(context: Context): String =
+        context.getString(R.string.library_fix_match)
+
+    /** Button at the foot of the match picker that keeps the files unmatched. */
+    fun libraryLeaveUnmatched(context: Context): String =
+        context.getString(R.string.library_leave_unmatched)
+
+    /** Line in the match picker when AniList has nothing for what was typed. */
+    fun libraryFixNone(context: Context): String =
+        context.getString(R.string.library_fix_none)
+
+    /** Heading over the library's titles that come from the viewer's own files. */
+    fun libraryFromFiles(context: Context): String =
+        context.getString(R.string.library_from_files)
+
+    /** Line on a result in the match picker whose episode count does not fit the folder's files. */
+    fun libraryFixCountMismatch(context: Context, episodes: Int, files: Int): String =
+        context.resources.getQuantityString(R.plurals.library_fix_count_mismatch, episodes, episodes, files)
+
+    /** Title of the Licensed services page. */
+    fun licensedTitle(context: Context): String =
+        context.getString(R.string.licensed_title)
+
+    /** Line at the top of the page. */
+    fun licensedBody(context: Context): String =
+        context.getString(R.string.licensed_body)
+
+    /** Label of the region choice. */
+    fun licensedRegion(context: Context): String =
+        context.getString(R.string.licensed_region)
+
+    /** Line under the region choice. */
+    fun licensedRegionLine(context: Context): String =
+        context.getString(R.string.licensed_region_line)
+
+    /** Heading over the services the viewer pays for. */
+    fun licensedYours(context: Context): String =
+        context.getString(R.string.licensed_yours)
+
+    /** Row that shows the rest of the services. */
+    fun licensedShowAll(context: Context, count: Int): String =
+        context.getString(R.string.licensed_show_all, count)
+
+    /** Switch for the line that names services the viewer does not use. */
+    fun licensedShowOthers(context: Context): String =
+        context.getString(R.string.licensed_show_others)
+
+    /** Line under that switch. */
+    fun licensedShowOthersLine(context: Context): String =
+        context.getString(R.string.licensed_show_others_line)
+
+    /** A Sources row's line: the services and the region. */
+    fun licensedRowLine(context: Context, services: String, region: String): String =
+        context.getString(R.string.licensed_row_line, services, region)
+
+    /** A Sources row's line before any service is chosen. */
+    fun licensedRowNone(context: Context): String =
+        context.getString(R.string.licensed_row_none)
+
+    /** Line while AniList's list of services has not arrived. */
+    fun licensedLoading(context: Context): String =
+        context.getString(R.string.licensed_loading)
+
+    /** Main button of a title that plays only in a service. */
+    fun titleWatchOn(context: Context, service: String): String =
+        context.getString(R.string.title_watch_on, service)
+
+    /** Menu item that opens a title in one of the viewer's services. */
+    fun titleWatchOnItem(context: Context, service: String): String =
+        context.getString(R.string.title_watch_on_item, service)
+
+    /** Line under the buttons of a title that plays here and is also in a service. */
+    fun titleAlsoOnServices(context: Context, services: String): String =
+        context.getString(R.string.title_also_on_services, services)
+
+    /** Line under the buttons of a title that is in none of the viewer's services. */
+    fun titleListedOn(context: Context, services: String): String =
+        context.getString(R.string.title_listed_on, services)
+
+    /** Link that opens the Licensed services page. */
+    fun titleChooseServices(context: Context): String =
+        context.getString(R.string.title_choose_services)
+
+    /** Button that undoes marking as watched. */
+    fun licensedMarkUndo(context: Context): String =
+        context.getString(R.string.licensed_mark_undo)
+
+    /** Tooltip on the glyph that says a row opens outside the app. */
+    fun licensedOpensOutside(context: Context): String =
+        context.getString(R.string.licensed_opens_outside)
+
+    /** Line under the buttons of a title that is also listed in services the viewer does not use. */
+    fun titleOthersLine(context: Context, services: String): String =
+        context.getString(R.string.title_others_line, services)
+
     /** Format of a show: broadcast on television. */
     fun formatTv(context: Context): String =
         context.getString(R.string.format_tv)
@@ -5669,6 +5885,202 @@ object Strings {
     fun searchSortTrending(context: Context): String =
         context.getString(R.string.search_sort_trending)
 
+    /** Title of the dialog that adds a media server. */
+    fun serversAddTitle(context: Context): String =
+        context.getString(R.string.servers_add_title)
+
+    /** Heading over the servers found on the network. */
+    fun serversOnNetwork(context: Context): String =
+        context.getString(R.string.servers_on_network)
+
+    /** Row while the network is searched for servers. */
+    fun serversLooking(context: Context): String =
+        context.getString(R.string.servers_looking)
+
+    /** Line when no server answered the search. */
+    fun serversNoneFound(context: Context): String =
+        context.getString(R.string.servers_none_found)
+
+    /** Label of the address field. */
+    fun serversAddress(context: Context): String =
+        context.getString(R.string.servers_address)
+
+    /** Example inside the address field. */
+    fun serversAddressHint(context: Context): String =
+        context.getString(R.string.servers_address_hint)
+
+    /** Button that checks the address and goes on. */
+    fun serversContinue(context: Context): String =
+        context.getString(R.string.servers_continue)
+
+    /** Title of the sign-in step. */
+    fun serversSignInTitle(context: Context, server: String): String =
+        context.getString(R.string.servers_sign_in_title, server)
+
+    /** Label of the user name field. */
+    fun serversUser(context: Context): String =
+        context.getString(R.string.servers_user)
+
+    /** Label of the password field. */
+    fun serversPassword(context: Context): String =
+        context.getString(R.string.servers_password)
+
+    /** Link that switches the sign-in to Quick Connect. */
+    fun serversUseQuickConnect(context: Context): String =
+        context.getString(R.string.servers_use_quick_connect)
+
+    /** Link that switches Quick Connect back to a password. */
+    fun serversUsePassword(context: Context): String =
+        context.getString(R.string.servers_use_password)
+
+    /** Line under the sign-in fields. */
+    fun serversTokenNote(context: Context, store: String): String =
+        context.getString(R.string.servers_token_note, store)
+
+    /** Where the sign-in token is kept on Linux, as a phrase in the line above. */
+    fun secureStoreLinux(context: Context): String =
+        context.getString(R.string.secure_store_linux)
+
+    /** Button that signs in. */
+    fun serversSignIn(context: Context): String =
+        context.getString(R.string.servers_sign_in)
+
+    /** Title of the Quick Connect step. */
+    fun serversQcTitle(context: Context): String =
+        context.getString(R.string.servers_qc_title)
+
+    /** Steps for Quick Connect. */
+    fun serversQcSteps(context: Context): String =
+        context.getString(R.string.servers_qc_steps)
+
+    /** Line under the code while the viewer approves it. */
+    fun serversQcWaiting(context: Context): String =
+        context.getString(R.string.servers_qc_waiting)
+
+    /** Error when the Quick Connect code ran out. */
+    fun serversQcExpired(context: Context): String =
+        context.getString(R.string.servers_qc_expired)
+
+    /** Button that asks for another Quick Connect code. */
+    fun serversQcNewCode(context: Context): String =
+        context.getString(R.string.servers_qc_new_code)
+
+    /** Title of the step that chooses libraries. */
+    fun serversLibrariesTitle(context: Context): String =
+        context.getString(R.string.servers_libraries_title)
+
+    /** Line under it. */
+    fun serversLibrariesBody(context: Context): String =
+        context.getString(R.string.servers_libraries_body)
+
+    /** A library's line: what it holds, and how many series. */
+    fun serversLibraryLine(context: Context, kind: String, count: Int): String =
+        context.getString(R.string.servers_library_line, kind, count)
+
+    /** Switch that sends watched marks and resume points to the server. */
+    fun serversReport(context: Context): String =
+        context.getString(R.string.servers_report)
+
+    /** Line under that switch. */
+    fun serversReportLine(context: Context): String =
+        context.getString(R.string.servers_report_line)
+
+    /** Button that saves the server. */
+    fun serversAdd(context: Context): String =
+        context.getString(R.string.servers_add)
+
+    /** A server's line while its series are matched. */
+    fun serversRowMatching(context: Context, done: Int, total: Int): String =
+        context.getString(R.string.servers_row_matching, done, total)
+
+    /** A server's line once it is read. */
+    fun serversRowSummary(context: Context, libraries: Int, series: Int): String =
+        context.resources.getQuantityString(R.plurals.servers_row_summary, libraries, libraries, series)
+
+    /** The server page's line under its name. */
+    fun serversPageLine(context: Context, address: String, version: String, user: String): String =
+        context.getString(R.string.servers_page_line, address, version, user)
+
+    /** Button that signs out of a server. */
+    fun serversSignOut(context: Context): String =
+        context.getString(R.string.servers_sign_out)
+
+    /** Button that forgets a server. */
+    fun serversRemove(context: Context): String =
+        context.getString(R.string.servers_remove)
+
+    /** Error under the address field: nothing answered. */
+    fun serversErrorUnreachable(context: Context, address: String): String =
+        context.getString(R.string.servers_error_unreachable, address)
+
+    /** Error under the address field: it is not Jellyfin. */
+    fun serversErrorNotJellyfin(context: Context): String =
+        context.getString(R.string.servers_error_not_jellyfin)
+
+    /** Error under the address field: the server is too old. */
+    fun serversErrorTooOld(context: Context, version: String): String =
+        context.getString(R.string.servers_error_too_old, version)
+
+    /** Error under the password field. */
+    fun serversErrorCredentials(context: Context): String =
+        context.getString(R.string.servers_error_credentials)
+
+    /** Error where the Quick Connect link was. */
+    fun serversErrorQcOff(context: Context): String =
+        context.getString(R.string.servers_error_qc_off)
+
+    /** Error under the address field: plain HTTP away from the home network. */
+    fun serversErrorPlainHttp(context: Context): String =
+        context.getString(R.string.servers_error_plain_http)
+
+    /** Error under the address field: the text is not an address. */
+    fun serversErrorBadAddress(context: Context): String =
+        context.getString(R.string.servers_error_bad_address)
+
+    /** Error for anything else a server answered. */
+    fun serversErrorOther(context: Context): String =
+        context.getString(R.string.servers_error_other)
+
+    /** Title of the step that asks about a certificate. */
+    fun serversCertTitle(context: Context): String =
+        context.getString(R.string.servers_cert_title)
+
+    /** Body of that step. */
+    fun serversCertBody(context: Context, host: String): String =
+        context.getString(R.string.servers_cert_body, host)
+
+    /** Button that allows a certificate. */
+    fun serversCertAllow(context: Context): String =
+        context.getString(R.string.servers_cert_allow)
+
+    /** A server's line when it no longer accepts the sign-in. */
+    fun serversRowSignedOut(context: Context): String =
+        context.getString(R.string.servers_row_signed_out)
+
+    /** Button that signs in to a server again. */
+    fun serversSignInAgain(context: Context): String =
+        context.getString(R.string.servers_sign_in_again)
+
+    /** Heading over a server's libraries. */
+    fun serversLibrariesHeading(context: Context): String =
+        context.getString(R.string.servers_libraries_heading)
+
+    /** Button on a server's page that matches its series to AniList again. */
+    fun serversRefresh(context: Context): String =
+        context.getString(R.string.servers_refresh)
+
+    /** Line on a server's page: how many of its series are not matched for sure. */
+    fun serversNeedsLook(context: Context, count: Int): String =
+        context.getString(R.string.servers_needs_look, count)
+
+    /** What a Jellyfin library of shows is called in a library's line. */
+    fun serversKindShows(context: Context): String =
+        context.getString(R.string.servers_kind_shows)
+
+    /** What a Jellyfin library of films is called in a library's line. */
+    fun serversKindFilms(context: Context): String =
+        context.getString(R.string.servers_kind_films)
+
     /** Settings group and row title for choosing a language. */
     fun settingsLanguage(context: Context): String =
         context.getString(R.string.settings_language)
@@ -6608,6 +7020,74 @@ object Strings {
     /** Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. */
     fun matchRowLabel(context: Context, title: String, facts: String, closeness: String): String =
         context.getString(R.string.match_row_label, title, facts, closeness)
+
+    /** Heading over the folders the viewer added. */
+    fun sourcesSectionMedia(context: Context): String =
+        context.getString(R.string.sources_section_media)
+
+    /** Heading over the media servers. */
+    fun sourcesSectionServers(context: Context): String =
+        context.getString(R.string.sources_section_servers)
+
+    /** Heading over the one row for licensed services. */
+    fun sourcesSectionLicensed(context: Context): String =
+        context.getString(R.string.sources_section_licensed)
+
+    /** Heading over the plugins of one store. */
+    fun sourcesSectionStore(context: Context, store: String): String =
+        context.getString(R.string.sources_section_store, store)
+
+    /** Heading over the plugins put in by hand. */
+    fun sourcesSectionByHand(context: Context): String =
+        context.getString(R.string.sources_section_by_hand)
+
+    /** Heading over what anistream ships. */
+    fun sourcesSectionBuiltin(context: Context): String =
+        context.getString(R.string.sources_section_builtin)
+
+    /** The secondary button that opens the menu of things to add. */
+    fun sourcesAdd(context: Context): String =
+        context.getString(R.string.sources_add)
+
+    /** Menu item that adds a folder of episodes. */
+    fun sourcesAddFolder(context: Context): String =
+        context.getString(R.string.sources_add_folder)
+
+    /** Menu item that adds a media server. */
+    fun sourcesAddServer(context: Context): String =
+        context.getString(R.string.sources_add_server)
+
+    /** Menu item that joins a plugin store. */
+    fun sourcesAddStore(context: Context): String =
+        context.getString(R.string.sources_add_store)
+
+    /** Line under the title of the empty Sources page. */
+    fun sourcesEmptyBody(context: Context): String =
+        context.getString(R.string.sources_empty_body)
+
+    /** Button on the empty Sources page that picks a folder. */
+    fun sourcesAddFolderButton(context: Context): String =
+        context.getString(R.string.sources_add_folder_button)
+
+    /** Button on the empty Sources page that starts adding a media server. */
+    fun sourcesAddServerButton(context: Context): String =
+        context.getString(R.string.sources_add_server_button)
+
+    /** Link under the buttons on the empty Sources page. */
+    fun sourcesEmptyJoinLink(context: Context): String =
+        context.getString(R.string.sources_empty_join_link)
+
+    /** Words before the link on the empty Sources page. */
+    fun sourcesEmptyOr(context: Context): String =
+        context.getString(R.string.sources_empty_or)
+
+    /** Notice after a first-party source is removed. It holds Undo. */
+    fun sourcesRemoved(context: Context, name: String): String =
+        context.getString(R.string.sources_removed, name)
+
+    /** Second line of the notice after a folder is removed. */
+    fun sourcesRemovedFilesStay(context: Context): String =
+        context.getString(R.string.sources_removed_files_stay)
 
     /** Short label for a joined store, on a row. */
     fun storesJoined(context: Context): String =

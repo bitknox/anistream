@@ -275,3 +275,134 @@ up-next-broadcast = Episode { $episode } · { $when }
 # @arg ago: text
 # @max 20
 up-next-out = out { $ago }
+
+## Your media: folders on this computer.
+
+# Prompt of the folder chooser.
+library-picker-prompt = Add folder
+
+# Heading of the folder chooser.
+library-picker-message = Choose a folder with your episodes.
+
+# A folder's line while its files are counted.
+# @arg files: int
+library-row-scanning = Scanning · { $files ->
+    [one] 1 file found
+   *[other] { $files } files found
+}
+
+# A folder's line once it is read.
+# @arg episodes: int
+# @arg series: int
+library-row-summary = { $episodes ->
+    [one] 1 episode
+   *[other] { $episodes } episodes
+} of { $series } series
+
+# Added to a folder's line when some of its series are not matched for sure.
+# @arg count: int
+library-row-needs-look = { $count } need a look
+
+# A folder on a drive that is not connected.
+library-row-drive-offline = Drive not connected
+
+# A folder that was removed or renamed.
+library-row-missing = Folder not found
+
+# A folder the app is no longer allowed to open.
+library-row-no-access = { -app-name } can't open this folder any more
+
+# Button that picks where a missing folder went.
+# @max 16
+library-locate = Locate…
+
+# Button that asks for a folder's permission again.
+# @max 16
+library-choose-again = Choose again
+
+# A folder page's line when changes are noticed as they happen.
+library-page-watching = Watched for changes
+
+# A folder page's line when changes are found only when the app starts or is asked.
+library-page-no-watch = Looked at again when { -app-name } starts
+
+# Button that reads a folder again.
+# @max 16
+library-rescan = Rescan
+
+# Button that shows a folder in the file manager.
+# @max 24
+library-open-folder = Open folder
+
+# Button that stops reading a folder.
+# @max 24
+library-remove-folder = Remove folder
+
+# Line on a folder page that says what removing does.
+library-remove-detail = Your files stay where they are.
+
+# Heading over the series that are probably matched but need the viewer to confirm.
+library-needs-look = Needs a look
+
+# Heading over the files nothing was matched to.
+library-not-matched = Not matched
+
+# Heading over the matched series.
+library-matched = Matched
+
+# Row line: how many series are matched.
+# @arg count: int
+library-matched-count = { $count } series matched
+
+# Row line for a series in Needs a look: the title found, if any.
+# @arg title: text
+library-best-guess = Best guess: { $title }
+
+# Row line: how many files are in a group.
+# @arg count: int
+library-files = { $count ->
+    [one] 1 file
+   *[other] { $count } files
+}
+
+# Why a group of files is not matched: AniList knows nothing like the name.
+library-reason-no-title = No AniList title found
+
+# Why a group of files is not matched: AniList could not be asked.
+library-reason-offline = Couldn't ask AniList. It is tried again at the next scan.
+
+# Button that opens the match picker for a group.
+# @max 24
+library-choose-match = Choose the match
+
+# Menu item that keeps a group's files as a title of their own.
+# @max 24
+library-keep-unmatched = Keep unmatched
+
+# Row line for files kept as a title of their own.
+library-kept-line = Kept as its own title
+
+# Title of the dialog that asks which title a folder is.
+library-fix-title = Which title is this folder?
+
+# Menu item on a matched series that opens the match picker.
+# @max 24
+library-fix-match = Fix this match
+
+# Button at the foot of the match picker that keeps the files unmatched.
+# @max 24
+library-leave-unmatched = Leave unmatched
+
+# Line in the match picker when AniList has nothing for what was typed.
+library-fix-none = No titles found
+
+# Heading over the library's titles that come from the viewer's own files.
+library-from-files = From your files
+
+# Line on a result in the match picker whose episode count does not fit the folder's files.
+# @arg episodes: int
+# @arg files: int
+library-fix-count-mismatch = Has { $episodes ->
+    [one] 1 episode
+   *[other] { $episodes } episodes
+}, this folder has { $files }

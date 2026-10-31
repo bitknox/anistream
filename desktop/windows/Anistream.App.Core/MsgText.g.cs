@@ -64,6 +64,8 @@ public static class MsgText
         Msg.HomeThisSeason => T.HomeThisSeason,
         Msg.HomeBecause x => T.HomeBecause(x.Title),
         Msg.HomeMoreGenre x => T.HomeMoreGenre(x.Genre),
+        Msg.LicensedReturn x => T.LicensedReturn(x.Episode, x.Service),
+        Msg.LicensedMarked x => T.LicensedMarked(x.Episode),
         Msg.NoticeReason x => T.NoticeReason(x.Reason.Text()),
         Msg.NoticeNotAired x => T.NoticeNotAired(x.Episode, x.When.Text()),
         Msg.NoticeNotAiredYet x => T.NoticeNotAiredYet(x.Episode, x.Next, x.When.Text()),

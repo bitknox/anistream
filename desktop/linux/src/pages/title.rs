@@ -13,15 +13,18 @@ use anistream_core::ids::AnilistId;
 use anistream_i18n::t;
 use anistream_model::{
     catalog::{Entry, LibrarySegment, LinkedTitle, RelationKind},
-    command::Command,
+    command::{Command, LicensedCommand},
     episodes::EpisodeRow,
     event::Event,
+    licensed::{AvailabilityCase, TitleAvailability},
     settings::SettingKey,
 };
 use gtk::{gio, glib};
 
 use crate::{
-    catalog, choices, motion, say,
+    catalog, choices, motion,
+    pages::licensed,
+    say,
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
@@ -302,6 +305,7 @@ impl Page {
             Event::Episodes { id, rows, .. } if *id == self.id => {
                 self.listed.set(true);
                 self.rows.replace(rows.clone());
+                self.ask_availability();
                 self.draw_episodes();
                 // The table decides what More offers.
                 if let Some(entry) = self.ctx.hub.entry(self.id) {
@@ -324,6 +328,16 @@ impl Page {
             Event::DiscussionFound { media, .. } if *media == self.id => {
                 self.redress_discussions();
             }
+            // What the page says about licensed services: the buttons and lines change in
+            // place, and the episodes take their links.
+            Event::Availability(availability) if availability.id == self.id => {
+                self.draw_episodes();
+                if let Some(entry) = self.ctx.hub.entry(self.id) {
+                    self.fill(&entry);
+                }
+            }
+            // The services were chosen again: ask what this title says now.
+            Event::Licensed(_) if self.listed.get() => self.ask_availability(),
             Event::TitleDub { id, dub } if *id == self.id => {
                 self.dubbed_to.replace(say::dub_line(dub.as_ref()));
                 if let Some(entry) = self.ctx.hub.entry(self.id) {
@@ -347,6 +361,21 @@ impl Page {
             }
             _ => {}
         }
+    }
+
+    /// Ask what this title says about licensed services, once the episodes say whether it plays
+    /// here.
+    fn ask_availability(&self) {
+        let plays_here = self.rows.borrow().iter().any(choices::playable);
+        self.ctx.hub.send(Command::Licensed(LicensedCommand::LoadAvailability {
+            id: self.id,
+            plays_here,
+        }));
+    }
+
+    /// What the page says about licensed services, as the engine last worked it out.
+    fn availability(&self) -> Option<TitleAvailability> {
+        self.ctx.hub.known.borrow().availability.get(&self.id.get()).cloned()
     }
 
     fn resized(&self, size: Size) {
@@ -497,7 +526,34 @@ impl Page {
         };
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         actions.set_margin_top(10);
-        match item.button.clone() {
+        let availability = self.availability();
+        // Case B: it does not play here and is on a service of the viewer's, so the main action
+        // opens that service.
+        let on_service = availability
+            .as_ref()
+            .filter(|a| a.case == AvailabilityCase::OnService)
+            .and_then(|a| a.main.clone());
+        if let Some(main) = &on_service {
+            let inside = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+            let text = gtk::Label::new(Some(&t::title_watch_on(&main.service)));
+            text.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            inside.append(&text);
+            inside.append(&gtk::Image::from_icon_name("adw-external-link-symbolic"));
+            let button = gtk::Button::builder().child(&inside).build();
+            button.add_css_class("pill");
+            button.add_css_class("suggested-action");
+            button.add_css_class("first-focus");
+            button.set_action_name(Some("win.licensed-open"));
+            button.set_action_target_value(Some(&licensed::target(
+                self.id,
+                &main.service,
+                &main.url,
+                None,
+            )));
+            button.set_hexpand(narrow);
+            actions.append(&button);
+        }
+        match item.button.clone().filter(|_| on_service.is_none()) {
             Some(label) => {
                 // A longer translation is cut at the end, never wider than the window.
                 let text = gtk::Label::new(Some(&label));
@@ -524,7 +580,7 @@ impl Page {
                 }
             }
             None => {
-                if let Some(waiting) = item.waiting.clone() {
+                if let Some(waiting) = item.waiting.clone().filter(|_| on_service.is_none()) {
                     actions.append(&widgets::haze(&waiting, ""));
                 }
             }
@@ -593,6 +649,21 @@ impl Page {
         }
         first.append(Some(&t::episode_mark_previous_watched()), Some("title.mark-previous"));
         more_menu.append_section(None, &first);
+        if let Some(availability) = &availability
+            && !availability.yours.is_empty()
+        {
+            let services = gio::Menu::new();
+            for link in &availability.yours {
+                let item =
+                    gio::MenuItem::new(Some(&t::title_watch_on_item(&link.service)), None);
+                item.set_action_and_target_value(
+                    Some("win.licensed-open"),
+                    Some(&licensed::target(self.id, &link.service, &link.url, None)),
+                );
+                services.append_item(&item);
+            }
+            more_menu.append_section(None, &services);
+        }
         let second = gio::Menu::new();
         if entry.trailer_url.is_some() {
             second.append(Some(&t::title_play_trailer()), Some("title.trailer"));
@@ -623,6 +694,17 @@ impl Page {
             menus.append(&status);
             menus.append(&more);
             text.append(&menus);
+        }
+        if let Some(availability) = &availability {
+            let lines = licensed::lines(&self.ctx, availability);
+            if !lines.is_empty() {
+                let under = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                under.set_margin_top(4);
+                for line in lines {
+                    under.append(&line);
+                }
+                text.append(&under);
+            }
         }
 
         let line = gtk::Box::new(gtk::Orientation::Horizontal, 20);
@@ -834,6 +916,11 @@ impl Page {
         let color = entry.as_ref().and_then(|e| e.cover_color.clone());
         let id = self.id.get();
         let mut lines = Vec::with_capacity(rows.len());
+        // Case B: each episode opens its own page on the service, or else the title's.
+        let service = self
+            .availability()
+            .filter(|a| a.case == AvailabilityCase::OnService)
+            .and_then(|a| a.main.clone().map(|main| (main, a.episodes)));
         for row in rows.iter() {
             let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
             line.add_css_class("episode-row");
@@ -894,6 +981,20 @@ impl Page {
             });
             line.append(&check);
 
+            let mut outside: Option<glib::Variant> = None;
+            if let Some((main, listings)) = &service {
+                let number = row.number.parse::<u32>().ok();
+                let own = number.and_then(|n| listings.iter().find(|l| l.episode == n));
+                let url = own.map_or(&main.url, |l| &l.url);
+                let target = licensed::target(self.id, &main.service, url, number);
+                let glyph = gtk::Image::from_icon_name("adw-external-link-symbolic");
+                glyph.set_valign(gtk::Align::Center);
+                glyph.add_css_class("dim-label");
+                glyph.set_tooltip_text(Some(&t::licensed_opens_outside()));
+                line.append(&glyph);
+                outside = Some(target);
+            }
+
             let menu = gio::Menu::new();
             let more = gtk::MenuButton::builder()
                 .icon_name("view-more-symbolic")
@@ -906,10 +1007,19 @@ impl Page {
 
             let list_row = gtk::ListBoxRow::builder()
                 .child(&line)
-                .activatable(choices::playable(row))
+                .activatable(choices::playable(row) || outside.is_some())
                 .build();
-            list_row.set_action_name(Some("win.play"));
-            list_row.set_action_target_value(Some(&(id, row.number.clone()).to_variant()));
+            match &outside {
+                Some(target) => {
+                    list_row.set_action_name(Some("win.licensed-open"));
+                    list_row.set_action_target_value(Some(target));
+                }
+                None => {
+                    list_row.set_action_name(Some("win.play"));
+                    list_row
+                        .set_action_target_value(Some(&(id, row.number.clone()).to_variant()));
+                }
+            }
             widgets::context_menu(&list_row, &menu);
             self.episodes.append(&list_row);
 

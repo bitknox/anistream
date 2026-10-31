@@ -12,8 +12,9 @@ use anistream_core::ids::AnilistId;
 use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, LibrarySegment},
-    command::{Command, PlayerCommand},
+    command::{Command, LicensedCommand, PlayerCommand},
     event::Event,
+    local::LocalCommand,
     notice::{Notice, NoticeHint, NoticeKind},
     updates::UpdateStatus,
 };
@@ -410,6 +411,17 @@ impl Shell {
         shell.breakpoints();
         shell.actions(app);
         shell.listen();
+        // Back from a licensed service: the engine asks whether an episode was watched there.
+        shell.ctx.window.connect_is_active_notify({
+            let hub = Rc::downgrade(&shell.ctx.hub);
+            move |window| {
+                if window.is_active()
+                    && let Some(hub) = hub.upgrade()
+                {
+                    hub.send(Command::Licensed(LicensedCommand::Returned));
+                }
+            }
+        });
         shell.updates();
         if !fixtures {
             shell.watch_network();
@@ -806,6 +818,66 @@ impl Shell {
                 }
             }),
         );
+        let licensed_open = glib::VariantTy::new("(ussu)").ok();
+        add(
+            "licensed-open",
+            licensed_open,
+            Box::new(|s, a| {
+                if let Some(target) = a {
+                    pages::licensed::open(&s.ctx, target);
+                }
+            }),
+        );
+        let episode_of = |arg: Option<&glib::Variant>| {
+            let (id, episode) = arg
+                .and_then(String::from_variant)?
+                .split_once(':')
+                .map(|(id, episode)| (id.to_owned(), episode.to_owned()))?;
+            Some((AnilistId::new(id.parse().ok()?), episode.parse::<i64>().ok()?))
+        };
+        add(
+            "licensed-mark",
+            Some(glib::VariantTy::STRING),
+            Box::new(move |s, a| {
+                if let (Some((id, episode)), Some(target)) =
+                    (episode_of(a), a.and_then(String::from_variant))
+                {
+                    s.ctx.hub.send(Command::SetWatched {
+                        id,
+                        episodes: vec![episode.to_string()],
+                        watched: true,
+                    });
+                    s.ctx.toast_to(
+                        &t::licensed_marked(episode),
+                        &t::action_undo(),
+                        "win.licensed-unmark",
+                        &target,
+                    );
+                }
+            }),
+        );
+        add(
+            "licensed-unmark",
+            Some(glib::VariantTy::STRING),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = episode_of(a) {
+                    s.ctx.hub.send(Command::SetWatched {
+                        id,
+                        episodes: vec![episode.to_string()],
+                        watched: false,
+                    });
+                }
+            }),
+        );
+        add(
+            "library-add",
+            Some(glib::VariantTy::STRING),
+            Box::new(|s, a| {
+                if let Some(path) = a.and_then(String::from_variant) {
+                    s.ctx.hub.send(Command::Local(LocalCommand::AddFolder { path }));
+                }
+            }),
+        );
         add("check-updates", None, Box::new(|s, _| s.ctx.hub.send(Command::CheckForUpdates)));
         add("update-download", None, Box::new(|s, _| s.ctx.updater.download()));
         add("update-cancel", None, Box::new(|s, _| s.ctx.updater.stop()));
@@ -973,6 +1045,16 @@ impl Shell {
                 {
                     let text = t::updates_version_out(&release.version);
                     shell.ctx.toast_with(&text, &t::shell_view_release(), "win.release-page");
+                }
+                // Back from a service after long enough to have watched an episode: the notice
+                // holds Mark watched for its time.
+                Event::LicensedReturn(back) => {
+                    shell.ctx.toast_to(
+                        &say::msg(&back.prompt),
+                        &t::episode_mark_watched(),
+                        "win.licensed-mark",
+                        &format!("{}:{}", back.id.get(), back.episode), // i18n-skip
+                    );
                 }
                 Event::Authorize { url, .. } => shell.open_url(url),
                 Event::DeviceCode(prompt) => {

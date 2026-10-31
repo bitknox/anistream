@@ -1,6 +1,6 @@
 //! Persistence for refreshable datasets and the materialised mapping table.
 
-use anistream_core::ids::AnilistId;
+use anistream_core::ids::{AnilistId, ExternalIds};
 
 use crate::{Result, Store};
 
@@ -23,6 +23,15 @@ pub struct Mapping {
     pub anidb_id: Option<u32>,
     pub tvdb_id: Option<u32>,
     pub tmdb_id: Option<u32>,
+    pub episode_offset: Option<i32>,
+}
+
+/// One AniList entry that an id from another service names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MappedEntry {
+    pub anilist_id: AnilistId,
+    /// Added to the entry's own episode number to give the other service's, when the dataset
+    /// knows it.
     pub episode_offset: Option<i32>,
 }
 
@@ -264,6 +273,46 @@ impl Store {
         })
     }
 
+    /// Every AniList entry a set of ids from another service names, first season first, each with
+    /// the offset that turns that service's episode numbers into the entry's own.
+    ///
+    /// Servers group seasons under one series where AniList has an entry per season or cour, so a
+    /// TVDB or AniDB id can name several entries. An AniList id in `ids` answers on its own, and
+    /// the other ids are tried in this order only when it is absent: MAL, AniDB, TVDB, TMDB.
+    pub fn anilist_entries_for_ids(&self, ids: &ExternalIds) -> Result<Vec<MappedEntry>> {
+        if let Some(id) = ids.anilist {
+            let offset = self.mapping_for(id)?.and_then(|m| m.episode_offset);
+            return Ok(vec![MappedEntry { anilist_id: id, episode_offset: offset }]);
+        }
+        let columns: [(&str, Option<u32>); 4] = [
+            ("mal_id", ids.mal.map(|i| i.get())),
+            ("anidb_id", ids.anidb.map(|i| i.get())),
+            ("tvdb_id", ids.tvdb.map(|i| i.get())),
+            ("tmdb_id", ids.tmdb.map(|i| i.get())),
+        ];
+        self.with_conn(|c| {
+            for (column, value) in columns {
+                let Some(value) = value else { continue };
+                let mut stmt = c.prepare(&format!(
+                    "SELECT anilist_id, episode_offset FROM mapping WHERE {column} = ?1
+                      ORDER BY anilist_id"
+                ))?;
+                let found: Vec<MappedEntry> = stmt
+                    .query_map([value], |r| {
+                        Ok(MappedEntry {
+                            anilist_id: AnilistId::new(r.get(0)?),
+                            episode_offset: r.get(1)?,
+                        })
+                    })?
+                    .collect::<std::result::Result<_, _>>()?;
+                if !found.is_empty() {
+                    return Ok(found);
+                }
+            }
+            Ok(Vec::new())
+        })
+    }
+
     pub fn mapping_count(&self) -> Result<u32> {
         self.with_conn(|c| Ok(c.query_row("SELECT COUNT(*) FROM mapping", [], |r| r.get(0))?))
     }
@@ -291,6 +340,31 @@ mod tests {
 
     fn entry(anilist_id: u32) -> MappingInput {
         MappingInput { anilist_id, ..Default::default() }
+    }
+
+    #[test]
+    fn ids_from_another_service_name_every_season_in_order() {
+        use anistream_core::ids::{AnidbId, ExternalIds, TvdbId};
+        let store = Store::open_in_memory().unwrap();
+        let entries = vec![
+            MappingInput { tvdb_id: Some(9), anidb_id: Some(5), ..entry(300) },
+            MappingInput { tvdb_id: Some(9), episode_offset: Some(12), ..entry(200) },
+            MappingInput { tvdb_id: Some(4), ..entry(100) },
+        ];
+        store.materialise_mapping("thaunknown", 0, &entries, None, 1_000).unwrap();
+
+        let by_tvdb = ExternalIds { tvdb: Some(TvdbId::new(9)), ..Default::default() };
+        let found = store.anilist_entries_for_ids(&by_tvdb).unwrap();
+        assert_eq!(
+            found.iter().map(|e| (e.anilist_id.get(), e.episode_offset)).collect::<Vec<_>>(),
+            [(200, Some(12)), (300, None)]
+        );
+        let by_anidb = ExternalIds { anidb: Some(AnidbId::new(5)), ..Default::default() };
+        assert_eq!(store.anilist_entries_for_ids(&by_anidb).unwrap()[0].anilist_id.get(), 300);
+        // AniList's own id answers alone.
+        let own = ExternalIds::anilist(AnilistId::new(777));
+        assert_eq!(store.anilist_entries_for_ids(&own).unwrap().len(), 1);
+        assert!(store.anilist_entries_for_ids(&ExternalIds::default()).unwrap().is_empty());
     }
 
     #[test]

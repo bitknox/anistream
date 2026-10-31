@@ -159,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
         tone_mapping: config.playback.tone_mapping.clone(),
         tracker_ids: Vec::new(),
         presence: Default::default(),
+        reports: Default::default(),
         party: Default::default(),
         up_next_countdown: 10,
         mpv_options: Vec::new(),

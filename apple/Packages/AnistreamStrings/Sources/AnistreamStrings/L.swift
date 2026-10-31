@@ -214,6 +214,16 @@ public enum L {
         Self.format("home-more-genre", fallback: "More %1$@", genre)
     }
 
+    /// Notice when the viewer comes back from a licensed service after long enough to have watched an episode. It holds Mark as watched for 8 seconds. The service is the one they opened, such as Hikari Stream.
+    public static func licensedReturn(episode: Int, service: String) -> String {
+        Self.format("licensed-return", fallback: "Watched episode %1$lld on %2$@?", episode, service)
+    }
+
+    /// Notice after Mark as watched on the return notice. It holds Undo.
+    public static func licensedMarked(episode: Int) -> String {
+        Self.format("licensed-marked", fallback: "Episode %1$lld marked as watched.", episode)
+    }
+
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
         Self.format("notice-reason", fallback: "%1$@", reason)
@@ -4399,6 +4409,190 @@ public enum L {
         Self.format("up-next-out", fallback: "out %1$@", ago)
     }
 
+    /// Prompt of the folder chooser.
+    public static var libraryPickerPrompt: String { string("library-picker-prompt", fallback: "Add folder") }
+
+    /// Heading of the folder chooser.
+    public static var libraryPickerMessage: String { string("library-picker-message", fallback: "Choose a folder with your episodes.") }
+
+    /// A folder's line while its files are counted.
+    public static func libraryRowScanning(files: Int) -> String {
+        Self.format("library-row-scanning", fallback: "Scanning · %1$lld files found", files)
+    }
+
+    /// A folder's line once it is read.
+    public static func libraryRowSummary(episodes: Int, series: Int) -> String {
+        Self.format("library-row-summary", fallback: "%1$lld episodes of %2$lld series", episodes, series)
+    }
+
+    /// Added to a folder's line when some of its series are not matched for sure.
+    public static func libraryRowNeedsLook(count: Int) -> String {
+        Self.format("library-row-needs-look", fallback: "%1$lld need a look", count)
+    }
+
+    /// A folder on a drive that is not connected.
+    public static var libraryRowDriveOffline: String { string("library-row-drive-offline", fallback: "Drive not connected") }
+
+    /// A folder that was removed or renamed.
+    public static var libraryRowMissing: String { string("library-row-missing", fallback: "Folder not found") }
+
+    /// A folder the app is no longer allowed to open.
+    public static var libraryRowNoAccess: String { string("library-row-no-access", fallback: "anistream can't open this folder any more") }
+
+    /// Button that picks where a missing folder went.
+    public static var libraryLocate: String { string("library-locate", fallback: "Locate…") }
+
+    /// Button that asks for a folder's permission again.
+    public static var libraryChooseAgain: String { string("library-choose-again", fallback: "Choose again") }
+
+    /// A folder page's line when changes are noticed as they happen.
+    public static var libraryPageWatching: String { string("library-page-watching", fallback: "Watched for changes") }
+
+    /// A folder page's line when changes are found only when the app starts or is asked.
+    public static var libraryPageNoWatch: String { string("library-page-no-watch", fallback: "Looked at again when anistream starts") }
+
+    /// Button that reads a folder again.
+    public static var libraryRescan: String { string("library-rescan", fallback: "Rescan") }
+
+    /// Button that shows a folder in the file manager.
+    public static var libraryOpenFolder: String { string("library-open-folder", fallback: "Open folder") }
+
+    /// Button that stops reading a folder.
+    public static var libraryRemoveFolder: String { string("library-remove-folder", fallback: "Remove folder") }
+
+    /// Line on a folder page that says what removing does.
+    public static var libraryRemoveDetail: String { string("library-remove-detail", fallback: "Your files stay where they are.") }
+
+    /// Heading over the series that are probably matched but need the viewer to confirm.
+    public static var libraryNeedsLook: String { string("library-needs-look", fallback: "Needs a look") }
+
+    /// Heading over the files nothing was matched to.
+    public static var libraryNotMatched: String { string("library-not-matched", fallback: "Not matched") }
+
+    /// Heading over the matched series.
+    public static var libraryMatched: String { string("library-matched", fallback: "Matched") }
+
+    /// Row line: how many series are matched.
+    public static func libraryMatchedCount(count: Int) -> String {
+        Self.format("library-matched-count", fallback: "%1$lld series matched", count)
+    }
+
+    /// Row line for a series in Needs a look: the title found, if any.
+    public static func libraryBestGuess(title: String) -> String {
+        Self.format("library-best-guess", fallback: "Best guess: %1$@", title)
+    }
+
+    /// Row line: how many files are in a group.
+    public static func libraryFiles(count: Int) -> String {
+        Self.format("library-files", fallback: "%1$lld files", count)
+    }
+
+    /// Why a group of files is not matched: AniList knows nothing like the name.
+    public static var libraryReasonNoTitle: String { string("library-reason-no-title", fallback: "No AniList title found") }
+
+    /// Why a group of files is not matched: AniList could not be asked.
+    public static var libraryReasonOffline: String { string("library-reason-offline", fallback: "Couldn't ask AniList. It is tried again at the next scan.") }
+
+    /// Button that opens the match picker for a group.
+    public static var libraryChooseMatch: String { string("library-choose-match", fallback: "Choose the match") }
+
+    /// Menu item that keeps a group's files as a title of their own.
+    public static var libraryKeepUnmatched: String { string("library-keep-unmatched", fallback: "Keep unmatched") }
+
+    /// Row line for files kept as a title of their own.
+    public static var libraryKeptLine: String { string("library-kept-line", fallback: "Kept as its own title") }
+
+    /// Title of the dialog that asks which title a folder is.
+    public static var libraryFixTitle: String { string("library-fix-title", fallback: "Which title is this folder?") }
+
+    /// Menu item on a matched series that opens the match picker.
+    public static var libraryFixMatch: String { string("library-fix-match", fallback: "Fix this match") }
+
+    /// Button at the foot of the match picker that keeps the files unmatched.
+    public static var libraryLeaveUnmatched: String { string("library-leave-unmatched", fallback: "Leave unmatched") }
+
+    /// Line in the match picker when AniList has nothing for what was typed.
+    public static var libraryFixNone: String { string("library-fix-none", fallback: "No titles found") }
+
+    /// Heading over the library's titles that come from the viewer's own files.
+    public static var libraryFromFiles: String { string("library-from-files", fallback: "From your files") }
+
+    /// Line on a result in the match picker whose episode count does not fit the folder's files.
+    public static func libraryFixCountMismatch(episodes: Int, files: Int) -> String {
+        Self.format("library-fix-count-mismatch", fallback: "Has %1$lld episodes, this folder has %2$lld", episodes, files)
+    }
+
+    /// Title of the Licensed services page.
+    public static var licensedTitle: String { string("licensed-title", fallback: "Licensed services") }
+
+    /// Line at the top of the page.
+    public static var licensedBody: String { string("licensed-body", fallback: "anistream can open titles in streaming services you pay for. It never plays them itself. Links come from AniList.") }
+
+    /// Label of the region choice.
+    public static var licensedRegion: String { string("licensed-region", fallback: "Region") }
+
+    /// Line under the region choice.
+    public static var licensedRegionLine: String { string("licensed-region-line", fallback: "Hides links AniList marks for other countries. Most links name no country, so choose your services too.") }
+
+    /// Heading over the services the viewer pays for.
+    public static var licensedYours: String { string("licensed-yours", fallback: "Your services") }
+
+    /// Row that shows the rest of the services.
+    public static func licensedShowAll(count: Int) -> String {
+        Self.format("licensed-show-all", fallback: "Show all %1$lld", count)
+    }
+
+    /// Switch for the line that names services the viewer does not use.
+    public static var licensedShowOthers: String { string("licensed-show-others", fallback: "Show other services on title pages") }
+
+    /// Line under that switch.
+    public static var licensedShowOthersLine: String { string("licensed-show-others-line", fallback: "A line under the buttons names services you don't use.") }
+
+    /// A Sources row's line: the services and the region.
+    public static func licensedRowLine(services: String, region: String) -> String {
+        Self.format("licensed-row-line", fallback: "%1$@ · %2$@", services, region)
+    }
+
+    /// A Sources row's line before any service is chosen.
+    public static var licensedRowNone: String { string("licensed-row-none", fallback: "Choose the services you pay for") }
+
+    /// Line while AniList's list of services has not arrived.
+    public static var licensedLoading: String { string("licensed-loading", fallback: "Asking AniList for its list of services") }
+
+    /// Main button of a title that plays only in a service.
+    public static func titleWatchOn(service: String) -> String {
+        Self.format("title-watch-on", fallback: "Watch on %1$@", service)
+    }
+
+    /// Menu item that opens a title in one of the viewer's services.
+    public static func titleWatchOnItem(service: String) -> String {
+        Self.format("title-watch-on-item", fallback: "Watch on %1$@", service)
+    }
+
+    /// Line under the buttons of a title that plays here and is also in a service.
+    public static func titleAlsoOnServices(services: String) -> String {
+        Self.format("title-also-on-services", fallback: "Also on %1$@", services)
+    }
+
+    /// Line under the buttons of a title that is in none of the viewer's services.
+    public static func titleListedOn(services: String) -> String {
+        Self.format("title-listed-on", fallback: "Not found in your sources. Listed on %1$@.", services)
+    }
+
+    /// Link that opens the Licensed services page.
+    public static var titleChooseServices: String { string("title-choose-services", fallback: "Choose your services") }
+
+    /// Button that undoes marking as watched.
+    public static var licensedMarkUndo: String { string("licensed-mark-undo", fallback: "Undo") }
+
+    /// Tooltip on the glyph that says a row opens outside the app.
+    public static var licensedOpensOutside: String { string("licensed-opens-outside", fallback: "Opens in your browser") }
+
+    /// Line under the buttons of a title that is also listed in services the viewer does not use.
+    public static func titleOthersLine(services: String) -> String {
+        Self.format("title-others-line", fallback: "Also listed on %1$@", services)
+    }
+
     /// Format of a show: broadcast on television.
     public static var formatTv: String { string("format-tv", fallback: "TV") }
 
@@ -5589,6 +5783,173 @@ public enum L {
     /// Search: sort by what is popular right now.
     public static var searchSortTrending: String { string("search-sort-trending", fallback: "Trending") }
 
+    /// Title of the dialog that adds a media server.
+    public static var serversAddTitle: String { string("servers-add-title", fallback: "Add a media server") }
+
+    /// Heading over the servers found on the network.
+    public static var serversOnNetwork: String { string("servers-on-network", fallback: "On your network") }
+
+    /// Row while the network is searched for servers.
+    public static var serversLooking: String { string("servers-looking", fallback: "Looking for servers…") }
+
+    /// Line when no server answered the search.
+    public static var serversNoneFound: String { string("servers-none-found", fallback: "No servers found on this network. Type the address instead.") }
+
+    /// Label of the address field.
+    public static var serversAddress: String { string("servers-address", fallback: "Server address") }
+
+    /// Example inside the address field.
+    public static var serversAddressHint: String { string("servers-address-hint", fallback: "jellyfin.home.example or 192.168.1.20:8096") }
+
+    /// Button that checks the address and goes on.
+    public static var serversContinue: String { string("servers-continue", fallback: "Continue") }
+
+    /// Title of the sign-in step.
+    public static func serversSignInTitle(server: String) -> String {
+        Self.format("servers-sign-in-title", fallback: "Sign in to %1$@", server)
+    }
+
+    /// Label of the user name field.
+    public static var serversUser: String { string("servers-user", fallback: "User name") }
+
+    /// Label of the password field.
+    public static var serversPassword: String { string("servers-password", fallback: "Password") }
+
+    /// Link that switches the sign-in to Quick Connect.
+    public static var serversUseQuickConnect: String { string("servers-use-quick-connect", fallback: "Use Quick Connect instead") }
+
+    /// Link that switches Quick Connect back to a password.
+    public static var serversUsePassword: String { string("servers-use-password", fallback: "Sign in with a password instead") }
+
+    /// Line under the sign-in fields.
+    public static func serversTokenNote(store: String) -> String {
+        Self.format("servers-token-note", fallback: "Your password isn't saved. anistream keeps a sign-in token in %1$@.", store)
+    }
+
+    /// Where the sign-in token is kept on Linux, as a phrase in the line above.
+    public static var secureStoreLinux: String { string("secure-store-linux", fallback: "your keyring") }
+
+    /// Button that signs in.
+    public static var serversSignIn: String { string("servers-sign-in", fallback: "Sign in") }
+
+    /// Title of the Quick Connect step.
+    public static var serversQcTitle: String { string("servers-qc-title", fallback: "Enter this code in Jellyfin") }
+
+    /// Steps for Quick Connect.
+    public static var serversQcSteps: String { string("servers-qc-steps", fallback: "On a device that's signed in, open Jellyfin, go to your profile, choose Quick Connect and enter this code.") }
+
+    /// Line under the code while the viewer approves it.
+    public static var serversQcWaiting: String { string("servers-qc-waiting", fallback: "Waiting for you to approve it") }
+
+    /// Error when the Quick Connect code ran out.
+    public static var serversQcExpired: String { string("servers-qc-expired", fallback: "That code has run out.") }
+
+    /// Button that asks for another Quick Connect code.
+    public static var serversQcNewCode: String { string("servers-qc-new-code", fallback: "Get a new code") }
+
+    /// Title of the step that chooses libraries.
+    public static var serversLibrariesTitle: String { string("servers-libraries-title", fallback: "Choose libraries") }
+
+    /// Line under it.
+    public static var serversLibrariesBody: String { string("servers-libraries-body", fallback: "Shows are matched to AniList so they join Home, your lists and Search.") }
+
+    /// A library's line: what it holds, and how many series.
+    public static func serversLibraryLine(kind: String, count: Int) -> String {
+        Self.format("servers-library-line", fallback: "%1$@ · %2$lld series", kind, count)
+    }
+
+    /// Switch that sends watched marks and resume points to the server.
+    public static var serversReport: String { string("servers-report", fallback: "Report what you watch to Jellyfin") }
+
+    /// Line under that switch.
+    public static var serversReportLine: String { string("servers-report-line", fallback: "Resume points and watched marks follow what you play here.") }
+
+    /// Button that saves the server.
+    public static var serversAdd: String { string("servers-add", fallback: "Add server") }
+
+    /// A server's line while its series are matched.
+    public static func serversRowMatching(done: Int, total: Int) -> String {
+        Self.format("servers-row-matching", fallback: "Matching · %1$lld of %2$lld series", done, total)
+    }
+
+    /// A server's line once it is read.
+    public static func serversRowSummary(libraries: Int, series: Int) -> String {
+        Self.format("servers-row-summary", fallback: "%1$lld libraries · %2$lld series", libraries, series)
+    }
+
+    /// The server page's line under its name.
+    public static func serversPageLine(address: String, version: String, user: String) -> String {
+        Self.format("servers-page-line", fallback: "%1$@ · Jellyfin %2$@ · signed in as %3$@", address, version, user)
+    }
+
+    /// Button that signs out of a server.
+    public static var serversSignOut: String { string("servers-sign-out", fallback: "Sign out") }
+
+    /// Button that forgets a server.
+    public static var serversRemove: String { string("servers-remove", fallback: "Remove server") }
+
+    /// Error under the address field: nothing answered.
+    public static func serversErrorUnreachable(address: String) -> String {
+        Self.format("servers-error-unreachable", fallback: "Can't reach %1$@. Check the address and that the server is on.", address)
+    }
+
+    /// Error under the address field: it is not Jellyfin.
+    public static var serversErrorNotJellyfin: String { string("servers-error-not-jellyfin", fallback: "That address answers, but it isn't a Jellyfin server.") }
+
+    /// Error under the address field: the server is too old.
+    public static func serversErrorTooOld(version: String) -> String {
+        Self.format("servers-error-too-old", fallback: "This server runs Jellyfin %1$@. anistream needs 10.8 or later.", version)
+    }
+
+    /// Error under the password field.
+    public static var serversErrorCredentials: String { string("servers-error-credentials", fallback: "Wrong user name or password.") }
+
+    /// Error where the Quick Connect link was.
+    public static var serversErrorQcOff: String { string("servers-error-qc-off", fallback: "Quick Connect is off on this server. Sign in with a password, or turn it on in Jellyfin's dashboard.") }
+
+    /// Error under the address field: plain HTTP away from the home network.
+    public static var serversErrorPlainHttp: String { string("servers-error-plain-http", fallback: "This address isn't on your network and doesn't use HTTPS, so your password would travel unprotected. Use an https:// address.") }
+
+    /// Error under the address field: the text is not an address.
+    public static var serversErrorBadAddress: String { string("servers-error-bad-address", fallback: "That isn't an address. Try something like jellyfin.home.example.") }
+
+    /// Error for anything else a server answered.
+    public static var serversErrorOther: String { string("servers-error-other", fallback: "The server answered with something anistream can't use. Try again.") }
+
+    /// Title of the step that asks about a certificate.
+    public static var serversCertTitle: String { string("servers-cert-title", fallback: "Check this server") }
+
+    /// Body of that step.
+    public static func serversCertBody(host: String) -> String {
+        Self.format("servers-cert-body", fallback: "%1$@ uses a certificate this device doesn't trust. That's normal for a server at home. Allow it only if this fingerprint matches the one your server shows.", host)
+    }
+
+    /// Button that allows a certificate.
+    public static var serversCertAllow: String { string("servers-cert-allow", fallback: "Allow this certificate") }
+
+    /// A server's line when it no longer accepts the sign-in.
+    public static var serversRowSignedOut: String { string("servers-row-signed-out", fallback: "Signed out by the server") }
+
+    /// Button that signs in to a server again.
+    public static var serversSignInAgain: String { string("servers-sign-in-again", fallback: "Sign in again") }
+
+    /// Heading over a server's libraries.
+    public static var serversLibrariesHeading: String { string("servers-libraries-heading", fallback: "Libraries") }
+
+    /// Button on a server's page that matches its series to AniList again.
+    public static var serversRefresh: String { string("servers-refresh", fallback: "Match again") }
+
+    /// Line on a server's page: how many of its series are not matched for sure.
+    public static func serversNeedsLook(count: Int) -> String {
+        Self.format("servers-needs-look", fallback: "%1$lld not matched to AniList", count)
+    }
+
+    /// What a Jellyfin library of shows is called in a library's line.
+    public static var serversKindShows: String { string("servers-kind-shows", fallback: "Shows") }
+
+    /// What a Jellyfin library of films is called in a library's line.
+    public static var serversKindFilms: String { string("servers-kind-films", fallback: "Films") }
+
     /// Settings group and row title for choosing a language.
     public static var settingsLanguage: String { string("settings-language", fallback: "Language") }
 
@@ -6364,6 +6725,61 @@ public enum L {
     public static func matchRowLabel(title: String, facts: String, closeness: String) -> String {
         Self.format("match-row-label", fallback: "%1$@, %2$@, %3$@", title, facts, closeness)
     }
+
+    /// Heading over the folders the viewer added.
+    public static var sourcesSectionMedia: String { string("sources-section-media", fallback: "Your media") }
+
+    /// Heading over the media servers.
+    public static var sourcesSectionServers: String { string("sources-section-servers", fallback: "Media servers") }
+
+    /// Heading over the one row for licensed services.
+    public static var sourcesSectionLicensed: String { string("sources-section-licensed", fallback: "Licensed services") }
+
+    /// Heading over the plugins of one store.
+    public static func sourcesSectionStore(store: String) -> String {
+        Self.format("sources-section-store", fallback: "From %1$@", store)
+    }
+
+    /// Heading over the plugins put in by hand.
+    public static var sourcesSectionByHand: String { string("sources-section-by-hand", fallback: "Added by hand") }
+
+    /// Heading over what anistream ships.
+    public static var sourcesSectionBuiltin: String { string("sources-section-builtin", fallback: "Built in") }
+
+    /// The secondary button that opens the menu of things to add.
+    public static var sourcesAdd: String { string("sources-add", fallback: "Add") }
+
+    /// Menu item that adds a folder of episodes.
+    public static var sourcesAddFolder: String { string("sources-add-folder", fallback: "Folder…") }
+
+    /// Menu item that adds a media server.
+    public static var sourcesAddServer: String { string("sources-add-server", fallback: "Media server…") }
+
+    /// Menu item that joins a plugin store.
+    public static var sourcesAddStore: String { string("sources-add-store", fallback: "Join a plugin store…") }
+
+    /// Line under the title of the empty Sources page.
+    public static var sourcesEmptyBody: String { string("sources-empty-body", fallback: "Sources are where episodes come from: folders on this device, your media server, and plugins from plugin stores you join.") }
+
+    /// Button on the empty Sources page that picks a folder.
+    public static var sourcesAddFolderButton: String { string("sources-add-folder-button", fallback: "Add a folder") }
+
+    /// Button on the empty Sources page that starts adding a media server.
+    public static var sourcesAddServerButton: String { string("sources-add-server-button", fallback: "Add a media server") }
+
+    /// Link under the buttons on the empty Sources page.
+    public static var sourcesEmptyJoinLink: String { string("sources-empty-join-link", fallback: "Join a plugin store") }
+
+    /// Words before the link on the empty Sources page.
+    public static var sourcesEmptyOr: String { string("sources-empty-or", fallback: "Or") }
+
+    /// Notice after a first-party source is removed. It holds Undo.
+    public static func sourcesRemoved(name: String) -> String {
+        Self.format("sources-removed", fallback: "%1$@ removed", name)
+    }
+
+    /// Second line of the notice after a folder is removed.
+    public static var sourcesRemovedFilesStay: String { string("sources-removed-files-stay", fallback: "Your files stay where they are.") }
 
     /// Short label for a joined store, on a row.
     public static var storesJoined: String { string("stores-joined", fallback: "Joined") }
