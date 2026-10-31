@@ -796,7 +796,7 @@ mod tests {
             .render(buf.area, &mut buf);
         let first = row_text(&buf, 0);
         assert!(first.contains(Section::Home.glyph()), "mark missing: {first:?}");
-        assert!(first.contains("Continue"), "label missing: {first:?}");
+        assert!(first.contains("Home"), "label missing: {first:?}");
         // Every section still fits at the rail's real width, marks included.
         for (i, section) in Section::ALL.iter().enumerate() {
             let row = row_text(&buf, i as u16);

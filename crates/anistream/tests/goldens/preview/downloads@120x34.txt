@@ -1,6 +1,6 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  Continue               │  Title                             State         Progress
+  ▸  Home                   │  Title                             State         Progress
   ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
   ▦  Seasonal               │  ▌ Stardust Wayfarer  E4           Downloaded    ████████████████████  367 MB / 367 MB
   /  Search                 │    Stardust Wayfarer  E5           Downloading   ████████░░░░░░░░░░░░  147 MB / 367 MB

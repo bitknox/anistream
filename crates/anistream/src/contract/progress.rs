@@ -23,7 +23,13 @@ use anistream_testkit::{
 use anistream_tui::{app::NowPlaying, keymap::Action};
 
 use super::toasts;
-use crate::harness::{Harness, Options, names};
+use crate::harness::{self, Harness, Options};
+
+/// The names of the updates, without Home: it follows the queue and the progress, and its own
+/// tests say what it sends.
+fn names(updates: &[Event]) -> Vec<&'static str> {
+    harness::names(updates).into_iter().filter(|name| *name != "Home").collect()
+}
 
 /// Three episodes of [`FINISHED`] watched two days ago and the fourth stopped five minutes in,
 /// an hour ago: Home has it to continue.

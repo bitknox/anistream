@@ -139,6 +139,7 @@ impl App {
                 self.search_in_results = false;
             }
             Action::Back => self.go_back(),
+            Action::ToggleRail if self.on_home_stage() && self.jump_home_section() => {}
             Action::ToggleRail => self.nav.toggle_rail(),
             Action::JumpSection(n) => return self.jump_section(n),
             // Already on Search, `/` means "let me type" rather than "start again": it returns
@@ -228,6 +229,9 @@ impl App {
             Action::PlayNext => return self.play_next_unwatched(),
             Action::ShowEpisodes => return self.show_episodes(),
             Action::ToggleWatched if self.in_episodes() => return self.toggle_watched(),
+            Action::ToggleWatched if self.on_home_stage() && self.last_dismissed.is_some() => {
+                return self.undo_home_dismissal();
+            }
             Action::MarkAllPrevious if self.in_episodes() => return self.mark_all_previous(),
             Action::DownloadRange if self.in_episodes() => self.open_download_range(),
             Action::DownloadRange => {

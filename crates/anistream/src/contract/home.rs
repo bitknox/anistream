@@ -158,6 +158,15 @@ async fn load(h: &mut Harness) -> Vec<HomeView> {
     sent
 }
 
+/// Ask for Home and return everything sent. The terminal asks the sources about the spotlight
+/// itself, so its answer is in here, and asking again within a minute is not answered.
+async fn load_all(h: &mut Harness) -> Vec<Event> {
+    let job = h.send(Command::LoadHome { refresh: false });
+    let updates = h.settle().await;
+    ends(&updates, job);
+    updates
+}
+
 async fn last(h: &mut Harness) -> HomeView {
     load(h).await.pop().unwrap()
 }
@@ -563,10 +572,7 @@ async fn a_title_no_source_has_is_marked_and_offers_planning_instead() {
     let mut h = at(now, Some(registry)).await;
     season(&h, []);
     watch(&h, FINISHED, 1..=12, now, 30 * DAY);
-    last(&mut h).await;
-
-    h.send(Command::ProbeTitle { id: id(POP_ONE) });
-    let updates = h.settle().await;
+    let updates = load_all(&mut h).await;
 
     assert_eq!(probed(&updates, POP_ONE), Some(Playable::NotFound));
     let home = homes(&updates).pop().expect("Home sent again with the miss");
@@ -596,10 +602,7 @@ async fn a_source_that_has_the_title_keeps_its_match() {
     let mut h = at(now, Some(registry)).await;
     season(&h, []);
     watch(&h, FINISHED, 1..=12, now, 30 * DAY);
-    last(&mut h).await;
-
-    h.send(Command::ProbeTitle { id: id(POP_ONE) });
-    let updates = h.settle().await;
+    let updates = load_all(&mut h).await;
 
     assert_eq!(probed(&updates, POP_ONE), Some(Playable::Found));
     let kept = h.store().lookup_mapping(id(POP_ONE), "source.example").unwrap();
@@ -613,11 +616,8 @@ async fn a_source_that_does_not_answer_in_time_marks_nothing() {
     let mut h = at(now, Some(registry)).await;
     season(&h, []);
     watch(&h, FINISHED, 1..=12, now, 30 * DAY);
-    last(&mut h).await;
-
     let started = std::time::Instant::now();
-    h.send(Command::ProbeTitle { id: id(POP_ONE) });
-    let updates = h.settle_until(|u| matches!(u, Event::TitlePlayable { .. })).await;
+    let updates = load_all(&mut h).await;
 
     assert_eq!(probed(&updates, POP_ONE), Some(Playable::Unknown));
     assert!(started.elapsed() < Duration::from_secs(6));
