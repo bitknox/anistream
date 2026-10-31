@@ -15,10 +15,11 @@ struct SourcePickerItem: Identifiable {
 }
 
 extension View {
-    /// The source picker for whichever title the navigator names: a sheet over the window on the
-    /// Mac and iPad, the medium detent on iPhone.
+    /// The source picker for whichever title the navigator names: a card over the window on the
+    /// Mac, a sheet on iPad, the medium detent on iPhone. A pick applies at once, so a click
+    /// outside loses nothing.
     func sourcePickerSheet(_ navigator: Navigator) -> some View {
-        sheet(item: Binding<SourcePickerItem?>(
+        infoSurface(item: Binding<SourcePickerItem?>(
             get: { navigator.sourcePicker.map(SourcePickerItem.init) },
             set: { navigator.sourcePicker = $0?.id }
         )) { item in
@@ -34,7 +35,7 @@ extension View {
 /// Done on iPhone and iPad.
 struct SourcePickerSheet: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = SurfaceDismiss()
     let id: AnilistId
 
     var body: some View {
@@ -64,7 +65,7 @@ struct SourcePickerSheet: View {
             .padding(.vertical, 16)
         }
         .frame(width: 480)
-        .frame(minHeight: 360, idealHeight: 520)
+        .frame(minHeight: 360, maxHeight: 520)
         .background(.raised)
         .closesOnEscape { dismiss() }
         #else

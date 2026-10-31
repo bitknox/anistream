@@ -55,6 +55,7 @@ struct KitsuSheet: View {
         .padding(24)
         .sheetWidth(420)
         .background(.raised)
+        .holdsInput([username, password])
         .onChange(of: store.accounts.tracker("kitsu")?.connected) { _, connected in
             if connected == true { dismiss() }
         }
@@ -73,7 +74,7 @@ struct KitsuSheet: View {
 struct DeviceCodeSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.openURL) private var openURL
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = SurfaceDismiss()
     let prompt: DeviceCodePrompt
     /// A new code was asked for and is on its way.
     @State private var asked = false

@@ -231,6 +231,7 @@ internal fun EngineDown() {
 private fun ResetSettingsDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
+        properties = AskingDialog,
         title = { Text(stringResource(R.string.settings_reset_title)) },
         text = { Text(stringResource(R.string.settings_reset_detail)) },
         confirmButton = {

@@ -61,8 +61,9 @@ struct AppSheets: ViewModifier {
     }
 }
 
-/// A sign-in code to type on another device, Simkl's or Trakt's, as a sheet over the view, while
-/// `here` says this is where it shows. Closed, the same code does not come straight back.
+/// A sign-in code to type on another device, Simkl's or Trakt's, while `here` says this is where
+/// it shows: a card over the window on the Mac, a sheet elsewhere. Closed, the same code does not
+/// come straight back.
 struct DeviceCodePresenter: ViewModifier {
     @Environment(AppStore.self) private var store
     let here: Bool
@@ -70,7 +71,7 @@ struct DeviceCodePresenter: ViewModifier {
     @State private var closedCode: String?
 
     func body(content: Content) -> some View {
-        content.sheet(item: Binding<DeviceCodeItem?>(
+        content.infoSurface(item: Binding<DeviceCodeItem?>(
             get: {
                 guard here, let prompt = store.accounts.deviceCode, prompt.code != closedCode else { return nil }
                 return DeviceCodeItem(prompt: prompt)
@@ -111,17 +112,18 @@ struct MoreAboutItem: Identifiable {
 }
 
 extension View {
-    /// The "More about this show" sheet, for whichever title the navigator names: a window sheet
-    /// 880 wide on the Mac, a page sheet on iPad, the large detent on iPhone.
+    /// The "More about this show" sheet, for whichever title the navigator names: a card 880 wide
+    /// over the window on the Mac, a page sheet on iPad, the large detent on iPhone.
     func moreAboutSheet(_ navigator: Navigator) -> some View {
-        sheet(item: Binding<MoreAboutItem?>(
+        infoSurface(item: Binding<MoreAboutItem?>(
             get: { navigator.moreAbout.map(MoreAboutItem.init) },
             set: { navigator.moreAbout = $0?.id }
         )) { item in
             #if os(macOS)
+            // A card over the window, which a click outside closes (Light dismiss).
             MoreAboutSheet(id: item.id)
                 .frame(width: 880)
-                .frame(minHeight: 480, idealHeight: 760)
+                .frame(minHeight: 480, maxHeight: 760)
             #else
             if UIDevice.current.userInterfaceIdiom == .phone {
                 MoreAboutSheet(id: item.id).presentationDetents([.large])

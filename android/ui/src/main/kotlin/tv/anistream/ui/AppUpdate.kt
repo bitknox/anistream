@@ -239,6 +239,7 @@ internal fun UpdatePrompts() {
     if (allowing.opened) return
     AlertDialog(
         onDismissRequest = store.updates::notNow,
+        properties = AskingDialog,
         title = { Text(stringResource(R.string.updates_allow_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

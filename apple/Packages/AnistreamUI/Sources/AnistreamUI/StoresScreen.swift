@@ -723,6 +723,7 @@ struct InviteSheet: View {
         .sheetWidth(480)
         .background(.raised)
         .onAppear { appStore.stores.clearInvite() }
+        .holdsInput(name)
     }
 
     static func expiry(_ seconds: Int64) -> String {

@@ -749,6 +749,7 @@ struct PhonePartyForm: View {
         }
         .tint(.silk)
         .preferredColorScheme(.dark)
+        .holdsInput(party.server)
     }
 }
 

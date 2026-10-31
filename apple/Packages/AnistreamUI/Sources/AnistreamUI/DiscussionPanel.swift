@@ -113,6 +113,8 @@ struct DiscussionPanel: View {
         #if os(macOS)
         .onExitCommand { draft.cancel() }
         #endif
+        // A comment being written holds the iPhone's sheet open.
+        .holdsInput(when: draft.hasText)
     }
 
     // MARK: Header

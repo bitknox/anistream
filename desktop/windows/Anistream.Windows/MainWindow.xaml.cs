@@ -1086,7 +1086,7 @@ public sealed partial class MainWindow : Window
     /// <summary>Closes the dialog that is up, if one is: whether one was.</summary>
     bool CloseDialogs()
     {
-        var closed = false;
+        var closed = InfoCard.HideOpen();
         foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(Root.XamlRoot))
             if (popup.Child is ContentDialog dialog)
             {
@@ -1221,6 +1221,8 @@ public sealed partial class MainWindow : Window
     /// <summary>Ctrl+/: every key the window and the player answer, in a dialog.</summary>
     internal async void ShowShortcuts()
     {
+        if (InfoCard.IsOpen)
+            return;
         var grid = new Grid { ColumnSpacing = 24, RowSpacing = 6 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -1271,15 +1273,13 @@ public sealed partial class MainWindow : Window
         Line(T.PlayerMiniPlayer, "P");
         Line(T.ShortcutsCornerCard, "Enter");
         Line(T.ShortcutsClosePlayer, "Esc, Alt+Left");
-        var dialog = new ContentDialog
-        {
-            XamlRoot = Root.XamlRoot,
-            Title = T.ShortcutsTitle,
-            Content = new ScrollViewer { Content = grid, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 16, 0) },
-            CloseButtonText = T.ActionClose,
-            DefaultButton = ContentDialogButton.Close,
-        };
-        await Dialogs.Show(dialog);
+        // Nothing to lose, so a click outside closes it too (Light dismiss).
+        await InfoCard.Show(
+            Root.XamlRoot,
+            Ui.Text(T.ShortcutsTitle, "SubtitleTextBlockStyle"),
+            new ScrollViewer { Content = grid, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 16, 0) },
+            548,
+            640);
     }
 }
 

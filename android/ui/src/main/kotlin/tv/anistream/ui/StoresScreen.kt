@@ -238,6 +238,7 @@ internal fun StoreScreen(id: String) {
     if (leaving && row != null) {
         AlertDialog(
             onDismissRequest = { leaving = false },
+            properties = AskingDialog,
             title = { Text(stringResource(R.string.stores_leave_title, row.name)) },
             text = { Text(stringResource(R.string.stores_leave_rejoin)) },
             confirmButton = {
@@ -333,6 +334,7 @@ internal fun PluginScreen(storeId: String, pluginId: String) {
     if (removing && plugin != null) {
         AlertDialog(
             onDismissRequest = { removing = false },
+            properties = AskingDialog,
             title = { Text(stringResource(R.string.stores_remove_plugin_title, plugin.name)) },
             text = { Text(stringResource(R.string.stores_remove_plugin_detail)) },
             confirmButton = {
@@ -380,7 +382,7 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
     }
     val invited = (preview as? StoresModel.Preview.Store)?.store
     val clear: @Composable () -> Unit = { IconButton(onClick = { link = "" }) { Icon(Icons.Clear, contentDescription = stringResource(R.string.action_clear)) } }
-    SettingsSheet(onDismiss, tall = true) {
+    SettingsSheet(onDismiss, tall = true, holdsInput = changedSinceOpened(link)) {
         SheetTitle(stringResource(R.string.stores_join_title))
         SheetField(
             link,

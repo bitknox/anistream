@@ -169,7 +169,7 @@ struct NoticeCapsule: View {
 /// Every notice this session, newest first.
 struct MessagesView: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
+    private var dismiss = SurfaceDismiss()
 
     var body: some View {
         #if os(macOS)

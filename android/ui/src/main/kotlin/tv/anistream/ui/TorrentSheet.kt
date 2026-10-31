@@ -123,7 +123,7 @@ private fun ProtectSheet(mode: TorrentSheetMode, start: TorrentProtection?, onDi
     }
     val check = proxyCheck(details.takeIf { checks }, onPassed = save)
 
-    SettingsSheet(onDismiss, tall = true) {
+    SettingsSheet(onDismiss, tall = true, holdsInput = changedSinceOpened(protection, host, port, user, password, index, acknowledged)) {
         SheetTitle(stringResource(if (mode == TorrentSheetMode.TurnOn) R.string.torrents_sheet_turn_on_title else R.string.torrents_sheet_protect_title))
         SheetText(stringResource(TorrentWords.WHY))
         Text(
@@ -187,6 +187,7 @@ private fun ProtectSheet(mode: TorrentSheetMode, start: TorrentProtection?, onDi
     if (asking) {
         AlertDialog(
             onDismissRequest = { asking = false },
+            properties = AskingDialog,
             title = { Text(stringResource(TorrentWords.NONE_TITLE)) },
             text = { Text(stringResource(TorrentWords.NONE_BODY)) },
             confirmButton = {
@@ -212,7 +213,7 @@ private fun IndexSheet(onDismiss: () -> Unit) {
     var index by rememberSaveable { mutableStateOf(view?.sources?.index.orEmpty()) }
     val trimmed = index.trim()
     val indexOk = TorrentWords.indexOk(trimmed)
-    SettingsSheet(onDismiss) {
+    SettingsSheet(onDismiss, holdsInput = changedSinceOpened(index)) {
         SheetTitle(stringResource(R.string.torrents_index))
         SheetField(
             index,
@@ -288,7 +289,7 @@ private fun EditProxySheet(onDismiss: () -> Unit) {
         snackbars.show(context.getString(TorrentWords.SAID_PROXY))
         onDismiss()
     }
-    SettingsSheet(onDismiss) {
+    SettingsSheet(onDismiss, holdsInput = changedSinceOpened(host, port, user, password)) {
         SheetTitle(stringResource(R.string.torrents_sheet_edit_proxy_title))
         SheetText(stringResource(TorrentWords.EDIT_NOTE))
         ProxyFields(
@@ -419,6 +420,7 @@ private fun ProtectionChoice(title: String, note: String, selected: Boolean, ena
 internal fun WarnOnlyDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = AskingDialog,
         title = { Text(stringResource(TorrentWords.WARN_TITLE)) },
         text = { Text(stringResource(TorrentWords.WARN_BODY)) },
         confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.torrents_fail_warn)) } },

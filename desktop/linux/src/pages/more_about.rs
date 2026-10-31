@@ -58,7 +58,7 @@ pub fn open(ctx: &Rc<Ctx>, entry: &Entry) {
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     dialog.set_child(Some(&view));
-    dialog.present(Some(&ctx.window));
+    crate::widgets::present_light_dismiss(&dialog, &ctx.window);
 }
 
 /// A heading over a boxed list, with an optional note under it.

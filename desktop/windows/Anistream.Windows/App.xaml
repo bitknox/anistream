@@ -168,6 +168,8 @@
           <SolidColorBrush x:Key="FaintRuleBrush" Color="#2F3242" />
           <!-- The player's 35% dim of the ground over the frame. -->
           <SolidColorBrush x:Key="DimBrush" Color="#161A2E" Opacity="0.35" />
+          <!-- Behind a light-dismiss card (InfoCard): the same 35% dim of the ground. -->
+          <SolidColorBrush x:Key="PopupLightDismissOverlayBackground" Color="#161A2E" Opacity="0.35" />
           <!-- The still-watching scrim: the ground at 60%. -->
           <SolidColorBrush x:Key="ScrimBrush" Color="#161A2E" Opacity="0.6" />
           <!-- A spoiler still: blurred under a light ground tint; raised when the blur is off. -->

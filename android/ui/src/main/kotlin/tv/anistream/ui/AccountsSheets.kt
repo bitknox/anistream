@@ -74,15 +74,17 @@ import tv.anistream.store.CodeCountdown
 
 /**
  * A sheet as the brief has it: surfaceContainer, corners 28 on top, the drag handle in haze at 40 %,
- * over the scrim at black 32 %; its motion and drag are the component's own (T7).
+ * over the scrim at black 32 %; its motion and drag are the component's own (T7). A click on the
+ * scrim closes it until [holdsInput] says the person has typed or chosen something (Light dismiss).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SettingsSheet(onDismiss: () -> Unit, tall: Boolean = false, content: @Composable () -> Unit) {
+internal fun SettingsSheet(onDismiss: () -> Unit, tall: Boolean = false, holdsInput: Boolean = false, content: @Composable () -> Unit) {
     val colors = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = tall),
+        properties = sheetProperties(holdsInput),
         containerColor = colors.surfaceContainer,
         scrimColor = Color.Black.copy(alpha = 0.32f),
         dragHandle = { BottomSheetDefaults.DragHandle(color = colors.onSurfaceVariant.copy(alpha = 0.4f)) },
@@ -219,7 +221,7 @@ internal fun KitsuSheet(onDismiss: () -> Unit) {
         if (username.isNotBlank() && password.isNotEmpty() && !busy) store.connectKitsu(username.trim(), password)
     }
     val kitsu = AccountsModel.name("kitsu")
-    SettingsSheet(onDismiss) {
+    SettingsSheet(onDismiss, holdsInput = changedSinceOpened(username, password)) {
         SheetTitle(stringResource(R.string.accounts_form_title, kitsu))
         SheetText(stringResource(R.string.accounts_form_detail, kitsu))
         Spacer(Modifier.heightIn(min = 16.dp))
@@ -326,7 +328,8 @@ internal fun ConflictsSheet(onDismiss: () -> Unit) {
     val store = LocalAppStore.current
     val conflicts by store.accounts.conflicts.collectAsStateWithLifecycle()
     LaunchedEffect(conflicts.isEmpty()) { if (conflicts.isEmpty()) onDismiss() }
-    SettingsSheet(onDismiss, tall = true) {
+    // Each conflict asks a question, so a tap outside does nothing (Light dismiss).
+    SettingsSheet(onDismiss, tall = true, holdsInput = true) {
         val anilist = AccountsModel.name("anilist")
         SheetTitle(stringResource(R.string.accounts_clash_title, anilist))
         SheetText(stringResource(R.string.accounts_clash_detail, anilist))

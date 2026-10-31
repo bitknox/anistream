@@ -403,6 +403,7 @@ struct PhoneJoinStoreSheet: View {
             if joined != nil { dismiss() }
         }
         .onDisappear { store.stores.clearPreview() }
+        .holdsInput(link)
     }
 
     private var canJoin: Bool {
@@ -494,6 +495,8 @@ struct PhoneTorrentSheet: View {
     @State private var draft: TorrentDraft?
     /// What the check under way is for, saved once it passes.
     @State private var checking: TorrentDraft?
+    /// The draft as the sheet opened, to tell a change from it.
+    @State private var opened: TorrentDraft?
     @State private var confirmingNone = false
 
     private var turningOn: Bool { mode == .turnOn }
@@ -610,8 +613,11 @@ struct PhoneTorrentSheet: View {
             var first = TorrentDraft(store)
             if let start { first.protection = start }
             self.draft = first
+            opened = first
         }
         .modifier(TorrentSaving(checking: checking, draft: self.draft, mode: mode) { dismiss() })
+        // Changed from what it opened with, or with a check under way, it stays open.
+        .holdsInput(when: self.draft != opened || checking != nil)
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
             Button(L.torrentsProtectNone, role: .destructive) {
                 send(draft.wrappedValue)

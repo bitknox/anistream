@@ -1513,7 +1513,7 @@ pub fn about(ctx: &Ctx) {
         Some(&t::about_artwork()),
     );
     dialog.add_legal_section("libmpv", None, gtk::License::Lgpl21, None); // i18n-skip
-    dialog.present(Some(&ctx.window));
+    crate::widgets::present_light_dismiss(&dialog, &ctx.window);
 }
 
 /// List items for the language picker: a flag from `flags` (by the item's text) and the name. The
