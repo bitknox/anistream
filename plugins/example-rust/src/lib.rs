@@ -106,16 +106,10 @@ impl Guest for Component {
     ) -> Result<Vec<MediaStream>, ProviderError> {
         let slug = id.strip_prefix("example:").ok_or(ProviderError::NotFound)?;
 
-        // Demonstrates the lent AES: several real sources wrap their stream URL in AES-128-CBC
-        // with a key found elsewhere on the page. Here a known vector stands in for that, which
-        // proves the capability works end to end rather than merely being linked.
-        let key = b"anistream-demo!!";
-        let iv = b"0123456789abcdef";
-        let sealed = SEALED_URL;
-        let decrypted = host::aes_decrypt(key, iv, sealed)
-            .map_err(|e| ProviderError::Parse(format!("aes: {e}")))?;
-        let url = String::from_utf8(decrypted)
-            .map_err(|_| ProviderError::Parse("decrypted payload was not utf-8".into()))?;
+        // A real plugin reads this from the catalogue's response; the example keeps it fixed so
+        // it needs no network. A source that wraps its URLs in a cipher is the plugin's own
+        // business now: the ABI lends no crypto, so such a plugin brings a small library.
+        let url = STREAM_URL.to_owned();
 
         // The lent settings: an optional mirror override from
         // `[providers.plugins.settings.example-rust]`. The pattern to copy is the fallback —
@@ -201,16 +195,8 @@ impl Guest for Component {
     }
 }
 
-/// `https://cdn.example.test/master.m3u8` under AES-128-CBC with the key and iv in `resolve`.
-///
-/// Baked in as bytes so the demonstration needs no network: the point is that the *host* holds
-/// the crypto, not that this particular payload is interesting.
-const SEALED_URL: &[u8] = &[
-    0x98, 0xe2, 0x0c, 0xda, 0xa0, 0x6e, 0xce, 0x05, 0xbb, 0x5f, 0x6f, 0x31, 0x13, 0x71, 0xa4,
-    0xe2, 0x91, 0xfd, 0xbc, 0xc7, 0xbb, 0xc5, 0xf0, 0xa6, 0xfb, 0x55, 0x0d, 0xfc, 0x58, 0xff,
-    0x26, 0x9e, 0x26, 0x74, 0x61, 0x04, 0xfb, 0x4b, 0x14, 0xb6, 0x68, 0xcc, 0xb0, 0x28, 0x5c,
-    0x24, 0x15, 0x0a,
-];
+/// The stream a catalogue would name for any episode, on a host that does not exist.
+const STREAM_URL: &str = "https://cdn.example.test/master.m3u8";
 
 /// A GET through the host, with the host's failures translated into ours.
 fn get(url: &str) -> Result<String, ProviderError> {

@@ -278,17 +278,38 @@ pub async fn load_providers(
     host: &engine::PluginHost,
     dir: impl AsRef<std::path::Path>,
 ) -> Vec<WasmProvider> {
-    host.load_dir(dir)
-        .await
-        .into_iter()
-        .filter_map(|result| match result {
-            Ok(plugin) => Some(WasmProvider::new(plugin)),
-            Err(e) => {
-                tracing::warn!(error = %e, "skipping unloadable plugin");
-                None
+    load_providers_reporting(host, dir).await.providers
+}
+
+/// What a plugin directory held: the plugins that loaded, and the names of the ones refused
+/// because they were built for another major version of the plugin ABI.
+pub struct LoadedDir {
+    pub providers: Vec<WasmProvider>,
+    /// File names without the extension, in directory order.
+    pub outdated: Vec<String>,
+}
+
+/// [`load_providers`], also saying which plugins were skipped for being built for an old ABI, so
+/// the app can tell the person to update them rather than leave a source silently missing.
+pub async fn load_providers_reporting(
+    host: &engine::PluginHost,
+    dir: impl AsRef<std::path::Path>,
+) -> LoadedDir {
+    let mut loaded = LoadedDir { providers: Vec::new(), outdated: Vec::new() };
+    for result in host.load_dir(dir).await {
+        match result {
+            Ok(plugin) => loaded.providers.push(WasmProvider::new(plugin)),
+            Err(engine::PluginError::OutdatedAbi { path, found }) => {
+                tracing::warn!(%path, %found, "skipping plugin built for another plugin ABI");
+                let name = std::path::Path::new(&path)
+                    .file_stem()
+                    .map_or(path.clone(), |s| s.to_string_lossy().into_owned());
+                loaded.outdated.push(name);
             }
-        })
-        .collect()
+            Err(e) => tracing::warn!(error = %e, "skipping unloadable plugin"),
+        }
+    }
+    loaded
 }
 
 #[cfg(test)]

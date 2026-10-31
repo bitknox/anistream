@@ -11,13 +11,12 @@ fingerprint; your plugin is a parser. It cannot reach anything outside its decla
 
 ## The interface
 
-`wit/anistream-provider.wit` is the contract, package `anistream:provider@1.1.0`:
+`wit/anistream-provider.wit` is the contract, package `anistream:provider@2.0.0`:
 
 ```wit
 interface host {                          // what you may call
     fetch:          func(req: http-request) -> result<http-response, host-error>;
     log:            func(level: string, msg: string);
-    aes-decrypt:    func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
     regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
     fetch-many:     func(reqs: list<http-request>) -> list<result<http-response, host-error>>;
     config-get:     func(key: string) -> option<string>;
@@ -42,7 +41,6 @@ interface provider {                      // what you must export
 - `sources`: the selectable releases for the Sources overlay, best-first. An empty list means
   "nothing to choose between", which is an answer and not a failure.
 - `resolve-source`: one candidate's id back into streams. Never fall back to the automatic pick.
-- `aes-decrypt`: AES-CBC. The key length selects 128, 192 or 256.
 - `config-get`: reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
   Every key is optional, so work with all of them unset.
 
@@ -83,11 +81,24 @@ cd plugins/example-ts && npm install && npm run build
 
 Five differences from Rust:
 
-- Imports carry the package version: `anistream:provider/host@1.1.0`.
+- Imports carry the package version: `anistream:provider/host@2.0.0`.
 - Names are lowerCamelCase: `list-episodes` → `listEpisodes`.
 - Errors are thrown, not returned: `throw { tag: 'not-found' }`. `fetch` needs `try`/`catch`.
 - Exports run without a receiver: `this.resolve(…)` traps, so share a plain function.
 - `--disable all` strips WASI.
+
+## Migrating from ABI 1.x
+
+ABI 2.0.0 removes the `aes-decrypt` import. A plugin built against 1.x is refused with a message
+that says it needs updating, so rebuild it against the 2.0.0 WIT file.
+
+If your plugin called `aes-decrypt`, do the decryption inside the plugin with a small library.
+The old import was AES-CBC with PKCS#7 padding: the key length (16, 24 or 32 bytes) selected
+AES-128, AES-192 or AES-256, the IV was 16 bytes, and the ciphertext was a multiple of 16 bytes.
+In Rust, the `aes` and `cbc` crates (RustCrypto, MIT or Apache-2.0) do this in a few lines:
+`cbc::Decryptor::<aes::Aes256>::new_from_slices(key, iv)?.decrypt_padded_vec::<Pkcs7>(data)`.
+In JavaScript, bundle a small library such as `aes-js` (MIT) before running `jco componentize`.
+Plugins that never used the import only need the rebuild.
 
 ## Cost
 

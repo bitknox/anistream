@@ -18,32 +18,23 @@
 //      of `provider-error` becomes a thrown variant object, and the host receives it as the same
 //      typed error a Rust plugin would return.
 
-// The version is part of the specifier: the WIT package is `anistream:provider@1.1.0`, and jco
+// The version is part of the specifier: the WIT package is `anistream:provider@2.0.0`, and jco
 // resolves imports against the fully-qualified interface name.
 import {
   fetch,
   log,
-  aesDecrypt,
   regexCaptures,
   configGet,
-} from 'anistream:provider/host@1.1.0';
+} from 'anistream:provider/host@2.0.0';
 
 // The one host this plugin may reach. Declared here, enforced by the host — visible in
 // `anistream --plugins` without reading this file.
 const ALLOWED_HOST = 'httpbin.org';
 
-/// `https://cdn.example.test/master.m3u8` under AES-128-CBC, with the key and iv below.
-///
-/// The same ciphertext the Rust plugin carries, decrypted by the same host function — which is the
-/// point: two unrelated guests, one implementation of the capability.
-const SEALED_URL = new Uint8Array([
-  0x98, 0xe2, 0x0c, 0xda, 0xa0, 0x6e, 0xce, 0x05, 0xbb, 0x5f, 0x6f, 0x31, 0x13, 0x71, 0xa4, 0xe2,
-  0x91, 0xfd, 0xbc, 0xc7, 0xbb, 0xc5, 0xf0, 0xa6, 0xfb, 0x55, 0x0d, 0xfc, 0x58, 0xff, 0x26, 0x9e,
-  0x26, 0x74, 0x61, 0x04, 0xfb, 0x4b, 0x14, 0xb6, 0x68, 0xcc, 0xb0, 0x28, 0x5c, 0x24, 0x15, 0x0a,
-]);
-
-const AES_KEY = new TextEncoder().encode('anistream-demo!!');
-const AES_IV = new TextEncoder().encode('0123456789abcdef');
+/// The stream a catalogue would name for any episode, on a host that does not exist. A real
+/// plugin reads it from the response; this keeps the example offline. The ABI lends no crypto, so a
+/// source that wraps its URLs in a cipher is the plugin's to unwrap with a library it bundles.
+const STREAM_URL = 'https://cdn.example.test/master.m3u8';
 
 /// Percent-encode a query value. Hand-rolled for the same reason as in the Rust plugin: pulling a
 /// dependency in to escape one parameter would be most of the component.
@@ -200,13 +191,7 @@ function resolveStreams(id, episode, translation) {
   }
   const slug = id.slice('example:'.length);
 
-  // The lent AES: this component carries no crypto at all, yet decrypts a real payload.
-  let url;
-  try {
-    url = new TextDecoder().decode(new Uint8Array(aesDecrypt(AES_KEY, AES_IV, SEALED_URL)));
-  } catch (error) {
-    throw { tag: 'parse', val: `aes: ${error?.payload ?? error}` };
-  }
+  const url = STREAM_URL;
 
   // The lent settings: an optional mirror override from
   // `[providers.plugins.settings.example-ts]`. The fallback is the pattern to copy — a

@@ -75149,6 +75149,18 @@
         }
       }
     },
+    "plugin-installed-outdated" : {
+      "comment" : "Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@, but it was built for an older version of anistream and needs updating. Ask its author for a new build."
+          }
+        }
+      }
+    },
     "plugin-installed-unused" : {
       "comment" : "Toast after a plugin is installed while plugins are switched off in the source order. Argument 1: plugin (Text). Argument 2: version (Text).",
       "extractionState" : "manual",
@@ -76133,6 +76145,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Det gick inte att läsa in tillägg. %1$@"
+          }
+        }
+      }
+    },
+    "plugins-outdated" : {
+      "comment" : "Note on the sources screen when plugins were skipped because they were built for an older plugin interface. Argument 1: count (Int). Argument 2: names (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One plugin was built for an older version of anistream and needs updating: %2$@."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld plugins were built for an older version of anistream and need updating: %2$@."
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

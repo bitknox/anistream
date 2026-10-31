@@ -47,9 +47,6 @@ wasmtime-wasi = { version = "49.0", default-features = false, features = ["p2"] 
 # the request will, or it is checking a different host than the one contacted.
 url = "2"
 regex = "1"
-# AES-128-CBC, for the wrapped stream payloads some sources use.
-aes = "0.9"
-cbc = { version = "0.2", features = ["alloc"] }
 
 # iOS lets no app but Apple's make memory executable, so nothing a compiler emits as native code
 # can run there, and Cranelift emits native code for 64-bit machines only. On both, the same
@@ -62,6 +59,8 @@ wasmtime = { version = "49.0", default-features = false, features = ["pulley"] }
 # A fetch response built in a test, for the size ceiling.
 http = "1"
 tempfile = "3"
+# A component built in a test, to stand in for a plugin from an older ABI major.
+wasm-encoder = { version = "0.258", features = ["component-model"] }
 
 [lints]
 workspace = true

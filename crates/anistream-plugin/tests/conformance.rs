@@ -118,17 +118,14 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
     let missing = plugin.list_episodes("not-an-example-id", "sub").await.expect("no trap");
     assert!(matches!(missing, Err(GuestError::NotFound)), "got {missing:?}");
 
-    // The lent AES, from inside a guest that carries no crypto of its own.
+    // A resolved stream with its headers and subtitles.
     let streams = plugin
         .resolve("example:hoshikuzu", "1", "sub")
         .await
         .expect("no trap")
         .expect("streams");
     assert_eq!(streams.len(), 1);
-    assert_eq!(
-        streams[0].url, "https://cdn.example.test/master.m3u8",
-        "the host's AES did not produce the expected plaintext"
-    );
+    assert_eq!(streams[0].url, "https://cdn.example.test/master.m3u8");
     assert_eq!(streams[0].kind, "hls");
     assert_eq!(streams[0].quality, Some(1080));
     assert!(streams[0].headers.iter().any(|(n, _)| n == "referer"));
@@ -241,9 +238,7 @@ async fn a_guest_can_return_structured_results() {
 }
 
 #[tokio::test]
-async fn the_lent_aes_works_from_inside_a_guest() {
-    // The reason `aes-decrypt` is a host function: this plugin carries no crypto at all, yet
-    // decrypts a real AES-128-CBC payload. A guest bundling its own would dwarf the parser.
+async fn a_guest_resolves_a_stream_with_headers_and_subtitles() {
     let Some(path) = component() else { return };
     let host = PluginHost::new(Limits::default(), None).unwrap();
     let plugin = host.load(&path).await.expect("load");
@@ -254,10 +249,7 @@ async fn the_lent_aes_works_from_inside_a_guest() {
         .expect("no trap")
         .expect("streams");
     assert_eq!(streams.len(), 1);
-    assert_eq!(
-        streams[0].url, "https://cdn.example.test/master.m3u8",
-        "the host's AES did not produce the expected plaintext"
-    );
+    assert_eq!(streams[0].url, "https://cdn.example.test/master.m3u8");
     assert_eq!(streams[0].kind, "hls");
     assert_eq!(streams[0].quality, Some(1080));
     // Referer travels with the stream, because a referer-locked CDN 403s without it.
@@ -593,4 +585,30 @@ async fn a_load_failure_names_the_file() {
     let error = host.load(&path).await.unwrap_err();
     assert!(matches!(error, PluginError::Load { .. }));
     assert!(error.to_string().contains("broken.wasm"), "{error}");
+}
+
+#[tokio::test]
+async fn a_plugin_built_for_the_old_abi_major_is_refused_with_a_clear_error() {
+    // A component that imports `anistream:provider/host@1.1.0`, as every plugin built before
+    // ABI 2.0.0 does. It never gets as far as the linker: the host names the problem instead.
+    use wasm_encoder::{
+        Component, ComponentImportSection, ComponentTypeRef, ComponentTypeSection, InstanceType,
+    };
+    let mut types = ComponentTypeSection::new();
+    types.instance(&InstanceType::new());
+    let mut imports = ComponentImportSection::new();
+    imports.import("anistream:provider/host@1.1.0", ComponentTypeRef::Instance(0));
+    let mut old = Component::new();
+    old.section(&types);
+    old.section(&imports);
+
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("old-plugin.wasm");
+    std::fs::write(&path, old.finish()).unwrap();
+
+    let host = PluginHost::new(Limits::default(), None).unwrap();
+    match host.load(&path).await {
+        Err(PluginError::OutdatedAbi { found, .. }) => assert_eq!(found, "1.1.0"),
+        other => panic!("expected OutdatedAbi, got {:?}", other.map(|_| ())),
+    }
 }

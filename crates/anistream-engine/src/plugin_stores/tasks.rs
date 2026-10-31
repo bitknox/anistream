@@ -288,10 +288,14 @@ impl StoreTaskContext {
                     version: version.to_owned(),
                 }));
             }
-            Err(reason) => self.toast(Notice::alert(Msg::PluginInstalledNotLoaded {
-                plugin: name.to_owned(),
-                reason,
-            })),
+            Err(sources::PluginLoadError::Outdated) => self
+                .toast(Notice::alert(Msg::PluginInstalledOutdated { plugin: name.to_owned() })),
+            Err(sources::PluginLoadError::Failed(reason)) => {
+                self.toast(Notice::alert(Msg::PluginInstalledNotLoaded {
+                    plugin: name.to_owned(),
+                    reason,
+                }))
+            }
         }
     }
 }

@@ -785,6 +785,16 @@ pub fn plugin_installed_not_loaded(plugin: &str, reason: &str) -> String {
     text("plugin-installed-not-loaded", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
 }
 
+/// Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.
+pub fn plugin_installed_outdated(plugin: &str) -> String {
+    text("plugin-installed-outdated", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Note on the sources screen when plugins were skipped because they were built for an older plugin interface.
+pub fn plugins_outdated(count: i64, names: &str) -> String {
+    text("plugins-outdated", &[("count", Arg::Int(count)), ("names", Arg::Text(names))])
+}
+
 /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
 pub fn plugin_updates_ready(count: i64, names: &str) -> String {
     text("plugin-updates-ready", &[("count", Arg::Int(count)), ("names", Arg::Text(names))])

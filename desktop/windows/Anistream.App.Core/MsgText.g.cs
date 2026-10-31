@@ -153,6 +153,8 @@ public static class MsgText
         Msg.PluginInstalledNameClash x => T.PluginInstalledNameClash(x.Plugin, x.Id),
         Msg.PluginInstalled x => T.PluginInstalled(x.Plugin, x.Version),
         Msg.PluginInstalledNotLoaded x => T.PluginInstalledNotLoaded(x.Plugin, x.Reason),
+        Msg.PluginInstalledOutdated x => T.PluginInstalledOutdated(x.Plugin),
+        Msg.PluginsOutdated x => T.PluginsOutdated(x.Count, x.Names),
         Msg.PluginUpdatesReady x => T.PluginUpdatesReady(x.Count, x.Names),
         Msg.PluginsLoadFailed x => T.PluginsLoadFailed(x.Reason),
         Msg.StoreTokenMissing x => T.StoreTokenMissing(x.Store),

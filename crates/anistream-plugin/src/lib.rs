@@ -43,5 +43,5 @@ pub type HttpClient = anistream_net::HttpClient;
 #[cfg(not(feature = "fetch"))]
 #[derive(Debug, Clone)]
 pub enum HttpClient {}
-pub use provider::{WasmProvider, load_providers};
+pub use provider::{LoadedDir, WasmProvider, load_providers, load_providers_reporting};
 pub use sandbox::Limits;

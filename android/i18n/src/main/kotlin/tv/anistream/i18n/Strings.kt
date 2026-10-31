@@ -633,6 +633,14 @@ object Strings {
     fun pluginInstalledNotLoaded(context: Context, plugin: String, reason: String): String =
         context.getString(R.string.plugin_installed_not_loaded, plugin, reason)
 
+    /** Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded. */
+    fun pluginInstalledOutdated(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_installed_outdated, plugin)
+
+    /** Note on the sources screen when plugins were skipped because they were built for an older plugin interface. */
+    fun pluginsOutdated(context: Context, count: Int, names: String): String =
+        context.resources.getQuantityString(R.plurals.plugins_outdated, count, count, names)
+
     /** Toast at launch when joined plugin stores offer newer versions of installed plugins. */
     fun pluginUpdatesReady(context: Context, count: Int, names: String): String =
         context.resources.getQuantityString(R.plurals.plugin_updates_ready, count, count, names)

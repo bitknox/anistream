@@ -618,12 +618,17 @@ impl Engine {
 
 /// Say whatever the background plugin load concluded, once. A plugin that failed to load must
 /// not be silent: the Providers screen is where a missing source gets explained.
-fn say_plugin_load(loading: JoinHandle<Option<String>>, tx: Outbox) {
+fn say_plugin_load(loading: JoinHandle<Option<Msg>>, tx: Outbox) {
     tokio::spawn(async move {
         if let Ok(outcome) = loading.await {
             match outcome {
-                Some(reason) => {
-                    let _ = tx.send(Event::ProviderNote(Msg::PluginsLoadFailed { reason }));
+                Some(note) => {
+                    // Plugins skipped for an old ABI are said, but the rest did arrive.
+                    let arrived = !matches!(note, Msg::PluginsLoadFailed { .. });
+                    let _ = tx.send(Event::ProviderNote(note));
+                    if arrived {
+                        let _ = tx.internal(Internal::SourcesReordered);
+                    }
                 }
                 // Ranked again by the order as it stands now, since the user may have moved a
                 // source while these compiled, and the Providers screen refreshed so late

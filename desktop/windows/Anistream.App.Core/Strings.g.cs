@@ -483,6 +483,12 @@ public static partial class T
     /// <summary>Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.</summary>
     public static string PluginInstalledNotLoaded(string plugin, string reason) => Fill(Get("PluginInstalledNotLoaded"), ("plugin", plugin), ("reason", reason));
 
+    /// <summary>Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.</summary>
+    public static string PluginInstalledOutdated(string plugin) => Fill(Get("PluginInstalledOutdated"), ("plugin", plugin));
+
+    /// <summary>Note on the sources screen when plugins were skipped because they were built for an older plugin interface.</summary>
+    public static string PluginsOutdated(long count, string names) => Fill(GetPlural("PluginsOutdated", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("names", names));
+
     /// <summary>Toast at launch when joined plugin stores offer newer versions of installed plugins.</summary>
     public static string PluginUpdatesReady(long count, string names) => Fill(GetPlural("PluginUpdatesReady", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("names", names));
 
@@ -6022,6 +6028,9 @@ public static partial class T
         ["PluginInstalledNameClash"] = "Installed {plugin}, but {id} is the name of a built-in source, so it wasn't loaded.",
         ["PluginInstalled"] = "Installed {plugin} {version}.",
         ["PluginInstalledNotLoaded"] = "Installed {plugin}, but it didn't load. {reason}",
+        ["PluginInstalledOutdated"] = "Installed {plugin}, but it was built for an older version of anistream and needs updating. Ask its author for a new build.",
+        ["PluginsOutdated_one"] = "One plugin was built for an older version of anistream and needs updating: {names}.",
+        ["PluginsOutdated_other"] = "{count} plugins were built for an older version of anistream and need updating: {names}.",
         ["PluginUpdatesReady_one"] = "Plugin update ready: {names}.",
         ["PluginUpdatesReady_other"] = "Plugin updates ready: {names}.",
         ["PluginsLoadFailed"] = "Couldn't load plugins. {reason}",

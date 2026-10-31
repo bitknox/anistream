@@ -154,6 +154,8 @@ fun Msg.text(context: Context): String =
         is Msg.PluginInstalledNameClash -> Strings.pluginInstalledNameClash(context, this.plugin, this.id)
         is Msg.PluginInstalled -> Strings.pluginInstalled(context, this.plugin, this.version)
         is Msg.PluginInstalledNotLoaded -> Strings.pluginInstalledNotLoaded(context, this.plugin, this.reason)
+        is Msg.PluginInstalledOutdated -> Strings.pluginInstalledOutdated(context, this.plugin)
+        is Msg.PluginsOutdated -> Strings.pluginsOutdated(context, this.count.toInt(), this.names)
         is Msg.PluginUpdatesReady -> Strings.pluginUpdatesReady(context, this.count.toInt(), this.names)
         is Msg.PluginsLoadFailed -> Strings.pluginsLoadFailed(context, this.reason)
         is Msg.StoreTokenMissing -> Strings.storeTokenMissing(context, this.store)

@@ -77,6 +77,18 @@ plugin-installed = Installed { $plugin } { $version }.
 # @arg reason: text
 plugin-installed-not-loaded = Installed { $plugin }, but it didn't load. { $reason }
 
+# Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.
+# @arg plugin: text
+plugin-installed-outdated = Installed { $plugin }, but it was built for an older version of { -app-name } and needs updating. Ask its author for a new build.
+
+# Note on the sources screen when plugins were skipped because they were built for an older plugin interface.
+# @arg count: int
+# @arg names: text
+plugins-outdated = { $count ->
+    [one] One { -plugin } was built for an older version of { -app-name } and needs updating: { $names }.
+   *[other] { $count } { -plugin-pl } were built for an older version of { -app-name } and need updating: { $names }.
+ }
+
 # Toast at launch when joined plugin stores offer newer versions of installed plugins.
 # @arg count: int
 # @arg names: text

@@ -653,6 +653,16 @@ public enum L {
         Self.format("plugin-installed-not-loaded", fallback: "Installed %1$@, but it didn't load. %2$@", plugin, reason)
     }
 
+    /// Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.
+    public static func pluginInstalledOutdated(plugin: String) -> String {
+        Self.format("plugin-installed-outdated", fallback: "Installed %1$@, but it was built for an older version of anistream and needs updating. Ask its author for a new build.", plugin)
+    }
+
+    /// Note on the sources screen when plugins were skipped because they were built for an older plugin interface.
+    public static func pluginsOutdated(count: Int, names: String) -> String {
+        Self.format("plugins-outdated", fallback: "%1$lld plugins were built for an older version of anistream and need updating: %2$@.", count, names)
+    }
+
     /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
     public static func pluginUpdatesReady(count: Int, names: String) -> String {
         Self.format("plugin-updates-ready", fallback: "Plugin updates ready: %2$@.", count, names)

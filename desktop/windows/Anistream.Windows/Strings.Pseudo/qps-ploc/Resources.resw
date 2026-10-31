@@ -691,6 +691,18 @@
     <value>[Îñšţàļļéð {plugin}, ƀüţ îţ ðîðñ'ţ ļöàð. {reason}~~~~~~~~~~~~]</value>
     <comment>Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.</comment>
   </data>
+  <data name="PluginInstalledOutdated" xml:space="preserve">
+    <value>[Îñšţàļļéð {plugin}, ƀüţ îţ ŵàš ƀüîļţ ƒöŕ àñ öļðéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ àñð ñééðš üþðàţîñĝ. Åšķ îţš àüţĥöŕ ƒöŕ à ñéŵ ƀüîļð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.</comment>
+  </data>
+  <data name="PluginsOutdated_one" xml:space="preserve">
+    <value>[Öñé þļüĝîñ ŵàš ƀüîļţ ƒöŕ àñ öļðéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ àñð ñééðš üþðàţîñĝ: {names}.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Note on the sources screen when plugins were skipped because they were built for an older plugin interface.</comment>
+  </data>
+  <data name="PluginsOutdated_other" xml:space="preserve">
+    <value>[{count} þļüĝîñš ŵéŕé ƀüîļţ ƒöŕ àñ öļðéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ àñð ñééð üþðàţîñĝ: {names}.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Note on the sources screen when plugins were skipped because they were built for an older plugin interface.</comment>
+  </data>
   <data name="PluginUpdatesReady_one" xml:space="preserve">
     <value>[Þļüĝîñ üþðàţé ŕéàðý: {names}.~~~~~~~~]</value>
     <comment>Toast at launch when joined plugin stores offer newer versions of installed plugins.</comment>

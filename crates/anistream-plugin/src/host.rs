@@ -246,50 +246,6 @@ async fn read_capped(response: wreq::Response, ceiling: usize) -> Result<Vec<u8>
     Ok(body)
 }
 
-/// AES-128-CBC decryption with PKCS#7 padding.
-///
-/// Lent because some sources wrap their stream payloads in it, and a TinyGo or JS
-/// guest bundling its own AES would dwarf the parsing logic it exists for.
-pub fn aes_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
-    use aes::cipher::{BlockModeDecrypt, KeyIvInit, block_padding::Pkcs7};
-
-    // The key length selects the variant, exactly as the WIT documents: real sources use
-    // AES-256 about as often as AES-128, and a guest cannot pad its own key into working.
-    if !matches!(key.len(), 16 | 24 | 32) {
-        return Err(format!(
-            "key must be 16, 24 or 32 bytes for AES-128/192/256, got {}",
-            key.len()
-        ));
-    }
-    if iv.len() != 16 {
-        return Err(format!("iv must be 16 bytes, got {}", iv.len()));
-    }
-    if data.is_empty() || !data.len().is_multiple_of(16) {
-        return Err(format!(
-            "ciphertext must be a non-zero multiple of 16 bytes, got {}",
-            data.len()
-        ));
-    }
-
-    // From slices, whose lengths are checked above: a key is a fixed-size array now, which a
-    // slice only converts to fallibly.
-    let sizes = |e: aes::cipher::InvalidLength| e.to_string();
-    match key.len() {
-        16 => cbc::Decryptor::<aes::Aes128>::new_from_slices(key, iv)
-            .map_err(sizes)?
-            .decrypt_padded_vec::<Pkcs7>(data)
-            .map_err(|e| e.to_string()),
-        24 => cbc::Decryptor::<aes::Aes192>::new_from_slices(key, iv)
-            .map_err(sizes)?
-            .decrypt_padded_vec::<Pkcs7>(data)
-            .map_err(|e| e.to_string()),
-        _ => cbc::Decryptor::<aes::Aes256>::new_from_slices(key, iv)
-            .map_err(sizes)?
-            .decrypt_padded_vec::<Pkcs7>(data)
-            .map_err(|e| e.to_string()),
-    }
-}
-
 /// Capture groups for every match of `pattern` in `haystack`.
 ///
 /// Group 0 is the whole match. A group that did not participate yields an empty string rather
@@ -449,47 +405,6 @@ mod tests {
     }
 
     #[test]
-    fn aes_round_trips_a_known_vector() {
-        // NIST SP 800-38A F.2.1, AES-128-CBC. Pinned because a wrong implementation would fail
-        // only on real provider payloads, where it would look like a parse error.
-        use aes::cipher::{BlockModeEncrypt, KeyIvInit, block_padding::Pkcs7};
-        let key = [
-            0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf,
-            0x4f, 0x3c,
-        ];
-        let iv = [
-            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
-            0x0e, 0x0f,
-        ];
-        let plaintext = b"a stream url would go here";
-
-        type Encryptor = cbc::Encryptor<aes::Aes128>;
-        let ciphertext =
-            Encryptor::new(&key.into(), &iv.into()).encrypt_padded_vec::<Pkcs7>(plaintext);
-
-        assert_eq!(aes_decrypt(&key, &iv, &ciphertext).unwrap(), plaintext);
-    }
-
-    #[test]
-    fn aes_picks_the_variant_from_the_key_length() {
-        // Real sources use AES-256 about as often as AES-128, and the WIT promises the key
-        // length selects the variant — so both wide keys must round-trip, not just 128.
-        use aes::cipher::{BlockModeEncrypt, KeyIvInit, block_padding::Pkcs7};
-        let iv = [0x24; 16];
-        let plaintext = b"the same url, behind a wider key";
-
-        let key = [0x42; 32];
-        let sealed = cbc::Encryptor::<aes::Aes256>::new(&key.into(), &iv.into())
-            .encrypt_padded_vec::<Pkcs7>(plaintext);
-        assert_eq!(aes_decrypt(&key, &iv, &sealed).unwrap(), plaintext);
-
-        let key = [0x42; 24];
-        let sealed = cbc::Encryptor::<aes::Aes192>::new(&key.into(), &iv.into())
-            .encrypt_padded_vec::<Pkcs7>(plaintext);
-        assert_eq!(aes_decrypt(&key, &iv, &sealed).unwrap(), plaintext);
-    }
-
-    #[test]
     fn settings_are_absent_unless_attached() {
         // `describe` runs on capabilities with no settings, and that absence is deliberate:
         // a manifest must not depend on configuration it is about to be granted.
@@ -501,17 +416,6 @@ mod tests {
         );
         assert_eq!(configured.setting("api-key").as_deref(), Some("s3cret"));
         assert_eq!(configured.setting("unset"), None);
-    }
-
-    #[test]
-    fn aes_rejects_malformed_input_rather_than_panicking() {
-        // A guest can pass anything, and a panic inside a host call would take down the process.
-        assert!(aes_decrypt(&[0; 8], &[0; 16], &[0; 16]).is_err(), "short key");
-        assert!(aes_decrypt(&[0; 16], &[0; 8], &[0; 16]).is_err(), "short iv");
-        assert!(aes_decrypt(&[0; 16], &[0; 16], &[0; 7]).is_err(), "not a block multiple");
-        assert!(aes_decrypt(&[0; 16], &[0; 16], &[]).is_err(), "empty");
-        // Valid shape, wrong key: bad padding, reported rather than panicking.
-        assert!(aes_decrypt(&[1; 16], &[0; 16], &[0; 32]).is_err());
     }
 
     #[test]

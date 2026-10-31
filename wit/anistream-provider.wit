@@ -14,21 +14,22 @@
 // `allowed-hosts` on its own side. And a plugin authored in Go, TypeScript or Python inherits
 // the same fingerprint as the native providers.
 //
-// `aes-decrypt` and `regex-captures` exist for the same reason: a TinyGo or JS guest that had to
-// bundle a crypto and regex implementation would be enormous, and real-world sources genuinely need
-// both — AES for the obfuscated stream payloads several of them use, regex for extracting from
-// HTML that no parser should be asked to take seriously.
+// `regex-captures` exists for the same reason: a TinyGo or JS guest that had to bundle a regex
+// implementation would be enormous, and extracting from HTML that no parser should be asked to
+// take seriously needs one. (`aes-decrypt` was removed in 2.0.0; a plugin that needs a cipher
+// brings its own.)
 //
-// **Versioning.** Major 1, deliberately, because the component model's semver rules treat every
+// **Versioning.** Major 2, because the component model's semver rules treat every
 // `0.x` minor as a different world — at major ≥ 1 the host can grow the `host` interface without
 // stranding components built against an older minor (`fetch-many`, added in 1.1.0, is the first
 // use of that). What can never grow is the *export* set: a
 // new required export breaks every shipped plugin at instantiation. So the exports below are the
 // frozen surface, records prefer `option<>` fields over new shapes, open sets (stream `kind`,
 // `translation`, `capabilities`) are strings rather than enums, and anything a future host wants
-// to switch on is a declared capability rather than a new function.
+// to switch on is a declared capability rather than a new function. Removing an import is a
+// major bump too, as `aes-decrypt` was in 2.0.0: the host refuses plugins built for another major.
 
-package anistream:provider@1.1.0;
+package anistream:provider@2.0.0;
 
 interface host {
     record http-request {
@@ -68,12 +69,6 @@ interface host {
 
     /// Write to the host's log. The only output channel a guest has.
     log: func(level: string, msg: string);
-
-    /// AES-CBC decryption, as some sources use for their stream payloads.
-    ///
-    /// The key length selects the variant: 16, 24 or 32 bytes for AES-128, AES-192 or AES-256.
-    /// The IV is always 16 bytes, and padding is PKCS#7.
-    aes-decrypt: func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
 
     /// Capture groups for every match. Group 0 is the whole match, as usual.
     ///

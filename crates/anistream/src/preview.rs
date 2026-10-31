@@ -55,7 +55,7 @@ pub async fn preview(
 
     // The sources a running app has a moment after launch: the torrent source once its guard
     // has answered, and the plugins once compiled.
-    let (registry, guard, mut note, held) =
+    let (registry, guard, note, held) =
         sources::build_registry(&config, &http, paths, &store).await;
     let plugins = sources::spawn_plugin_load(
         registry.clone(),
@@ -63,14 +63,15 @@ pub async fn preview(
         http.clone(),
         paths.clone(),
     );
-    if let Ok(Some(reason)) = plugins.await {
-        note = Some(reason);
-    }
+    let plugin_note = plugins.await.ok().flatten();
     // As the file's too: a still frame shows a `--theme` as the saved choice, as it always has.
     let settings = anistream_model::settings::view(&config, &config);
     let mut app = App::with_images(settings, palette, keymap, image_engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(anistream_model::Msg::verbatim(note)));
+    }
+    if let Some(note) = plugin_note {
+        app.apply(Event::ProviderNote(note));
     }
     // A failed guard included: the interface puts its verdict on the chip and toasts it, and
     // a preview without it showed a machine whose torrents were fine.

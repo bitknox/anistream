@@ -500,6 +500,16 @@ plugin-installed = [Îñšţàļļéð { $plugin } { $version }.~~~~~~]
 # Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
 plugin-installed-not-loaded = [Îñšţàļļéð { $plugin }, ƀüţ îţ ðîðñ'ţ ļöàð. { $reason }~~~~~~~~~~~~]
 
+# Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.
+plugin-installed-outdated = [Îñšţàļļéð { $plugin }, ƀüţ îţ ŵàš ƀüîļţ ƒöŕ àñ öļðéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ àñð ñééðš üþðàţîñĝ. Åšķ îţš àüţĥöŕ ƒöŕ à ñéŵ ƀüîļð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note on the sources screen when plugins were skipped because they were built for an older plugin interface.
+plugins-outdated =
+    { $count ->
+        [one] [Öñé þļüĝîñ ŵàš ƀüîļţ ƒöŕ àñ öļðéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ àñð ñééðš üþðàţîñĝ: { $names }.~~~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $count } þļüĝîñš ŵéŕé ƀüîļţ ƒöŕ àñ öļðéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ àñð ñééð üþðàţîñĝ: { $names }.~~~~~~~~~~~~~~~~~~~~~~~~]
+    }
+
 # Toast at launch when joined plugin stores offer newer versions of installed plugins.
 plugin-updates-ready =
     { $count ->

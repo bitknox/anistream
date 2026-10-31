@@ -500,6 +500,16 @@ plugin-installed = Installed { $plugin } { $version }.
 # Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
 plugin-installed-not-loaded = Installed { $plugin }, but it didn't load. { $reason }
 
+# Toast after a plugin is installed but was built for an older plugin interface, so it was not loaded.
+plugin-installed-outdated = Installed { $plugin }, but it was built for an older version of anistream and needs updating. Ask its author for a new build.
+
+# Note on the sources screen when plugins were skipped because they were built for an older plugin interface.
+plugins-outdated =
+    { $count ->
+        [one] One plugin was built for an older version of anistream and needs updating: { $names }.
+       *[other] { $count } plugins were built for an older version of anistream and need updating: { $names }.
+    }
+
 # Toast at launch when joined plugin stores offer newer versions of installed plugins.
 plugin-updates-ready =
     { $count ->

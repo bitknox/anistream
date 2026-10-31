@@ -149,6 +149,8 @@ extension Msg {
         case .pluginInstalledNameClash(let plugin, let id): L.pluginInstalledNameClash(plugin: plugin, id: id)
         case .pluginInstalled(let plugin, let version): L.pluginInstalled(plugin: plugin, version: version)
         case .pluginInstalledNotLoaded(let plugin, let reason): L.pluginInstalledNotLoaded(plugin: plugin, reason: reason)
+        case .pluginInstalledOutdated(let plugin): L.pluginInstalledOutdated(plugin: plugin)
+        case .pluginsOutdated(let count, let names): L.pluginsOutdated(count: Int(count), names: names)
         case .pluginUpdatesReady(let count, let names): L.pluginUpdatesReady(count: Int(count), names: names)
         case .pluginsLoadFailed(let reason): L.pluginsLoadFailed(reason: reason)
         case .storeTokenMissing(let store): L.storeTokenMissing(store: store)
