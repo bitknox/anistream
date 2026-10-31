@@ -611,7 +611,8 @@ mod tests {
         assert_eq!(ranked[0].hit.title, "Stardust Wayfarer");
         assert!(search("Kumo no Ue no Toshokan").is_empty());
 
-        let registry = scene_sources(&FfiScene::Unsure, "http://127.0.0.1:9/art/");
+        let registry =
+            scene_sources(&FfiScene::Unsure, "http://127.0.0.1:9/art/", &world().provided());
         assert_eq!(registry.ids(), [UNSURE_SOURCE, sources::PROVIDER_ID]);
     }
 
