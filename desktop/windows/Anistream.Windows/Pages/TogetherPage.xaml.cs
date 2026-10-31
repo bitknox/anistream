@@ -34,7 +34,7 @@ public sealed partial class TogetherPage : Page
         };
         ctx.Hear(this, Heard);
         // Ctrl+V outside a field pastes into Join.
-        KeyboardAccelerators.Add(Paste());
+        Loaded += (_, _) => KeyboardAccelerators.Add(Paste());
     }
 
     KeyboardAccelerator Paste()
@@ -89,9 +89,13 @@ public sealed partial class TogetherPage : Page
 
     void Show()
     {
+        // The join field and its line outlive a rebuild; let go of their old parents first.
+        foreach (var kept in new FrameworkElement[] { join, joinProblem })
+            if (kept.Parent is Panel old)
+                old.Children.Remove(kept);
         Stack.Children.Clear();
         var heading = Ui.Text(T.TogetherTitle, "PageTitleStyle");
-        AutomationProperties.SetHeadingLevel(heading, AutomationHeadingLevel.Level1);
+        AutomationProperties.SetHeadingLevel(heading, Microsoft.UI.Xaml.Automation.Peers.AutomationHeadingLevel.Level1);
         Stack.Children.Add(heading);
         if (ctx.Known.Party is { } party)
         {
@@ -297,7 +301,7 @@ public sealed partial class TogetherPage : Page
     {
         var block = Ui.Text(text, "BodyStrongTextBlockStyle");
         block.Margin = new Thickness(0, 10, 0, 0);
-        AutomationProperties.SetHeadingLevel(block, AutomationHeadingLevel.Level2);
+        AutomationProperties.SetHeadingLevel(block, Microsoft.UI.Xaml.Automation.Peers.AutomationHeadingLevel.Level2);
         return block;
     }
 }
