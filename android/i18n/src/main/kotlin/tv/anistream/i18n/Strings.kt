@@ -213,6 +213,10 @@ object Strings {
     fun homeMoreGenre(context: Context, genre: String): String =
         context.getString(R.string.home_more_genre, genre)
 
+    /** Line over the spotlight's title when it is the built-in demo. */
+    fun homeSpotlightDemo(context: Context): String =
+        context.getString(R.string.home_spotlight_demo)
+
     /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
     fun noticeReason(context: Context, reason: String): String =
         context.getString(R.string.notice_reason, reason)
@@ -825,6 +829,14 @@ object Strings {
     fun noticePartyNotBuilt(context: Context): String =
         context.getString(R.string.notice_party_not_built)
 
+    /** Notice after the demo is removed. It offers Undo for 8 seconds. */
+    fun sourcesDemoRemoved(context: Context): String =
+        context.getString(R.string.sources_demo_removed)
+
+    /** Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds. */
+    fun storesReadyDemoStays(context: Context, store: String): String =
+        context.getString(R.string.stores_ready_demo_stays, store)
+
     /** Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList. */
     fun noticeSignedIn(context: Context, tracker: String): String =
         context.getString(R.string.notice_signed_in, tracker)
@@ -1064,6 +1076,18 @@ object Strings {
     /** Toast after episodes are added to the download queue. */
     fun noticeEpisodesQueued(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued, count, count)
+
+    /** Notice after the subtitle style is reset. It offers Undo. */
+    fun settingsSubsResetDone(context: Context): String =
+        context.getString(R.string.settings_subs_reset_done)
+
+    /** Notice at the next launch after a crash, while saving and asking are on. */
+    fun crashNotice(context: Context): String =
+        context.getString(R.string.crash_notice)
+
+    /** The same notice on the TV, which has no button. */
+    fun crashNoticeTv(context: Context): String =
+        context.getString(R.string.crash_notice_tv)
 
     /** Accessibility label of the account button in the top bar when someone is signed in. */
     fun accountButtonNamed(context: Context, name: String): String =
@@ -2616,6 +2640,130 @@ object Strings {
     /** Line about fonts. */
     fun aboutFontLicence(context: Context): String =
         context.getString(R.string.about_font_licence)
+
+    /** Button on that notice that opens Report a bug. */
+    fun crashNoticeReport(context: Context): String =
+        context.getString(R.string.crash_notice_report)
+
+    /** Title of the Report a bug sheet. */
+    fun reportTitle(context: Context): String =
+        context.getString(R.string.report_title)
+
+    /** Line under the title of the Report a bug sheet. */
+    fun reportDetail(context: Context): String =
+        context.getString(R.string.report_detail)
+
+    /** Heading of the list of what the report includes. */
+    fun reportIncluded(context: Context): String =
+        context.getString(R.string.report_included)
+
+    /** Report item that is always included. */
+    fun reportVersions(context: Context): String =
+        context.getString(R.string.report_versions)
+
+    /** Report item: the last error the app showed. */
+    fun reportLastError(context: Context): String =
+        context.getString(R.string.report_last_error)
+
+    /** Report item for a saved crash. The time and the place are already worded. */
+    fun reportCrashItem(context: Context, `when`: String, place: String): String =
+        context.getString(R.string.report_crash_item, `when`, place)
+
+    /** Disclosure that opens the exact text of the report. */
+    fun reportShowSent(context: Context): String =
+        context.getString(R.string.report_show_sent)
+
+    /** Disclosure that closes the exact text of the report. */
+    fun reportHideSent(context: Context): String =
+        context.getString(R.string.report_hide_sent)
+
+    /** Button that copies the whole report text. */
+    fun reportCopy(context: Context): String =
+        context.getString(R.string.report_copy)
+
+    /** Notice after the report text is copied. */
+    fun reportCopied(context: Context): String =
+        context.getString(R.string.report_copied)
+
+    /** Button that opens the pre-filled issue in the browser. */
+    fun reportOpenGithub(context: Context): String =
+        context.getString(R.string.report_open_github)
+
+    /** Line at the foot of the Report a bug sheet. */
+    fun reportPrivacy(context: Context): String =
+        context.getString(R.string.report_privacy)
+
+    /** TV only. Line over the QR code of the issue link. */
+    fun reportTvScan(context: Context): String =
+        context.getString(R.string.report_tv_scan)
+
+    /** Line that replaces the crash rows while saving crash reports is off. */
+    fun reportCrashOff(context: Context): String =
+        context.getString(R.string.report_crash_off)
+
+    /** Link from that line to the crash report settings. */
+    fun reportCrashSettings(context: Context): String =
+        context.getString(R.string.report_crash_settings)
+
+    /** Heading of the Crash reports group in Settings, About. */
+    fun settingsGroupCrashes(context: Context): String =
+        context.getString(R.string.settings_group_crashes)
+
+    /** Switch that turns saving crash reports on this device on or off. */
+    fun settingsCrashSave(context: Context): String =
+        context.getString(R.string.settings_crash_save)
+
+    /** Line under that switch. */
+    fun settingsCrashSaveDetail(context: Context): String =
+        context.getString(R.string.settings_crash_save_detail)
+
+    /** Switch that turns the notice after a crash on or off. */
+    fun settingsCrashAsk(context: Context): String =
+        context.getString(R.string.settings_crash_ask)
+
+    /** Line under that switch. */
+    fun settingsCrashAskDetail(context: Context): String =
+        context.getString(R.string.settings_crash_ask_detail)
+
+    /** Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android. */
+    fun settingsCrashOsHeading(context: Context, system: String): String =
+        context.getString(R.string.settings_crash_os_heading, system)
+
+    /** Line under that heading. */
+    fun settingsCrashOsDetail(context: Context, system: String): String =
+        context.getString(R.string.settings_crash_os_detail, system)
+
+    /** Row for one crash the system kept. The time is already worded. */
+    fun settingsCrashOsItem(context: Context, `when`: String): String =
+        context.getString(R.string.settings_crash_os_item, `when`)
+
+    /** Button that saves one crash the system kept. */
+    fun settingsCrashOsAdd(context: Context): String =
+        context.getString(R.string.settings_crash_os_add)
+
+    /** Heading of the saved crash reports. */
+    fun settingsCrashSaved(context: Context): String =
+        context.getString(R.string.settings_crash_saved)
+
+    /** Empty state of the saved crash reports. */
+    fun settingsCrashNone(context: Context): String =
+        context.getString(R.string.settings_crash_none)
+
+    /** Button that shows the text of a saved crash report. */
+    fun settingsCrashView(context: Context): String =
+        context.getString(R.string.settings_crash_view)
+
+    /** Button that deletes one saved crash report. */
+    fun settingsCrashDelete(context: Context): String =
+        context.getString(R.string.settings_crash_delete)
+
+    /** Button that deletes every saved crash report. */
+    fun settingsCrashDeleteAll(context: Context): String =
+        context.getString(R.string.settings_crash_delete_all)
+
+    /** Footnote of the Crash reports group. */
+    fun settingsCrashFootnote(context: Context): String =
+        context.getString(R.string.settings_crash_footnote)
 
     /** Button that shows the week before. */
     fun calendarPreviousWeek(context: Context): String =
@@ -4705,6 +4853,42 @@ object Strings {
     fun onboardingInviteHint(context: Context): String =
         context.getString(R.string.onboarding_invite_hint)
 
+    /** Heading of the welcome page that explains where episodes come from. */
+    fun onboardingWhereTitle(context: Context): String =
+        context.getString(R.string.onboarding_where_title)
+
+    /** First line of that page. States that the app hosts no content. */
+    fun onboardingWhereHosts(context: Context): String =
+        context.getString(R.string.onboarding_where_hosts)
+
+    /** Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link. */
+    fun onboardingWhereStores(context: Context): String =
+        context.getString(R.string.onboarding_where_stores)
+
+    /** Heading above the Play the demo button on the welcome page. */
+    fun onboardingDemoHeading(context: Context): String =
+        context.getString(R.string.onboarding_demo_heading)
+
+    /** Line under that heading. Names the demo work and its licence. */
+    fun onboardingDemoDetail(context: Context): String =
+        context.getString(R.string.onboarding_demo_detail)
+
+    /** Button on the welcome page that plays the demo at once. */
+    fun onboardingPlayDemo(context: Context): String =
+        context.getString(R.string.onboarding_play_demo)
+
+    /** Heading above the invite link field on the welcome page. */
+    fun onboardingInviteHeading(context: Context): String =
+        context.getString(R.string.onboarding_invite_heading)
+
+    /** TV only. Button that shows a code to scan with a phone to send an invite link. */
+    fun onboardingInviteScan(context: Context): String =
+        context.getString(R.string.onboarding_invite_scan)
+
+    /** TV only. Button that opens a field to type an invite link. */
+    fun onboardingInviteType(context: Context): String =
+        context.getString(R.string.onboarding_invite_type)
+
     /** Button on the title page and in the player that opens the watch party form. */
     fun partyOpen(context: Context): String =
         context.getString(R.string.party_open)
@@ -5332,6 +5516,42 @@ object Strings {
     /** Message on the video when the player could not make a change the viewer asked for, such as a speed or a track. */
     fun playerCommandFailed(context: Context): String =
         context.getString(R.string.player_command_failed)
+
+    /** Heading of the style section in the player's subtitles panel. */
+    fun playerSubsStyle(context: Context): String =
+        context.getString(R.string.player_subs_style)
+
+    /** Accessibility label of the control that makes subtitles larger. */
+    fun playerSubsLarger(context: Context): String =
+        context.getString(R.string.player_subs_larger)
+
+    /** Accessibility label of the control that makes subtitles smaller. */
+    fun playerSubsSmaller(context: Context): String =
+        context.getString(R.string.player_subs_smaller)
+
+    /** Accessibility label of the control that raises subtitles. */
+    fun playerSubsRaise(context: Context): String =
+        context.getString(R.string.player_subs_raise)
+
+    /** Accessibility label of the control that lowers subtitles. */
+    fun playerSubsLower(context: Context): String =
+        context.getString(R.string.player_subs_lower)
+
+    /** Quick panel choice for the subtitle background: outline, no box. */
+    fun playerSubsBgOutline(context: Context): String =
+        context.getString(R.string.player_subs_bg_outline)
+
+    /** Quick panel choice for the subtitle background: drop shadow, no box. */
+    fun playerSubsBgShadow(context: Context): String =
+        context.getString(R.string.player_subs_bg_shadow)
+
+    /** Quick panel choice for the subtitle background: a box behind the lines. */
+    fun playerSubsBgBox(context: Context): String =
+        context.getString(R.string.player_subs_bg_box)
+
+    /** Button in the subtitles panel that opens Settings. */
+    fun playerSubsMore(context: Context): String =
+        context.getString(R.string.player_subs_more)
 
     /** Button that shows the season before. */
     fun seasonalPrevious(context: Context): String =
@@ -6249,6 +6469,178 @@ object Strings {
     fun settingsResetDone(context: Context, file: String): String =
         context.getString(R.string.settings_reset_done, file)
 
+    /** Heading of the Subtitles group in Settings, Playback. */
+    fun settingsGroupSubtitles(context: Context): String =
+        context.getString(R.string.settings_group_subtitles)
+
+    /** Heading of the subtitle preview. */
+    fun settingsSubsPreview(context: Context): String =
+        context.getString(R.string.settings_subs_preview)
+
+    /** Segment of the preview that draws plain subtitles. */
+    fun settingsSubsPreviewPlain(context: Context): String =
+        context.getString(R.string.settings_subs_preview_plain)
+
+    /** Segment of the preview that draws styled subtitles. */
+    fun settingsSubsPreviewStyled(context: Context): String =
+        context.getString(R.string.settings_subs_preview_styled)
+
+    /** First sample line in the subtitle preview. */
+    fun settingsSubsPreviewLine(context: Context): String =
+        context.getString(R.string.settings_subs_preview_line)
+
+    /** Second sample line in the subtitle preview. */
+    fun settingsSubsPreviewLine2(context: Context): String =
+        context.getString(R.string.settings_subs_preview_line_2)
+
+    /** Sample of a typeset sign at the top of the styled preview. */
+    fun settingsSubsPreviewSign(context: Context): String =
+        context.getString(R.string.settings_subs_preview_sign)
+
+    /** Link under the rows that show the system's caption style. */
+    fun settingsSubsSystemChange(context: Context): String =
+        context.getString(R.string.settings_subs_system_change)
+
+    /** Value shown, dimmed, for a row while the system's caption style applies. */
+    fun settingsSubsSystemValue(context: Context): String =
+        context.getString(R.string.settings_subs_system_value)
+
+    /** Label of the subtitle size slider. */
+    fun settingsSubsSize(context: Context): String =
+        context.getString(R.string.settings_subs_size)
+
+    /** Value of the size slider. The percent is a whole number from 50 to 200. */
+    fun settingsSubsSizeValue(context: Context, percent: Int): String =
+        context.getString(R.string.settings_subs_size_value, percent)
+
+    /** Label of the subtitle font row. */
+    fun settingsSubsFont(context: Context): String =
+        context.getString(R.string.settings_subs_font)
+
+    /** Subtitle font choice: the player's own sans-serif. */
+    fun settingsSubsFontDefault(context: Context): String =
+        context.getString(R.string.settings_subs_font_default)
+
+    /** Subtitle font choice. */
+    fun settingsSubsFontSerif(context: Context): String =
+        context.getString(R.string.settings_subs_font_serif)
+
+    /** Subtitle font choice. */
+    fun settingsSubsFontMono(context: Context): String =
+        context.getString(R.string.settings_subs_font_mono)
+
+    /** Label of the subtitle text colour row. */
+    fun settingsSubsColour(context: Context): String =
+        context.getString(R.string.settings_subs_colour)
+
+    /** Subtitle text colour name, shown beside its swatch. */
+    fun settingsSubsColourWhite(context: Context): String =
+        context.getString(R.string.settings_subs_colour_white)
+
+    /** Subtitle text colour name, shown beside its swatch. */
+    fun settingsSubsColourYellow(context: Context): String =
+        context.getString(R.string.settings_subs_colour_yellow)
+
+    /** Subtitle text colour name, shown beside its swatch. */
+    fun settingsSubsColourCyan(context: Context): String =
+        context.getString(R.string.settings_subs_colour_cyan)
+
+    /** Subtitle text colour name, shown beside its swatch. */
+    fun settingsSubsColourGreen(context: Context): String =
+        context.getString(R.string.settings_subs_colour_green)
+
+    /** Label of the subtitle edge row. */
+    fun settingsSubsEdge(context: Context): String =
+        context.getString(R.string.settings_subs_edge)
+
+    /** Subtitle edge choice. */
+    fun settingsSubsEdgeOutline(context: Context): String =
+        context.getString(R.string.settings_subs_edge_outline)
+
+    /** Subtitle edge choice. */
+    fun settingsSubsEdgeShadow(context: Context): String =
+        context.getString(R.string.settings_subs_edge_shadow)
+
+    /** Subtitle edge choice: no edge. */
+    fun settingsSubsEdgeNone(context: Context): String =
+        context.getString(R.string.settings_subs_edge_none)
+
+    /** Label of the outline thickness row. */
+    fun settingsSubsThickness(context: Context): String =
+        context.getString(R.string.settings_subs_thickness)
+
+    /** Outline thickness choice. */
+    fun settingsSubsThin(context: Context): String =
+        context.getString(R.string.settings_subs_thin)
+
+    /** Outline thickness choice. */
+    fun settingsSubsMedium(context: Context): String =
+        context.getString(R.string.settings_subs_medium)
+
+    /** Outline thickness choice. */
+    fun settingsSubsThick(context: Context): String =
+        context.getString(R.string.settings_subs_thick)
+
+    /** Label of the subtitle background row. */
+    fun settingsSubsBackground(context: Context): String =
+        context.getString(R.string.settings_subs_background)
+
+    /** Subtitle background choice: no background. */
+    fun settingsSubsBackgroundNone(context: Context): String =
+        context.getString(R.string.settings_subs_background_none)
+
+    /** Subtitle background choice: a plate behind each line. */
+    fun settingsSubsBackgroundLine(context: Context): String =
+        context.getString(R.string.settings_subs_background_line)
+
+    /** Subtitle background choice: one plate behind all lines. */
+    fun settingsSubsBackgroundAll(context: Context): String =
+        context.getString(R.string.settings_subs_background_all)
+
+    /** Label of the background opacity row. */
+    fun settingsSubsOpacity(context: Context): String =
+        context.getString(R.string.settings_subs_opacity)
+
+    /** Label of the row that raises subtitles. */
+    fun settingsSubsRaise(context: Context): String =
+        context.getString(R.string.settings_subs_raise)
+
+    /** Value of the raise slider. The percent is a whole number from 0 to 20. */
+    fun settingsSubsRaiseValue(context: Context, percent: Int): String =
+        context.getString(R.string.settings_subs_raise_value, percent)
+
+    /** Label of the picker that says what happens to styled subtitles. */
+    fun settingsSubsStyled(context: Context): String =
+        context.getString(R.string.settings_subs_styled)
+
+    /** Styled subtitles choice: leave the authors' styling alone. */
+    fun settingsSubsStyledKeep(context: Context): String =
+        context.getString(R.string.settings_subs_styled_keep)
+
+    /** Line under the picker while Keep their look is chosen. */
+    fun settingsSubsStyledKeepDetail(context: Context): String =
+        context.getString(R.string.settings_subs_styled_keep_detail)
+
+    /** Styled subtitles choice: apply the viewer's style over the authors'. */
+    fun settingsSubsStyledRestyle(context: Context): String =
+        context.getString(R.string.settings_subs_styled_restyle)
+
+    /** Line under the picker while Restyle is chosen. */
+    fun settingsSubsStyledRestyleDetail(context: Context): String =
+        context.getString(R.string.settings_subs_styled_restyle_detail)
+
+    /** Styled subtitles choice: drop all styling and show plain dialogue. */
+    fun settingsSubsStyledStrip(context: Context): String =
+        context.getString(R.string.settings_subs_styled_strip)
+
+    /** Line under the picker while Remove all styling is chosen. */
+    fun settingsSubsStyledStripDetail(context: Context): String =
+        context.getString(R.string.settings_subs_styled_strip_detail)
+
+    /** Button that restores the default subtitle style. */
+    fun settingsSubsReset(context: Context): String =
+        context.getString(R.string.settings_subs_reset)
+
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =
         context.getString(R.string.sources_title)
@@ -6608,6 +7000,74 @@ object Strings {
     /** Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. */
     fun matchRowLabel(context: Context, title: String, facts: String, closeness: String): String =
         context.getString(R.string.match_row_label, title, facts, closeness)
+
+    /** Name of the built-in demo source in every list of sources. */
+    fun sourcesDemoName(context: Context): String =
+        context.getString(R.string.sources_demo_name)
+
+    /** Line under the demo source in Your sources: the work, its licence and where it streams from. */
+    fun sourcesDemoLine(context: Context): String =
+        context.getString(R.string.sources_demo_line)
+
+    /** Title of the page that describes the demo. */
+    fun sourcesDemoAbout(context: Context): String =
+        context.getString(R.string.sources_demo_about)
+
+    /** The credit block shown wherever the demo work shows as a title. The licence asks for this wording. */
+    fun sourcesDemoCredit(context: Context): String =
+        context.getString(R.string.sources_demo_credit)
+
+    /** Link to the licence text, in the credit block. */
+    fun sourcesDemoLinkLicence(context: Context): String =
+        context.getString(R.string.sources_demo_link_licence)
+
+    /** Link to the work's file page on Wikimedia Commons, in the credit block. */
+    fun sourcesDemoLinkCommons(context: Context): String =
+        context.getString(R.string.sources_demo_link_commons)
+
+    /** Link to the makers' site, in the credit block. */
+    fun sourcesDemoLinkMaker(context: Context): String =
+        context.getString(R.string.sources_demo_link_maker)
+
+    /** Line on the demo page that names the only two hosts the demo reaches. */
+    fun sourcesDemoHosts(context: Context): String =
+        context.getString(R.string.sources_demo_hosts)
+
+    /** Line on the demo page about accounts and trackers. */
+    fun sourcesDemoPrivate(context: Context): String =
+        context.getString(R.string.sources_demo_private)
+
+    /** Button on the demo page that removes the demo from the sources. */
+    fun sourcesDemoRemove(context: Context): String =
+        context.getString(R.string.sources_demo_remove)
+
+    /** Button that adds the demo back to the sources. */
+    fun sourcesDemoAdd(context: Context): String =
+        context.getString(R.string.sources_demo_add)
+
+    /** Closing line of Home while the demo is the only source. Plugin stores is a link. */
+    fun sourcesDemoOnly(context: Context): String =
+        context.getString(R.string.sources_demo_only)
+
+    /** Line under the search field while the demo is the only source. */
+    fun searchDemoOnly(context: Context): String =
+        context.getString(R.string.search_demo_only)
+
+    /** Line under the demo title when it is a search result. */
+    fun searchDemoPlays(context: Context): String =
+        context.getString(R.string.search_demo_plays)
+
+    /** Main button on the demo title. The part is a number. */
+    fun titlePlayPart(context: Context, part: String): String =
+        context.getString(R.string.title_play_part, part)
+
+    /** Line on the player's starting screen for a part of the demo. */
+    fun playerStartingPart(context: Context, part: String): String =
+        context.getString(R.string.player_starting_part, part)
+
+    /** Credit line under the starting line on the player's starting screen for the demo. */
+    fun playerDemoCredit(context: Context): String =
+        context.getString(R.string.player_demo_credit)
 
     /** Short label for a joined store, on a row. */
     fun storesJoined(context: Context): String =
@@ -7120,6 +7580,34 @@ object Strings {
     /** Button of a notice that opens the plugin stores page. */
     fun noticeOpenStores(context: Context): String =
         context.getString(R.string.notice_open_stores)
+
+    /** Explainer on the empty plugin stores page. */
+    fun storesWhatIs(context: Context): String =
+        context.getString(R.string.stores_what_is)
+
+    /** Button on the empty plugin stores page that opens the docs page in the browser. */
+    fun storesWhatIsLink(context: Context): String =
+        context.getString(R.string.stores_what_is_link)
+
+    /** Line above the invite field in the Join sheet. */
+    fun storesInviteRules(context: Context): String =
+        context.getString(R.string.stores_invite_rules)
+
+    /** Accessibility label of the QR code that holds an invite link. */
+    fun storesQrLabel(context: Context): String =
+        context.getString(R.string.stores_qr_label)
+
+    /** Line under the QR code of an invite for someone else. */
+    fun storesQrWarning(context: Context): String =
+        context.getString(R.string.stores_qr_warning)
+
+    /** Line under the QR code of a link for another device of yours. */
+    fun storesQrWarningDevice(context: Context): String =
+        context.getString(R.string.stores_qr_warning_device)
+
+    /** Button that opens the system share sheet for the invite link. */
+    fun storesShare(context: Context): String =
+        context.getString(R.string.stores_share)
 
     /** Title of the state when a title page could not load. */
     fun titleLoadFailed(context: Context): String =

@@ -214,6 +214,9 @@ public enum L {
         Self.format("home-more-genre", fallback: "More %1$@", genre)
     }
 
+    /// Line over the spotlight's title when it is the built-in demo.
+    public static var homeSpotlightDemo: String { string("home-spotlight-demo", fallback: "Demo · Shared under CC BY 4.0") }
+
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
         Self.format("notice-reason", fallback: "%1$@", reason)
@@ -859,6 +862,14 @@ public enum L {
     /// Toast when a command needs watch parties but this app was built without them.
     public static var noticePartyNotBuilt: String { string("notice-party-not-built", fallback: "Watch parties aren't built into this app.") }
 
+    /// Notice after the demo is removed. It offers Undo for 8 seconds.
+    public static var sourcesDemoRemoved: String { string("sources-demo-removed", fallback: "Demo removed") }
+
+    /// Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.
+    public static func storesReadyDemoStays(store: String) -> String {
+        Self.format("stores-ready-demo-stays", fallback: "%1$@ is ready. The demo stays last in Your sources.", store)
+    }
+
     /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
     public static func noticeSignedIn(tracker: String) -> String {
         Self.format("notice-signed-in", fallback: "Signed in to %1$@.", tracker)
@@ -1124,6 +1135,15 @@ public enum L {
     public static func noticeEpisodesQueued(count: Int) -> String {
         Self.format("notice-episodes-queued", fallback: "Queued %1$lld episodes.", count)
     }
+
+    /// Notice after the subtitle style is reset. It offers Undo.
+    public static var settingsSubsResetDone: String { string("settings-subs-reset-done", fallback: "Subtitle style reset") }
+
+    /// Notice at the next launch after a crash, while saving and asking are on.
+    public static var crashNotice: String { string("crash-notice", fallback: "anistream closed after a problem.") }
+
+    /// The same notice on the TV, which has no button.
+    public static var crashNoticeTv: String { string("crash-notice-tv", fallback: "anistream closed after a problem. You can report it from Settings, About.") }
 
     /// VoiceOver: a title that is up to date and whose next episode airs later. The time is already worded.
     public static func accessCaughtUpAirs(episode: Int, when: String) -> String {
@@ -2971,6 +2991,107 @@ public enum L {
     /// Line about fonts.
     public static var aboutFontLicence: String { string("about-font-licence", fallback: "Licensed under the SIL Open Font License 1.1.") }
 
+    /// Button on that notice that opens Report a bug.
+    public static var crashNoticeReport: String { string("crash-notice-report", fallback: "Report…") }
+
+    /// Title of the Report a bug sheet.
+    public static var reportTitle: String { string("report-title", fallback: "Report a bug") }
+
+    /// Line under the title of the Report a bug sheet.
+    public static var reportDetail: String { string("report-detail", fallback: "This opens a new issue on GitHub, where you sign in, say what happened and submit. Issues on GitHub are public.") }
+
+    /// Heading of the list of what the report includes.
+    public static var reportIncluded: String { string("report-included", fallback: "Included") }
+
+    /// Report item that is always included.
+    public static var reportVersions: String { string("report-versions", fallback: "App and device versions") }
+
+    /// Report item: the last error the app showed.
+    public static var reportLastError: String { string("report-last-error", fallback: "The last error") }
+
+    /// Report item for a saved crash. The time and the place are already worded.
+    public static func reportCrashItem(when: String, place: String) -> String {
+        Self.format("report-crash-item", fallback: "Crash · %1$@ · %2$@", when, place)
+    }
+
+    /// Disclosure that opens the exact text of the report.
+    public static var reportShowSent: String { string("report-show-sent", fallback: "Show what is sent") }
+
+    /// Disclosure that closes the exact text of the report.
+    public static var reportHideSent: String { string("report-hide-sent", fallback: "Hide what is sent") }
+
+    /// Button that copies the whole report text.
+    public static var reportCopy: String { string("report-copy", fallback: "Copy report") }
+
+    /// Notice after the report text is copied.
+    public static var reportCopied: String { string("report-copied", fallback: "Report copied") }
+
+    /// Button that opens the pre-filled issue in the browser.
+    public static var reportOpenGithub: String { string("report-open-github", fallback: "Open on GitHub") }
+
+    /// Line at the foot of the Report a bug sheet.
+    public static var reportPrivacy: String { string("report-privacy", fallback: "Nothing leaves this device until you open the report on GitHub. Titles, addresses, file paths and names are removed.") }
+
+    /// TV only. Line over the QR code of the issue link.
+    public static var reportTvScan: String { string("report-tv-scan", fallback: "Scan the code to open the report on your phone.") }
+
+    /// Line that replaces the crash rows while saving crash reports is off.
+    public static var reportCrashOff: String { string("report-crash-off", fallback: "Crash reports are off, so none is included. You can turn them on in Settings, About.") }
+
+    /// Link from that line to the crash report settings.
+    public static var reportCrashSettings: String { string("report-crash-settings", fallback: "Crash report settings") }
+
+    /// Heading of the Crash reports group in Settings, About.
+    public static var settingsGroupCrashes: String { string("settings-group-crashes", fallback: "Crash reports") }
+
+    /// Switch that turns saving crash reports on this device on or off.
+    public static var settingsCrashSave: String { string("settings-crash-save", fallback: "Save crash reports on this device") }
+
+    /// Line under that switch.
+    public static var settingsCrashSaveDetail: String { string("settings-crash-save-detail", fallback: "When this is on, anistream keeps a short record of each crash on this device, with titles, addresses and names removed, so you can add it to Report a bug. Nothing is sent by itself.") }
+
+    /// Switch that turns the notice after a crash on or off.
+    public static var settingsCrashAsk: String { string("settings-crash-ask", fallback: "Ask after a crash") }
+
+    /// Line under that switch.
+    public static var settingsCrashAskDetail: String { string("settings-crash-ask-detail", fallback: "Shows a notice at the next launch with Report…") }
+
+    /// Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.
+    public static func settingsCrashOsHeading(system: String) -> String {
+        Self.format("settings-crash-os-heading", fallback: "Kept by %1$@", system)
+    }
+
+    /// Line under that heading.
+    public static func settingsCrashOsDetail(system: String) -> String {
+        Self.format("settings-crash-os-detail", fallback: "%1$@ kept these crashes from before you turned this on. Nothing from them is saved unless you add it.", system)
+    }
+
+    /// Row for one crash the system kept. The time is already worded.
+    public static func settingsCrashOsItem(when: String) -> String {
+        Self.format("settings-crash-os-item", fallback: "Crash · %1$@", when)
+    }
+
+    /// Button that saves one crash the system kept.
+    public static var settingsCrashOsAdd: String { string("settings-crash-os-add", fallback: "Add") }
+
+    /// Heading of the saved crash reports.
+    public static var settingsCrashSaved: String { string("settings-crash-saved", fallback: "Saved reports") }
+
+    /// Empty state of the saved crash reports.
+    public static var settingsCrashNone: String { string("settings-crash-none", fallback: "No crash reports saved.") }
+
+    /// Button that shows the text of a saved crash report.
+    public static var settingsCrashView: String { string("settings-crash-view", fallback: "View") }
+
+    /// Button that deletes one saved crash report.
+    public static var settingsCrashDelete: String { string("settings-crash-delete", fallback: "Delete") }
+
+    /// Button that deletes every saved crash report.
+    public static var settingsCrashDeleteAll: String { string("settings-crash-delete-all", fallback: "Delete all") }
+
+    /// Footnote of the Crash reports group.
+    public static var settingsCrashFootnote: String { string("settings-crash-footnote", fallback: "Crash reports stay on this device. anistream sends nothing by itself. A report leaves only when you open it on GitHub from Report a bug. Reports are deleted after 30 days.") }
+
     /// Button that shows the week before.
     public static var calendarPreviousWeek: String { string("calendar-previous-week", fallback: "Previous week") }
 
@@ -4766,6 +4887,33 @@ public enum L {
     /// Hint inside the invite field on the welcome page.
     public static var onboardingInviteHint: String { string("onboarding-invite-hint", fallback: "Invite link") }
 
+    /// Heading of the welcome page that explains where episodes come from.
+    public static var onboardingWhereTitle: String { string("onboarding-where-title", fallback: "Where episodes come from") }
+
+    /// First line of that page. States that the app hosts no content.
+    public static var onboardingWhereHosts: String { string("onboarding-where-hosts", fallback: "anistream hosts no content. It plays episodes from sources, which are plugins.") }
+
+    /// Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.
+    public static var onboardingWhereStores: String { string("onboarding-where-stores", fallback: "Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.") }
+
+    /// Heading above the Play the demo button on the welcome page.
+    public static var onboardingDemoHeading: String { string("onboarding-demo-heading", fallback: "Try it now") }
+
+    /// Line under that heading. Names the demo work and its licence.
+    public static var onboardingDemoDetail: String { string("onboarding-demo-detail", fallback: "The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons.") }
+
+    /// Button on the welcome page that plays the demo at once.
+    public static var onboardingPlayDemo: String { string("onboarding-play-demo", fallback: "Play the demo") }
+
+    /// Heading above the invite link field on the welcome page.
+    public static var onboardingInviteHeading: String { string("onboarding-invite-heading", fallback: "Have an invite link?") }
+
+    /// TV only. Button that shows a code to scan with a phone to send an invite link.
+    public static var onboardingInviteScan: String { string("onboarding-invite-scan", fallback: "Scan with your phone") }
+
+    /// TV only. Button that opens a field to type an invite link.
+    public static var onboardingInviteType: String { string("onboarding-invite-type", fallback: "Type the link") }
+
     /// Button on the title page and in the player that opens the watch party form.
     public static var partyOpen: String { string("party-open", fallback: "Watch party…") }
 
@@ -5312,6 +5460,33 @@ public enum L {
 
     /// Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
     public static var playerCommandFailed: String { string("player-command-failed", fallback: "That didn't work. Try again.") }
+
+    /// Heading of the style section in the player's subtitles panel.
+    public static var playerSubsStyle: String { string("player-subs-style", fallback: "Style") }
+
+    /// Accessibility label of the control that makes subtitles larger.
+    public static var playerSubsLarger: String { string("player-subs-larger", fallback: "Larger subtitles") }
+
+    /// Accessibility label of the control that makes subtitles smaller.
+    public static var playerSubsSmaller: String { string("player-subs-smaller", fallback: "Smaller subtitles") }
+
+    /// Accessibility label of the control that raises subtitles.
+    public static var playerSubsRaise: String { string("player-subs-raise", fallback: "Raise subtitles") }
+
+    /// Accessibility label of the control that lowers subtitles.
+    public static var playerSubsLower: String { string("player-subs-lower", fallback: "Lower subtitles") }
+
+    /// Quick panel choice for the subtitle background: outline, no box.
+    public static var playerSubsBgOutline: String { string("player-subs-bg-outline", fallback: "Outline") }
+
+    /// Quick panel choice for the subtitle background: drop shadow, no box.
+    public static var playerSubsBgShadow: String { string("player-subs-bg-shadow", fallback: "Shadow") }
+
+    /// Quick panel choice for the subtitle background: a box behind the lines.
+    public static var playerSubsBgBox: String { string("player-subs-bg-box", fallback: "Box") }
+
+    /// Button in the subtitles panel that opens Settings.
+    public static var playerSubsMore: String { string("player-subs-more", fallback: "More in Settings…") }
 
     /// Button that shows the season before.
     public static var seasonalPrevious: String { string("seasonal-previous", fallback: "Previous season") }
@@ -6048,6 +6223,139 @@ public enum L {
         Self.format("settings-reset-done", fallback: "Settings are back to their defaults. The old file is kept as %1$@.", file)
     }
 
+    /// Heading of the Subtitles group in Settings, Playback.
+    public static var settingsGroupSubtitles: String { string("settings-group-subtitles", fallback: "Subtitles") }
+
+    /// Heading of the subtitle preview.
+    public static var settingsSubsPreview: String { string("settings-subs-preview", fallback: "Preview") }
+
+    /// Segment of the preview that draws plain subtitles.
+    public static var settingsSubsPreviewPlain: String { string("settings-subs-preview-plain", fallback: "Plain") }
+
+    /// Segment of the preview that draws styled subtitles.
+    public static var settingsSubsPreviewStyled: String { string("settings-subs-preview-styled", fallback: "Styled") }
+
+    /// First sample line in the subtitle preview.
+    public static var settingsSubsPreviewLine: String { string("settings-subs-preview-line", fallback: "I left the lantern at the station.") }
+
+    /// Second sample line in the subtitle preview.
+    public static var settingsSubsPreviewLine2: String { string("settings-subs-preview-line-2", fallback: "Can you bring it back before dark?") }
+
+    /// Sample of a typeset sign at the top of the styled preview.
+    public static var settingsSubsPreviewSign: String { string("settings-subs-preview-sign", fallback: "Kumo no Ue Library") }
+
+    /// Link under the rows that show the system's caption style.
+    public static var settingsSubsSystemChange: String { string("settings-subs-system-change", fallback: "Change in Accessibility settings") }
+
+    /// Value shown, dimmed, for a row while the system's caption style applies.
+    public static var settingsSubsSystemValue: String { string("settings-subs-system-value", fallback: "From your system") }
+
+    /// Label of the subtitle size slider.
+    public static var settingsSubsSize: String { string("settings-subs-size", fallback: "Size") }
+
+    /// Value of the size slider. The percent is a whole number from 50 to 200.
+    public static func settingsSubsSizeValue(percent: Int) -> String {
+        Self.format("settings-subs-size-value", fallback: "%1$lld%%", percent)
+    }
+
+    /// Label of the subtitle font row.
+    public static var settingsSubsFont: String { string("settings-subs-font", fallback: "Font") }
+
+    /// Subtitle font choice: the player's own sans-serif.
+    public static var settingsSubsFontDefault: String { string("settings-subs-font-default", fallback: "Default") }
+
+    /// Subtitle font choice.
+    public static var settingsSubsFontSerif: String { string("settings-subs-font-serif", fallback: "Serif") }
+
+    /// Subtitle font choice.
+    public static var settingsSubsFontMono: String { string("settings-subs-font-mono", fallback: "Monospace") }
+
+    /// Label of the subtitle text colour row.
+    public static var settingsSubsColour: String { string("settings-subs-colour", fallback: "Text colour") }
+
+    /// Subtitle text colour name, shown beside its swatch.
+    public static var settingsSubsColourWhite: String { string("settings-subs-colour-white", fallback: "White") }
+
+    /// Subtitle text colour name, shown beside its swatch.
+    public static var settingsSubsColourYellow: String { string("settings-subs-colour-yellow", fallback: "Yellow") }
+
+    /// Subtitle text colour name, shown beside its swatch.
+    public static var settingsSubsColourCyan: String { string("settings-subs-colour-cyan", fallback: "Cyan") }
+
+    /// Subtitle text colour name, shown beside its swatch.
+    public static var settingsSubsColourGreen: String { string("settings-subs-colour-green", fallback: "Green") }
+
+    /// Label of the subtitle edge row.
+    public static var settingsSubsEdge: String { string("settings-subs-edge", fallback: "Edge") }
+
+    /// Subtitle edge choice.
+    public static var settingsSubsEdgeOutline: String { string("settings-subs-edge-outline", fallback: "Outline") }
+
+    /// Subtitle edge choice.
+    public static var settingsSubsEdgeShadow: String { string("settings-subs-edge-shadow", fallback: "Drop shadow") }
+
+    /// Subtitle edge choice: no edge.
+    public static var settingsSubsEdgeNone: String { string("settings-subs-edge-none", fallback: "None") }
+
+    /// Label of the outline thickness row.
+    public static var settingsSubsThickness: String { string("settings-subs-thickness", fallback: "Thickness") }
+
+    /// Outline thickness choice.
+    public static var settingsSubsThin: String { string("settings-subs-thin", fallback: "Thin") }
+
+    /// Outline thickness choice.
+    public static var settingsSubsMedium: String { string("settings-subs-medium", fallback: "Medium") }
+
+    /// Outline thickness choice.
+    public static var settingsSubsThick: String { string("settings-subs-thick", fallback: "Thick") }
+
+    /// Label of the subtitle background row.
+    public static var settingsSubsBackground: String { string("settings-subs-background", fallback: "Background") }
+
+    /// Subtitle background choice: no background.
+    public static var settingsSubsBackgroundNone: String { string("settings-subs-background-none", fallback: "None") }
+
+    /// Subtitle background choice: a plate behind each line.
+    public static var settingsSubsBackgroundLine: String { string("settings-subs-background-line", fallback: "Behind each line") }
+
+    /// Subtitle background choice: one plate behind all lines.
+    public static var settingsSubsBackgroundAll: String { string("settings-subs-background-all", fallback: "Behind all lines") }
+
+    /// Label of the background opacity row.
+    public static var settingsSubsOpacity: String { string("settings-subs-opacity", fallback: "Opacity") }
+
+    /// Label of the row that raises subtitles.
+    public static var settingsSubsRaise: String { string("settings-subs-raise", fallback: "Raise subtitles") }
+
+    /// Value of the raise slider. The percent is a whole number from 0 to 20.
+    public static func settingsSubsRaiseValue(percent: Int) -> String {
+        Self.format("settings-subs-raise-value", fallback: "%1$lld%% of the picture", percent)
+    }
+
+    /// Label of the picker that says what happens to styled subtitles.
+    public static var settingsSubsStyled: String { string("settings-subs-styled", fallback: "Styled subtitles") }
+
+    /// Styled subtitles choice: leave the authors' styling alone.
+    public static var settingsSubsStyledKeep: String { string("settings-subs-styled-keep", fallback: "Keep their look") }
+
+    /// Line under the picker while Keep their look is chosen.
+    public static var settingsSubsStyledKeepDetail: String { string("settings-subs-styled-keep-detail", fallback: "Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply.") }
+
+    /// Styled subtitles choice: apply the viewer's style over the authors'.
+    public static var settingsSubsStyledRestyle: String { string("settings-subs-styled-restyle", fallback: "Restyle") }
+
+    /// Line under the picker while Restyle is chosen.
+    public static var settingsSubsStyledRestyleDetail: String { string("settings-subs-styled-restyle-detail", fallback: "Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement.") }
+
+    /// Styled subtitles choice: drop all styling and show plain dialogue.
+    public static var settingsSubsStyledStrip: String { string("settings-subs-styled-strip", fallback: "Remove all styling") }
+
+    /// Line under the picker while Remove all styling is chosen.
+    public static var settingsSubsStyledStripDetail: String { string("settings-subs-styled-strip-detail", fallback: "Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone.") }
+
+    /// Button that restores the default subtitle style.
+    public static var settingsSubsReset: String { string("settings-subs-reset", fallback: "Reset subtitle style") }
+
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
 
@@ -6364,6 +6672,61 @@ public enum L {
     public static func matchRowLabel(title: String, facts: String, closeness: String) -> String {
         Self.format("match-row-label", fallback: "%1$@, %2$@, %3$@", title, facts, closeness)
     }
+
+    /// Name of the built-in demo source in every list of sources.
+    public static var sourcesDemoName: String { string("sources-demo-name", fallback: "Demo") }
+
+    /// Line under the demo source in Your sources: the work, its licence and where it streams from.
+    public static var sourcesDemoLine: String { string("sources-demo-line", fallback: "こうしす！ · CC BY 4.0 · from Wikimedia Commons") }
+
+    /// Title of the page that describes the demo.
+    public static var sourcesDemoAbout: String { string("sources-demo-about", fallback: "About the demo") }
+
+    /// The credit block shown wherever the demo work shows as a title. The licence asks for this wording.
+    public static var sourcesDemoCredit: String { string("sources-demo-credit", fallback: "こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence.") }
+
+    /// Link to the licence text, in the credit block.
+    public static var sourcesDemoLinkLicence: String { string("sources-demo-link-licence", fallback: "Licence") }
+
+    /// Link to the work's file page on Wikimedia Commons, in the credit block.
+    public static var sourcesDemoLinkCommons: String { string("sources-demo-link-commons", fallback: "Wikimedia Commons") }
+
+    /// Link to the makers' site, in the credit block.
+    public static var sourcesDemoLinkMaker: String { string("sources-demo-link-maker", fallback: "OPAP-JP") }
+
+    /// Line on the demo page that names the only two hosts the demo reaches.
+    public static var sourcesDemoHosts: String { string("sources-demo-hosts", fallback: "Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.") }
+
+    /// Line on the demo page about accounts and trackers.
+    public static var sourcesDemoPrivate: String { string("sources-demo-private", fallback: "The demo never signs in anywhere and never writes to AniList.") }
+
+    /// Button on the demo page that removes the demo from the sources.
+    public static var sourcesDemoRemove: String { string("sources-demo-remove", fallback: "Remove demo") }
+
+    /// Button that adds the demo back to the sources.
+    public static var sourcesDemoAdd: String { string("sources-demo-add", fallback: "Add the demo") }
+
+    /// Closing line of Home while the demo is the only source. Plugin stores is a link.
+    public static var sourcesDemoOnly: String { string("sources-demo-only", fallback: "Only the demo is on. Join a plugin store to play from your own sources.") }
+
+    /// Line under the search field while the demo is the only source.
+    public static var searchDemoOnly: String { string("search-demo-only", fallback: "Only the demo is on. Other titles play once you join a plugin store.") }
+
+    /// Line under the demo title when it is a search result.
+    public static var searchDemoPlays: String { string("search-demo-plays", fallback: "Demo · Plays now") }
+
+    /// Main button on the demo title. The part is a number.
+    public static func titlePlayPart(part: String) -> String {
+        Self.format("title-play-part", fallback: "Play part %1$@", part)
+    }
+
+    /// Line on the player's starting screen for a part of the demo.
+    public static func playerStartingPart(part: String) -> String {
+        Self.format("player-starting-part", fallback: "Starting part %1$@", part)
+    }
+
+    /// Credit line under the starting line on the player's starting screen for the demo.
+    public static var playerDemoCredit: String { string("player-demo-credit", fallback: "こうしす！ by OPAP-JP contributors · CC BY 4.0") }
 
     /// Short label for a joined store, on a row.
     public static var storesJoined: String { string("stores-joined", fallback: "Joined") }
@@ -6816,6 +7179,27 @@ public enum L {
 
     /// Button of a notice that opens the plugin stores page.
     public static var noticeOpenStores: String { string("notice-open-stores", fallback: "Open plugin stores") }
+
+    /// Explainer on the empty plugin stores page.
+    public static var storesWhatIs: String { string("stores-what-is", fallback: "A plugin store is a small server one person runs for the people they invite. It offers sources as plugins. anistream runs no plugin stores and lists none, so you join one with an invite link from its owner.") }
+
+    /// Button on the empty plugin stores page that opens the docs page in the browser.
+    public static var storesWhatIsLink: String { string("stores-what-is-link", fallback: "What is a plugin store?") }
+
+    /// Line above the invite field in the Join sheet.
+    public static var storesInviteRules: String { string("stores-invite-rules", fallback: "An invite link works once, for one person, and lasts seven days. Ask the plugin store's owner for a new one if yours has expired.") }
+
+    /// Accessibility label of the QR code that holds an invite link.
+    public static var storesQrLabel: String { string("stores-qr-label", fallback: "QR code for the invite link") }
+
+    /// Line under the QR code of an invite for someone else.
+    public static var storesQrWarning: String { string("stores-qr-warning", fallback: "Anyone who scans this code can use the invite. It works once and lasts seven days.") }
+
+    /// Line under the QR code of a link for another device of yours.
+    public static var storesQrWarningDevice: String { string("stores-qr-warning-device", fallback: "Scan this with the device you want to link. It works once and lasts seven days.") }
+
+    /// Button that opens the system share sheet for the invite link.
+    public static var storesShare: String { string("stores-share", fallback: "Share…") }
 
     /// Title of the state when a title page could not load.
     public static var titleLoadFailed: String { string("title-load-failed", fallback: "Couldn't load this title") }

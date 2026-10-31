@@ -65,6 +65,7 @@ fun Msg.text(context: Context): String =
         is Msg.HomeThisSeason -> Strings.homeThisSeason(context)
         is Msg.HomeBecause -> Strings.homeBecause(context, this.title)
         is Msg.HomeMoreGenre -> Strings.homeMoreGenre(context, this.genre)
+        is Msg.HomeSpotlightDemo -> Strings.homeSpotlightDemo(context)
         is Msg.NoticeReason -> Strings.noticeReason(context, this.reason.text(context))
         is Msg.NoticeNotAired -> Strings.noticeNotAired(context, this.episode.toInt(), this.`when`.text(context))
         is Msg.NoticeNotAiredYet -> Strings.noticeNotAiredYet(context, this.episode.toInt(), this.next.toInt(), this.`when`.text(context))
@@ -202,6 +203,8 @@ fun Msg.text(context: Context): String =
         is Msg.NoticeMetadataCached -> Strings.noticeMetadataCached(context)
         is Msg.NoticeAnilistBack -> Strings.noticeAnilistBack(context)
         is Msg.NoticePartyNotBuilt -> Strings.noticePartyNotBuilt(context)
+        is Msg.SourcesDemoRemoved -> Strings.sourcesDemoRemoved(context)
+        is Msg.StoresReadyDemoStays -> Strings.storesReadyDemoStays(context, this.store)
         is Msg.NoticeSignedIn -> Strings.noticeSignedIn(context, this.tracker)
         is Msg.NoticeSignedInKeychain -> Strings.noticeSignedInKeychain(context, this.tracker)
         is Msg.NoticeSignedInFile -> Strings.noticeSignedInFile(context, this.tracker)
@@ -257,6 +260,9 @@ fun Msg.text(context: Context): String =
         is Msg.StartFailedRemote -> Strings.startFailedRemote(context, this.reason)
         is Msg.StartFailedPlayer -> Strings.startFailedPlayer(context, this.reason)
         is Msg.NoticeEpisodesQueued -> Strings.noticeEpisodesQueued(context, this.count.toInt())
+        is Msg.SettingsSubsResetDone -> Strings.settingsSubsResetDone(context)
+        is Msg.CrashNotice -> Strings.crashNotice(context)
+        is Msg.CrashNoticeTv -> Strings.crashNoticeTv(context)
         is Msg.Verbatim -> this.text
     }
 

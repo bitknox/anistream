@@ -168,6 +168,9 @@ public static partial class T
     /// <summary>Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha".</summary>
     public static string HomeMoreGenre(string genre) => Fill(Get("HomeMoreGenre"), ("genre", genre));
 
+    /// <summary>Line over the spotlight's title when it is the built-in demo.</summary>
+    public static string HomeSpotlightDemo => Get("HomeSpotlightDemo");
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -627,6 +630,12 @@ public static partial class T
     /// <summary>Toast when a command needs watch parties but this app was built without them.</summary>
     public static string NoticePartyNotBuilt => Get("NoticePartyNotBuilt");
 
+    /// <summary>Notice after the demo is removed. It offers Undo for 8 seconds.</summary>
+    public static string SourcesDemoRemoved => Get("SourcesDemoRemoved");
+
+    /// <summary>Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds.</summary>
+    public static string StoresReadyDemoStays(string store) => Fill(Get("StoresReadyDemoStays"), ("store", store));
+
     /// <summary>Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.</summary>
     public static string NoticeSignedIn(string tracker) => Fill(Get("NoticeSignedIn"), ("tracker", tracker));
 
@@ -806,6 +815,15 @@ public static partial class T
 
     /// <summary>Toast after episodes are added to the download queue.</summary>
     public static string NoticeEpisodesQueued(long count) => Fill(GetPlural("NoticeEpisodesQueued", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Notice after the subtitle style is reset. It offers Undo.</summary>
+    public static string SettingsSubsResetDone => Get("SettingsSubsResetDone");
+
+    /// <summary>Notice at the next launch after a crash, while saving and asking are on.</summary>
+    public static string CrashNotice => Get("CrashNotice");
+
+    /// <summary>The same notice on the TV, which has no button.</summary>
+    public static string CrashNoticeTv => Get("CrashNoticeTv");
 
     /// <summary>Context menu item on a Continue row: plays the episode from where it stopped.</summary>
     public static string ContinueMenuResume => Get("ContinueMenuResume");
@@ -1397,6 +1415,99 @@ public static partial class T
 
     /// <summary>Line about fonts.</summary>
     public static string AboutFontLicence => Get("AboutFontLicence");
+
+    /// <summary>Button on that notice that opens Report a bug.</summary>
+    public static string CrashNoticeReport => Get("CrashNoticeReport");
+
+    /// <summary>Title of the Report a bug sheet.</summary>
+    public static string ReportTitle => Get("ReportTitle");
+
+    /// <summary>Line under the title of the Report a bug sheet.</summary>
+    public static string ReportDetail => Get("ReportDetail");
+
+    /// <summary>Heading of the list of what the report includes.</summary>
+    public static string ReportIncluded => Get("ReportIncluded");
+
+    /// <summary>Report item that is always included.</summary>
+    public static string ReportVersions => Get("ReportVersions");
+
+    /// <summary>Report item: the last error the app showed.</summary>
+    public static string ReportLastError => Get("ReportLastError");
+
+    /// <summary>Report item for a saved crash. The time and the place are already worded.</summary>
+    public static string ReportCrashItem(string when, string place) => Fill(Get("ReportCrashItem"), ("when", when), ("place", place));
+
+    /// <summary>Disclosure that opens the exact text of the report.</summary>
+    public static string ReportShowSent => Get("ReportShowSent");
+
+    /// <summary>Disclosure that closes the exact text of the report.</summary>
+    public static string ReportHideSent => Get("ReportHideSent");
+
+    /// <summary>Button that copies the whole report text.</summary>
+    public static string ReportCopy => Get("ReportCopy");
+
+    /// <summary>Notice after the report text is copied.</summary>
+    public static string ReportCopied => Get("ReportCopied");
+
+    /// <summary>Button that opens the pre-filled issue in the browser.</summary>
+    public static string ReportOpenGithub => Get("ReportOpenGithub");
+
+    /// <summary>Line at the foot of the Report a bug sheet.</summary>
+    public static string ReportPrivacy => Get("ReportPrivacy");
+
+    /// <summary>TV only. Line over the QR code of the issue link.</summary>
+    public static string ReportTvScan => Get("ReportTvScan");
+
+    /// <summary>Line that replaces the crash rows while saving crash reports is off.</summary>
+    public static string ReportCrashOff => Get("ReportCrashOff");
+
+    /// <summary>Link from that line to the crash report settings.</summary>
+    public static string ReportCrashSettings => Get("ReportCrashSettings");
+
+    /// <summary>Heading of the Crash reports group in Settings, About.</summary>
+    public static string SettingsGroupCrashes => Get("SettingsGroupCrashes");
+
+    /// <summary>Switch that turns saving crash reports on this device on or off.</summary>
+    public static string SettingsCrashSave => Get("SettingsCrashSave");
+
+    /// <summary>Line under that switch.</summary>
+    public static string SettingsCrashSaveDetail => Get("SettingsCrashSaveDetail");
+
+    /// <summary>Switch that turns the notice after a crash on or off.</summary>
+    public static string SettingsCrashAsk => Get("SettingsCrashAsk");
+
+    /// <summary>Line under that switch.</summary>
+    public static string SettingsCrashAskDetail => Get("SettingsCrashAskDetail");
+
+    /// <summary>Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android.</summary>
+    public static string SettingsCrashOsHeading(string system) => Fill(Get("SettingsCrashOsHeading"), ("system", system));
+
+    /// <summary>Line under that heading.</summary>
+    public static string SettingsCrashOsDetail(string system) => Fill(Get("SettingsCrashOsDetail"), ("system", system));
+
+    /// <summary>Row for one crash the system kept. The time is already worded.</summary>
+    public static string SettingsCrashOsItem(string when) => Fill(Get("SettingsCrashOsItem"), ("when", when));
+
+    /// <summary>Button that saves one crash the system kept.</summary>
+    public static string SettingsCrashOsAdd => Get("SettingsCrashOsAdd");
+
+    /// <summary>Heading of the saved crash reports.</summary>
+    public static string SettingsCrashSaved => Get("SettingsCrashSaved");
+
+    /// <summary>Empty state of the saved crash reports.</summary>
+    public static string SettingsCrashNone => Get("SettingsCrashNone");
+
+    /// <summary>Button that shows the text of a saved crash report.</summary>
+    public static string SettingsCrashView => Get("SettingsCrashView");
+
+    /// <summary>Button that deletes one saved crash report.</summary>
+    public static string SettingsCrashDelete => Get("SettingsCrashDelete");
+
+    /// <summary>Button that deletes every saved crash report.</summary>
+    public static string SettingsCrashDeleteAll => Get("SettingsCrashDeleteAll");
+
+    /// <summary>Footnote of the Crash reports group.</summary>
+    public static string SettingsCrashFootnote => Get("SettingsCrashFootnote");
 
     /// <summary>Button that shows the week before.</summary>
     public static string CalendarPreviousWeek => Get("CalendarPreviousWeek");
@@ -2961,6 +3072,33 @@ public static partial class T
     /// <summary>Hint inside the invite field on the welcome page.</summary>
     public static string OnboardingInviteHint => Get("OnboardingInviteHint");
 
+    /// <summary>Heading of the welcome page that explains where episodes come from.</summary>
+    public static string OnboardingWhereTitle => Get("OnboardingWhereTitle");
+
+    /// <summary>First line of that page. States that the app hosts no content.</summary>
+    public static string OnboardingWhereHosts => Get("OnboardingWhereHosts");
+
+    /// <summary>Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link.</summary>
+    public static string OnboardingWhereStores => Get("OnboardingWhereStores");
+
+    /// <summary>Heading above the Play the demo button on the welcome page.</summary>
+    public static string OnboardingDemoHeading => Get("OnboardingDemoHeading");
+
+    /// <summary>Line under that heading. Names the demo work and its licence.</summary>
+    public static string OnboardingDemoDetail => Get("OnboardingDemoDetail");
+
+    /// <summary>Button on the welcome page that plays the demo at once.</summary>
+    public static string OnboardingPlayDemo => Get("OnboardingPlayDemo");
+
+    /// <summary>Heading above the invite link field on the welcome page.</summary>
+    public static string OnboardingInviteHeading => Get("OnboardingInviteHeading");
+
+    /// <summary>TV only. Button that shows a code to scan with a phone to send an invite link.</summary>
+    public static string OnboardingInviteScan => Get("OnboardingInviteScan");
+
+    /// <summary>TV only. Button that opens a field to type an invite link.</summary>
+    public static string OnboardingInviteType => Get("OnboardingInviteType");
+
     /// <summary>Button on the title page and in the player that opens the watch party form.</summary>
     public static string PartyOpen => Get("PartyOpen");
 
@@ -3431,6 +3569,33 @@ public static partial class T
 
     /// <summary>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</summary>
     public static string PlayerCommandFailed => Get("PlayerCommandFailed");
+
+    /// <summary>Heading of the style section in the player's subtitles panel.</summary>
+    public static string PlayerSubsStyle => Get("PlayerSubsStyle");
+
+    /// <summary>Accessibility label of the control that makes subtitles larger.</summary>
+    public static string PlayerSubsLarger => Get("PlayerSubsLarger");
+
+    /// <summary>Accessibility label of the control that makes subtitles smaller.</summary>
+    public static string PlayerSubsSmaller => Get("PlayerSubsSmaller");
+
+    /// <summary>Accessibility label of the control that raises subtitles.</summary>
+    public static string PlayerSubsRaise => Get("PlayerSubsRaise");
+
+    /// <summary>Accessibility label of the control that lowers subtitles.</summary>
+    public static string PlayerSubsLower => Get("PlayerSubsLower");
+
+    /// <summary>Quick panel choice for the subtitle background: outline, no box.</summary>
+    public static string PlayerSubsBgOutline => Get("PlayerSubsBgOutline");
+
+    /// <summary>Quick panel choice for the subtitle background: drop shadow, no box.</summary>
+    public static string PlayerSubsBgShadow => Get("PlayerSubsBgShadow");
+
+    /// <summary>Quick panel choice for the subtitle background: a box behind the lines.</summary>
+    public static string PlayerSubsBgBox => Get("PlayerSubsBgBox");
+
+    /// <summary>Button in the subtitles panel that opens Settings.</summary>
+    public static string PlayerSubsMore => Get("PlayerSubsMore");
 
     /// <summary>Button that shows the season before.</summary>
     public static string SeasonalPrevious => Get("SeasonalPrevious");
@@ -4119,6 +4284,135 @@ public static partial class T
     /// <summary>Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.</summary>
     public static string SettingsResetDone(string file) => Fill(Get("SettingsResetDone"), ("file", file));
 
+    /// <summary>Heading of the Subtitles group in Settings, Playback.</summary>
+    public static string SettingsGroupSubtitles => Get("SettingsGroupSubtitles");
+
+    /// <summary>Heading of the subtitle preview.</summary>
+    public static string SettingsSubsPreview => Get("SettingsSubsPreview");
+
+    /// <summary>Segment of the preview that draws plain subtitles.</summary>
+    public static string SettingsSubsPreviewPlain => Get("SettingsSubsPreviewPlain");
+
+    /// <summary>Segment of the preview that draws styled subtitles.</summary>
+    public static string SettingsSubsPreviewStyled => Get("SettingsSubsPreviewStyled");
+
+    /// <summary>First sample line in the subtitle preview.</summary>
+    public static string SettingsSubsPreviewLine => Get("SettingsSubsPreviewLine");
+
+    /// <summary>Second sample line in the subtitle preview.</summary>
+    public static string SettingsSubsPreviewLine2 => Get("SettingsSubsPreviewLine2");
+
+    /// <summary>Sample of a typeset sign at the top of the styled preview.</summary>
+    public static string SettingsSubsPreviewSign => Get("SettingsSubsPreviewSign");
+
+    /// <summary>Link under the rows that show the system's caption style.</summary>
+    public static string SettingsSubsSystemChange => Get("SettingsSubsSystemChange");
+
+    /// <summary>Value shown, dimmed, for a row while the system's caption style applies.</summary>
+    public static string SettingsSubsSystemValue => Get("SettingsSubsSystemValue");
+
+    /// <summary>Label of the subtitle size slider.</summary>
+    public static string SettingsSubsSize => Get("SettingsSubsSize");
+
+    /// <summary>Value of the size slider. The percent is a whole number from 50 to 200.</summary>
+    public static string SettingsSubsSizeValue(long percent) => Fill(Get("SettingsSubsSizeValue"), ("percent", percent.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Label of the subtitle font row.</summary>
+    public static string SettingsSubsFont => Get("SettingsSubsFont");
+
+    /// <summary>Subtitle font choice: the player's own sans-serif.</summary>
+    public static string SettingsSubsFontDefault => Get("SettingsSubsFontDefault");
+
+    /// <summary>Subtitle font choice.</summary>
+    public static string SettingsSubsFontSerif => Get("SettingsSubsFontSerif");
+
+    /// <summary>Subtitle font choice.</summary>
+    public static string SettingsSubsFontMono => Get("SettingsSubsFontMono");
+
+    /// <summary>Label of the subtitle text colour row.</summary>
+    public static string SettingsSubsColour => Get("SettingsSubsColour");
+
+    /// <summary>Subtitle text colour name, shown beside its swatch.</summary>
+    public static string SettingsSubsColourWhite => Get("SettingsSubsColourWhite");
+
+    /// <summary>Subtitle text colour name, shown beside its swatch.</summary>
+    public static string SettingsSubsColourYellow => Get("SettingsSubsColourYellow");
+
+    /// <summary>Subtitle text colour name, shown beside its swatch.</summary>
+    public static string SettingsSubsColourCyan => Get("SettingsSubsColourCyan");
+
+    /// <summary>Subtitle text colour name, shown beside its swatch.</summary>
+    public static string SettingsSubsColourGreen => Get("SettingsSubsColourGreen");
+
+    /// <summary>Label of the subtitle edge row.</summary>
+    public static string SettingsSubsEdge => Get("SettingsSubsEdge");
+
+    /// <summary>Subtitle edge choice.</summary>
+    public static string SettingsSubsEdgeOutline => Get("SettingsSubsEdgeOutline");
+
+    /// <summary>Subtitle edge choice.</summary>
+    public static string SettingsSubsEdgeShadow => Get("SettingsSubsEdgeShadow");
+
+    /// <summary>Subtitle edge choice: no edge.</summary>
+    public static string SettingsSubsEdgeNone => Get("SettingsSubsEdgeNone");
+
+    /// <summary>Label of the outline thickness row.</summary>
+    public static string SettingsSubsThickness => Get("SettingsSubsThickness");
+
+    /// <summary>Outline thickness choice.</summary>
+    public static string SettingsSubsThin => Get("SettingsSubsThin");
+
+    /// <summary>Outline thickness choice.</summary>
+    public static string SettingsSubsMedium => Get("SettingsSubsMedium");
+
+    /// <summary>Outline thickness choice.</summary>
+    public static string SettingsSubsThick => Get("SettingsSubsThick");
+
+    /// <summary>Label of the subtitle background row.</summary>
+    public static string SettingsSubsBackground => Get("SettingsSubsBackground");
+
+    /// <summary>Subtitle background choice: no background.</summary>
+    public static string SettingsSubsBackgroundNone => Get("SettingsSubsBackgroundNone");
+
+    /// <summary>Subtitle background choice: a plate behind each line.</summary>
+    public static string SettingsSubsBackgroundLine => Get("SettingsSubsBackgroundLine");
+
+    /// <summary>Subtitle background choice: one plate behind all lines.</summary>
+    public static string SettingsSubsBackgroundAll => Get("SettingsSubsBackgroundAll");
+
+    /// <summary>Label of the background opacity row.</summary>
+    public static string SettingsSubsOpacity => Get("SettingsSubsOpacity");
+
+    /// <summary>Label of the row that raises subtitles.</summary>
+    public static string SettingsSubsRaise => Get("SettingsSubsRaise");
+
+    /// <summary>Value of the raise slider. The percent is a whole number from 0 to 20.</summary>
+    public static string SettingsSubsRaiseValue(long percent) => Fill(Get("SettingsSubsRaiseValue"), ("percent", percent.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Label of the picker that says what happens to styled subtitles.</summary>
+    public static string SettingsSubsStyled => Get("SettingsSubsStyled");
+
+    /// <summary>Styled subtitles choice: leave the authors' styling alone.</summary>
+    public static string SettingsSubsStyledKeep => Get("SettingsSubsStyledKeep");
+
+    /// <summary>Line under the picker while Keep their look is chosen.</summary>
+    public static string SettingsSubsStyledKeepDetail => Get("SettingsSubsStyledKeepDetail");
+
+    /// <summary>Styled subtitles choice: apply the viewer's style over the authors'.</summary>
+    public static string SettingsSubsStyledRestyle => Get("SettingsSubsStyledRestyle");
+
+    /// <summary>Line under the picker while Restyle is chosen.</summary>
+    public static string SettingsSubsStyledRestyleDetail => Get("SettingsSubsStyledRestyleDetail");
+
+    /// <summary>Styled subtitles choice: drop all styling and show plain dialogue.</summary>
+    public static string SettingsSubsStyledStrip => Get("SettingsSubsStyledStrip");
+
+    /// <summary>Line under the picker while Remove all styling is chosen.</summary>
+    public static string SettingsSubsStyledStripDetail => Get("SettingsSubsStyledStripDetail");
+
+    /// <summary>Button that restores the default subtitle style.</summary>
+    public static string SettingsSubsReset => Get("SettingsSubsReset");
+
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
 
@@ -4385,6 +4679,57 @@ public static partial class T
 
     /// <summary>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</summary>
     public static string MatchRowLabel(string title, string facts, string closeness) => Fill(Get("MatchRowLabel"), ("title", title), ("facts", facts), ("closeness", closeness));
+
+    /// <summary>Name of the built-in demo source in every list of sources.</summary>
+    public static string SourcesDemoName => Get("SourcesDemoName");
+
+    /// <summary>Line under the demo source in Your sources: the work, its licence and where it streams from.</summary>
+    public static string SourcesDemoLine => Get("SourcesDemoLine");
+
+    /// <summary>Title of the page that describes the demo.</summary>
+    public static string SourcesDemoAbout => Get("SourcesDemoAbout");
+
+    /// <summary>The credit block shown wherever the demo work shows as a title. The licence asks for this wording.</summary>
+    public static string SourcesDemoCredit => Get("SourcesDemoCredit");
+
+    /// <summary>Link to the licence text, in the credit block.</summary>
+    public static string SourcesDemoLinkLicence => Get("SourcesDemoLinkLicence");
+
+    /// <summary>Link to the work's file page on Wikimedia Commons, in the credit block.</summary>
+    public static string SourcesDemoLinkCommons => Get("SourcesDemoLinkCommons");
+
+    /// <summary>Link to the makers' site, in the credit block.</summary>
+    public static string SourcesDemoLinkMaker => Get("SourcesDemoLinkMaker");
+
+    /// <summary>Line on the demo page that names the only two hosts the demo reaches.</summary>
+    public static string SourcesDemoHosts => Get("SourcesDemoHosts");
+
+    /// <summary>Line on the demo page about accounts and trackers.</summary>
+    public static string SourcesDemoPrivate => Get("SourcesDemoPrivate");
+
+    /// <summary>Button on the demo page that removes the demo from the sources.</summary>
+    public static string SourcesDemoRemove => Get("SourcesDemoRemove");
+
+    /// <summary>Button that adds the demo back to the sources.</summary>
+    public static string SourcesDemoAdd => Get("SourcesDemoAdd");
+
+    /// <summary>Closing line of Home while the demo is the only source. Plugin stores is a link.</summary>
+    public static string SourcesDemoOnly => Get("SourcesDemoOnly");
+
+    /// <summary>Line under the search field while the demo is the only source.</summary>
+    public static string SearchDemoOnly => Get("SearchDemoOnly");
+
+    /// <summary>Line under the demo title when it is a search result.</summary>
+    public static string SearchDemoPlays => Get("SearchDemoPlays");
+
+    /// <summary>Main button on the demo title. The part is a number.</summary>
+    public static string TitlePlayPart(string part) => Fill(Get("TitlePlayPart"), ("part", part));
+
+    /// <summary>Line on the player's starting screen for a part of the demo.</summary>
+    public static string PlayerStartingPart(string part) => Fill(Get("PlayerStartingPart"), ("part", part));
+
+    /// <summary>Credit line under the starting line on the player's starting screen for the demo.</summary>
+    public static string PlayerDemoCredit => Get("PlayerDemoCredit");
 
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
@@ -4769,6 +5114,27 @@ public static partial class T
 
     /// <summary>Button of a notice that opens the plugin stores page.</summary>
     public static string NoticeOpenStores => Get("NoticeOpenStores");
+
+    /// <summary>Explainer on the empty plugin stores page.</summary>
+    public static string StoresWhatIs => Get("StoresWhatIs");
+
+    /// <summary>Button on the empty plugin stores page that opens the docs page in the browser.</summary>
+    public static string StoresWhatIsLink => Get("StoresWhatIsLink");
+
+    /// <summary>Line above the invite field in the Join sheet.</summary>
+    public static string StoresInviteRules => Get("StoresInviteRules");
+
+    /// <summary>Accessibility label of the QR code that holds an invite link.</summary>
+    public static string StoresQrLabel => Get("StoresQrLabel");
+
+    /// <summary>Line under the QR code of an invite for someone else.</summary>
+    public static string StoresQrWarning => Get("StoresQrWarning");
+
+    /// <summary>Line under the QR code of a link for another device of yours.</summary>
+    public static string StoresQrWarningDevice => Get("StoresQrWarningDevice");
+
+    /// <summary>Button that opens the system share sheet for the invite link.</summary>
+    public static string StoresShare => Get("StoresShare");
 
     /// <summary>Title of the state when a title page could not load.</summary>
     public static string TitleLoadFailed => Get("TitleLoadFailed");
@@ -5909,6 +6275,7 @@ public static partial class T
         ["HomeThisSeason"] = "This season",
         ["HomeBecause"] = "Because you finished {title}",
         ["HomeMoreGenre"] = "More {genre}",
+        ["HomeSpotlightDemo"] = "Demo · Shared under CC BY 4.0",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",
@@ -6071,6 +6438,8 @@ public static partial class T
         ["NoticeMetadataCached"] = "No metadata service answered. Showing what was last cached.",
         ["NoticeAnilistBack"] = "AniList is back.",
         ["NoticePartyNotBuilt"] = "Watch parties aren't built into this app.",
+        ["SourcesDemoRemoved"] = "Demo removed",
+        ["StoresReadyDemoStays"] = "{store} is ready. The demo stays last in Your sources.",
         ["NoticeSignedIn"] = "Signed in to {tracker}.",
         ["NoticeSignedInKeychain"] = "Signed in to {tracker}. The token is in the OS keychain.",
         ["NoticeSignedInFile"] = "Signed in to {tracker}. No keychain is available, so the token is in a private file on this device.",
@@ -6134,6 +6503,9 @@ public static partial class T
         ["StartFailedPlayer"] = "The player couldn't start. {reason}",
         ["NoticeEpisodesQueued_one"] = "Queued one episode.",
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
+        ["SettingsSubsResetDone"] = "Subtitle style reset",
+        ["CrashNotice"] = "anistream closed after a problem.",
+        ["CrashNoticeTv"] = "anistream closed after a problem. You can report it from Settings, About.",
         ["ContinueMenuResume"] = "Continue",
         ["ContinueLoading"] = "Loading what you're watching",
         ["ContinueSyncWaiting_one"] = "One change waiting to sync",
@@ -6338,6 +6710,37 @@ public static partial class T
         ["AboutReportBugDetail"] = "Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.",
         ["AboutArtwork"] = "Some artwork is licensed under Creative Commons BY-NC 4.0.",
         ["AboutFontLicence"] = "Licensed under the SIL Open Font License 1.1.",
+        ["CrashNoticeReport"] = "Report…",
+        ["ReportTitle"] = "Report a bug",
+        ["ReportDetail"] = "This opens a new issue on GitHub, where you sign in, say what happened and submit. Issues on GitHub are public.",
+        ["ReportIncluded"] = "Included",
+        ["ReportVersions"] = "App and device versions",
+        ["ReportLastError"] = "The last error",
+        ["ReportCrashItem"] = "Crash · {when} · {place}",
+        ["ReportShowSent"] = "Show what is sent",
+        ["ReportHideSent"] = "Hide what is sent",
+        ["ReportCopy"] = "Copy report",
+        ["ReportCopied"] = "Report copied",
+        ["ReportOpenGithub"] = "Open on GitHub",
+        ["ReportPrivacy"] = "Nothing leaves this device until you open the report on GitHub. Titles, addresses, file paths and names are removed.",
+        ["ReportTvScan"] = "Scan the code to open the report on your phone.",
+        ["ReportCrashOff"] = "Crash reports are off, so none is included. You can turn them on in Settings, About.",
+        ["ReportCrashSettings"] = "Crash report settings",
+        ["SettingsGroupCrashes"] = "Crash reports",
+        ["SettingsCrashSave"] = "Save crash reports on this device",
+        ["SettingsCrashSaveDetail"] = "When this is on, anistream keeps a short record of each crash on this device, with titles, addresses and names removed, so you can add it to Report a bug. Nothing is sent by itself.",
+        ["SettingsCrashAsk"] = "Ask after a crash",
+        ["SettingsCrashAskDetail"] = "Shows a notice at the next launch with Report…",
+        ["SettingsCrashOsHeading"] = "Kept by {system}",
+        ["SettingsCrashOsDetail"] = "{system} kept these crashes from before you turned this on. Nothing from them is saved unless you add it.",
+        ["SettingsCrashOsItem"] = "Crash · {when}",
+        ["SettingsCrashOsAdd"] = "Add",
+        ["SettingsCrashSaved"] = "Saved reports",
+        ["SettingsCrashNone"] = "No crash reports saved.",
+        ["SettingsCrashView"] = "View",
+        ["SettingsCrashDelete"] = "Delete",
+        ["SettingsCrashDeleteAll"] = "Delete all",
+        ["SettingsCrashFootnote"] = "Crash reports stay on this device. anistream sends nothing by itself. A report leaves only when you open it on GitHub from Report a bug. Reports are deleted after 30 days.",
         ["CalendarPreviousWeek"] = "Previous week",
         ["CalendarNextWeek"] = "Next week",
         ["CalendarThisWeek"] = "This week",
@@ -6869,6 +7272,15 @@ public static partial class T
         ["OnboardingSourcesDetail"] = "Sources are plugins, shared through plugin stores by invite.",
         ["OnboardingJoin"] = "Join",
         ["OnboardingInviteHint"] = "Invite link",
+        ["OnboardingWhereTitle"] = "Where episodes come from",
+        ["OnboardingWhereHosts"] = "anistream hosts no content. It plays episodes from sources, which are plugins.",
+        ["OnboardingWhereStores"] = "Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.",
+        ["OnboardingDemoHeading"] = "Try it now",
+        ["OnboardingDemoDetail"] = "The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons.",
+        ["OnboardingPlayDemo"] = "Play the demo",
+        ["OnboardingInviteHeading"] = "Have an invite link?",
+        ["OnboardingInviteScan"] = "Scan with your phone",
+        ["OnboardingInviteType"] = "Type the link",
         ["PartyOpen"] = "Watch party…",
         ["PartyTitle"] = "Watch party",
         ["PartyJoinTitle"] = "Join the watch party?",
@@ -7028,6 +7440,15 @@ public static partial class T
         ["PlayerTrackN"] = "Track {id}",
         ["PlayerWaitNote"] = "{what} · {seconds} s",
         ["PlayerCommandFailed"] = "That didn't work. Try again.",
+        ["PlayerSubsStyle"] = "Style",
+        ["PlayerSubsLarger"] = "Larger subtitles",
+        ["PlayerSubsSmaller"] = "Smaller subtitles",
+        ["PlayerSubsRaise"] = "Raise subtitles",
+        ["PlayerSubsLower"] = "Lower subtitles",
+        ["PlayerSubsBgOutline"] = "Outline",
+        ["PlayerSubsBgShadow"] = "Shadow",
+        ["PlayerSubsBgBox"] = "Box",
+        ["PlayerSubsMore"] = "More in Settings…",
         ["SeasonalPrevious"] = "Previous season",
         ["SeasonalNext"] = "Next season",
         ["SeasonalLoading"] = "Loading this season",
@@ -7259,6 +7680,49 @@ public static partial class T
         ["SettingsResetTitle"] = "Reset settings?",
         ["SettingsResetDetail"] = "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.",
         ["SettingsResetDone"] = "Settings are back to their defaults. The old file is kept as {file}.",
+        ["SettingsGroupSubtitles"] = "Subtitles",
+        ["SettingsSubsPreview"] = "Preview",
+        ["SettingsSubsPreviewPlain"] = "Plain",
+        ["SettingsSubsPreviewStyled"] = "Styled",
+        ["SettingsSubsPreviewLine"] = "I left the lantern at the station.",
+        ["SettingsSubsPreviewLine2"] = "Can you bring it back before dark?",
+        ["SettingsSubsPreviewSign"] = "Kumo no Ue Library",
+        ["SettingsSubsSystemChange"] = "Change in Accessibility settings",
+        ["SettingsSubsSystemValue"] = "From your system",
+        ["SettingsSubsSize"] = "Size",
+        ["SettingsSubsSizeValue"] = "{percent}%",
+        ["SettingsSubsFont"] = "Font",
+        ["SettingsSubsFontDefault"] = "Default",
+        ["SettingsSubsFontSerif"] = "Serif",
+        ["SettingsSubsFontMono"] = "Monospace",
+        ["SettingsSubsColour"] = "Text colour",
+        ["SettingsSubsColourWhite"] = "White",
+        ["SettingsSubsColourYellow"] = "Yellow",
+        ["SettingsSubsColourCyan"] = "Cyan",
+        ["SettingsSubsColourGreen"] = "Green",
+        ["SettingsSubsEdge"] = "Edge",
+        ["SettingsSubsEdgeOutline"] = "Outline",
+        ["SettingsSubsEdgeShadow"] = "Drop shadow",
+        ["SettingsSubsEdgeNone"] = "None",
+        ["SettingsSubsThickness"] = "Thickness",
+        ["SettingsSubsThin"] = "Thin",
+        ["SettingsSubsMedium"] = "Medium",
+        ["SettingsSubsThick"] = "Thick",
+        ["SettingsSubsBackground"] = "Background",
+        ["SettingsSubsBackgroundNone"] = "None",
+        ["SettingsSubsBackgroundLine"] = "Behind each line",
+        ["SettingsSubsBackgroundAll"] = "Behind all lines",
+        ["SettingsSubsOpacity"] = "Opacity",
+        ["SettingsSubsRaise"] = "Raise subtitles",
+        ["SettingsSubsRaiseValue"] = "{percent}% of the picture",
+        ["SettingsSubsStyled"] = "Styled subtitles",
+        ["SettingsSubsStyledKeep"] = "Keep their look",
+        ["SettingsSubsStyledKeepDetail"] = "Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply.",
+        ["SettingsSubsStyledRestyle"] = "Restyle",
+        ["SettingsSubsStyledRestyleDetail"] = "Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement.",
+        ["SettingsSubsStyledStrip"] = "Remove all styling",
+        ["SettingsSubsStyledStripDetail"] = "Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone.",
+        ["SettingsSubsReset"] = "Reset subtitle style",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -7352,6 +7816,23 @@ public static partial class T
         ["MatchAutomaticDetail"] = "Forget your choice and let anistream match this title again.",
         ["MatchCleared"] = "Matching automatically again.",
         ["MatchRowLabel"] = "{title}, {facts}, {closeness}",
+        ["SourcesDemoName"] = "Demo",
+        ["SourcesDemoLine"] = "こうしす！ · CC BY 4.0 · from Wikimedia Commons",
+        ["SourcesDemoAbout"] = "About the demo",
+        ["SourcesDemoCredit"] = "こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence.",
+        ["SourcesDemoLinkLicence"] = "Licence",
+        ["SourcesDemoLinkCommons"] = "Wikimedia Commons",
+        ["SourcesDemoLinkMaker"] = "OPAP-JP",
+        ["SourcesDemoHosts"] = "Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.",
+        ["SourcesDemoPrivate"] = "The demo never signs in anywhere and never writes to AniList.",
+        ["SourcesDemoRemove"] = "Remove demo",
+        ["SourcesDemoAdd"] = "Add the demo",
+        ["SourcesDemoOnly"] = "Only the demo is on. Join a plugin store to play from your own sources.",
+        ["SearchDemoOnly"] = "Only the demo is on. Other titles play once you join a plugin store.",
+        ["SearchDemoPlays"] = "Demo · Plays now",
+        ["TitlePlayPart"] = "Play part {part}",
+        ["PlayerStartingPart"] = "Starting part {part}",
+        ["PlayerDemoCredit"] = "こうしす！ by OPAP-JP contributors · CC BY 4.0",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",
@@ -7483,6 +7964,13 @@ public static partial class T
         ["StoresOffersPlugins_one"] = "One plugin",
         ["StoresOffersPlugins_other"] = "{count} plugins",
         ["NoticeOpenStores"] = "Open plugin stores",
+        ["StoresWhatIs"] = "A plugin store is a small server one person runs for the people they invite. It offers sources as plugins. anistream runs no plugin stores and lists none, so you join one with an invite link from its owner.",
+        ["StoresWhatIsLink"] = "What is a plugin store?",
+        ["StoresInviteRules"] = "An invite link works once, for one person, and lasts seven days. Ask the plugin store's owner for a new one if yours has expired.",
+        ["StoresQrLabel"] = "QR code for the invite link",
+        ["StoresQrWarning"] = "Anyone who scans this code can use the invite. It works once and lasts seven days.",
+        ["StoresQrWarningDevice"] = "Scan this with the device you want to link. It works once and lasts seven days.",
+        ["StoresShare"] = "Share…",
         ["TitleLoadFailed"] = "Couldn't load this title",
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",

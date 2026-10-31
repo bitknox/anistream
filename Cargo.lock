@@ -481,6 +481,7 @@ dependencies = [
  "anistream-plugin-store",
  "async-trait",
  "clap",
+ "qrcode",
  "tempfile",
  "tokio",
  "tracing",

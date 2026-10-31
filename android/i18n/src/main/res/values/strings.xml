@@ -104,6 +104,8 @@
     <string name="home_because">Because you finished %1$s</string>
     <!-- Heading over popular titles of the genre the person finished most of. The genre is lower case, such as "mecha". -->
     <string name="home_more_genre">More %1$s</string>
+    <!-- Line over the spotlight's title when it is the built-in demo. -->
+    <string name="home_spotlight_demo">Demo · Shared under CC BY 4.0</string>
     <!-- A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. -->
     <string name="notice_reason">%1$s</string>
     <!-- Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. -->
@@ -437,6 +439,10 @@
     <string name="notice_anilist_back">AniList is back.</string>
     <!-- Toast when a command needs watch parties but this app was built without them. -->
     <string name="notice_party_not_built">Watch parties aren\'t built into this app.</string>
+    <!-- Notice after the demo is removed. It offers Undo for 8 seconds. -->
+    <string name="sources_demo_removed">Demo removed</string>
+    <!-- Notice after the first plugin from a store installs while the demo is on. It offers Remove demo for 8 seconds. -->
+    <string name="stores_ready_demo_stays">%1$s is ready. The demo stays last in Your sources.</string>
     <!-- Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList. -->
     <string name="notice_signed_in">Signed in to %1$s.</string>
     <!-- Toast after a sign-in succeeded and the token went into the system keychain. -->
@@ -566,6 +572,12 @@
         <item quantity="one">Queued one episode.</item>
         <item quantity="other">Queued %1$d episodes.</item>
     </plurals>
+    <!-- Notice after the subtitle style is reset. It offers Undo. -->
+    <string name="settings_subs_reset_done">Subtitle style reset</string>
+    <!-- Notice at the next launch after a crash, while saving and asking are on. -->
+    <string name="crash_notice">anistream closed after a problem.</string>
+    <!-- The same notice on the TV, which has no button. -->
+    <string name="crash_notice_tv">anistream closed after a problem. You can report it from Settings, About.</string>
     <!-- Accessibility label of the account button in the top bar when someone is signed in. -->
     <string name="account_button_named">%1$s, accounts and settings</string>
     <!-- Line under Today in the calendar when My list is chosen and nothing on it airs in the next four weeks. -->
@@ -1402,6 +1414,68 @@
     <string name="about_artwork">Some artwork is licensed under Creative Commons BY-NC 4.0.</string>
     <!-- Line about fonts. -->
     <string name="about_font_licence">Licensed under the SIL Open Font License 1.1.</string>
+    <!-- Button on that notice that opens Report a bug. -->
+    <string name="crash_notice_report">Report…</string>
+    <!-- Title of the Report a bug sheet. -->
+    <string name="report_title">Report a bug</string>
+    <!-- Line under the title of the Report a bug sheet. -->
+    <string name="report_detail">This opens a new issue on GitHub, where you sign in, say what happened and submit. Issues on GitHub are public.</string>
+    <!-- Heading of the list of what the report includes. -->
+    <string name="report_included">Included</string>
+    <!-- Report item that is always included. -->
+    <string name="report_versions">App and device versions</string>
+    <!-- Report item: the last error the app showed. -->
+    <string name="report_last_error">The last error</string>
+    <!-- Report item for a saved crash. The time and the place are already worded. -->
+    <string name="report_crash_item">Crash · %1$s · %2$s</string>
+    <!-- Disclosure that opens the exact text of the report. -->
+    <string name="report_show_sent">Show what is sent</string>
+    <!-- Disclosure that closes the exact text of the report. -->
+    <string name="report_hide_sent">Hide what is sent</string>
+    <!-- Button that copies the whole report text. -->
+    <string name="report_copy">Copy report</string>
+    <!-- Notice after the report text is copied. -->
+    <string name="report_copied">Report copied</string>
+    <!-- Button that opens the pre-filled issue in the browser. -->
+    <string name="report_open_github">Open on GitHub</string>
+    <!-- Line at the foot of the Report a bug sheet. -->
+    <string name="report_privacy">Nothing leaves this device until you open the report on GitHub. Titles, addresses, file paths and names are removed.</string>
+    <!-- TV only. Line over the QR code of the issue link. -->
+    <string name="report_tv_scan">Scan the code to open the report on your phone.</string>
+    <!-- Line that replaces the crash rows while saving crash reports is off. -->
+    <string name="report_crash_off">Crash reports are off, so none is included. You can turn them on in Settings, About.</string>
+    <!-- Link from that line to the crash report settings. -->
+    <string name="report_crash_settings">Crash report settings</string>
+    <!-- Heading of the Crash reports group in Settings, About. -->
+    <string name="settings_group_crashes">Crash reports</string>
+    <!-- Switch that turns saving crash reports on this device on or off. -->
+    <string name="settings_crash_save">Save crash reports on this device</string>
+    <!-- Line under that switch. -->
+    <string name="settings_crash_save_detail">When this is on, anistream keeps a short record of each crash on this device, with titles, addresses and names removed, so you can add it to Report a bug. Nothing is sent by itself.</string>
+    <!-- Switch that turns the notice after a crash on or off. -->
+    <string name="settings_crash_ask">Ask after a crash</string>
+    <!-- Line under that switch. -->
+    <string name="settings_crash_ask_detail">Shows a notice at the next launch with Report…</string>
+    <!-- Heading of crashes the system kept from before saving was turned on. The system is macOS, iOS, iPadOS or Android. -->
+    <string name="settings_crash_os_heading">Kept by %1$s</string>
+    <!-- Line under that heading. -->
+    <string name="settings_crash_os_detail">%1$s kept these crashes from before you turned this on. Nothing from them is saved unless you add it.</string>
+    <!-- Row for one crash the system kept. The time is already worded. -->
+    <string name="settings_crash_os_item">Crash · %1$s</string>
+    <!-- Button that saves one crash the system kept. -->
+    <string name="settings_crash_os_add">Add</string>
+    <!-- Heading of the saved crash reports. -->
+    <string name="settings_crash_saved">Saved reports</string>
+    <!-- Empty state of the saved crash reports. -->
+    <string name="settings_crash_none">No crash reports saved.</string>
+    <!-- Button that shows the text of a saved crash report. -->
+    <string name="settings_crash_view">View</string>
+    <!-- Button that deletes one saved crash report. -->
+    <string name="settings_crash_delete">Delete</string>
+    <!-- Button that deletes every saved crash report. -->
+    <string name="settings_crash_delete_all">Delete all</string>
+    <!-- Footnote of the Crash reports group. -->
+    <string name="settings_crash_footnote">Crash reports stay on this device. anistream sends nothing by itself. A report leaves only when you open it on GitHub from Report a bug. Reports are deleted after 30 days.</string>
     <!-- Button that shows the week before. -->
     <string name="calendar_previous_week">Previous week</string>
     <!-- Button that shows the week after. -->
@@ -2476,6 +2550,24 @@
     <string name="onboarding_join">Join</string>
     <!-- Hint inside the invite field on the welcome page. -->
     <string name="onboarding_invite_hint">Invite link</string>
+    <!-- Heading of the welcome page that explains where episodes come from. -->
+    <string name="onboarding_where_title">Where episodes come from</string>
+    <!-- First line of that page. States that the app hosts no content. -->
+    <string name="onboarding_where_hosts">anistream hosts no content. It plays episodes from sources, which are plugins.</string>
+    <!-- Second line of that page. Explains that plugins come from plugin stores and that a store is joined with an invite link. -->
+    <string name="onboarding_where_stores">Plugins come from plugin stores. A plugin store is run by one person for the people they invite, so you join one with an invite link from its owner.</string>
+    <!-- Heading above the Play the demo button on the welcome page. -->
+    <string name="onboarding_demo_heading">Try it now</string>
+    <!-- Line under that heading. Names the demo work and its licence. -->
+    <string name="onboarding_demo_detail">The demo plays こうしす！, a series its makers share under CC BY 4.0, from Wikimedia Commons.</string>
+    <!-- Button on the welcome page that plays the demo at once. -->
+    <string name="onboarding_play_demo">Play the demo</string>
+    <!-- Heading above the invite link field on the welcome page. -->
+    <string name="onboarding_invite_heading">Have an invite link?</string>
+    <!-- TV only. Button that shows a code to scan with a phone to send an invite link. -->
+    <string name="onboarding_invite_scan">Scan with your phone</string>
+    <!-- TV only. Button that opens a field to type an invite link. -->
+    <string name="onboarding_invite_type">Type the link</string>
     <!-- Button on the title page and in the player that opens the watch party form. -->
     <string name="party_open">Watch party…</string>
     <!-- Title of the form and the panel. -->
@@ -2796,6 +2888,24 @@
     <string name="player_wait_note">%1$s · %2$d s</string>
     <!-- Message on the video when the player could not make a change the viewer asked for, such as a speed or a track. -->
     <string name="player_command_failed">That didn\'t work. Try again.</string>
+    <!-- Heading of the style section in the player's subtitles panel. -->
+    <string name="player_subs_style">Style</string>
+    <!-- Accessibility label of the control that makes subtitles larger. -->
+    <string name="player_subs_larger">Larger subtitles</string>
+    <!-- Accessibility label of the control that makes subtitles smaller. -->
+    <string name="player_subs_smaller">Smaller subtitles</string>
+    <!-- Accessibility label of the control that raises subtitles. -->
+    <string name="player_subs_raise">Raise subtitles</string>
+    <!-- Accessibility label of the control that lowers subtitles. -->
+    <string name="player_subs_lower">Lower subtitles</string>
+    <!-- Quick panel choice for the subtitle background: outline, no box. -->
+    <string name="player_subs_bg_outline">Outline</string>
+    <!-- Quick panel choice for the subtitle background: drop shadow, no box. -->
+    <string name="player_subs_bg_shadow">Shadow</string>
+    <!-- Quick panel choice for the subtitle background: a box behind the lines. -->
+    <string name="player_subs_bg_box">Box</string>
+    <!-- Button in the subtitles panel that opens Settings. -->
+    <string name="player_subs_more">More in Settings…</string>
     <!-- Button that shows the season before. -->
     <string name="seasonal_previous">Previous season</string>
     <!-- Button that shows the season after. -->
@@ -3260,6 +3370,92 @@
     <string name="settings_reset_detail">Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.</string>
     <!-- Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30. -->
     <string name="settings_reset_done">Settings are back to their defaults. The old file is kept as %1$s.</string>
+    <!-- Heading of the Subtitles group in Settings, Playback. -->
+    <string name="settings_group_subtitles">Subtitles</string>
+    <!-- Heading of the subtitle preview. -->
+    <string name="settings_subs_preview">Preview</string>
+    <!-- Segment of the preview that draws plain subtitles. -->
+    <string name="settings_subs_preview_plain">Plain</string>
+    <!-- Segment of the preview that draws styled subtitles. -->
+    <string name="settings_subs_preview_styled">Styled</string>
+    <!-- First sample line in the subtitle preview. -->
+    <string name="settings_subs_preview_line">I left the lantern at the station.</string>
+    <!-- Second sample line in the subtitle preview. -->
+    <string name="settings_subs_preview_line_2">Can you bring it back before dark?</string>
+    <!-- Sample of a typeset sign at the top of the styled preview. -->
+    <string name="settings_subs_preview_sign">Kumo no Ue Library</string>
+    <!-- Link under the rows that show the system's caption style. -->
+    <string name="settings_subs_system_change">Change in Accessibility settings</string>
+    <!-- Value shown, dimmed, for a row while the system's caption style applies. -->
+    <string name="settings_subs_system_value">From your system</string>
+    <!-- Label of the subtitle size slider. -->
+    <string name="settings_subs_size">Size</string>
+    <!-- Value of the size slider. The percent is a whole number from 50 to 200. -->
+    <string name="settings_subs_size_value">%1$d%%</string>
+    <!-- Label of the subtitle font row. -->
+    <string name="settings_subs_font">Font</string>
+    <!-- Subtitle font choice: the player's own sans-serif. -->
+    <string name="settings_subs_font_default">Default</string>
+    <!-- Subtitle font choice. -->
+    <string name="settings_subs_font_serif">Serif</string>
+    <!-- Subtitle font choice. -->
+    <string name="settings_subs_font_mono">Monospace</string>
+    <!-- Label of the subtitle text colour row. -->
+    <string name="settings_subs_colour">Text colour</string>
+    <!-- Subtitle text colour name, shown beside its swatch. -->
+    <string name="settings_subs_colour_white">White</string>
+    <!-- Subtitle text colour name, shown beside its swatch. -->
+    <string name="settings_subs_colour_yellow">Yellow</string>
+    <!-- Subtitle text colour name, shown beside its swatch. -->
+    <string name="settings_subs_colour_cyan">Cyan</string>
+    <!-- Subtitle text colour name, shown beside its swatch. -->
+    <string name="settings_subs_colour_green">Green</string>
+    <!-- Label of the subtitle edge row. -->
+    <string name="settings_subs_edge">Edge</string>
+    <!-- Subtitle edge choice. -->
+    <string name="settings_subs_edge_outline">Outline</string>
+    <!-- Subtitle edge choice. -->
+    <string name="settings_subs_edge_shadow">Drop shadow</string>
+    <!-- Subtitle edge choice: no edge. -->
+    <string name="settings_subs_edge_none">None</string>
+    <!-- Label of the outline thickness row. -->
+    <string name="settings_subs_thickness">Thickness</string>
+    <!-- Outline thickness choice. -->
+    <string name="settings_subs_thin">Thin</string>
+    <!-- Outline thickness choice. -->
+    <string name="settings_subs_medium">Medium</string>
+    <!-- Outline thickness choice. -->
+    <string name="settings_subs_thick">Thick</string>
+    <!-- Label of the subtitle background row. -->
+    <string name="settings_subs_background">Background</string>
+    <!-- Subtitle background choice: no background. -->
+    <string name="settings_subs_background_none">None</string>
+    <!-- Subtitle background choice: a plate behind each line. -->
+    <string name="settings_subs_background_line">Behind each line</string>
+    <!-- Subtitle background choice: one plate behind all lines. -->
+    <string name="settings_subs_background_all">Behind all lines</string>
+    <!-- Label of the background opacity row. -->
+    <string name="settings_subs_opacity">Opacity</string>
+    <!-- Label of the row that raises subtitles. -->
+    <string name="settings_subs_raise">Raise subtitles</string>
+    <!-- Value of the raise slider. The percent is a whole number from 0 to 20. -->
+    <string name="settings_subs_raise_value">%1$d%% of the picture</string>
+    <!-- Label of the picker that says what happens to styled subtitles. -->
+    <string name="settings_subs_styled">Styled subtitles</string>
+    <!-- Styled subtitles choice: leave the authors' styling alone. -->
+    <string name="settings_subs_styled_keep">Keep their look</string>
+    <!-- Line under the picker while Keep their look is chosen. -->
+    <string name="settings_subs_styled_keep_detail">Styled subtitles keep the fonts, colours and sign placement their authors gave them. Size and Raise still apply.</string>
+    <!-- Styled subtitles choice: apply the viewer's style over the authors'. -->
+    <string name="settings_subs_styled_restyle">Restyle</string>
+    <!-- Line under the picker while Restyle is chosen. -->
+    <string name="settings_subs_styled_restyle_detail">Your font, colour, edge and background apply to styled subtitles too. Signs may lose their look or their placement.</string>
+    <!-- Styled subtitles choice: drop all styling and show plain dialogue. -->
+    <string name="settings_subs_styled_strip">Remove all styling</string>
+    <!-- Line under the picker while Remove all styling is chosen. -->
+    <string name="settings_subs_styled_strip_detail">Every line shows as plain dialogue at the bottom, in your style. Signs lose their place, and karaoke and effects are gone.</string>
+    <!-- Button that restores the default subtitle style. -->
+    <string name="settings_subs_reset">Reset subtitle style</string>
     <!-- Title of the screen or section that lists sources. -->
     <string name="sources_title">Sources</string>
     <!-- Shown on the sources screen when none is installed. -->
@@ -3452,6 +3648,40 @@
     <string name="match_cleared">Matching automatically again.</string>
     <!-- Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. -->
     <string name="match_row_label">%1$s, %2$s, %3$s</string>
+    <!-- Name of the built-in demo source in every list of sources. -->
+    <string name="sources_demo_name">Demo</string>
+    <!-- Line under the demo source in Your sources: the work, its licence and where it streams from. -->
+    <string name="sources_demo_line">こうしす！ · CC BY 4.0 · from Wikimedia Commons</string>
+    <!-- Title of the page that describes the demo. -->
+    <string name="sources_demo_about">About the demo</string>
+    <!-- The credit block shown wherever the demo work shows as a title. The licence asks for this wording. -->
+    <string name="sources_demo_credit">こうしす！ by OPAP-JP contributors. Licensed CC BY 4.0. Streamed from Wikimedia Commons. Sponsor logos in the episodes are not covered by the licence.</string>
+    <!-- Link to the licence text, in the credit block. -->
+    <string name="sources_demo_link_licence">Licence</string>
+    <!-- Link to the work's file page on Wikimedia Commons, in the credit block. -->
+    <string name="sources_demo_link_commons">Wikimedia Commons</string>
+    <!-- Link to the makers' site, in the credit block. -->
+    <string name="sources_demo_link_maker">OPAP-JP</string>
+    <!-- Line on the demo page that names the only two hosts the demo reaches. -->
+    <string name="sources_demo_hosts">Reaches Wikimedia Commons only: upload.wikimedia.org and commons.wikimedia.org.</string>
+    <!-- Line on the demo page about accounts and trackers. -->
+    <string name="sources_demo_private">The demo never signs in anywhere and never writes to AniList.</string>
+    <!-- Button on the demo page that removes the demo from the sources. -->
+    <string name="sources_demo_remove">Remove demo</string>
+    <!-- Button that adds the demo back to the sources. -->
+    <string name="sources_demo_add">Add the demo</string>
+    <!-- Closing line of Home while the demo is the only source. Plugin stores is a link. -->
+    <string name="sources_demo_only">Only the demo is on. Join a plugin store to play from your own sources.</string>
+    <!-- Line under the search field while the demo is the only source. -->
+    <string name="search_demo_only">Only the demo is on. Other titles play once you join a plugin store.</string>
+    <!-- Line under the demo title when it is a search result. -->
+    <string name="search_demo_plays">Demo · Plays now</string>
+    <!-- Main button on the demo title. The part is a number. -->
+    <string name="title_play_part">Play part %1$s</string>
+    <!-- Line on the player's starting screen for a part of the demo. -->
+    <string name="player_starting_part">Starting part %1$s</string>
+    <!-- Credit line under the starting line on the player's starting screen for the demo. -->
+    <string name="player_demo_credit">こうしす！ by OPAP-JP contributors · CC BY 4.0</string>
     <!-- Short label for a joined store, on a row. -->
     <string name="stores_joined">Joined</string>
     <!-- Title of the empty list. -->
@@ -3717,6 +3947,20 @@
     </plurals>
     <!-- Button of a notice that opens the plugin stores page. -->
     <string name="notice_open_stores">Open plugin stores</string>
+    <!-- Explainer on the empty plugin stores page. -->
+    <string name="stores_what_is">A plugin store is a small server one person runs for the people they invite. It offers sources as plugins. anistream runs no plugin stores and lists none, so you join one with an invite link from its owner.</string>
+    <!-- Button on the empty plugin stores page that opens the docs page in the browser. -->
+    <string name="stores_what_is_link">What is a plugin store?</string>
+    <!-- Line above the invite field in the Join sheet. -->
+    <string name="stores_invite_rules">An invite link works once, for one person, and lasts seven days. Ask the plugin store\'s owner for a new one if yours has expired.</string>
+    <!-- Accessibility label of the QR code that holds an invite link. -->
+    <string name="stores_qr_label">QR code for the invite link</string>
+    <!-- Line under the QR code of an invite for someone else. -->
+    <string name="stores_qr_warning">Anyone who scans this code can use the invite. It works once and lasts seven days.</string>
+    <!-- Line under the QR code of a link for another device of yours. -->
+    <string name="stores_qr_warning_device">Scan this with the device you want to link. It works once and lasts seven days.</string>
+    <!-- Button that opens the system share sheet for the invite link. -->
+    <string name="stores_share">Share…</string>
     <!-- Title of the state when a title page could not load. -->
     <string name="title_load_failed">Couldn\'t load this title</string>
     <!-- Line under the load failure when AniList did not answer. -->
