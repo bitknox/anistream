@@ -8131,7 +8131,14 @@ public enum L {
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [
         Language(tag: "en", name: "English", flag: "gb", draft: false),
+        Language(tag: "de", name: "Deutsch", flag: "de", draft: true),
+        Language(tag: "es-419", name: "Español (Latinoamérica)", flag: "mx", draft: true),
+        Language(tag: "fr", name: "Français", flag: "fr", draft: true),
+        Language(tag: "it", name: "Italiano", flag: "it", draft: true),
         Language(tag: "ja", name: "日本語", flag: "jp", draft: true),
+        Language(tag: "pl", name: "Polski", flag: "pl", draft: true),
+        Language(tag: "pt-BR", name: "Português (Brasil)", flag: "br", draft: true),
+        Language(tag: "ru", name: "Русский", flag: "ru", draft: true),
         Language(tag: "sv", name: "Svenska", flag: "se", draft: true),
     ]
 

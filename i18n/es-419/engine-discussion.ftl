@@ -1,0 +1,9 @@
+discussion-age-now = ahora
+discussion-age-minutes = { $minutes } min
+discussion-age-hours = { $hours } h
+discussion-age-days = { $days } d
+discussion-age-weeks = { $weeks } sem
+discussion-age-years = { $years } a
+notice-comment-like-failed = No se pudo dar me gusta al comentario. Inténtalo de nuevo.
+notice-comment-delete-failed = No se pudo borrar el comentario. Inténtalo de nuevo.
+notice-discussion-sign-in = Inicia sesión con AniList para dar me gusta y responder.

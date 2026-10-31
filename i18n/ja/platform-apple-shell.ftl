@@ -50,5 +50,5 @@ shell-sync-synced = { $tracker }を同期しました
 shell-start-failed = { -app-name }を起動できませんでした
 shell-start-failed-body = 何らかの理由で{ -app-name }を開けませんでした。もう一度お試しください。それでも同じ場合は、不具合を報告してください。
 shell-engine-stopped = { -app-name }が停止しました
-shell-engine-stopped-body = 処理を担当する部分が停止しました。もう一度開始すると、再開できます。
+shell-engine-stopped-body = 処理を担当する部分が停止しました。起動し直すと、続けて使えます。
 shell-download-unwatched = 未視聴をすべてダウンロード

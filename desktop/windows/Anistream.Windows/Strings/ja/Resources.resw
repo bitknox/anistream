@@ -41,32 +41,8 @@
   <data name="CastEpisodeTitled" xml:space="preserve">
     <value>エピソード {episode} · {title}</value>
   </data>
-  <data name="NoticeCastVideoCodec" xml:space="preserve">
-    <value>テレビでこの映像（{codec}）を再生できません。別のソースをお試しください。</value>
-  </data>
-  <data name="NoticeCastAudioCodec" xml:space="preserve">
-    <value>テレビでこの音声（{codec}）を再生できず、このデバイスでは変換できません。別のソースをお試しください。</value>
-  </data>
-  <data name="NoticeCastContainer" xml:space="preserve">
-    <value>テレビでこの種類のファイルを再生できません。別のソースをお試しください。</value>
-  </data>
   <data name="NoticeCastDeepLink" xml:space="preserve">
     <value>このエピソードは別のアプリで開くため、キャストできません。</value>
-  </data>
-  <data name="NoticeCastNeverFetches" xml:space="preserve">
-    <value>テレビがストリームの読み込みを開始しませんでした。このデバイスとテレビが、VPNを挟まずに同じネットワークに接続されていることを確認してください。</value>
-  </data>
-  <data name="NoticeCastRefused" xml:space="preserve">
-    <value>テレビでこのストリームを再生できませんでした。別のソースをお試しください。</value>
-  </data>
-  <data name="NoticeCastTakenOver" xml:space="preserve">
-    <value>別のデバイスがテレビで何かを開始したため、キャストが停止しました。</value>
-  </data>
-  <data name="NoticeCastNotSameNetwork" xml:space="preserve">
-    <value>このデバイスはテレビと同じネットワークにないか、VPN経由で接続されています。キャストには、両方が同じネットワークに接続されている必要があります。</value>
-  </data>
-  <data name="NoticeCastLost" xml:space="preserve">
-    <value>テレビとの接続が切れたため、キャストを停止しました。</value>
   </data>
   <data name="NoticeCastNoDevice" xml:space="preserve">
     <value>キャスト先のテレビがネットワーク上にもうありません。</value>
@@ -147,7 +123,7 @@
     <value>このソースはストリーミングのみで、ダウンロードはできません。</value>
   </data>
   <data name="CauseNoSourceCouldListShow" xml:space="preserve">
-    <value>どのソースもこの作品を一覧に表示できなかったため、ダウンロードできません。</value>
+    <value>どのソースもこの作品のエピソードを見つけられなかったため、ダウンロードできません。</value>
   </data>
   <data name="CauseSubtitlesMerged_other" xml:space="preserve">
     <value>字幕トラック{tracks}件を動画に結合しました。</value>
@@ -183,7 +159,7 @@
     <value>{seconds}秒経っても、mpvで再生が始まりません。ソースにデータがない可能性があります。mpvが単独でファイルを再生できるか確認してください。</value>
   </data>
   <data name="NoticeNoPlayer" xml:space="preserve">
-    <value>このanistreamのバージョンでは動画を再生できません。</value>
+    <value>このバージョンのanistreamでは動画を再生できません。</value>
   </data>
   <data name="NoticeMpvMissing" xml:space="preserve">
     <value>{binary}が見つかりませんでした。エピソードを再生するには、mpvをインストールしてください。</value>
@@ -222,10 +198,10 @@
     <value>すでに最初のエピソードです。</value>
   </data>
   <data name="NoticeLastEpisode" xml:space="preserve">
-    <value>次のエピソードはありません。エピソード{episode}が最後です。</value>
+    <value>この先のエピソードはありません。エピソード{episode}が最後です。</value>
   </data>
   <data name="NoticeNoNextEpisode" xml:space="preserve">
-    <value>次のエピソードはありません。</value>
+    <value>この先のエピソードはありません。</value>
   </data>
   <data name="NoticeNoPreviousEpisode" xml:space="preserve">
     <value>前のエピソードはありません。</value>
@@ -252,7 +228,7 @@
     <value>その選択を保存できませんでした。{reason}</value>
   </data>
   <data name="NoticeNoSourceCouldList" xml:space="preserve">
-    <value>どのソースもこの作品を一覧に表示できませんでした：{reason}</value>
+    <value>どのソースもこの作品のエピソードを見つけられませんでした：{reason}</value>
   </data>
   <data name="NoticeEpisodesFailed" xml:space="preserve">
     <value>エピソードを読み込めませんでした。{reason}</value>
@@ -321,7 +297,7 @@
     <value>{count}件のエピソードを追加しましたが、途中で停止しました。{existing}{reason}</value>
   </data>
   <data name="NoticeKeepNextFull" xml:space="preserve">
-    <value>次のエピソードを保存するための空き容量が足りません。ダウンロードするには、空き容量を確保してください。</value>
+    <value>この先のエピソードをダウンロードしたままにするための空き容量が足りません。さらにダウンロードするには、空き容量を確保してください。</value>
   </data>
   <data name="PartyNeedsServer" xml:space="preserve">
     <value>先に同時視聴のサーバーを選んでください（syncplay.server）。{server}は{operator}が運営しています。</value>
@@ -330,7 +306,7 @@
     <value>先に同時視聴のサーバーを選んでください。{server}は{operator}が運営しています。</value>
   </data>
   <data name="NoticeNoParty" xml:space="preserve">
-    <value>このanistreamのバージョンでは同時視聴は利用できません。</value>
+    <value>このバージョンのanistreamでは同時視聴は利用できません。</value>
   </data>
   <data name="PartyNeedsRoom" xml:space="preserve">
     <value>同時視聴に参加する部屋を、先に選んでください。</value>
@@ -348,7 +324,7 @@
     <value>{store}に{member}として参加しました。</value>
   </data>
   <data name="StoreJoinedUnnamed" xml:space="preserve">
-    <value>{store}に参加しました。</value>
+    <value>{store}に名前なしで参加しました。</value>
   </data>
   <data name="StoreLeft" xml:space="preserve">
     <value>{store}から退出しました。インストール済みのプラグインはそのまま残ります。</value>
@@ -573,10 +549,10 @@
     <value>サインイン用のブラウザを開けませんでした。ブラウザがインストールされているか確認して、もう一度試してください。{reason}</value>
   </data>
   <data name="NoticeSignInNotWaiting" xml:space="preserve">
-    <value>それを待っている{tracker}へのサインインはありません。サインインを最初からやり直してください。</value>
+    <value>待機中の{tracker}のサインインはありません。サインインを最初からやり直してください。</value>
   </data>
   <data name="NoticeSignInWrongRequest" xml:space="preserve">
-    <value>{tracker}へのそのサインインは、この要求に対する応答ではありませんでした。サインインを最初からやり直してください。</value>
+    <value>{tracker}から戻ったサインイン情報が、今回の要求のものではありません。サインインを最初からやり直してください。</value>
   </data>
   <data name="NoticeSignInNoToken" xml:space="preserve">
     <value>{tracker}へのサインインがトークンなしで戻ってきました。もう一度試してください。</value>
@@ -780,7 +756,7 @@
     <value>{heading}、{line}</value>
   </data>
   <data name="EpisodeListedByAnilist" xml:space="preserve">
-    <value>AniListにのみ掲載されています。まだ再生できません。</value>
+    <value>AniListに掲載されています。</value>
   </data>
   <data name="TitleRelationFormat" xml:space="preserve">
     <value>{relation} · {format}</value>
@@ -801,7 +777,7 @@
     <value>作品の設定…</value>
   </data>
   <data name="TitlePlayOnTvTooltip" xml:space="preserve">
-    <value>このエピソードをテレビで再生（anistream）</value>
+    <value>anistreamが動作するテレビで、このエピソードを再生</value>
   </data>
   <data name="TitleListStatus" xml:space="preserve">
     <value>リストのステータス</value>
@@ -1131,7 +1107,7 @@
     <value>テレビに接続しています</value>
   </data>
   <data name="TvDeviceCode" xml:space="preserve">
-    <value>テレビには、このデバイスがコード{code}で表示されます。ここでテレビを削除すると、このデバイスも削除されます。</value>
+    <value>テレビには、このデバイスがコード{code}で表示されます。ここでテレビの登録を解除すると、テレビ側でもこのデバイスの登録が解除されます。</value>
   </data>
   <data name="TvUnnamed" xml:space="preserve">
     <value>テレビ</value>
@@ -1170,7 +1146,7 @@
     <value>第{episode}話はまだ公開されていません</value>
   </data>
   <data name="PartyNosourceUnairedWhen" xml:space="preserve">
-    <value>{when}お使いのソースには、それまでは含まれません。いずれかに含まれると、ルームと一緒に再生されます。</value>
+    <value>{when}それまでは、お使いのソースでは見つかりません。いずれかで見つかると、ルームと一緒に再生されます。</value>
   </data>
   <data name="SourcesCheck" xml:space="preserve">
     <value>ソースを確認</value>
@@ -1437,7 +1413,7 @@
     <value>削除</value>
   </data>
   <data name="ActionRemove" xml:space="preserve">
-    <value>取り除く</value>
+    <value>削除</value>
   </data>
   <data name="ActionSave" xml:space="preserve">
     <value>保存</value>
@@ -1638,7 +1614,7 @@
     <value>{name}に接続できませんでした。接続を確認して、もう一度お試しください。</value>
   </data>
   <data name="ErrorTimedOut" xml:space="preserve">
-    <value>要求に時間がかかりすぎました。もう一度お試しください。</value>
+    <value>接続がタイムアウトしました。もう一度お試しください。</value>
   </data>
   <data name="ErrorSignInExpired" xml:space="preserve">
     <value>サインインの有効期限が切れました。アカウントから再度サインインしてください。</value>
@@ -1806,7 +1782,7 @@
     <value>{paired} · 最終確認 {ago}</value>
   </data>
   <data name="TvProblemBusy" xml:space="preserve">
-    <value>このテレビは接続できるデバイスの数が上限に達しています。しばらくしてから、もう一度お試しください。</value>
+    <value>このテレビは接続中のデバイスが上限です。しばらくしてから、もう一度お試しください。</value>
   </data>
   <data name="TvProblemGone" xml:space="preserve">
     <value>そのテレビはもうネットワーク上にありません。</value>
@@ -1839,7 +1815,7 @@
     <value>音量を上げる</value>
   </data>
   <data name="UpdatesDownload" xml:space="preserve">
-    <value>アップデートをダウンロード</value>
+    <value>更新をダウンロード</value>
   </data>
   <data name="UpdatesRestart" xml:space="preserve">
     <value>再起動してアップデート</value>
@@ -1893,16 +1869,16 @@
     <value>{name}への返信</value>
   </data>
   <data name="DiscussionCancelReply" xml:space="preserve">
-    <value>返信をキャンセル</value>
+    <value>キャンセル</value>
   </data>
   <data name="DiscussionSignIn" xml:space="preserve">
-    <value>返信するにはAniListにサインインしてください</value>
+    <value>返信にはAniListへのサインインが必要です</value>
   </data>
   <data name="DiscussionOfflinePost" xml:space="preserve">
-    <value>ネットワークに接続されるまで投稿を待ちます</value>
+    <value>投稿はネットワークに接続後に行われます</value>
   </data>
   <data name="DiscussionPostFailed" xml:space="preserve">
-    <value>投稿できませんでした。もう一度お試しください。</value>
+    <value>投稿できませんでした。再試行を</value>
   </data>
   <data name="DiscussionDeleteTitle" xml:space="preserve">
     <value>このコメントを削除しますか？</value>
@@ -2040,7 +2016,7 @@
     <value>待機列から外す</value>
   </data>
   <data name="DownloadsRemoveFromList" xml:space="preserve">
-    <value>一覧から削除</value>
+    <value>一覧から外す</value>
   </data>
   <data name="DownloadsDeleteFile" xml:space="preserve">
     <value>ファイルを削除…</value>
@@ -2520,7 +2496,7 @@
     <value>別バージョン</value>
   </data>
   <data name="RelationSummary" xml:space="preserve">
-    <value>まとめ版</value>
+    <value>ダイジェスト</value>
   </data>
   <data name="RelationCompilation" xml:space="preserve">
     <value>総集編</value>
@@ -2535,7 +2511,7 @@
     <value>登場人物を共有</value>
   </data>
   <data name="RelationAdaptation" xml:space="preserve">
-    <value>翻案作品</value>
+    <value>別媒体版</value>
   </data>
   <data name="RelationOriginalWork" xml:space="preserve">
     <value>原作</value>
@@ -2703,7 +2679,7 @@
     <value>同時視聴に参加</value>
   </data>
   <data name="PartyLeave" xml:space="preserve">
-    <value>同時視聴を退出</value>
+    <value>同時視聴から退出</value>
   </data>
   <data name="PartyLeaving" xml:space="preserve">
     <value>退出中…</value>
@@ -2805,7 +2781,7 @@
     <value>準備完了</value>
   </data>
   <data name="PartyMemberNotReady" xml:space="preserve">
-    <value>未準備</value>
+    <value>準備中</value>
   </data>
   <data name="PartyMemberNoReadyState" xml:space="preserve">
     <value>準備状態なし</value>
@@ -2886,7 +2862,7 @@
     <value>ソースはプラグインから提供されます。プラグインはプラグインストアで追加できます。{what}は、どれかのソースがエピソードを持つと、ルームと一緒に再生されます。</value>
   </data>
   <data name="PartyNosourceMissingTitle" xml:space="preserve">
-    <value>どのソースにもこのエピソードがありません</value>
+    <value>お使いのどのソースにもこのエピソードがありません</value>
   </data>
   <data name="PartyNosourceMissingDetail" xml:space="preserve">
     <value>{why}。{what}は、このエピソードを持つソースを選ぶと、ルームと一緒に再生されます。</value>
@@ -2895,7 +2871,7 @@
     <value>放送前の第{episode}話は、お使いのソースにはありません。</value>
   </data>
   <data name="PartyNosourceUnairedPlain" xml:space="preserve">
-    <value>放送されるまで、お使いのソースにはありません。どれかのソースに入ると、ルームと一緒に再生されます。</value>
+    <value>放送されるまで、お使いのソースにはありません。どれかのソースで配信されると、ルームと一緒に再生されます。</value>
   </data>
   <data name="PartySourcesFound_other" xml:space="preserve">
     <value>{count}件のソースにあります</value>
@@ -2907,7 +2883,7 @@
     <value>シーダー{seeders}</value>
   </data>
   <data name="PartyNoSourceLists" xml:space="preserve">
-    <value>どのソースも{episode}を一覧に載せていません。ソースはプラグインから提供されます。プラグインはプラグインストアで追加できます。</value>
+    <value>どのソースも第{episode}話を一覧に載せていません。ソースはプラグインから提供されます。プラグインはプラグインストアで追加できます。</value>
   </data>
   <data name="PartyPlayWith" xml:space="preserve">
     <value>同時視聴で再生</value>
@@ -3063,7 +3039,7 @@
     <value>静かな部分を大きく、大きな音を小さくします。</value>
   </data>
   <data name="PlayerRemembered" xml:space="preserve">
-    <value>この作品の選択は記憶されます。</value>
+    <value>この作品の選択を覚えています。</value>
   </data>
   <data name="PlayerPictureInPicture" xml:space="preserve">
     <value>ピクチャーインピクチャー</value>
@@ -3219,7 +3195,7 @@
     <value>「{query}」の結果</value>
   </data>
   <data name="SearchBrowse" xml:space="preserve">
-    <value>一覧</value>
+    <value>ブラウズ</value>
   </data>
   <data name="SearchNothingFound" xml:space="preserve">
     <value>「{query}」は見つかりませんでした</value>
@@ -3306,10 +3282,10 @@
     <value>最低スコア</value>
   </data>
   <data name="FilterHideObscure" xml:space="preserve">
-    <value>評価の少ない作品を除外</value>
+    <value>マイナーな作品を非表示</value>
   </data>
   <data name="FilterOrigin" xml:space="preserve">
-    <value>原産地</value>
+    <value>国・地域</value>
   </data>
   <data name="FilterCountry" xml:space="preserve">
     <value>製作国</value>
@@ -3468,7 +3444,7 @@
     <value>連携</value>
   </data>
   <data name="SettingsGroupAdvanced" xml:space="preserve">
-    <value>詳細</value>
+    <value>詳細設定</value>
   </data>
   <data name="SettingsGroupStorage" xml:space="preserve">
     <value>ストレージ</value>
@@ -3687,7 +3663,7 @@
     <value>常に</value>
   </data>
   <data name="ShowSettingsNever" xml:space="preserve">
-    <value>なし</value>
+    <value>しない</value>
   </data>
   <data name="ShowSettingsSubsRemembered" xml:space="preserve">
     <value>最後に見たエピソードの設定を記憶しています。</value>
@@ -3732,7 +3708,7 @@
     <value>放送はありません。次は{when}です。</value>
   </data>
   <data name="WidgetInYourList" xml:space="preserve">
-    <value>視聴リストから</value>
+    <value>リストに登録済み</value>
   </data>
   <data name="WidgetWatched" xml:space="preserve">
     <value>視聴済み</value>
@@ -3861,7 +3837,7 @@
     <value>{name}は現在利用できないため、この作品のエピソードは他のソースから取得します。</value>
   </data>
   <data name="EpisodeUnsourced" xml:space="preserve">
-    <value>このエピソードを配信するソースはありません</value>
+    <value>この話を扱うソースはありません</value>
   </data>
   <data name="SourcesOrder" xml:space="preserve">
     <value>ソースの順番</value>
@@ -4278,7 +4254,7 @@
     <value>新しいコードを取得</value>
   </data>
   <data name="StoresTvNoNetwork" xml:space="preserve">
-    <value>このテレビは、スマートフォンから届くネットワークに接続されていません。</value>
+    <value>このテレビは、スマートフォンからアクセスできるネットワークに接続されていません。</value>
   </data>
   <data name="StoresPageCloses" xml:space="preserve">
     <value>このページは、この画面とともに閉じるか、10分後に閉じます。</value>
@@ -4374,7 +4350,7 @@
     <value>リンクから参加したデバイスを削除しますか？</value>
   </data>
   <data name="StoresRemoveDevicesDetail" xml:space="preserve">
-    <value>すぐに{name}で動作しなくなります。すでにインストールされているプラグインはそのまま残ります。</value>
+    <value>それらのデバイスは、すぐに{name}で使えなくなります。すでにインストールされているプラグインはそのまま残ります。</value>
   </data>
   <data name="StoresPublishTitle" xml:space="preserve">
     <value>{name}にプラグインを公開</value>
@@ -4461,7 +4437,7 @@
     <value>まだエピソードがありません</value>
   </data>
   <data name="TitleEpisodesLoadFailed" xml:space="preserve">
-    <value>エピソードを一覧表示できませんでした</value>
+    <value>エピソードの一覧を取得できませんでした</value>
   </data>
   <data name="TitleEpisodesNoSource" xml:space="preserve">
     <value>エピソードはAniListから取得されます。再生するにはソースを追加してください。</value>
@@ -4551,10 +4527,10 @@
     <value>主役</value>
   </data>
   <data name="MoreRoleSupporting" xml:space="preserve">
-    <value>準主役</value>
+    <value>脇役</value>
   </data>
   <data name="MoreRoleBackground" xml:space="preserve">
-    <value>その他</value>
+    <value>端役</value>
   </data>
   <data name="MoreStaff" xml:space="preserve">
     <value>スタッフ</value>
@@ -4575,7 +4551,7 @@
     <value>{score}/10</value>
   </data>
   <data name="MoreLikeThis" xml:space="preserve">
-    <value>この作品が好きな人が好む作品</value>
+    <value>似た作品</value>
   </data>
   <data name="MoreFollowedProgress" xml:space="preserve">
     <value>{status} · {progress}</value>
@@ -4653,13 +4629,13 @@
     <value>VPN</value>
   </data>
   <data name="TorrentsProtectProxyDetail" xml:space="preserve">
-    <value>トレントの通信は、お使いまたは契約しているプロキシを経由します。</value>
+    <value>トレントの通信は、ご自身で運用または契約しているプロキシを経由します。</value>
   </data>
   <data name="TorrentsProtectVpnDetail" xml:space="preserve">
     <value>このデバイスですでに動作しているVPNを使用します。</value>
   </data>
   <data name="TorrentsProtectNoneDetail" xml:space="preserve">
-    <value>トレントの中のすべての人に、あなたのアドレスが見えます。</value>
+    <value>トレントに参加しているすべての人に、あなたのアドレスが見えます。</value>
   </data>
   <data name="TorrentsProtectNoneNote" xml:space="preserve">
     <value>保護がない場合、anistreamは接続を確認しません。</value>
@@ -4674,7 +4650,7 @@
     <value>このデバイスのVPNで保護されています。</value>
   </data>
   <data name="TorrentsSummaryNone" xml:space="preserve">
-    <value>保護されていません。トレントの中のすべての人に、あなたのアドレスが見えます。</value>
+    <value>保護されていません。トレントに参加しているすべての人に、あなたのアドレスが見えます。</value>
   </data>
   <data name="TorrentsUnprotectedTitle" xml:space="preserve">
     <value>保護せずにトレントを使用しますか？</value>
@@ -4785,7 +4761,7 @@
     <value>合格</value>
   </data>
   <data name="TorrentsCheckRunningLine" xml:space="preserve">
-    <value>トレントの通信の出口を確認しています</value>
+    <value>トレントの通信がどこから出ていくかを確認しています</value>
   </data>
   <data name="TorrentsCheckRunning" xml:space="preserve">
     <value>確認中</value>
@@ -4845,7 +4821,7 @@
     <value>このページは、フォームの内容をテレビに安全に送るためにJavaScriptが必要です。</value>
   </data>
   <data name="TorrentsCheckNote" xml:space="preserve">
-    <value>anistreamは、トレントの開始時と、動作中の毎分、トレントの通信の出口を確認します。確認に失敗した場合は、トレントを一時停止します。通信を守っているのは、VPNまたはプロキシです。</value>
+    <value>anistreamは、トレントの開始時と、動作中は1分ごとに、通信がどこから出ていくかを確認します。確認に失敗した場合は、トレントを一時停止します。通信を守っているのは、VPNまたはプロキシです。</value>
   </data>
   <data name="TorrentsProtectionSaved" xml:space="preserve">
     <value>トレントの保護設定を保存しました</value>
@@ -4860,7 +4836,7 @@
     <value>その他の連携サービスはアカウントにあります。</value>
   </data>
   <data name="AccountsWelcomeDetail" xml:space="preserve">
-    <value>{tracker}にサインインすると、リストと視聴の位置を同期できます。</value>
+    <value>{tracker}にサインインすると、リストと再生位置を同期できます。</value>
   </data>
   <data name="AccountsBringsLists" xml:space="preserve">
     <value>リストを読み込み、続きを見るに視聴中の作品を表示します。</value>
@@ -4959,7 +4935,7 @@
     <value>サインイン用のトークンは、このデバイスのキーチェーンに保存されます。</value>
   </data>
   <data name="AccountsTokensFile" xml:space="preserve">
-    <value>サインイン用のトークンは、このデバイス上のファイルに保存され、あなたのみ読み取れます。</value>
+    <value>サインイン用のトークンは、このデバイス上のファイルに保存され、読み取れるのはあなただけです。</value>
   </data>
   <data name="AccountsTokensKeystore" xml:space="preserve">
     <value>サインイン用のトークンは、このデバイスのキーストアにある鍵で保護されて保存されます。</value>
@@ -4989,7 +4965,7 @@
     <value>{tracker}の応答を待っています</value>
   </data>
   <data name="AccountsCodeExpires" xml:space="preserve">
-    <value>{time}で期限切れ</value>
+    <value>{time}後に期限切れ</value>
   </data>
   <data name="AccountsCodeEnded" xml:space="preserve">
     <value>コードの有効期限が切れました</value>
@@ -5019,7 +4995,7 @@
     <value>{tracker}で内容が異なります</value>
   </data>
   <data name="AccountsClashDetail" xml:space="preserve">
-    <value>{tracker}とデバイスで、前回の同期後に変更された項目があります。それぞれ片方を残してください。</value>
+    <value>{tracker}とこのデバイスで、前回の同期後に変更された項目があります。それぞれ、どちらか一方を残してください。</value>
   </data>
   <data name="AccountsClashRow" xml:space="preserve">
     <value>{field}: このデバイスでは{local}、{tracker}では{remote}</value>
@@ -5046,7 +5022,7 @@
     <value>エピソードは{tracker}から取得されます。再生するにはソースを追加してください。</value>
   </data>
   <data name="AccountsAddsSeason" xml:space="preserve">
-    <value>{tracker}は、シーズンの作品を発表され次第追加します。</value>
+    <value>{tracker}には、そのシーズンの作品が発表され次第、追加されます。</value>
   </data>
   <data name="AccountsTrackerChoice" xml:space="preserve">
     <value>{tracker}の設定</value>
@@ -5118,7 +5094,7 @@
     <value>テレビでanistreamが開いていることを確認してください。</value>
   </data>
   <data name="TvAddressHint" xml:space="preserve">
-    <value>テレビは、スマートフォンのペアリング画面にアドレスを表示します。</value>
+    <value>アドレスはテレビの「スマートフォンをペアリング」画面に表示されます。</value>
   </data>
   <data name="TvScanHint" xml:space="preserve">
     <value>カメラアプリでテレビのコードを読み取ってください。anistreamが開き、ペアリングされます。</value>
@@ -5271,13 +5247,13 @@
     <value>バージョン {version}が公開されています</value>
   </data>
   <data name="UpdatesVersionOutSoftware" xml:space="preserve">
-    <value>バージョン {version}が公開されています。ソフトウェアがインストールします。</value>
+    <value>バージョン {version}が公開されています。「ソフトウェア」アプリでインストールできます。</value>
   </data>
   <data name="UpdatesVersionOutPage" xml:space="preserve">
-    <value>バージョン {version}が公開されています。そのページにインストーラーがあります。</value>
+    <value>バージョン {version}が公開されています。このバージョンのページにインストーラーがあります。</value>
   </data>
   <data name="UpdatesVersionOutAppimage" xml:space="preserve">
-    <value>バージョン {version}が公開されています。そのページにAppImageがあります。</value>
+    <value>バージョン {version}が公開されています。このバージョンのページにAppImageがあります。</value>
   </data>
   <data name="UpdatesAvailable" xml:space="preserve">
     <value>anistream {version}を利用できます</value>
@@ -5292,10 +5268,10 @@
     <value>このテレビのバージョンは {version}です</value>
   </data>
   <data name="UpdatesNotesOnPage" xml:space="preserve">
-    <value>このバージョンの変更点は、そのページにあります。</value>
+    <value>このバージョンの変更点は、このバージョンのページに記載されています。</value>
   </data>
   <data name="UpdatesNoSelfUpdate" xml:space="preserve">
-    <value>このビルドは自動でアップデートされません。新しいバージョンをそのページからインストールしてください。</value>
+    <value>このビルドは自動でアップデートされません。新しいバージョンのページからインストールしてください。</value>
   </data>
   <data name="UpdatesAndroidAsks" xml:space="preserve">
     <value>Androidが確認するまで、何もインストールされません。</value>

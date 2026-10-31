@@ -1,0 +1,12 @@
+player-episode-line-titled = { $line } · { $title }
+player-episode-fraction = Episódio { $number }
+player-starting-fraction = Iniciando o episódio { $number }
+player-failed-fraction = Não foi possível reproduzir o episódio { $number }
+player-speed-value = { $speed }×
+player-timeline-playing = Reproduzindo, { $position } de { $duration }
+player-timeline-paused = Pausado, { $position } de { $duration }
+player-track-added = { $name } · Carregado
+player-load-subtitles-commit = Carregar legendas
+player-load-audio-commit = Carregar áudio
+player-mini-tip = Fica sempre no topo. Pressione { $key } para voltar.
+player-stats-row = { $label }: { $value }

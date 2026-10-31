@@ -1,0 +1,10 @@
+notice-out = Ya salió el episodio { $episode }.
+notice-out-dubbed = Ya salió el episodio { $episode }, { -dubbed }.
+notice-out-behind = Ya salió el episodio { $episode }. Sigue para ti: episodio { $next }.
+notice-out-dubbed-behind = Ya salió el episodio { $episode }, { -dubbed }. Sigue para ti: episodio { $next }.
+notice-hidden-preview = Episodio nuevo
+notice-summary = %u episodios nuevos más
+notice-dismiss = Descartar
+accounts-code-expired-detail = Este código venció. Pide uno nuevo para iniciar sesión en { $tracker }.
+list-refresh-failed = No se pudo actualizar. Se muestra lo que ya estaba cargado.
+sign-in-failed = No se pudo iniciar sesión en { $tracker }. Inténtalo de nuevo.

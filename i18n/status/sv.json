@@ -8483,43 +8483,12 @@
     "at": "2026-10-31",
     "back": "Could not open a browser for the sign-in. Check that one is installed and try again. { $reason }"
   },
-  "notice-cast-audio-codec": {
-    "source": "e3a824fe581a",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "The TV cannot play the audio ({ $codec }), and this { -device } cannot convert it. Try another { -source }."
-  },
-  "notice-cast-container": {
-    "source": "1be100366d66",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "The TV cannot play this file type. Try another { -source }."
-  },
   "notice-cast-deep-link": {
     "source": "1d1a793601b1",
     "state": "draft",
     "by": "haiku",
     "at": "2026-10-31",
     "back": "This episode opens in another app, so it cannot be sent to the TV."
-  },
-  "notice-cast-lost": {
-    "source": "1545e84d7461",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: 'skickningen' is an unnatural noun for casting."
-    ],
-    "back": "Lost contact with the TV, so the sending was stopped."
-  },
-  "notice-cast-never-fetches": {
-    "source": "a3141bde4291",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "The TV did not start reading the stream. Check that this { -device } and the TV are on the same network, with no VPN in between."
   },
   "notice-cast-no-device": {
     "source": "1b4b3f85ec83",
@@ -8528,46 +8497,12 @@
     "at": "2026-10-31",
     "back": "That TV is no longer on the network."
   },
-  "notice-cast-not-same-network": {
-    "source": "45a9224c9b15",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: 'Skickning' is an unnatural noun for casting."
-    ],
-    "back": "This { -device } is not on the TV's network, or reaches it via VPN. Sending requires both to be on the same network."
-  },
-  "notice-cast-refused": {
-    "source": "f480725099d6",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "The TV could not play the stream. Try another { -source }."
-  },
-  "notice-cast-taken-over": {
-    "source": "bd2c4e083a8e",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "flags": [
-      "term: 'skickningen' is an unnatural noun for casting."
-    ],
-    "back": "Another { -device } started something on the TV, so the sending was stopped."
-  },
   "notice-cast-unavailable": {
     "source": "0da16c1aadaa",
     "state": "draft",
     "by": "haiku",
     "at": "2026-10-31",
     "back": "This version of { -app-name } cannot send to TVs."
-  },
-  "notice-cast-video-codec": {
-    "source": "f5a12d79bfcf",
-    "state": "draft",
-    "by": "haiku",
-    "at": "2026-10-31",
-    "back": "The TV cannot play this video ({ $codec }). Try another { -source }."
   },
   "notice-choice-not-saved": {
     "source": "ab44d5da9ad3",

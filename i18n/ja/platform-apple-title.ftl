@@ -7,7 +7,7 @@ title-ranking-rated = 最高評価
 title-ranking-popular = 人気順
 episode-number-string = エピソード{ $number }
 episode-titled-text = エピソード{ $number } · { $title }
-title-play-on-tv-help = { -app-name }でテレビのこのエピソードを再生
+title-play-on-tv-help = { -app-name }でこのエピソードをテレビで再生
 title-episodes-short = { $count ->
    *[other] { $count }話
  }

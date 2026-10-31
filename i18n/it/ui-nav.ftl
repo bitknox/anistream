@@ -1,0 +1,14 @@
+nav-continue = { -continue-cap }
+nav-calendar = Calendario
+nav-seasonal = Stagione
+nav-library = { -library-cap }
+nav-search = Cerca
+nav-downloads = Download
+nav-plugin-stores = { -plugin-store-cap-pl }
+nav-settings = Impostazioni
+nav-accounts = Account
+nav-accounts-and-settings = Account e impostazioni
+nav-sections-label = Sezioni
+nav-collapse = Comprimi navigazione
+nav-expand = Espandi navigazione
+tooltip-with-key = { $name } ({ $key })

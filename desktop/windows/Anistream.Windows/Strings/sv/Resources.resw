@@ -41,32 +41,8 @@
   <data name="CastEpisodeTitled" xml:space="preserve">
     <value>Avsnitt {episode} · {title}</value>
   </data>
-  <data name="NoticeCastVideoCodec" xml:space="preserve">
-    <value>TV:n kan inte spela upp den här videon ({codec}). Prova en annan källa.</value>
-  </data>
-  <data name="NoticeCastAudioCodec" xml:space="preserve">
-    <value>TV:n kan inte spela upp ljudet ({codec}), och den här enheten kan inte konvertera det. Prova en annan källa.</value>
-  </data>
-  <data name="NoticeCastContainer" xml:space="preserve">
-    <value>TV:n kan inte spela den här filtypen. Prova en annan källa.</value>
-  </data>
   <data name="NoticeCastDeepLink" xml:space="preserve">
     <value>Det här avsnittet öppnas i en annan app, så det kan inte skickas till TV:n.</value>
-  </data>
-  <data name="NoticeCastNeverFetches" xml:space="preserve">
-    <value>TV:n började inte läsa strömmen. Kontrollera att den här enheten och TV:n är på samma nätverk, utan VPN mitt emellan.</value>
-  </data>
-  <data name="NoticeCastRefused" xml:space="preserve">
-    <value>TV:n kunde inte spela strömmen. Prova en annan källa.</value>
-  </data>
-  <data name="NoticeCastTakenOver" xml:space="preserve">
-    <value>En annan enhet startade något på TV:n, så skickningen stoppades.</value>
-  </data>
-  <data name="NoticeCastNotSameNetwork" xml:space="preserve">
-    <value>Den här enheten är inte på TV:ns nätverk, eller når den via VPN. Skickning kräver att båda är på samma nätverk.</value>
-  </data>
-  <data name="NoticeCastLost" xml:space="preserve">
-    <value>Tappade kontakten med TV:n, så skickningen stoppades.</value>
   </data>
   <data name="NoticeCastNoDevice" xml:space="preserve">
     <value>Den TV:n finns inte längre på nätverket.</value>

@@ -1,0 +1,10 @@
+notice-out = Вышел эпизод { $episode }.
+notice-out-dubbed = Эпизод { $episode } вышел, { -dubbed }.
+notice-out-behind = Эпизод { $episode } вышел. Следующий по порядку: эпизод { $next }.
+notice-out-dubbed-behind = Эпизод { $episode } вышел, { -dubbed }. Следующий по порядку: эпизод { $next }.
+notice-hidden-preview = Новый эпизод
+notice-summary = Ещё новых: %u
+notice-dismiss = Закрыть
+accounts-code-expired-detail = Срок действия кода истёк. Получите новый код, чтобы войти в { $tracker }.
+list-refresh-failed = Не удалось обновить. Показано то, что уже загружено.
+sign-in-failed = Не удалось войти в { $tracker }. Попробуйте снова.

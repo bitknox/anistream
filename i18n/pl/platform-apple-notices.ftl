@@ -1,0 +1,10 @@
+notice-out = Odcinek { $episode } już wyszedł.
+notice-out-dubbed = Odcinek { $episode } już wyszedł, { -dubbed }.
+notice-out-behind = Odcinek { $episode } już wyszedł. { -up-next-cap } dla ciebie: odcinek { $next }.
+notice-out-dubbed-behind = Odcinek { $episode } już wyszedł, { -dubbed }. { -up-next-cap } dla ciebie: odcinek { $next }.
+notice-hidden-preview = Nowy odcinek
+notice-summary = Nowe odcinki: jeszcze %u
+notice-dismiss = Odrzuć
+accounts-code-expired-detail = Kod wygasł. Pobierz nowy, aby zalogować się do { $tracker }.
+list-refresh-failed = Nie udało się odświeżyć. Pokazano wczytane dane.
+sign-in-failed = Nie udało się zalogować do { $tracker }. Spróbuj ponownie.
