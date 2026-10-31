@@ -124,7 +124,36 @@ fn anilist(ctx: &Rc<Ctx>, pages: &adw::NavigationView) -> adw::NavigationPage {
 fn sources(ctx: &Rc<Ctx>, dialog: &adw::Dialog) -> adw::NavigationPage {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
     column.append(&centred(&t::onboarding_sources_title(), "title-1"));
-    column.append(&centred(&t::onboarding_sources_detail(), "body"));
+    column.append(&centred(&t::legal_hosts_no_content(), "body"));
+    column.append(&centred(&t::onboarding_where_hosts_linux(), "body"));
+    // Their own media first: a folder or a server, as secondary buttons.
+    let own = centred(&t::onboarding_own_heading(), "heading");
+    own.set_margin_top(6);
+    column.append(&own);
+    let own_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    own_buttons.set_halign(gtk::Align::Center);
+    let folder = pill(&t::sources_add_folder_button(), false);
+    folder.connect_clicked({
+        let (ctx, dialog) = (Rc::clone(ctx), dialog.clone());
+        move |_| {
+            dialog.close();
+            crate::pages::folders::choose(&ctx);
+        }
+    });
+    own_buttons.append(&folder);
+    let server = pill(&t::sources_add_server_button(), false);
+    server.connect_clicked({
+        let (ctx, dialog) = (Rc::clone(ctx), dialog.clone());
+        move |_| {
+            dialog.close();
+            crate::pages::servers::open_add(&ctx, None);
+        }
+    });
+    own_buttons.append(&server);
+    column.append(&own_buttons);
+    let invite = centred(&t::onboarding_invite_heading(), "heading");
+    invite.set_margin_top(6);
+    column.append(&invite);
     let link = adw::EntryRow::builder().title(t::onboarding_invite_hint()).build();
     let join = gtk::Button::with_label(&t::onboarding_join());
     join.add_css_class("suggested-action");

@@ -11,14 +11,19 @@ use anistream_model::{
     command::Command,
     event::Event,
     jobs::JobId,
+    local::LocalCommand,
+    servers::ServerCommand,
     settings::SettingKey,
-    sources::{ProviderOrigin, ProviderRow, order_with_source_moved},
+    sources::{
+        ProviderOrigin, ProviderRow, SourceSection, has_no_sources, order_with_source_moved,
+        source_groups,
+    },
 };
 use gtk::{gdk, gio, glib};
 
 use crate::{
     nagare,
-    pages::plugin,
+    pages::{first_party, folders, licensed, plugin, servers},
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
@@ -108,6 +113,54 @@ pub fn moved_to(
     Some(order)
 }
 
+/// The page's title and the one secondary Add button, whose menu offers what can be added.
+fn title_row() -> gtk::Box {
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    let title = gtk::Label::new(Some(&t::sources_title()));
+    title.add_css_class("title-2");
+    title.set_xalign(0.0);
+    title.set_hexpand(true);
+    row.append(&title);
+    let menu = gio::Menu::new();
+    menu.append(Some(&t::sources_add_folder()), Some("providers.add-folder"));
+    menu.append(Some(&t::sources_add_server()), Some("providers.add-server"));
+    menu.append(Some(&t::sources_add_store()), Some("win.join-store"));
+    let add = gtk::MenuButton::builder()
+        .label(t::sources_add())
+        .menu_model(&menu)
+        .valign(gtk::Align::Center)
+        .build();
+    add.add_css_class("pill");
+    row.append(&add);
+    row
+}
+
+/// The empty page's actions: Add a folder is the one thing to do, then Add a media server, and a
+/// line under them for the plugin store.
+fn empty_actions() -> gtk::Box {
+    let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    column.set_halign(gtk::Align::Center);
+    let folder = gtk::Button::with_label(&t::sources_add_folder_button());
+    folder.add_css_class("pill");
+    folder.add_css_class("suggested-action");
+    folder.set_action_name(Some("providers.add-folder"));
+    column.append(&folder);
+    let server = gtk::Button::with_label(&t::sources_add_server_button());
+    server.add_css_class("pill");
+    server.set_action_name(Some("providers.add-server"));
+    column.append(&server);
+    let or = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    or.set_halign(gtk::Align::Center);
+    or.append(&widgets::haze(&format!("{} ", t::sources_empty_or()), "")); // i18n-skip
+    let join = gtk::Button::with_label(&format!("{}.", t::sources_empty_join_link())); // i18n-skip
+    join.add_css_class("flat");
+    join.add_css_class("link");
+    join.set_action_name(Some("win.join-store"));
+    or.append(&join);
+    column.append(&or);
+    column
+}
+
 /// What a row's action does with the source it names.
 type OnId = Box<dyn Fn(&Rc<Page>, String)>;
 
@@ -116,7 +169,8 @@ struct Page {
     body: Rc<States>,
     /// The empty page, whose line is the engine's reason there are no sources when it has one.
     empty: adw::StatusPage,
-    list: gtk::ListBox,
+    /// The sections, drawn again whenever the engine says something new.
+    sections: gtk::Box,
     shown: Cell<bool>,
     /// Check Again, a spinner inside it while the check it started runs.
     check: gtk::Button,
@@ -132,21 +186,18 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     header.pack_start(&crate::window::tv_session_button(ctx));
     header.pack_end(&check);
 
-    let list = widgets::boxed_list();
+    let sections = gtk::Box::new(gtk::Orientation::Vertical, 24);
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&widgets::heading(&t::sources_order()));
-    column.append(&list);
+    column.append(&title_row());
+    column.append(&sections);
     let note = widgets::haze(&t::sources_order_detail(), "caption");
     column.append(&note);
     let legal = widgets::haze(&t::legal_hosts_no_content(), "caption");
     legal.set_margin_top(12);
     column.append(&legal);
 
-    let join = gtk::Button::with_label(&t::stores_join_menu());
-    join.add_css_class("pill");
-    join.set_action_name(Some("win.join-store"));
-    let empty =
-        nagare::status_page(&t::sources_empty_title(), &t::sources_empty_detail(), Some(&join));
+    let empty = nagare::status_page(&t::sources_empty_title(), &t::sources_empty_body(), None);
+    empty.set_child(Some(&empty_actions()));
     let rows = Shape::Rows { count: 3, width: 16, height: 16 };
     let body = States::new(
         &ctx.hub,
@@ -162,7 +213,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         ctx: Rc::clone(ctx),
         body,
         empty,
-        list,
+        sections,
         shown: Cell::new(false),
         check,
         checking: Cell::new(None),
@@ -193,6 +244,9 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
                     | Event::ProviderNote(_)
                     | Event::Stores(_)
                     | Event::Settings(_)
+                    | Event::Local(_)
+                    | Event::Server(_)
+                    | Event::Licensed(_)
             )
         {
             page.show();
@@ -215,6 +269,9 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
                 page.shown.set(true);
                 page.check();
                 page.ctx.hub.send(Command::LoadStores);
+                page.ctx.hub.send(Command::Local(LocalCommand::Load));
+                page.ctx.hub.send(Command::Server(ServerCommand::Load));
+                licensed::load(&page.ctx.hub);
                 page.show();
             }
         }
@@ -243,6 +300,18 @@ impl Page {
         add("down", Box::new(|page, id| page.step(&id, 1)));
         add("toggle", Box::new(|page, id| plugin::toggle(&page.ctx, &id)));
         add("remove", Box::new(|page, id| plugin::confirm_remove(&page.ctx, &id)));
+        let plain = |name: &str, f: fn(&Rc<Page>)| {
+            let action = gio::SimpleAction::new(name, None);
+            let weak = Rc::downgrade(self);
+            action.connect_activate(move |_, _| {
+                if let Some(page) = weak.upgrade() {
+                    f(&page);
+                }
+            });
+            group.add_action(&action);
+        };
+        plain("add-folder", |page| folders::choose(&page.ctx));
+        plain("add-server", |page| servers::open_add(&page.ctx, None));
         let check = gio::SimpleAction::new("check", None);
         let weak = Rc::downgrade(self);
         check.connect_activate(move |_, _| {
@@ -296,24 +365,82 @@ impl Page {
     }
 
     fn show(self: &Rc<Self>) {
-        let (rows, said, note) = {
+        let (rows, said, note, local, servers, licensed_view) = {
             let known = self.ctx.hub.known.borrow();
-            (known.ordered_providers(), known.providers_said, known.provider_note.clone())
+            (
+                known.ordered_providers(),
+                known.providers_said,
+                known.provider_note.clone(),
+                known.local.clone(),
+                known.servers.clone(),
+                known.licensed.clone(),
+            )
         };
         if !said {
             return;
         }
-        self.empty.set_description(Some(note.as_deref().unwrap_or(&t::sources_empty_detail())));
-        while let Some(child) = self.list.first_child() {
-            self.list.remove(&child);
+        self.empty.set_description(Some(note.as_deref().unwrap_or(&t::sources_empty_body())));
+        while let Some(child) = self.sections.first_child() {
+            self.sections.remove(&child);
         }
-        if rows.is_empty() {
+        // The engine's own rows for the first-party kinds are drawn from their own records.
+        let shown: Vec<ProviderRow> = rows
+            .iter()
+            .filter(|row| {
+                !matches!(row.kind.as_str(), "library" | "server" | "licensed" | "catalogue")
+            })
+            .cloned()
+            .collect();
+        let folder_rows = local.as_ref().map_or(0, |view| view.folders.len());
+        if has_no_sources(&shown) && folder_rows == 0 && servers.is_empty() {
             self.body.empty();
-        } else {
-            self.body.content();
+            return;
         }
-        for (at, row) in rows.iter().enumerate() {
-            self.list.append(&self.row(row, at, rows.len()));
+        self.body.content();
+
+        // Your media, one row to a folder.
+        if let Some(view) = local.as_ref().filter(|view| !view.folders.is_empty()) {
+            let list = widgets::boxed_list();
+            for folder in &view.folders {
+                list.append(&folders::row(&self.ctx, view, folder));
+            }
+            self.sections.append(&first_party::section(&t::sources_section_media(), &list));
+        }
+        // Media servers.
+        if !servers.is_empty() {
+            let list = widgets::boxed_list();
+            for server in &servers {
+                list.append(&servers::row(&self.ctx, server));
+            }
+            self.sections.append(&first_party::section(&t::sources_section_servers(), &list));
+        }
+        // Licensed services: one row for all of them.
+        let list = widgets::boxed_list();
+        list.append(&licensed::row(&self.ctx, licensed_view.as_ref()));
+        self.sections.append(&first_party::section(&t::sources_section_licensed(), &list));
+        // The plugins of each store, then what is built in.
+        for group in source_groups(&shown) {
+            let list = widgets::boxed_list();
+            for id in &group.ids {
+                if let Some(at) = rows.iter().position(|r| r.id == *id) {
+                    list.append(&self.row(&rows[at], at, rows.len()));
+                }
+            }
+            let title = match (group.section, &group.store) {
+                (SourceSection::BuiltIn, _) => t::sources_section_builtin(),
+                (_, Some(store)) => {
+                    let name = shown
+                        .iter()
+                        .find_map(|r| match &r.origin {
+                            ProviderOrigin::Store { id, name } if id == store => name.clone(),
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| store.clone());
+                    t::sources_section_store(&name)
+                }
+                _ => t::sources_section_by_hand(),
+            };
+            self.sections.append(&first_party::section(&title, &list));
         }
     }
 

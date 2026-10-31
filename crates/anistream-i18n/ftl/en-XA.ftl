@@ -1469,6 +1469,15 @@ continue-preview = [Þŕéṽîéŵ~~~]
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = [Åîŕš àţ { $time }~~~~]
 
+# Line under the title of the last welcome page: what the app plays, without a promise of its own.
+onboarding-where-hosts-linux = [àñîšţŕéàɱ þļàýš ŵĥàţ ýöü àļŕéàðý ĥàṽé: ƒîļéš öñ ţĥîš ðéṽîçé, ýöüŕ Ĵéļļýƒîñ šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ þļüĝîñ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading over the buttons that add the viewer's own media on the last welcome page.
+onboarding-own-heading = [Ĥàṽé ýöüŕ öŵñ ɱéðîà?~~~~~~]
+
+# Heading over the invite link field on the last welcome page.
+onboarding-invite-heading = [Ĥàṽé àñ îñṽîţé ļîñķ?~~~~~~]
+
 # Header title on a terminal too narrow for the rail: the product name, then the section on screen.
 chrome-header-section = [àñîšţŕéàɱ · { $section }~~~~~]
 
@@ -5190,6 +5199,178 @@ up-next-broadcast = [Éþîšöðé { $episode } · { $when }~~~~~~]
 # The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
 up-next-out = [öüţ { $ago }~~~]
 
+# Prompt of the folder chooser.
+library-picker-prompt = [Åðð ƒöļðéŕ~~~]
+
+# Heading of the folder chooser.
+library-picker-message = [Çĥööšé à ƒöļðéŕ ŵîţĥ ýöüŕ éþîšöðéš.~~~~~~~~~~~]
+
+# A folder's line while its files are counted.
+library-row-scanning =
+    { $files ->
+        [one] [Šçàññîñĝ · 1 ƒîļé ƒöüñð~~~~~~~]
+       *[other] [Šçàññîñĝ · { $files } ƒîļéš ƒöüñð~~~~~~~~]
+    }
+
+# A folder's line once it is read.
+library-row-summary =
+    { $episodes ->
+        [one] [1 éþîšöðé öƒ { $series } šéŕîéš~~~~~~~]
+       *[other] [{ $episodes } éþîšöðéš öƒ { $series } šéŕîéš~~~~~~~~]
+    }
+
+# Added to a folder's line when some of its series are not matched for sure.
+library-row-needs-look = [{ $count } ñééð à ļööķ~~~~~]
+
+# A folder on a drive that is not connected.
+library-row-drive-offline = [Ðŕîṽé ñöţ çöññéçţéð~~~~~~]
+
+# A folder that was removed or renamed.
+library-row-missing = [Ƒöļðéŕ ñöţ ƒöüñð~~~~~]
+
+# A folder the app is no longer allowed to open.
+library-row-no-access = [àñîšţŕéàɱ çàñ'ţ öþéñ ţĥîš ƒöļðéŕ àñý ɱöŕé~~~~~~~~~~~~~]
+
+# Button that picks where a missing folder went.
+library-locate = [Ļöçàţé…~~~]
+
+# Button that asks for a folder's permission again.
+library-choose-again = [Çĥööšé àĝàîñ~~~~]
+
+# A folder page's line when changes are noticed as they happen.
+library-page-watching = [Ŵàţçĥéð ƒöŕ çĥàñĝéš~~~~~~]
+
+# A folder page's line when changes are found only when the app starts or is asked.
+library-page-no-watch = [Ļööķéð àţ àĝàîñ ŵĥéñ àñîšţŕéàɱ šţàŕţš~~~~~~~~~~~~]
+
+# Button that reads a folder again.
+library-rescan = [Ŕéšçàñ~~]
+
+# Button that shows a folder in the file manager.
+library-open-folder = [Öþéñ ƒöļðéŕ~~~~]
+
+# Button that stops reading a folder.
+library-remove-folder = [Ŕéɱöṽé ƒöļðéŕ~~~~]
+
+# Line on a folder page that says what removing does.
+library-remove-detail = [Ýöüŕ ƒîļéš šţàý ŵĥéŕé ţĥéý àŕé.~~~~~~~~~~]
+
+# Heading over the series that are probably matched but need the viewer to confirm.
+library-needs-look = [Ñééðš à ļööķ~~~~]
+
+# Heading over the files nothing was matched to.
+library-not-matched = [Ñöţ ɱàţçĥéð~~~~]
+
+# Heading over the matched series.
+library-matched = [Ṁàţçĥéð~~~]
+
+# Row line: how many series are matched.
+library-matched-count = [{ $count } šéŕîéš ɱàţçĥéð~~~~~~]
+
+# Row line for a series in Needs a look: the title found, if any.
+library-best-guess = [Ɓéšţ ĝüéšš: { $title }~~~~~]
+
+# Row line: how many files are in a group.
+library-files =
+    { $count ->
+        [one] [1 ƒîļé~~]
+       *[other] [{ $count } ƒîļéš~~~]
+    }
+
+# Why a group of files is not matched: AniList knows nothing like the name.
+library-reason-no-title = [Ñö ÅñîĻîšţ ţîţļé ƒöüñð~~~~~~~]
+
+# Why a group of files is not matched: AniList could not be asked.
+library-reason-offline = [Çöüļðñ'ţ àšķ ÅñîĻîšţ. Îţ îš ţŕîéð àĝàîñ àţ ţĥé ñéẋţ šçàñ.~~~~~~~~~~~~~~~~~~]
+
+# Button that opens the match picker for a group.
+library-choose-match = [Çĥööšé ţĥé ɱàţçĥ~~~~~]
+
+# Menu item that keeps a group's files as a title of their own.
+library-keep-unmatched = [Ķééþ üñɱàţçĥéð~~~~~]
+
+# Row line for files kept as a title of their own.
+library-kept-line = [Ķéþţ àš îţš öŵñ ţîţļé~~~~~~~]
+
+# Title of the dialog that asks which title a folder is.
+library-fix-title = [Ŵĥîçĥ ţîţļé îš ţĥîš ƒöļðéŕ?~~~~~~~~~]
+
+# Menu item on a matched series that opens the match picker.
+library-fix-match = [Ƒîẋ ţĥîš ɱàţçĥ~~~~~]
+
+# Button at the foot of the match picker that keeps the files unmatched.
+library-leave-unmatched = [Ļéàṽé üñɱàţçĥéð~~~~~]
+
+# Line in the match picker when AniList has nothing for what was typed.
+library-fix-none = [Ñö ţîţļéš ƒöüñð~~~~~]
+
+# Heading over the library's titles that come from the viewer's own files.
+library-from-files = [Ƒŕöɱ ýöüŕ ƒîļéš~~~~~]
+
+# Line on a result in the match picker whose episode count does not fit the folder's files.
+library-fix-count-mismatch =
+    { $episodes ->
+        [one] [Ĥàš 1 éþîšöðé, ţĥîš ƒöļðéŕ ĥàš { $files }~~~~~~~~~~~]
+       *[other] [Ĥàš { $episodes } éþîšöðéš, ţĥîš ƒöļðéŕ ĥàš { $files }~~~~~~~~~~~~]
+    }
+
+# Title of the Licensed services page.
+licensed-title = [Ļîçéñšéð šéŕṽîçéš~~~~~~]
+
+# Line at the top of the page.
+licensed-body = [àñîšţŕéàɱ çàñ öþéñ ţîţļéš îñ šţŕéàɱîñĝ šéŕṽîçéš ýöü þàý ƒöŕ. Îţ ñéṽéŕ þļàýš ţĥéɱ îţšéļƒ. Ļîñķš çöɱé ƒŕöɱ ÅñîĻîšţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Label of the region choice.
+licensed-region = [Ŕéĝîöñ~~]
+
+# Line under the region choice.
+licensed-region-line = [Ĥîðéš ļîñķš ÅñîĻîšţ ɱàŕķš ƒöŕ öţĥéŕ çöüñţŕîéš. Ṁöšţ ļîñķš ñàɱé ñö çöüñţŕý, šö çĥööšé ýöüŕ šéŕṽîçéš ţöö.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading over the services the viewer pays for.
+licensed-yours = [Ýöüŕ šéŕṽîçéš~~~~]
+
+# Row that shows the rest of the services.
+licensed-show-all = [Šĥöŵ àļļ { $count }~~~~]
+
+# Switch for the line that names services the viewer does not use.
+licensed-show-others = [Šĥöŵ öţĥéŕ šéŕṽîçéš öñ ţîţļé þàĝéš~~~~~~~~~~~]
+
+# Line under that switch.
+licensed-show-others-line = [Å ļîñé üñðéŕ ţĥé ƀüţţöñš ñàɱéš šéŕṽîçéš ýöü ðöñ'ţ üšé.~~~~~~~~~~~~~~~~~]
+
+# A Sources row's line: the services and the region.
+licensed-row-line = [{ $services } · { $region }~~~]
+
+# A Sources row's line before any service is chosen.
+licensed-row-none = [Çĥööšé ţĥé šéŕṽîçéš ýöü þàý ƒöŕ~~~~~~~~~~]
+
+# Line while AniList's list of services has not arrived.
+licensed-loading = [Åšķîñĝ ÅñîĻîšţ ƒöŕ îţš ļîšţ öƒ šéŕṽîçéš~~~~~~~~~~~~]
+
+# Main button of a title that plays only in a service.
+title-watch-on = [Ŵàţçĥ öñ { $service }~~~~]
+
+# Menu item that opens a title in one of the viewer's services.
+title-watch-on-item = [Ŵàţçĥ öñ { $service }~~~~]
+
+# Line under the buttons of a title that plays here and is also in a service.
+title-also-on-services = [Åļšö öñ { $services }~~~~]
+
+# Line under the buttons of a title that is in none of the viewer's services.
+title-listed-on = [Ñöţ ƒöüñð îñ ýöüŕ šöüŕçéš. Ļîšţéð öñ { $services }.~~~~~~~~~~~~~]
+
+# Link that opens the Licensed services page.
+title-choose-services = [Çĥööšé ýöüŕ šéŕṽîçéš~~~~~~]
+
+# Button that undoes marking as watched.
+licensed-mark-undo = [Ûñðö~~]
+
+# Tooltip on the glyph that says a row opens outside the app.
+licensed-opens-outside = [Öþéñš îñ ýöüŕ ƀŕöŵšéŕ~~~~~~~]
+
+# Line under the buttons of a title that is also listed in services the viewer does not use.
+title-others-line = [Åļšö ļîšţéð öñ { $services }~~~~~~]
+
 # Format of a show: broadcast on television.
 format-tv = [ŢṼ~]
 
@@ -6254,6 +6435,157 @@ search-sort-title = [Ţîţļé~~]
 # Search: sort by what is popular right now.
 search-sort-trending = [Ţŕéñðîñĝ~~~]
 
+# Title of the dialog that adds a media server.
+servers-add-title = [Åðð à ɱéðîà šéŕṽéŕ~~~~~~]
+
+# Heading over the servers found on the network.
+servers-on-network = [Öñ ýöüŕ ñéţŵöŕķ~~~~~]
+
+# Row while the network is searched for servers.
+servers-looking = [Ļööķîñĝ ƒöŕ šéŕṽéŕš…~~~~~~]
+
+# Line when no server answered the search.
+servers-none-found = [Ñö šéŕṽéŕš ƒöüñð öñ ţĥîš ñéţŵöŕķ. Ţýþé ţĥé àððŕéšš îñšţéàð.~~~~~~~~~~~~~~~~~~]
+
+# Label of the address field.
+servers-address = [Šéŕṽéŕ àððŕéšš~~~~~]
+
+# Example inside the address field.
+servers-address-hint = [ĵéļļýƒîñ.ĥöɱé.éẋàɱþļé öŕ 192.168.1.20:8096~~~~~~~~~~~~~]
+
+# Button that checks the address and goes on.
+servers-continue = [Çöñţîñüé~~~]
+
+# Title of the sign-in step.
+servers-sign-in-title = [Šîĝñ îñ ţö { $server }~~~~~]
+
+# Label of the user name field.
+servers-user = [Ûšéŕ ñàɱé~~~]
+
+# Label of the password field.
+servers-password = [Þàššŵöŕð~~~]
+
+# Link that switches the sign-in to Quick Connect.
+servers-use-quick-connect = [Ûšé Ǫüîçķ Çöññéçţ îñšţéàð~~~~~~~~]
+
+# Link that switches Quick Connect back to a password.
+servers-use-password = [Šîĝñ îñ ŵîţĥ à þàššŵöŕð îñšţéàð~~~~~~~~~~]
+
+# Line under the sign-in fields.
+servers-token-note = [Ýöüŕ þàššŵöŕð îšñ'ţ šàṽéð. àñîšţŕéàɱ ķééþš à šîĝñ-îñ ţöķéñ îñ { $store }.~~~~~~~~~~~~~~~~~~~~]
+
+# Where the sign-in token is kept on Linux, as a phrase in the line above.
+secure-store-linux = [ýöüŕ ķéýŕîñĝ~~~~]
+
+# Button that signs in.
+servers-sign-in = [Šîĝñ îñ~~~]
+
+# Title of the Quick Connect step.
+servers-qc-title = [Éñţéŕ ţĥîš çöðé îñ Ĵéļļýƒîñ~~~~~~~~~]
+
+# Steps for Quick Connect.
+servers-qc-steps = [Öñ à ðéṽîçé ţĥàţ'š šîĝñéð îñ, öþéñ Ĵéļļýƒîñ, ĝö ţö ýöüŕ þŕöƒîļé, çĥööšé Ǫüîçķ Çöññéçţ àñð éñţéŕ ţĥîš çöðé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the code while the viewer approves it.
+servers-qc-waiting = [Ŵàîţîñĝ ƒöŕ ýöü ţö àþþŕöṽé îţ~~~~~~~~~]
+
+# Error when the Quick Connect code ran out.
+servers-qc-expired = [Ţĥàţ çöðé ĥàš ŕüñ öüţ.~~~~~~~]
+
+# Button that asks for another Quick Connect code.
+servers-qc-new-code = [Ĝéţ à ñéŵ çöðé~~~~~]
+
+# Title of the step that chooses libraries.
+servers-libraries-title = [Çĥööšé ļîƀŕàŕîéš~~~~~]
+
+# Line under it.
+servers-libraries-body = [Šĥöŵš àŕé ɱàţçĥéð ţö ÅñîĻîšţ šö ţĥéý ĵöîñ Ĥöɱé, ýöüŕ ļîšţš àñð Šéàŕçĥ.~~~~~~~~~~~~~~~~~~~~~]
+
+# A library's line: what it holds, and how many series.
+servers-library-line = [{ $kind } · { $count } šéŕîéš~~~~~]
+
+# Switch that sends watched marks and resume points to the server.
+servers-report = [Ŕéþöŕţ ŵĥàţ ýöü ŵàţçĥ ţö Ĵéļļýƒîñ~~~~~~~~~~]
+
+# Line under that switch.
+servers-report-line = [Ŕéšüɱé þöîñţš àñð ŵàţçĥéð ɱàŕķš ƒöļļöŵ ŵĥàţ ýöü þļàý ĥéŕé.~~~~~~~~~~~~~~~~~~]
+
+# Button that saves the server.
+servers-add = [Åðð šéŕṽéŕ~~~]
+
+# A server's line while its series are matched.
+servers-row-matching = [Ṁàţçĥîñĝ · { $done } öƒ { $total } šéŕîéš~~~~~~~~~]
+
+# A server's line once it is read.
+servers-row-summary =
+    { $libraries ->
+        [one] [1 ļîƀŕàŕý · { $series } šéŕîéš~~~~~~~]
+       *[other] [{ $libraries } ļîƀŕàŕîéš · { $series } šéŕîéš~~~~~~~~]
+    }
+
+# The server page's line under its name.
+servers-page-line = [{ $address } · Ĵéļļýƒîñ { $version } · šîĝñéð îñ àš { $user }~~~~~~~~~~~~]
+
+# Button that signs out of a server.
+servers-sign-out = [Šîĝñ öüţ~~~]
+
+# Button that forgets a server.
+servers-remove = [Ŕéɱöṽé šéŕṽéŕ~~~~]
+
+# Error under the address field: nothing answered.
+servers-error-unreachable = [Çàñ'ţ ŕéàçĥ { $address }. Çĥéçķ ţĥé àððŕéšš àñð ţĥàţ ţĥé šéŕṽéŕ îš öñ.~~~~~~~~~~~~~~~~~~~]
+
+# Error under the address field: it is not Jellyfin.
+servers-error-not-jellyfin = [Ţĥàţ àððŕéšš àñšŵéŕš, ƀüţ îţ îšñ'ţ à Ĵéļļýƒîñ šéŕṽéŕ.~~~~~~~~~~~~~~~~]
+
+# Error under the address field: the server is too old.
+servers-error-too-old = [Ţĥîš šéŕṽéŕ ŕüñš Ĵéļļýƒîñ { $version }. àñîšţŕéàɱ ñééðš 10.8 öŕ ļàţéŕ.~~~~~~~~~~~~~~~~~~~]
+
+# Error under the password field.
+servers-error-credentials = [Ŵŕöñĝ üšéŕ ñàɱé öŕ þàššŵöŕð.~~~~~~~~~]
+
+# Error where the Quick Connect link was.
+servers-error-qc-off = [Ǫüîçķ Çöññéçţ îš öƒƒ öñ ţĥîš šéŕṽéŕ. Šîĝñ îñ ŵîţĥ à þàššŵöŕð, öŕ ţüŕñ îţ öñ îñ Ĵéļļýƒîñ'š ðàšĥƀöàŕð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Error under the address field: plain HTTP away from the home network.
+servers-error-plain-http = [Ţĥîš àððŕéšš îšñ'ţ öñ ýöüŕ ñéţŵöŕķ àñð ðöéšñ'ţ üšé ĤŢŢÞŠ, šö ýöüŕ þàššŵöŕð ŵöüļð ţŕàṽéļ üñþŕöţéçţéð. Ûšé àñ ĥţţþš:// àððŕéšš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Error under the address field: the text is not an address.
+servers-error-bad-address = [Ţĥàţ îšñ'ţ àñ àððŕéšš. Ţŕý šöɱéţĥîñĝ ļîķé ĵéļļýƒîñ.ĥöɱé.éẋàɱþļé.~~~~~~~~~~~~~~~~~~~~]
+
+# Error for anything else a server answered.
+servers-error-other = [Ţĥé šéŕṽéŕ àñšŵéŕéð ŵîţĥ šöɱéţĥîñĝ àñîšţŕéàɱ çàñ'ţ üšé. Ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the step that asks about a certificate.
+servers-cert-title = [Çĥéçķ ţĥîš šéŕṽéŕ~~~~~~]
+
+# Body of that step.
+servers-cert-body = [{ $host } üšéš à çéŕţîƒîçàţé ţĥîš ðéṽîçé ðöéšñ'ţ ţŕüšţ. Ţĥàţ'š ñöŕɱàļ ƒöŕ à šéŕṽéŕ àţ ĥöɱé. Åļļöŵ îţ öñļý îƒ ţĥîš ƒîñĝéŕþŕîñţ ɱàţçĥéš ţĥé öñé ýöüŕ šéŕṽéŕ šĥöŵš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that allows a certificate.
+servers-cert-allow = [Åļļöŵ ţĥîš çéŕţîƒîçàţé~~~~~~~]
+
+# A server's line when it no longer accepts the sign-in.
+servers-row-signed-out = [Šîĝñéð öüţ ƀý ţĥé šéŕṽéŕ~~~~~~~~]
+
+# Button that signs in to a server again.
+servers-sign-in-again = [Šîĝñ îñ àĝàîñ~~~~]
+
+# Heading over a server's libraries.
+servers-libraries-heading = [Ļîƀŕàŕîéš~~~]
+
+# Button on a server's page that matches its series to AniList again.
+servers-refresh = [Ṁàţçĥ àĝàîñ~~~~]
+
+# Line on a server's page: how many of its series are not matched for sure.
+servers-needs-look = [{ $count } ñöţ ɱàţçĥéð ţö ÅñîĻîšţ~~~~~~~~]
+
+# What a Jellyfin library of shows is called in a library's line.
+servers-kind-shows = [Šĥöŵš~~]
+
+# What a Jellyfin library of films is called in a library's line.
+servers-kind-films = [Ƒîļɱš~~]
+
 # Settings group and row title for choosing a language.
 settings-language = [Ļàñĝüàĝé~~~]
 
@@ -6979,6 +7311,57 @@ match-cleared = [Ṁàţçĥîñĝ àüţöɱàţîçàļļý àĝàîñ.~~~~~~~
 
 # Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
 match-row-label = [{ $title }, { $facts }, { $closeness }~~~~]
+
+# Heading over the folders the viewer added.
+sources-section-media = [Ýöüŕ ɱéðîà~~~]
+
+# Heading over the media servers.
+sources-section-servers = [Ṁéðîà šéŕṽéŕš~~~~]
+
+# Heading over the one row for licensed services.
+sources-section-licensed = [Ļîçéñšéð šéŕṽîçéš~~~~~~]
+
+# Heading over the plugins of one store.
+sources-section-store = [Ƒŕöɱ { $store }~~~]
+
+# Heading over the plugins put in by hand.
+sources-section-by-hand = [Åððéð ƀý ĥàñð~~~~]
+
+# Heading over what anistream ships.
+sources-section-builtin = [Ɓüîļţ îñ~~~]
+
+# The secondary button that opens the menu of things to add.
+sources-add = [Åðð~]
+
+# Menu item that adds a folder of episodes.
+sources-add-folder = [Ƒöļðéŕ…~~~]
+
+# Menu item that adds a media server.
+sources-add-server = [Ṁéðîà šéŕṽéŕ…~~~~]
+
+# Menu item that joins a plugin store.
+sources-add-store = [Ĵöîñ à þļüĝîñ šţöŕé…~~~~~~]
+
+# Line under the title of the empty Sources page.
+sources-empty-body = [Šöüŕçéš àŕé ŵĥéŕé éþîšöðéš çöɱé ƒŕöɱ: ƒöļðéŕš öñ ţĥîš ðéṽîçé, ýöüŕ ɱéðîà šéŕṽéŕ, àñð þļüĝîñš ƒŕöɱ þļüĝîñ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button on the empty Sources page that picks a folder.
+sources-add-folder-button = [Åðð à ƒöļðéŕ~~~~]
+
+# Button on the empty Sources page that starts adding a media server.
+sources-add-server-button = [Åðð à ɱéðîà šéŕṽéŕ~~~~~~]
+
+# Link under the buttons on the empty Sources page.
+sources-empty-join-link = [Ĵöîñ à þļüĝîñ šţöŕé~~~~~~]
+
+# Words before the link on the empty Sources page.
+sources-empty-or = [Öŕ~]
+
+# Notice after a first-party source is removed. It holds Undo.
+sources-removed = [{ $name } ŕéɱöṽéð~~~~]
+
+# Second line of the notice after a folder is removed.
+sources-removed-files-stay = [Ýöüŕ ƒîļéš šţàý ŵĥéŕé ţĥéý àŕé.~~~~~~~~~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]

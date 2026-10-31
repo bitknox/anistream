@@ -351,3 +351,61 @@ match-cleared = Matching automatically again.
 # @arg facts: text
 # @arg closeness: text
 match-row-label = { $title }, { $facts }, { $closeness }
+
+## Your sources, as sections (media on this computer, media servers, licensed services, each store's plugins, built in).
+
+# Heading over the folders the viewer added.
+sources-section-media = Your media
+
+# Heading over the media servers.
+sources-section-servers = Media servers
+
+# Heading over the one row for licensed services.
+sources-section-licensed = Licensed services
+
+# Heading over the plugins of one store.
+# @arg store: text
+sources-section-store = From { $store }
+
+# Heading over the plugins put in by hand.
+sources-section-by-hand = Added by hand
+
+# Heading over what anistream ships.
+sources-section-builtin = Built in
+
+# The secondary button that opens the menu of things to add.
+# @max 16
+sources-add = Add
+
+# Menu item that adds a folder of episodes.
+sources-add-folder = Folder…
+
+# Menu item that adds a media server.
+sources-add-server = Media server…
+
+# Menu item that joins a plugin store.
+sources-add-store = Join a { -plugin-store }…
+
+# Line under the title of the empty Sources page.
+sources-empty-body = { -source-cap-pl } are where episodes come from: folders on this { -device }, your media server, and { -plugin-pl } from { -plugin-store-pl } you join.
+
+# Button on the empty Sources page that picks a folder.
+# @max 24
+sources-add-folder-button = Add a folder
+
+# Button on the empty Sources page that starts adding a media server.
+# @max 24
+sources-add-server-button = Add a media server
+
+# Link under the buttons on the empty Sources page.
+sources-empty-join-link = Join a { -plugin-store }
+
+# Words before the link on the empty Sources page.
+sources-empty-or = Or
+
+# Notice after a first-party source is removed. It holds Undo.
+# @arg name: text
+sources-removed = { $name } removed
+
+# Second line of the notice after a folder is removed.
+sources-removed-files-stay = Your files stay where they are.

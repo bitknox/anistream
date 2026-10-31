@@ -19,7 +19,10 @@ use anistream_model::{
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     event::Event,
+    licensed::{LicensedView, TitleAvailability},
+    local::{LocalEvent, LocalView},
     party::{PartyForm, PartyMember, PartyView},
+    servers::{ServerEvent, ServerRow},
     settings::{SettingKey, SettingRow, SettingsView},
     sources::{GuardView, ProviderOrigin, ProviderRow, SourceOption},
     stores::{StorePluginRow, StorePluginStatus, StoreRow},
@@ -51,6 +54,14 @@ pub struct Known {
     pub seeding: Vec<SeedRow>,
     pub providers: Vec<ProviderRow>,
     pub stores: Vec<StoreRow>,
+    /// The Licensed services page as the engine last said it.
+    pub licensed: Option<LicensedView>,
+    /// What each title's page says about licensed services, by title.
+    pub availability: HashMap<u32, TitleAvailability>,
+    /// The media servers saved, as the engine last said.
+    pub servers: Vec<ServerRow>,
+    /// Your media: the folders, their series and whether a scan runs.
+    pub local: Option<LocalView>,
     /// Whether the device has no network, as the engine last said.
     pub offline: bool,
     /// Whether trailers may start by themselves, as the engine last said.
@@ -245,6 +256,12 @@ impl Known {
                 self.provider_note = Some(crate::say::msg(note));
             }
             Event::Stores(rows) => self.stores = rows.clone(),
+            Event::Licensed(view) => self.licensed = Some(view.clone()),
+            Event::Availability(availability) => {
+                self.availability.insert(availability.id.get(), availability.clone());
+            }
+            Event::Server(ServerEvent::Servers(rows)) => self.servers = rows.clone(),
+            Event::Local(LocalEvent::View(view)) => self.local = Some(view.clone()),
             Event::SourceOptions { id, options } => {
                 self.source_options.insert(id.get(), options.clone());
             }
@@ -375,6 +392,17 @@ impl Hub {
             glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
                 if let Some(hub) = me.upgrade() {
                     hub.take(events);
+                }
+            });
+            return None;
+        }
+        // The lawful sources showcase: folders, servers and services the fixture engine has none of.
+        #[cfg(feature = "fixtures")]
+        if let Some(events) = crate::showcase::lawful_answer(&command) {
+            let me = self.me.clone();
+            glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
+                if let Some(hub) = me.upgrade() {
+                    hub.show_instead(events);
                 }
             });
             return None;
@@ -577,6 +605,9 @@ fn showcase_kind(event: &Event) -> Option<&'static str> {
         Event::Providers(_) => "providers",
         Event::Stores(_) => "stores",
         Event::Seeding(_) => "seeding",
+        Event::Local(_) => "local",
+        Event::Server(ServerEvent::Servers(_)) => "servers",
+        Event::Licensed(_) => "licensed",
         Event::StorePreview(_) => "store-preview",
         _ => return None,
     })

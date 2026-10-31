@@ -3643,6 +3643,230 @@
     <value>out {ago}</value>
     <comment>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</comment>
   </data>
+  <data name="LibraryPickerPrompt" xml:space="preserve">
+    <value>Add folder</value>
+    <comment>Prompt of the folder chooser.</comment>
+  </data>
+  <data name="LibraryPickerMessage" xml:space="preserve">
+    <value>Choose a folder with your episodes.</value>
+    <comment>Heading of the folder chooser.</comment>
+  </data>
+  <data name="LibraryRowScanning_one" xml:space="preserve">
+    <value>Scanning · 1 file found</value>
+    <comment>A folder's line while its files are counted.</comment>
+  </data>
+  <data name="LibraryRowScanning_other" xml:space="preserve">
+    <value>Scanning · {files} files found</value>
+    <comment>A folder's line while its files are counted.</comment>
+  </data>
+  <data name="LibraryRowSummary_one" xml:space="preserve">
+    <value>1 episode of {series} series</value>
+    <comment>A folder's line once it is read.</comment>
+  </data>
+  <data name="LibraryRowSummary_other" xml:space="preserve">
+    <value>{episodes} episodes of {series} series</value>
+    <comment>A folder's line once it is read.</comment>
+  </data>
+  <data name="LibraryRowNeedsLook" xml:space="preserve">
+    <value>{count} need a look</value>
+    <comment>Added to a folder's line when some of its series are not matched for sure.</comment>
+  </data>
+  <data name="LibraryRowDriveOffline" xml:space="preserve">
+    <value>Drive not connected</value>
+    <comment>A folder on a drive that is not connected.</comment>
+  </data>
+  <data name="LibraryRowMissing" xml:space="preserve">
+    <value>Folder not found</value>
+    <comment>A folder that was removed or renamed.</comment>
+  </data>
+  <data name="LibraryRowNoAccess" xml:space="preserve">
+    <value>anistream can't open this folder any more</value>
+    <comment>A folder the app is no longer allowed to open.</comment>
+  </data>
+  <data name="LibraryLocate" xml:space="preserve">
+    <value>Locate…</value>
+    <comment>Button that picks where a missing folder went.</comment>
+  </data>
+  <data name="LibraryChooseAgain" xml:space="preserve">
+    <value>Choose again</value>
+    <comment>Button that asks for a folder's permission again.</comment>
+  </data>
+  <data name="LibraryPageWatching" xml:space="preserve">
+    <value>Watched for changes</value>
+    <comment>A folder page's line when changes are noticed as they happen.</comment>
+  </data>
+  <data name="LibraryPageNoWatch" xml:space="preserve">
+    <value>Looked at again when anistream starts</value>
+    <comment>A folder page's line when changes are found only when the app starts or is asked.</comment>
+  </data>
+  <data name="LibraryRescan" xml:space="preserve">
+    <value>Rescan</value>
+    <comment>Button that reads a folder again.</comment>
+  </data>
+  <data name="LibraryOpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+    <comment>Button that shows a folder in the file manager.</comment>
+  </data>
+  <data name="LibraryRemoveFolder" xml:space="preserve">
+    <value>Remove folder</value>
+    <comment>Button that stops reading a folder.</comment>
+  </data>
+  <data name="LibraryRemoveDetail" xml:space="preserve">
+    <value>Your files stay where they are.</value>
+    <comment>Line on a folder page that says what removing does.</comment>
+  </data>
+  <data name="LibraryNeedsLook" xml:space="preserve">
+    <value>Needs a look</value>
+    <comment>Heading over the series that are probably matched but need the viewer to confirm.</comment>
+  </data>
+  <data name="LibraryNotMatched" xml:space="preserve">
+    <value>Not matched</value>
+    <comment>Heading over the files nothing was matched to.</comment>
+  </data>
+  <data name="LibraryMatched" xml:space="preserve">
+    <value>Matched</value>
+    <comment>Heading over the matched series.</comment>
+  </data>
+  <data name="LibraryMatchedCount" xml:space="preserve">
+    <value>{count} series matched</value>
+    <comment>Row line: how many series are matched.</comment>
+  </data>
+  <data name="LibraryBestGuess" xml:space="preserve">
+    <value>Best guess: {title}</value>
+    <comment>Row line for a series in Needs a look: the title found, if any.</comment>
+  </data>
+  <data name="LibraryFiles_one" xml:space="preserve">
+    <value>1 file</value>
+    <comment>Row line: how many files are in a group.</comment>
+  </data>
+  <data name="LibraryFiles_other" xml:space="preserve">
+    <value>{count} files</value>
+    <comment>Row line: how many files are in a group.</comment>
+  </data>
+  <data name="LibraryReasonNoTitle" xml:space="preserve">
+    <value>No AniList title found</value>
+    <comment>Why a group of files is not matched: AniList knows nothing like the name.</comment>
+  </data>
+  <data name="LibraryReasonOffline" xml:space="preserve">
+    <value>Couldn't ask AniList. It is tried again at the next scan.</value>
+    <comment>Why a group of files is not matched: AniList could not be asked.</comment>
+  </data>
+  <data name="LibraryChooseMatch" xml:space="preserve">
+    <value>Choose the match</value>
+    <comment>Button that opens the match picker for a group.</comment>
+  </data>
+  <data name="LibraryKeepUnmatched" xml:space="preserve">
+    <value>Keep unmatched</value>
+    <comment>Menu item that keeps a group's files as a title of their own.</comment>
+  </data>
+  <data name="LibraryKeptLine" xml:space="preserve">
+    <value>Kept as its own title</value>
+    <comment>Row line for files kept as a title of their own.</comment>
+  </data>
+  <data name="LibraryFixTitle" xml:space="preserve">
+    <value>Which title is this folder?</value>
+    <comment>Title of the dialog that asks which title a folder is.</comment>
+  </data>
+  <data name="LibraryFixMatch" xml:space="preserve">
+    <value>Fix this match</value>
+    <comment>Menu item on a matched series that opens the match picker.</comment>
+  </data>
+  <data name="LibraryLeaveUnmatched" xml:space="preserve">
+    <value>Leave unmatched</value>
+    <comment>Button at the foot of the match picker that keeps the files unmatched.</comment>
+  </data>
+  <data name="LibraryFixNone" xml:space="preserve">
+    <value>No titles found</value>
+    <comment>Line in the match picker when AniList has nothing for what was typed.</comment>
+  </data>
+  <data name="LibraryFromFiles" xml:space="preserve">
+    <value>From your files</value>
+    <comment>Heading over the library's titles that come from the viewer's own files.</comment>
+  </data>
+  <data name="LibraryFixCountMismatch_one" xml:space="preserve">
+    <value>Has 1 episode, this folder has {files}</value>
+    <comment>Line on a result in the match picker whose episode count does not fit the folder's files.</comment>
+  </data>
+  <data name="LibraryFixCountMismatch_other" xml:space="preserve">
+    <value>Has {episodes} episodes, this folder has {files}</value>
+    <comment>Line on a result in the match picker whose episode count does not fit the folder's files.</comment>
+  </data>
+  <data name="LicensedTitle" xml:space="preserve">
+    <value>Licensed services</value>
+    <comment>Title of the Licensed services page.</comment>
+  </data>
+  <data name="LicensedBody" xml:space="preserve">
+    <value>anistream can open titles in streaming services you pay for. It never plays them itself. Links come from AniList.</value>
+    <comment>Line at the top of the page.</comment>
+  </data>
+  <data name="LicensedRegion" xml:space="preserve">
+    <value>Region</value>
+    <comment>Label of the region choice.</comment>
+  </data>
+  <data name="LicensedRegionLine" xml:space="preserve">
+    <value>Hides links AniList marks for other countries. Most links name no country, so choose your services too.</value>
+    <comment>Line under the region choice.</comment>
+  </data>
+  <data name="LicensedYours" xml:space="preserve">
+    <value>Your services</value>
+    <comment>Heading over the services the viewer pays for.</comment>
+  </data>
+  <data name="LicensedShowAll" xml:space="preserve">
+    <value>Show all {count}</value>
+    <comment>Row that shows the rest of the services.</comment>
+  </data>
+  <data name="LicensedShowOthers" xml:space="preserve">
+    <value>Show other services on title pages</value>
+    <comment>Switch for the line that names services the viewer does not use.</comment>
+  </data>
+  <data name="LicensedShowOthersLine" xml:space="preserve">
+    <value>A line under the buttons names services you don't use.</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="LicensedRowLine" xml:space="preserve">
+    <value>{services} · {region}</value>
+    <comment>A Sources row's line: the services and the region.</comment>
+  </data>
+  <data name="LicensedRowNone" xml:space="preserve">
+    <value>Choose the services you pay for</value>
+    <comment>A Sources row's line before any service is chosen.</comment>
+  </data>
+  <data name="LicensedLoading" xml:space="preserve">
+    <value>Asking AniList for its list of services</value>
+    <comment>Line while AniList's list of services has not arrived.</comment>
+  </data>
+  <data name="TitleWatchOn" xml:space="preserve">
+    <value>Watch on {service}</value>
+    <comment>Main button of a title that plays only in a service.</comment>
+  </data>
+  <data name="TitleWatchOnItem" xml:space="preserve">
+    <value>Watch on {service}</value>
+    <comment>Menu item that opens a title in one of the viewer's services.</comment>
+  </data>
+  <data name="TitleAlsoOnServices" xml:space="preserve">
+    <value>Also on {services}</value>
+    <comment>Line under the buttons of a title that plays here and is also in a service.</comment>
+  </data>
+  <data name="TitleListedOn" xml:space="preserve">
+    <value>Not found in your sources. Listed on {services}.</value>
+    <comment>Line under the buttons of a title that is in none of the viewer's services.</comment>
+  </data>
+  <data name="TitleChooseServices" xml:space="preserve">
+    <value>Choose your services</value>
+    <comment>Link that opens the Licensed services page.</comment>
+  </data>
+  <data name="LicensedMarkUndo" xml:space="preserve">
+    <value>Undo</value>
+    <comment>Button that undoes marking as watched.</comment>
+  </data>
+  <data name="LicensedOpensOutside" xml:space="preserve">
+    <value>Opens in your browser</value>
+    <comment>Tooltip on the glyph that says a row opens outside the app.</comment>
+  </data>
+  <data name="TitleOthersLine" xml:space="preserve">
+    <value>Also listed on {services}</value>
+    <comment>Line under the buttons of a title that is also listed in services the viewer does not use.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>TV</value>
     <comment>Format of a show: broadcast on television.</comment>
@@ -5059,6 +5283,206 @@
     <value>Trending</value>
     <comment>Search: sort by what is popular right now.</comment>
   </data>
+  <data name="ServersAddTitle" xml:space="preserve">
+    <value>Add a media server</value>
+    <comment>Title of the dialog that adds a media server.</comment>
+  </data>
+  <data name="ServersOnNetwork" xml:space="preserve">
+    <value>On your network</value>
+    <comment>Heading over the servers found on the network.</comment>
+  </data>
+  <data name="ServersLooking" xml:space="preserve">
+    <value>Looking for servers…</value>
+    <comment>Row while the network is searched for servers.</comment>
+  </data>
+  <data name="ServersNoneFound" xml:space="preserve">
+    <value>No servers found on this network. Type the address instead.</value>
+    <comment>Line when no server answered the search.</comment>
+  </data>
+  <data name="ServersAddress" xml:space="preserve">
+    <value>Server address</value>
+    <comment>Label of the address field.</comment>
+  </data>
+  <data name="ServersAddressHint" xml:space="preserve">
+    <value>jellyfin.home.example or 192.168.1.20:8096</value>
+    <comment>Example inside the address field.</comment>
+  </data>
+  <data name="ServersContinue" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Button that checks the address and goes on.</comment>
+  </data>
+  <data name="ServersSignInTitle" xml:space="preserve">
+    <value>Sign in to {server}</value>
+    <comment>Title of the sign-in step.</comment>
+  </data>
+  <data name="ServersUser" xml:space="preserve">
+    <value>User name</value>
+    <comment>Label of the user name field.</comment>
+  </data>
+  <data name="ServersPassword" xml:space="preserve">
+    <value>Password</value>
+    <comment>Label of the password field.</comment>
+  </data>
+  <data name="ServersUseQuickConnect" xml:space="preserve">
+    <value>Use Quick Connect instead</value>
+    <comment>Link that switches the sign-in to Quick Connect.</comment>
+  </data>
+  <data name="ServersUsePassword" xml:space="preserve">
+    <value>Sign in with a password instead</value>
+    <comment>Link that switches Quick Connect back to a password.</comment>
+  </data>
+  <data name="ServersTokenNote" xml:space="preserve">
+    <value>Your password isn't saved. anistream keeps a sign-in token in {store}.</value>
+    <comment>Line under the sign-in fields.</comment>
+  </data>
+  <data name="SecureStoreLinux" xml:space="preserve">
+    <value>your keyring</value>
+    <comment>Where the sign-in token is kept on Linux, as a phrase in the line above.</comment>
+  </data>
+  <data name="ServersSignIn" xml:space="preserve">
+    <value>Sign in</value>
+    <comment>Button that signs in.</comment>
+  </data>
+  <data name="ServersQcTitle" xml:space="preserve">
+    <value>Enter this code in Jellyfin</value>
+    <comment>Title of the Quick Connect step.</comment>
+  </data>
+  <data name="ServersQcSteps" xml:space="preserve">
+    <value>On a device that's signed in, open Jellyfin, go to your profile, choose Quick Connect and enter this code.</value>
+    <comment>Steps for Quick Connect.</comment>
+  </data>
+  <data name="ServersQcWaiting" xml:space="preserve">
+    <value>Waiting for you to approve it</value>
+    <comment>Line under the code while the viewer approves it.</comment>
+  </data>
+  <data name="ServersQcExpired" xml:space="preserve">
+    <value>That code has run out.</value>
+    <comment>Error when the Quick Connect code ran out.</comment>
+  </data>
+  <data name="ServersQcNewCode" xml:space="preserve">
+    <value>Get a new code</value>
+    <comment>Button that asks for another Quick Connect code.</comment>
+  </data>
+  <data name="ServersLibrariesTitle" xml:space="preserve">
+    <value>Choose libraries</value>
+    <comment>Title of the step that chooses libraries.</comment>
+  </data>
+  <data name="ServersLibrariesBody" xml:space="preserve">
+    <value>Shows are matched to AniList so they join Home, your lists and Search.</value>
+    <comment>Line under it.</comment>
+  </data>
+  <data name="ServersLibraryLine" xml:space="preserve">
+    <value>{kind} · {count} series</value>
+    <comment>A library's line: what it holds, and how many series.</comment>
+  </data>
+  <data name="ServersReport" xml:space="preserve">
+    <value>Report what you watch to Jellyfin</value>
+    <comment>Switch that sends watched marks and resume points to the server.</comment>
+  </data>
+  <data name="ServersReportLine" xml:space="preserve">
+    <value>Resume points and watched marks follow what you play here.</value>
+    <comment>Line under that switch.</comment>
+  </data>
+  <data name="ServersAdd" xml:space="preserve">
+    <value>Add server</value>
+    <comment>Button that saves the server.</comment>
+  </data>
+  <data name="ServersRowMatching" xml:space="preserve">
+    <value>Matching · {done} of {total} series</value>
+    <comment>A server's line while its series are matched.</comment>
+  </data>
+  <data name="ServersRowSummary_one" xml:space="preserve">
+    <value>1 library · {series} series</value>
+    <comment>A server's line once it is read.</comment>
+  </data>
+  <data name="ServersRowSummary_other" xml:space="preserve">
+    <value>{libraries} libraries · {series} series</value>
+    <comment>A server's line once it is read.</comment>
+  </data>
+  <data name="ServersPageLine" xml:space="preserve">
+    <value>{address} · Jellyfin {version} · signed in as {user}</value>
+    <comment>The server page's line under its name.</comment>
+  </data>
+  <data name="ServersSignOut" xml:space="preserve">
+    <value>Sign out</value>
+    <comment>Button that signs out of a server.</comment>
+  </data>
+  <data name="ServersRemove" xml:space="preserve">
+    <value>Remove server</value>
+    <comment>Button that forgets a server.</comment>
+  </data>
+  <data name="ServersErrorUnreachable" xml:space="preserve">
+    <value>Can't reach {address}. Check the address and that the server is on.</value>
+    <comment>Error under the address field: nothing answered.</comment>
+  </data>
+  <data name="ServersErrorNotJellyfin" xml:space="preserve">
+    <value>That address answers, but it isn't a Jellyfin server.</value>
+    <comment>Error under the address field: it is not Jellyfin.</comment>
+  </data>
+  <data name="ServersErrorTooOld" xml:space="preserve">
+    <value>This server runs Jellyfin {version}. anistream needs 10.8 or later.</value>
+    <comment>Error under the address field: the server is too old.</comment>
+  </data>
+  <data name="ServersErrorCredentials" xml:space="preserve">
+    <value>Wrong user name or password.</value>
+    <comment>Error under the password field.</comment>
+  </data>
+  <data name="ServersErrorQcOff" xml:space="preserve">
+    <value>Quick Connect is off on this server. Sign in with a password, or turn it on in Jellyfin's dashboard.</value>
+    <comment>Error where the Quick Connect link was.</comment>
+  </data>
+  <data name="ServersErrorPlainHttp" xml:space="preserve">
+    <value>This address isn't on your network and doesn't use HTTPS, so your password would travel unprotected. Use an https:// address.</value>
+    <comment>Error under the address field: plain HTTP away from the home network.</comment>
+  </data>
+  <data name="ServersErrorBadAddress" xml:space="preserve">
+    <value>That isn't an address. Try something like jellyfin.home.example.</value>
+    <comment>Error under the address field: the text is not an address.</comment>
+  </data>
+  <data name="ServersErrorOther" xml:space="preserve">
+    <value>The server answered with something anistream can't use. Try again.</value>
+    <comment>Error for anything else a server answered.</comment>
+  </data>
+  <data name="ServersCertTitle" xml:space="preserve">
+    <value>Check this server</value>
+    <comment>Title of the step that asks about a certificate.</comment>
+  </data>
+  <data name="ServersCertBody" xml:space="preserve">
+    <value>{host} uses a certificate this device doesn't trust. That's normal for a server at home. Allow it only if this fingerprint matches the one your server shows.</value>
+    <comment>Body of that step.</comment>
+  </data>
+  <data name="ServersCertAllow" xml:space="preserve">
+    <value>Allow this certificate</value>
+    <comment>Button that allows a certificate.</comment>
+  </data>
+  <data name="ServersRowSignedOut" xml:space="preserve">
+    <value>Signed out by the server</value>
+    <comment>A server's line when it no longer accepts the sign-in.</comment>
+  </data>
+  <data name="ServersSignInAgain" xml:space="preserve">
+    <value>Sign in again</value>
+    <comment>Button that signs in to a server again.</comment>
+  </data>
+  <data name="ServersLibrariesHeading" xml:space="preserve">
+    <value>Libraries</value>
+    <comment>Heading over a server's libraries.</comment>
+  </data>
+  <data name="ServersRefresh" xml:space="preserve">
+    <value>Match again</value>
+    <comment>Button on a server's page that matches its series to AniList again.</comment>
+  </data>
+  <data name="ServersNeedsLook" xml:space="preserve">
+    <value>{count} not matched to AniList</value>
+    <comment>Line on a server's page: how many of its series are not matched for sure.</comment>
+  </data>
+  <data name="ServersKindShows" xml:space="preserve">
+    <value>Shows</value>
+    <comment>What a Jellyfin library of shows is called in a library's line.</comment>
+  </data>
+  <data name="ServersKindFilms" xml:space="preserve">
+    <value>Films</value>
+    <comment>What a Jellyfin library of films is called in a library's line.</comment>
+  </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>Language</value>
     <comment>Settings group and row title for choosing a language.</comment>
@@ -6018,6 +6442,74 @@
   <data name="MatchRowLabel" xml:space="preserve">
     <value>{title}, {facts}, {closeness}</value>
     <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
+  </data>
+  <data name="SourcesSectionMedia" xml:space="preserve">
+    <value>Your media</value>
+    <comment>Heading over the folders the viewer added.</comment>
+  </data>
+  <data name="SourcesSectionServers" xml:space="preserve">
+    <value>Media servers</value>
+    <comment>Heading over the media servers.</comment>
+  </data>
+  <data name="SourcesSectionLicensed" xml:space="preserve">
+    <value>Licensed services</value>
+    <comment>Heading over the one row for licensed services.</comment>
+  </data>
+  <data name="SourcesSectionStore" xml:space="preserve">
+    <value>From {store}</value>
+    <comment>Heading over the plugins of one store.</comment>
+  </data>
+  <data name="SourcesSectionByHand" xml:space="preserve">
+    <value>Added by hand</value>
+    <comment>Heading over the plugins put in by hand.</comment>
+  </data>
+  <data name="SourcesSectionBuiltin" xml:space="preserve">
+    <value>Built in</value>
+    <comment>Heading over what anistream ships.</comment>
+  </data>
+  <data name="SourcesAdd" xml:space="preserve">
+    <value>Add</value>
+    <comment>The secondary button that opens the menu of things to add.</comment>
+  </data>
+  <data name="SourcesAddFolder" xml:space="preserve">
+    <value>Folder…</value>
+    <comment>Menu item that adds a folder of episodes.</comment>
+  </data>
+  <data name="SourcesAddServer" xml:space="preserve">
+    <value>Media server…</value>
+    <comment>Menu item that adds a media server.</comment>
+  </data>
+  <data name="SourcesAddStore" xml:space="preserve">
+    <value>Join a plugin store…</value>
+    <comment>Menu item that joins a plugin store.</comment>
+  </data>
+  <data name="SourcesEmptyBody" xml:space="preserve">
+    <value>Sources are where episodes come from: folders on this device, your media server, and plugins from plugin stores you join.</value>
+    <comment>Line under the title of the empty Sources page.</comment>
+  </data>
+  <data name="SourcesAddFolderButton" xml:space="preserve">
+    <value>Add a folder</value>
+    <comment>Button on the empty Sources page that picks a folder.</comment>
+  </data>
+  <data name="SourcesAddServerButton" xml:space="preserve">
+    <value>Add a media server</value>
+    <comment>Button on the empty Sources page that starts adding a media server.</comment>
+  </data>
+  <data name="SourcesEmptyJoinLink" xml:space="preserve">
+    <value>Join a plugin store</value>
+    <comment>Link under the buttons on the empty Sources page.</comment>
+  </data>
+  <data name="SourcesEmptyOr" xml:space="preserve">
+    <value>Or</value>
+    <comment>Words before the link on the empty Sources page.</comment>
+  </data>
+  <data name="SourcesRemoved" xml:space="preserve">
+    <value>{name} removed</value>
+    <comment>Notice after a first-party source is removed. It holds Undo.</comment>
+  </data>
+  <data name="SourcesRemovedFilesStay" xml:space="preserve">
+    <value>Your files stay where they are.</value>
+    <comment>Second line of the notice after a folder is removed.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>Joined</value>
