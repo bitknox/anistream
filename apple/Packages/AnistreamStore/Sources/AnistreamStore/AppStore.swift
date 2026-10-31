@@ -22,6 +22,9 @@ public final class AppStore {
     }
 
     public private(set) var phase: Phase = .starting
+    /// The start failed on `config.toml`: on iPhone and iPad, where nobody can edit the file, the
+    /// start-failed screen offers Reset settings.
+    public private(set) var settingsUnusable = false
     /// Whether the engine has been told to stop, so it is not told twice.
     @ObservationIgnored private var shutDown = false
     /// What the engine was last started with, for Try again.
@@ -141,6 +144,7 @@ public final class AppStore {
     /// Start the engine `launch` describes with `host`, off the main thread, and read its events.
     public func start(_ launch: EngineLaunch, host: any FfiHost) async {
         phase = .starting
+        settingsUnusable = false
         launched = (launch, host)
         shutDown = false
         #if FIXTURES
@@ -164,6 +168,7 @@ public final class AppStore {
             attach(engine)
         } catch let error as FfiError {
             AppLog.error("store", "engine did not start: \(error.reason)")
+            if case .Config = error { settingsUnusable = true }
             phase = .failed(error.reason)
             early = []
             engineGone()
@@ -179,6 +184,32 @@ public final class AppStore {
     public func restart() async {
         guard let launched, phase != .starting, phase != .running else { return }
         await start(launched.launch, host: launched.host)
+    }
+
+    /// Reset settings on the start-failed screen, once the viewer has confirmed it: `config.toml`
+    /// is kept aside as `config.damaged-<date>`, and the engine starts again on the defaults, VPN
+    /// and proxy included. The database, and the watch history in it, stay.
+    public func resetSettings() async {
+        guard let launched, settingsUnusable, phase != .starting, phase != .running else { return }
+        let dirs = launched.launch.home.dirs
+        let kept: String?
+        do {
+            kept = try await Task.detached(priority: .userInitiated) { try resetConfig(dirs: dirs) }.value
+        } catch let error as FfiError {
+            AppLog.error("store", "the settings were not reset: \(error.reason)")
+            phase = .failed(error.reason)
+            return
+        } catch {
+            AppLog.error("store", "the settings were not reset: \(error.localizedDescription)")
+            phase = .failed(error.localizedDescription)
+            return
+        }
+        AppLog.warn("store", "settings reset to the defaults; the old file kept at \(kept ?? "nowhere, there was none")")
+        await start(launched.launch, host: launched.host)
+        if phase == .running, let kept {
+            let file = URL(filePath: kept).lastPathComponent
+            notices.post(Notice(kind: .info, text: L.settingsResetDone(file: file), hint: nil))
+        }
     }
 
     /// The engine stopped, or never started: nothing is going to answer what was asked, so no
@@ -267,6 +298,10 @@ public final class AppStore {
         tv.offer(TVPlayRequest(id: id, title: titles[id]?.title ?? "", episode: episode, from: from))
     }
 
+    /// The player's say over a play asked for in the app: with its picture in Picture in Picture,
+    /// it brings the picture back, and answers true for the episode it plays, which is not sent.
+    @ObservationIgnored public var playerTakesPlay: (@MainActor (Command) -> Bool)?
+
     /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:
     /// while it starts, the command waits and is sent once it has.
     @discardableResult
@@ -274,6 +309,10 @@ public final class AppStore {
         #if FIXTURES
         sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
         #endif
+        if playerTakesPlay?(command) == true {
+            AppLog.info("store", "play: the episode playing, back from picture in picture")
+            return nil
+        }
         switch command {
         case .play(let id, let episode, _):
             playSent = .now

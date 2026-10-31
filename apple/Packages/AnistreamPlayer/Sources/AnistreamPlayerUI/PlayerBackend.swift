@@ -15,6 +15,9 @@ public protocol PlayerBackend: AnyObject, Sendable {
     func begin(on layer: MpvLayer) async throws
     /// One call; a `restate` or a `sample` answers with the reports it reads.
     func perform(_ call: MpvCall) async throws -> [PlayerReport]
+    /// `loadfile … replace`, answered with the playlist entry mpv made for the file, which its
+    /// `start-file` names.
+    func load(_ url: String, options: [String: String]) async throws -> Int64?
     /// The screen the surface is on.
     func display(_ display: DisplayInfo) async
     /// The surface changed size.
@@ -41,7 +44,7 @@ extension MpvClient: PlayerBackend {
     public func perform(_ call: MpvCall) throws -> [PlayerReport] {
         switch call {
         case .load(let url, let options):
-            try load(url, options: options)
+            _ = try load(url, options: options)
         case .addSubtitle(let url, let title, let language):
             try addSubtitle(url, title: title, language: language, select: false)
         case .set(let property, let value):

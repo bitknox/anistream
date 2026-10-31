@@ -215,6 +215,7 @@ public static class MsgText
         Msg.NoticeDatabaseSetAside x => T.NoticeDatabaseSetAside(x.Path),
         Msg.StartFailedFolder x => T.StartFailedFolder(x.Path, x.Reason),
         Msg.StartFailedConfig x => T.StartFailedConfig(x.Path, x.Problem),
+        Msg.ConfigResetFailed x => T.ConfigResetFailed(x.Path, x.Reason),
         Msg.StartFailedDatabase x => T.StartFailedDatabase(x.Path, x.Reason),
         Msg.StartFailedNetwork x => T.StartFailedNetwork(x.Reason),
         Msg.StartFailed x => T.StartFailed(x.Reason),

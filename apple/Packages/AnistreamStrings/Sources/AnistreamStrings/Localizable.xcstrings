@@ -2687,6 +2687,18 @@
         }
       }
     },
+    "config-reset-failed" : {
+      "comment" : "Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system. Argument 1: path (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't move %1$@ aside to reset the settings. %2$@"
+          }
+        }
+      }
+    },
     "continue-airing-today" : {
       "comment" : "Header for the strip of shows that air today.",
       "extractionState" : "manual",
@@ -15417,6 +15429,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read online"
+          }
+        }
+      }
+    },
+    "settings-reset" : {
+      "comment" : "Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset settings"
+          }
+        }
+      }
+    },
+    "settings-reset-detail" : {
+      "comment" : "Line under it. The old settings file is moved aside, not deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept."
+          }
+        }
+      }
+    },
+    "settings-reset-done" : {
+      "comment" : "Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30. Argument 1: file (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings are back to their defaults. The old file is kept as %1$@."
+          }
+        }
+      }
+    },
+    "settings-reset-title" : {
+      "comment" : "Title of the confirmation for resetting the settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset settings?"
           }
         }
       }

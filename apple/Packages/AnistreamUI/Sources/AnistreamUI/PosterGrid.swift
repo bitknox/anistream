@@ -42,6 +42,9 @@ struct PosterCell: View {
                         lines
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // The lines under the title stop where the title does, so they never
+                    // outgrow it.
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                 }
                 .contentShape(.rect)
             } else {

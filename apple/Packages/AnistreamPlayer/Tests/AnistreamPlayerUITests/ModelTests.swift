@@ -100,7 +100,7 @@ struct ReportTests {
         await rig.handedOver()
         try #require(rig.mpv.calls.count == 3, "the next file loading")
         rig.mpv.emit(.endFile(MpvEnd(reason: "stop", error: nil)))
-        rig.mpv.emit(.startFile)
+        rig.mpv.startFile()
         rig.mpv.emit(.fileLoaded)
         try await until("the next file reported") { rig.reports.filter { $0.1 == .fileLoaded }.count == 2 }
         let tail = rig.reports.suffix(2)
@@ -494,9 +494,41 @@ struct CardTests {
         await rig.handedOver()
         try #require(rig.mpv.calls.count == 3, "the load")
         #expect(rig.model.starting != nil)
-        rig.mpv.emit(.startFile)
+        rig.mpv.startFile()
         rig.mpv.emit(.playbackRestart)
         try await until("the next picture") { rig.model.starting == nil }
+    }
+
+    /// Next, Next, quickly: mpv takes both loads before it starts either, and starts only the
+    /// newest. The file, its reports and the starting card's first frame are that playback's.
+    @Test func twoQuickNextsLiftTheStartingCardAndReportForTheLast() async throws {
+        let rig = Rig()
+        try await rig.opened(1)
+        rig.mpv.emit(.playbackRestart)
+        try await until("the picture") { rig.model.hasPicture }
+
+        for playback: PlaybackId in 2...3 {
+            rig.ui(playback, .starting(id: 900_001, title: "Stardust Wayfarer", episode: "\(playback + 6)", episodeTitle: nil, coverUrl: nil, bannerUrl: nil))
+            rig.ops(playback - 1, [.stop])
+            rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
+        }
+        await rig.handedOver()
+        // One start-file, for the third's entry: the second's was replaced before it started.
+        rig.mpv.startFile()
+        rig.mpv.emit(.fileLoaded)
+        rig.mpv.emit(.playbackRestart)
+        try await until("the file loaded report") { rig.reports.contains { $0.1 == .fileLoaded && $0.0 != 1 } }
+        try await until("the picture lifts the card") { rig.model.starting == nil }
+        #expect(rig.reports.last { $0.1 == .fileLoaded }!.0 == 3, "file-loaded is the third playback's")
+        try await rig.playhead(2)
+        #expect(rig.reports.last! == (3, .property(name: "time-pos", json: "2")))
+
+        // The next load starts in its turn, and is matched to its own playback.
+        rig.ops(4, [.load(url: "/media/4.mkv", options: [])])
+        await rig.handedOver()
+        rig.mpv.startFile()
+        rig.mpv.emit(.fileLoaded)
+        try await until("the fourth loaded") { rig.reports.contains { $0 == (4, .fileLoaded) } }
     }
 
     @Test func threeEpisodesInARowWithNobodyThereAskStillWatching() async throws {
@@ -510,7 +542,7 @@ struct CardTests {
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
             await rig.handedOver()
             try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
-            rig.mpv.emit(.startFile)
+            rig.mpv.startFile()
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
             #expect(rig.model.stillWatching == (playback == 4), "after \(playback - 1) in a row")
@@ -533,7 +565,7 @@ struct CardTests {
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
             await rig.handedOver()
             try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
-            rig.mpv.emit(.startFile)
+            rig.mpv.startFile()
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
             #expect(rig.model.stillWatching == (playback == 3), "after \(playback - 1) in a row")
@@ -557,7 +589,7 @@ struct CardTests {
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
             await rig.handedOver()
             try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
-            rig.mpv.emit(.startFile)
+            rig.mpv.startFile()
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
         }
@@ -576,7 +608,7 @@ struct CardTests {
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
             await rig.handedOver()
             try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
-            rig.mpv.emit(.startFile)
+            rig.mpv.startFile()
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
         }
@@ -754,7 +786,7 @@ struct ViewerTests {
         #expect(spans.count == 1 && spans[0].from == 0 && spans[0].length == 1)
         #expect(bufferedSpans(rig.model.buffered, in: SeekSegment(kind: .ending, start: 42, end: 56)).isEmpty)
 
-        rig.mpv.emit(.startFile)
+        rig.mpv.startFile()
         try await until("the next file") { rig.model.buffered.isEmpty }
     }
 

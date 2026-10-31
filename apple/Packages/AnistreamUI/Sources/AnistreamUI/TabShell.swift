@@ -169,6 +169,7 @@ struct TabStack<Screen: View>: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Namespace private var zoom
     let section: AppSection
     @ViewBuilder let screen: () -> Screen
@@ -198,10 +199,11 @@ struct TabStack<Screen: View>: View {
                 // it: never the window's black at its sides.
                 .containerBackground(.ground, for: .navigation)
                 .navigationDestination(for: AnilistId.self) { id in
-                    // A wide iPad has the Mac's page (PadTitleMeta); an iPhone and a narrow
-                    // window, the iPhone's.
+                    // A wide iPad has the Mac's page (PadTitleMeta); an iPhone, a narrow window
+                    // and the accessibility text sizes, the iPhone's, whose one column wraps
+                    // what the Mac's side-by-side header would cut.
                     Group {
-                        if sizeClass == .regular {
+                        if sizeClass == .regular, !typeSize.isAccessibilitySize {
                             TitlePage(id: id).toolbar { PadTitleToolbar(id: id) }
                         } else {
                             PhoneTitle(id: id)

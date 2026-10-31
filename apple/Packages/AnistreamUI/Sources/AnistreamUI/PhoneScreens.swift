@@ -250,7 +250,9 @@ struct PhoneHero: View {
                         Image(systemName: "play.fill").font(.ui(12))
                         Text(item.action)
                     }
-                    .fixedSize(horizontal: !stacked, vertical: false)
+                    // The list's row would otherwise hold the label to one line at the
+                    // accessibility sizes.
+                    .fixedSize(horizontal: !stacked, vertical: true)
                     .frame(maxWidth: stacked ? .infinity : nil)
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
@@ -274,6 +276,7 @@ struct PhoneHero: View {
             Text(item.episodeLine(store.titles))
                 .font(.ui(15))
                 .foregroundStyle(.haze)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .accessibilityAddTraits(.isButton)

@@ -713,6 +713,9 @@ start-failed-folder = [àñîšţŕéàɱ çöüļðñ'ţ çŕéàţé ţĥé ƒ
 # Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
 start-failed-config = [{ $path } ĥàš à šéţţîñĝ àñîšţŕéàɱ çàñ'ţ üšé: { $problem }. Ƒîẋ öŕ ŕéɱöṽé îţ, ţĥéñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]
 
+# Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+config-reset-failed = [àñîšţŕéàɱ çöüļðñ'ţ ɱöṽé { $path } àšîðé ţö ŕéšéţ ţĥé šéţţîñĝš. { $reason }~~~~~~~~~~~~~~~~~~]
+
 # Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
 start-failed-database = [àñîšţŕéàɱ çöüļðñ'ţ öþéñ îţš ðàţàƀàšé àţ { $path }. Îƒ àñöţĥéŕ àñîšţŕéàɱ àþþ îš öþéñ öñ ţĥîš ƒöļðéŕ, ƣüîţ îţ àñð ţŕý àĝàîñ. { $reason }~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
@@ -6377,6 +6380,18 @@ settings-trailers-always = [Åļŵàýš~~]
 
 # Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 settings-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
+
+# Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+settings-reset = [Ŕéšéţ šéţţîñĝš~~~~~]
+
+# Title of the confirmation for resetting the settings.
+settings-reset-title = [Ŕéšéţ šéţţîñĝš?~~~~~]
+
+# Line under it. The old settings file is moved aside, not deleted.
+settings-reset-detail = [Éṽéŕý šéţţîñĝ ĝöéš ƀàçķ ţö îţš ðéƒàüļţ, ṼÞÑ àñð þŕöẋý îñçļüðéð. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš, àñð ţĥé öļð šéţţîñĝš ƒîļé îš ķéþţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+settings-reset-done = [Šéţţîñĝš àŕé ƀàçķ ţö ţĥéîŕ ðéƒàüļţš. Ţĥé öļð ƒîļé îš ķéþţ àš { $file }.~~~~~~~~~~~~~~~~~~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
